@@ -1,0 +1,30 @@
+{
+  "name": "site7/studio",
+  "description": "Site7 Studio visual website builder and package engine for Craft CMS.",
+  "type": "craft-plugin",
+  "version": "1.0.0",
+  "keywords": [
+    "craft",
+    "cms",
+    "craftcms",
+    "craft-plugin",
+    "site7",
+    "builder"
+  ],
+  "license": "MIT",
+  "require": {
+    "craftcms/cms": "^5.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "site7\\studio\\": "src/"
+    }
+  },
+  "extra": {
+    "name": "Site7 Studio",
+    "handle": "site7-studio",
+    "hasCpSettings": true,
+    "hasCpSection": true,
+    "class": "site7\\studio\\Site7Studio"
+  }
+}
