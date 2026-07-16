@@ -9,12 +9,15 @@ use craft\base\Model;
  */
 class Settings extends Model
 {
+    public ?int $matrixFieldId = null;
+
     /**
      * @inheritdoc
      */
     protected function defineRules(): array
     {
         $rules = parent::defineRules();
+        $rules[] = [['matrixFieldId'], 'integer'];
         return $rules;
     }
 }

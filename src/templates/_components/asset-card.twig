@@ -2,32 +2,25 @@
  # Asset Card Component
  #
  # Params:
- #   name        (string, required) – card title
- #   description (string, required) – card description
- #   category    (string, optional) – category label
- #   status      (string, optional) – Active, Draft, Coming Soon
- #   image       (string, optional) – image URL
+ #   package (PackageRecord, required)
  #}
-<div class="site7-card">
-    {% if status is defined and status %}
-        {% set badgeClass = status|lower == 'active' ? 'site7-badge--active' :
-                            (status|lower == 'draft' ? 'site7-badge--draft' : 'site7-badge--coming-soon') %}
-        <span class="site7-badge {{ badgeClass }}">{{ status }}</span>
-    {% endif %}
+{% set badgeClass = package.status|lower == 'installed' ? 'site7-badge--active' :
+                    (package.status|lower == 'enabled' ? 'site7-badge--active' : 'site7-badge--draft') %}
 
-    <div class="site7-card-image">
-        {% if image is defined and image %}
-            <img src="{{ image }}" alt="{{ name }}">
-        {% else %}
-            <span>Preview</span>
-        {% endif %}
+<a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="site7-card" style="text-decoration: none; display: block; color: inherit;">
+    <span class="site7-badge {{ badgeClass }}" style="position: absolute; top: 10px; right: 10px;">{{ package.status|title }}</span>
+
+    <div class="site7-card-image" style="position: relative;">
+        {# Preview image logic will go here. For now we show placeholder #}
+        <span>Preview</span>
     </div>
 
     <div class="site7-card-body">
-        {% if category is defined and category %}
-            <div class="site7-card-category">{{ category }}</div>
-        {% endif %}
-        <h4 class="site7-card-title">{{ name }}</h4>
-        <p class="site7-card-description">{{ description }}</p>
+        <div class="site7-card-category" style="display: flex; justify-content: space-between;">
+            <span>{{ package.type|title }}</span>
+            <span style="color: #666; font-size: 0.9em;">v{{ package.version }}</span>
+        </div>
+        <h4 class="site7-card-title">{{ package.name }}</h4>
+        <p class="site7-card-description">{{ package.description|default('No description provided.') }}</p>
     </div>
-</div>
+</a>

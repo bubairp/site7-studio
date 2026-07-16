@@ -5,6 +5,8 @@ namespace site7\studio;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
+use craft\events\RegisterUrlRulesEvent;
+use craft\web\UrlManager;
 use site7\studio\base\PluginTrait;
 use site7\studio\models\Settings;
 use site7\studio\providers\CoreServiceProvider;
@@ -17,6 +19,9 @@ use site7\studio\providers\LibraryServiceProvider;
  *
  * @method static Site7Studio getInstance()
  * @method Settings getSettings()
+ * @property-read \site7\studio\services\PackageManagerService $packageManager
+ * @property-read \site7\studio\services\CraftResourceService $craftResourceGenerator
+ * @property-read \site7\studio\services\PackageUsageService $packageUsage
  */
 class Site7Studio extends Plugin
 {
@@ -62,6 +67,20 @@ class Site7Studio extends Plugin
     private function attachEventHandlers(): void
     {
         // Event listeners will be registered in future sprints
+        
+        // Register CP routes to point to our controllers instead of rendering templates directly
+        \yii\base\Event::on(
+            UrlManager::class,
+            UrlManager::EVENT_REGISTER_CP_URL_RULES,
+            function (RegisterUrlRulesEvent $event) {
+                $event->rules['site7-studio'] = 'site7-studio/default/index';
+                $event->rules['site7-studio/setup'] = 'site7-studio/setup/index';
+                $event->rules['site7-studio/setup/complete'] = 'site7-studio/setup/complete';
+                $event->rules['site7-studio/library'] = 'site7-studio/library/index';
+                $event->rules['site7-studio/library/package/<handle:[\w\-]+>'] = 'site7-studio/library/package';
+                $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview'] = 'site7-studio/library/preview';
+            }
+        );
     }
 
     /**

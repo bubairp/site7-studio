@@ -1,0 +1,10 @@
+{
+    "schemaVersion": "1",
+    "handle": "hero-banner",
+    "name": "Hero Banner",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "A high impact hero section.",
+    "dependencies": []
+}

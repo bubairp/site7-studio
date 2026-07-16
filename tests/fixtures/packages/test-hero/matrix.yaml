@@ -1,0 +1,7 @@
+name: Test Hero Matrix
+blocks:
+  - handle: testHeroBlock
+    name: Test Hero Block
+    fields:
+      - heroHeading
+      - heroSubheading

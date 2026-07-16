@@ -1,0 +1,10 @@
+{
+    "schemaVersion": "1",
+    "handle": "faq",
+    "name": "FAQ",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "Frequently asked questions section.",
+    "dependencies": []
+}

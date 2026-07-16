@@ -1,0 +1,28 @@
+{% extends "_layouts/cp" %}
+{% set selectedSubnavItem = "library" %}
+
+{% block sidebar %}
+    {% include "site7-studio/_components/sidebar" with { selectedItem: 'sections' } only %}
+{% endblock %}
+
+{% block content %}
+    <div class="site7-package-preview" style="max-width: 1000px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h1 style="margin: 0;">Preview: {{ package.name }}</h1>
+            <a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="btn">Back to Details</a>
+        </div>
+
+        <div class="site7-card" style="padding: 24px; background: #fff; min-height: 400px;">
+            {% if block is not empty %}
+                {# Temporarily include the template #}
+                {% include '@site7Preview/template.twig' with { block: block } %}
+            {% else %}
+                <div style="text-align: center; color: #666; padding-top: 100px;">
+                    <span data-icon="image" style="font-size: 48px; color: #ccc;"></span>
+                    <h3 style="margin-top: 16px; color: #666;">No Preview Data Available</h3>
+                    <p class="light">Create a preview-data.yaml file in the package to enable preview rendering.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,7 @@
+name: 'Pricing Fields'
+fields:
+  -
+    handle: heading
+    name: Heading
+    type: PlainText
+    instructions: 'The main heading.'

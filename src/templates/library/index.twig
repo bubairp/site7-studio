@@ -25,25 +25,26 @@
 {% endblock %}
 
 {% block content %}
+    {% if not isSetupComplete %}
+        <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 4px; border: 1px solid #ffeeba; margin-bottom: 20px;">
+            <strong>Warning:</strong> You must complete the First-Time Setup Wizard before you can install packages. 
+            <a href="{{ url('site7-studio/setup') }}" style="margin-left: 10px; text-decoration: underline; font-weight: bold;">Complete Setup &rarr;</a>
+        </div>
+    {% endif %}
+
     <div class="site7-card-grid">
-        {% include "site7-studio/_components/asset-card" with { 
-            name: 'Hero Banner', 
-            description: 'A large hero banner with a call to action.',
-            category: 'Headers',
-            status: 'Active'
-        } only %}
-        {% include "site7-studio/_components/asset-card" with { 
-            name: 'Feature List', 
-            description: 'A grid of features with icons.',
-            category: 'Content',
-            status: 'Active'
-        } only %}
-        {% include "site7-studio/_components/asset-card" with { 
-            name: 'Pricing Table', 
-            description: 'Three tier pricing table.',
-            category: 'Commerce',
-            status: 'Draft'
-        } only %}
+        {% for package in packages %}
+            {% include "site7-studio/_components/asset-card" with { 
+                package: package,
+                isSetupComplete: isSetupComplete
+            } only %}
+        {% else %}
+            {% include "site7-studio/_components/empty-state" with { 
+                title: 'No packages found',
+                message: 'No packages were discovered in the configured sources.',
+                icon: 'library'
+            } only %}
+        {% endfor %}
     </div>
 
     {# 

@@ -1,0 +1,64 @@
+{% extends "_layouts/cp" %}
+{% set title = "Site7 Studio Setup" %}
+
+{% set content %}
+<div class="site7-setup-wizard">
+    {% if isComplete %}
+        <div class="pane">
+            <h2>Welcome Back to Site7 Studio</h2>
+            <p>Setup has already been completed. Your Matrix field is configured.</p>
+            <a href="{{ url('site7-studio') }}" class="btn submit">Go to Dashboard</a>
+        </div>
+    {% else %}
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ actionInput('site7-studio/setup/save') }}
+            {{ redirectInput('site7-studio/setup/complete') }}
+
+            <div class="pane">
+                <h2>Welcome to Site7 Studio</h2>
+                <p>Before you can install Site7 packages, we need to configure a Matrix field. Site7 Studio components will automatically inject their Entry Types into this field.</p>
+                <hr>
+                
+                <h3>System Requirements</h3>
+                <ul class="bullets">
+                    <li>Craft CMS 5.0+ <span style="color:green">✓</span></li>
+                    <li>PHP 8.2+ <span style="color:green">✓</span></li>
+                </ul>
+
+                <hr>
+
+                <h3>Matrix Field Configuration</h3>
+                
+                <div class="field">
+                    <label>
+                        <input type="radio" name="matrixOption" value="create" checked> 
+                        <strong>Option A (Recommended)</strong>: Create a new Matrix field automatically. (Name: Site7 Components)
+                    </label>
+                </div>
+                
+                <div class="field">
+                    <label>
+                        <input type="radio" name="matrixOption" value="select"> 
+                        <strong>Option B</strong>: Select an existing Matrix field.
+                    </label>
+                    <div class="select" style="margin-left: 24px; margin-top: 10px;">
+                        <select name="matrixFieldId">
+                            <option value="">-- Select a field --</option>
+                            {% for field in matrixFields %}
+                                <option value="{{ field.id }}">{{ field.name }} ({{ field.handle }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <hr>
+                
+                <div class="buttons">
+                    <input type="submit" class="btn submit" value="Complete Setup">
+                </div>
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endset %}

@@ -1,0 +1,10 @@
+{
+    "schemaVersion": "1",
+    "handle": "team",
+    "name": "Team",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "Team members section.",
+    "dependencies": []
+}

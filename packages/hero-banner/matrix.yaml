@@ -1,0 +1,7 @@
+name: 'Hero Banner Matrix'
+blocks:
+  -
+    handle: heroBanner
+    name: 'Hero Banner'
+    fields:
+      - heading

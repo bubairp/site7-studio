@@ -1,0 +1,10 @@
+name: Test Hero Fields
+fields:
+  - handle: heroHeading
+    name: Hero Heading
+    type: PlainText
+    instructions: The main heading for the hero section.
+  - handle: heroSubheading
+    name: Hero Subheading
+    type: PlainText
+    instructions: A short subtitle for the hero.

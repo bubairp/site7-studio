@@ -1,0 +1,130 @@
+{% extends "_layouts/cp" %}
+{% set selectedSubnavItem = "library" %}
+
+{% block sidebar %}
+    {% include "site7-studio/_components/sidebar" with { selectedItem: 'sections' } only %}
+{% endblock %}
+
+{% block content %}
+    <div class="site7-package-details" style="max-width: 800px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <h1 style="margin: 0;">{{ package.name }}</h1>
+                <span class="site7-badge {{ package.status == 'enabled' ? 'site7-badge--active' : 'site7-badge--draft' }}">{{ package.status|title }}</span>
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+                {% if package.status == 'available' %}
+                    <a href="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview') }}" class="btn">Preview</a>
+                {% endif %}
+
+                {% if not isSetupComplete %}
+                    <a href="{{ url('site7-studio/setup') }}" class="btn submit">Complete Setup to Install</a>
+                {% else %}
+                    {% if package.status == 'available' %}
+                        <form method="post" accept-charset="UTF-8">
+                            {{ csrfInput() }}
+                            <input type="hidden" name="action" value="site7-studio/package-action/install">
+                            <input type="hidden" name="handle" value="{{ package.handle }}">
+                            <button type="submit" class="btn submit">Install Package</button>
+                        </form>
+                    {% else %}
+                        {% if package.status == 'installed' or package.status == 'disabled' %}
+                            <form method="post" accept-charset="UTF-8">
+                                {{ csrfInput() }}
+                                <input type="hidden" name="action" value="site7-studio/package-action/enable">
+                                <input type="hidden" name="handle" value="{{ package.handle }}">
+                                <button type="submit" class="btn submit">Enable</button>
+                            </form>
+                        {% endif %}
+                        
+                        {% if package.status == 'enabled' %}
+                            <form method="post" accept-charset="UTF-8">
+                                {{ csrfInput() }}
+                                <input type="hidden" name="action" value="site7-studio/package-action/disable">
+                                <input type="hidden" name="handle" value="{{ package.handle }}">
+                                <button type="submit" class="btn {{ usage is not empty ? 'disabled' : '' }}" {{ usage is not empty ? 'disabled title="Cannot disable while in use"' : '' }}>Disable</button>
+                            </form>
+                        {% endif %}
+                        
+                        <form method="post" accept-charset="UTF-8" data-confirm="Are you sure you want to remove this package?">
+                            {{ csrfInput() }}
+                            <input type="hidden" name="action" value="site7-studio/package-action/remove">
+                            <input type="hidden" name="handle" value="{{ package.handle }}">
+                            <button type="submit" class="btn delete icon {{ usage is not empty ? 'disabled' : '' }}" title="Remove" {{ usage is not empty ? 'disabled title="Cannot remove while in use"' : '' }}>Remove</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="site7-card" style="padding: 24px;">
+            <h3>Overview</h3>
+            <p>{{ package.description|default('No description provided.') }}</p>
+            
+            <table class="data fullwidth" style="margin-top: 24px;">
+                <tbody>
+                    <tr>
+                        <th style="width: 30%;">Author</th>
+                        <td>{{ package.author|default('Unknown') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Version</th>
+                        <td>{{ package.version }}</td>
+                    </tr>
+                    <tr>
+                        <th>Package Type</th>
+                        <td>{{ package.type|title }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="site7-card" style="padding: 24px; margin-top: 24px;">
+            <h3>Compatibility & Dependencies</h3>
+            
+            <table class="data fullwidth" style="margin-top: 16px;">
+                <tbody>
+                    <tr>
+                        <th style="width: 30%;">Required Craft Version</th>
+                        <td>{{ package.requiredCraftVersion|default('Not specified') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Required Site7 Version</th>
+                        <td>{{ package.minimumStudioVersion|default('Not specified') }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            {# Dependencies would ideally be fetched from site7_package_dependencies but for read-only metadata we might need to rely on the manifest if it's available or join. 
+               Since it wasn't explicitly populated into a relation yet, we will just show a placeholder or note. #}
+            <h4 style="margin-top: 24px;">Dependencies</h4>
+            <p class="light">No dependencies required.</p>
+        <div class="site7-card" style="padding: 24px; margin-top: 24px;">
+            <h3>Usage</h3>
+            {% if usage is empty %}
+                <p class="light">This package is not currently used in any entries.</p>
+            {% else %}
+                <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; border: 1px solid #ffeeba; margin-top: 10px; margin-bottom: 16px;">
+                    <strong>In Use:</strong> This package cannot be disabled or removed while it is being used in content.
+                </div>
+                <table class="data fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Entry Title</th>
+                            <th style="width: 100px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in usage %}
+                            <tr>
+                                <td>{{ entry.title }} <span class="light">({{ entry.section.name|default('Unknown Section') }})</span></td>
+                                <td><a href="{{ entry.cpEditUrl }}" target="_blank">Edit &rarr;</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

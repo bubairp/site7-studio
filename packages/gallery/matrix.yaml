@@ -1,0 +1,7 @@
+name: 'Gallery Matrix'
+blocks:
+  -
+    handle: gallery
+    name: Gallery
+    fields:
+      - heading

@@ -13,16 +13,29 @@
 
     <div class="pane">
         <h2>{{ "Platform Status"|t('site7-studio') }}</h2>
-        <div class="meta">
+        <div class="meta" style="margin-bottom: 20px;">
             <div class="data">
-                <dt>{{ "Status"|t('site7-studio') }}</dt>
-                <dd><span class="status green"></span> {{ platformStatus ?? 'Active' }}</dd>
+                <dt>{{ "Setup Status"|t('site7-studio') }}</dt>
+                <dd>
+                    {% if isSetupComplete %}
+                        <span class="status green"></span> ✓ Setup Complete
+                    {% else %}
+                        <span class="status red"></span> ⚠ Setup Required
+                    {% endif %}
+                </dd>
             </div>
             <div class="data">
                 <dt>{{ "Current Phase"|t('site7-studio') }}</dt>
-                <dd>{{ currentPhase ?? 'Phase 3.5' }}</dd>
+                <dd>{{ currentPhase ?? 'Phase 7.0' }}</dd>
             </div>
         </div>
+
+        {% if not isSetupComplete %}
+            <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 4px; border: 1px solid #ffeeba;">
+                <strong>Warning:</strong> You must complete the First-Time Setup Wizard before you can install Site7 packages.<br><br>
+                <a href="{{ url('site7-studio/setup') }}" class="btn submit">Complete Setup</a>
+            </div>
+        {% endif %}
     </div>
 
     <div class="site7-quick-actions">
