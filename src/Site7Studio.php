@@ -79,6 +79,7 @@ class Site7Studio extends Plugin
                 $event->rules['site7-studio/library'] = 'site7-studio/library/index';
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>'] = 'site7-studio/library/package';
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview'] = 'site7-studio/library/preview';
+                $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview-image'] = 'site7-studio/library/preview-image';
             }
         );
     }

@@ -14,9 +14,8 @@
             </div>
             
             <div style="display: flex; gap: 8px;">
-                {% if package.status == 'available' %}
-                    <a href="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview') }}" class="btn">Preview</a>
-                {% endif %}
+                {# Preview button is ALWAYS visible, regardless of status #}
+                <a href="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview') }}" class="btn">Preview</a>
 
                 {% if not isSetupComplete %}
                     <a href="{{ url('site7-studio/setup') }}" class="btn submit">Complete Setup to Install</a>
@@ -24,6 +23,7 @@
                     {% if package.status == 'available' %}
                         <form method="post" accept-charset="UTF-8">
                             {{ csrfInput() }}
+                            {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
                             <input type="hidden" name="action" value="site7-studio/package-action/install">
                             <input type="hidden" name="handle" value="{{ package.handle }}">
                             <button type="submit" class="btn submit">Install Package</button>
@@ -32,6 +32,7 @@
                         {% if package.status == 'installed' or package.status == 'disabled' %}
                             <form method="post" accept-charset="UTF-8">
                                 {{ csrfInput() }}
+                                {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
                                 <input type="hidden" name="action" value="site7-studio/package-action/enable">
                                 <input type="hidden" name="handle" value="{{ package.handle }}">
                                 <button type="submit" class="btn submit">Enable</button>
@@ -39,19 +40,33 @@
                         {% endif %}
                         
                         {% if package.status == 'enabled' %}
-                            <form method="post" accept-charset="UTF-8">
+                            <form method="post" accept-charset="UTF-8" id="disableForm">
                                 {{ csrfInput() }}
+                                {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
                                 <input type="hidden" name="action" value="site7-studio/package-action/disable">
                                 <input type="hidden" name="handle" value="{{ package.handle }}">
-                                <button type="submit" class="btn {{ usage is not empty ? 'disabled' : '' }}" {{ usage is not empty ? 'disabled title="Cannot disable while in use"' : '' }}>Disable</button>
+                                <button type="button" class="btn {{ usage is not empty ? 'disabled' : '' }}" 
+                                    {% if usage is not empty %}
+                                        disabled title="Cannot disable while in use"
+                                    {% else %}
+                                        onclick="if(confirm('Are you sure you want to disable this package? It will no longer be available to content editors.')) { this.closest('form').submit(); }"
+                                    {% endif %}
+                                >Disable</button>
                             </form>
                         {% endif %}
                         
-                        <form method="post" accept-charset="UTF-8" data-confirm="Are you sure you want to remove this package?">
+                        <form method="post" accept-charset="UTF-8" id="removeForm">
                             {{ csrfInput() }}
+                            {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
                             <input type="hidden" name="action" value="site7-studio/package-action/remove">
                             <input type="hidden" name="handle" value="{{ package.handle }}">
-                            <button type="submit" class="btn delete icon {{ usage is not empty ? 'disabled' : '' }}" title="Remove" {{ usage is not empty ? 'disabled title="Cannot remove while in use"' : '' }}>Remove</button>
+                            <button type="button" class="btn delete icon {{ usage is not empty ? 'disabled' : '' }}" 
+                                {% if usage is not empty %}
+                                    disabled title="Cannot remove while in use"
+                                {% else %}
+                                    onclick="if(confirm('Are you sure you want to remove this package? This will delete all generated fields, entry types, and templates.')) { this.closest('form').submit(); }"
+                                {% endif %}
+                            >Remove</button>
                         </form>
                     {% endif %}
                 {% endif %}
@@ -81,7 +96,7 @@
         </div>
 
         <div class="site7-card" style="padding: 24px; margin-top: 24px;">
-            <h3>Compatibility & Dependencies</h3>
+            <h3>Compatibility &amp; Dependencies</h3>
             
             <table class="data fullwidth" style="margin-top: 16px;">
                 <tbody>
@@ -96,15 +111,13 @@
                 </tbody>
             </table>
             
-            {# Dependencies would ideally be fetched from site7_package_dependencies but for read-only metadata we might need to rely on the manifest if it's available or join. 
-               Since it wasn't explicitly populated into a relation yet, we will just show a placeholder or note. #}
             <h4 style="margin-top: 24px;">Dependencies</h4>
             <p class="light">No dependencies required.</p>
+        </div>
+
         <div class="site7-card" style="padding: 24px; margin-top: 24px;">
             <h3>Usage</h3>
-            {% if usage is empty %}
-                <p class="light">This package is not currently used in any entries.</p>
-            {% else %}
+            {% if usage is defined and usage is not empty %}
                 <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; border: 1px solid #ffeeba; margin-top: 10px; margin-bottom: 16px;">
                     <strong>In Use:</strong> This package cannot be disabled or removed while it is being used in content.
                 </div>
@@ -124,6 +137,8 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            {% else %}
+                <p class="light">This package is not currently used in any entries.</p>
             {% endif %}
         </div>
     </div>

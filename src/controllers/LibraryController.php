@@ -2,6 +2,7 @@
 
 namespace site7\studio\controllers;
 
+use Craft;
 use craft\web\Controller;
 use site7\studio\Site7Studio;
 
@@ -57,22 +58,41 @@ class LibraryController extends Controller
         }
         
         $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($handle);
-        if (!$packagePath) {
-            throw new \yii\web\NotFoundHttpException("Package path not found");
-        }
 
-        $previewDataPath = $packagePath . '/preview-data.yaml';
-        $previewData = [];
-        if (file_exists($previewDataPath)) {
-            $previewData = \Symfony\Component\Yaml\Yaml::parseFile($previewDataPath);
+        // Check if a preview image exists
+        $hasPreviewImage = false;
+        if ($packagePath) {
+            $previewImagePath = $packagePath . '/preview/preview.png';
+            $hasPreviewImage = file_exists($previewImagePath);
         }
-
-        \Craft::$app->getView()->getTwig()->getLoader()->addPath($packagePath, 'site7Preview');
 
         return $this->renderTemplate('site7-studio/library/preview', [
             'title' => 'Preview: ' . $package->name,
             'package' => $package,
-            'block' => $previewData,
+            'hasPreviewImage' => $hasPreviewImage,
         ]);
+    }
+
+    /**
+     * Serves a package preview image directly.
+     */
+    public function actionPreviewImage(string $handle)
+    {
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($handle);
+        if (!$packagePath) {
+            throw new \yii\web\NotFoundHttpException("Package not found");
+        }
+
+        $imagePath = $packagePath . '/preview/preview.png';
+        if (!file_exists($imagePath)) {
+            throw new \yii\web\NotFoundHttpException("Preview image not found");
+        }
+
+        $response = Craft::$app->getResponse();
+        $response->headers->set('Content-Type', 'image/png');
+        $response->headers->set('Cache-Control', 'public, max-age=86400');
+        $response->format = \yii\web\Response::FORMAT_RAW;
+        $response->data = file_get_contents($imagePath);
+        return $response;
     }
 }

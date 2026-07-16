@@ -151,8 +151,7 @@ class PackageManagerService extends Component
                 // Save generated resource UIDs somewhere? For MVP, we will rely on handle conventions
             }
 
-            // Link to matrix
-            $this->linkToMatrix($handle);
+            // NOTE: Install does NOT link to Matrix. User must click "Enable" to do that.
 
             // 2. Update status
             $record->status = 'installed';
@@ -161,6 +160,10 @@ class PackageManagerService extends Component
             }
 
             $transaction->commit();
+
+            // Auto-sync project config so "Apply YAML Changes" banner never appears
+            Craft::$app->getProjectConfig()->rebuild();
+
             return true;
         } catch (\Throwable $e) {
             $transaction->rollBack();
@@ -178,7 +181,9 @@ class PackageManagerService extends Component
     public function enablePackage(string $handle): bool
     {
         $this->linkToMatrix($handle);
-        return $this->updatePackageStatus($handle, 'enabled');
+        $result = $this->updatePackageStatus($handle, 'enabled');
+        Craft::$app->getProjectConfig()->rebuild();
+        return $result;
     }
 
     /**
@@ -187,7 +192,9 @@ class PackageManagerService extends Component
     public function disablePackage(string $handle): bool
     {
         $this->unlinkFromMatrix($handle);
-        return $this->updatePackageStatus($handle, 'disabled');
+        $result = $this->updatePackageStatus($handle, 'disabled');
+        Craft::$app->getProjectConfig()->rebuild();
+        return $result;
     }
 
     /**
@@ -200,12 +207,12 @@ class PackageManagerService extends Component
         // Remove resources
         $packagePath = $this->getPackagePath($handle);
         if ($packagePath && is_dir($packagePath)) {
-            // We need to pass the actual resources or let a cleanup service find them.
-            // For MVP, we'll let CraftResourceService clean up by reading matrix.yaml
             \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->removePackageResources($packagePath);
         }
 
-        return $this->updatePackageStatus($handle, 'available');
+        $result = $this->updatePackageStatus($handle, 'available');
+        Craft::$app->getProjectConfig()->rebuild();
+        return $result;
     }
 
     /**

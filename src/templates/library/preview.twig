@@ -13,16 +13,43 @@
         </div>
 
         <div class="site7-card" style="padding: 24px; background: #fff; min-height: 400px;">
-            {% if block is not empty %}
-                {# Temporarily include the template #}
-                {% include '@site7Preview/template.twig' with { block: block } %}
+            {% if hasPreviewImage %}
+                <div style="text-align: center;">
+                    <img src="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview-image') }}" 
+                         alt="Preview of {{ package.name }}" 
+                         style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1);">
+                </div>
             {% else %}
                 <div style="text-align: center; color: #666; padding-top: 100px;">
                     <span data-icon="image" style="font-size: 48px; color: #ccc;"></span>
-                    <h3 style="margin-top: 16px; color: #666;">No Preview Data Available</h3>
-                    <p class="light">Create a preview-data.yaml file in the package to enable preview rendering.</p>
+                    <h3 style="margin-top: 16px; color: #666;">No Preview Available</h3>
+                    <p class="light">This package does not have a preview image yet.</p>
                 </div>
             {% endif %}
+        </div>
+
+        {# Package info below the preview #}
+        <div class="site7-card" style="padding: 24px; margin-top: 16px;">
+            <table class="data fullwidth">
+                <tbody>
+                    <tr>
+                        <th style="width: 30%;">Package</th>
+                        <td>{{ package.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Version</th>
+                        <td>{{ package.version }}</td>
+                    </tr>
+                    <tr>
+                        <th>Type</th>
+                        <td>{{ package.type|title }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td><span class="site7-badge {{ package.status == 'enabled' ? 'site7-badge--active' : 'site7-badge--draft' }}">{{ package.status|title }}</span></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 {% endblock %}

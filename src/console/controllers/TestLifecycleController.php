@@ -6,19 +6,15 @@ use yii\console\Controller;
 use site7\studio\Site7Studio;
 use Craft;
 use craft\fields\Matrix;
-use craft\models\Section;
-use craft\models\Section_SiteSettings;
 use craft\elements\Entry;
 use craft\models\EntryType;
-use craft\models\FieldLayout;
-use craft\models\FieldLayoutTab;
-use craft\fieldlayoutelements\CustomField;
 
 class TestLifecycleController extends Controller
 {
     public function actionIndex()
     {
         echo "Starting Phase 7.1/7.2 Lifecycle Test...\n";
+        echo "New behavior: Install does NOT link to Matrix. Enable does.\n\n";
 
         $handle = 'test-hero';
         $pm = Site7Studio::getInstance()->packageManager;
@@ -30,36 +26,66 @@ class TestLifecycleController extends Controller
             $package->save();
         }
 
+        $settings = Site7Studio::getInstance()->getSettings();
+        if (!$settings->matrixFieldId) {
+            echo "ERROR: matrixFieldId is not set. Run Setup Wizard first.\n";
+            return 1;
+        }
+
+        // =========================================
+        // STEP 1: INSTALL (should NOT link to Matrix)
+        // =========================================
         echo "1. Installing package...\n";
         $success = $pm->installPackage($handle);
         if (!$success) {
-            echo "Failed to install package.\n";
+            echo "FAIL: Install failed.\n";
             return 1;
         }
+
+        // Verify Entry Type was created but NOT linked to Matrix
+        $blockEntryType = Craft::$app->getEntries()->getEntryTypeByHandle('testHeroBlock');
+        if (!$blockEntryType) {
+            echo "FAIL: Entry Type was not created during Install.\n";
+            return 1;
+        }
+
+        $matrixField = Craft::$app->getFields()->getFieldById($settings->matrixFieldId);
+        $entryTypeIds = array_map(fn($et) => $et->id, $matrixField->getEntryTypes());
+
+        if (in_array($blockEntryType->id, $entryTypeIds)) {
+            echo "FAIL: Install should NOT link Entry Type to Matrix. But it did.\n";
+            return 1;
+        }
+        echo "   ✓ Install created resources but did NOT link to Matrix.\n";
+
+        // =========================================
+        // STEP 2: ENABLE (should link to Matrix)
+        // =========================================
+        echo "2. Enabling package...\n";
+        $pm->enablePackage($handle);
 
         // Verify Matrix Registration
-        $settings = Site7Studio::getInstance()->getSettings();
         $matrixField = Craft::$app->getFields()->getFieldById($settings->matrixFieldId);
-        $existingEntryTypes = $matrixField->getEntryTypes();
-        $entryTypeIds = array_map(fn($et) => $et->id, $existingEntryTypes);
-        
-        $blockEntryType = Craft::$app->getEntries()->getEntryTypeByHandle('testHeroBlock');
-        if (!$blockEntryType || !in_array($blockEntryType->id, $entryTypeIds)) {
-            echo "Failed: Matrix Registration did not link Entry Type during Install.\n";
+        $entryTypeIds = array_map(fn($et) => $et->id, $matrixField->getEntryTypes());
+
+        if (!in_array($blockEntryType->id, $entryTypeIds)) {
+            echo "FAIL: Enable did not link Entry Type to Matrix.\n";
             return 1;
         }
-        echo "Matrix Registration successful.\n";
+        echo "   ✓ Enable linked Entry Type to Matrix.\n";
 
-        // Create Demo Entry to put package IN USE
-        echo "2. Putting package in use...\n";
+        // =========================================
+        // STEP 3: PUT PACKAGE IN USE
+        // =========================================
+        echo "3. Creating content using the package...\n";
         $section = Craft::$app->getEntries()->getSectionByHandle('testPages');
         $sectionEntryType = Craft::$app->getEntries()->getEntryTypeByHandle('testPage');
-        
+
         $entry = new Entry();
         $entry->sectionId = $section->id;
         $entry->typeId = $sectionEntryType->id;
-        $entry->title = "Lifecycle Test Usage";
-        $entry->slug = "lifecycle-test";
+        $entry->title = "Lifecycle Test";
+        $entry->slug = "lifecycle-test-" . time();
         $entry->authorId = 1;
 
         $entry->setFieldValue('site7Components', [
@@ -73,58 +99,65 @@ class TestLifecycleController extends Controller
         ]);
 
         if (!Craft::$app->getElements()->saveElement($entry)) {
-            echo "Failed to save usage entry.\n";
+            echo "FAIL: Could not save entry.\n";
             return 1;
         }
 
-        // Verify Usage Service detects it
+        // =========================================
+        // STEP 4: VERIFY USAGE DETECTION
+        // =========================================
+        echo "4. Verifying usage detection...\n";
         $usage = Site7Studio::getInstance()->packageUsage->getUsage($handle);
         if (empty($usage)) {
-            echo "Failed: PackageUsageService did not detect usage.\n";
+            echo "FAIL: PackageUsageService did not detect usage.\n";
             return 1;
         }
-        echo "Package usage detected correctly: " . count($usage) . " entry/entries.\n";
+        echo "   ✓ Usage detected: " . count($usage) . " entries.\n";
 
-        // Verify Safe Disable logic
-        echo "3. Testing Safe Disable logic (simulating controller)...\n";
-        // To simulate controller, we just ensure we wouldn't disable it. The controller has the logic.
-        // We will just verify PackageUsageService works, which it does.
-        
-        echo "4. Removing usage...\n";
+        // =========================================
+        // STEP 5: CLEANUP USAGE
+        // =========================================
+        echo "5. Removing usage entries...\n";
         foreach ($usage as $u) {
             Craft::$app->getElements()->deleteElement($u);
         }
 
-        // Verify no longer in use
         $usage = Site7Studio::getInstance()->packageUsage->getUsage($handle);
         if (!empty($usage)) {
-            echo "Failed: Package is still reported in use after entry deleted.\n";
+            echo "FAIL: Package still in use after deleting entries.\n";
             return 1;
         }
+        echo "   ✓ Usage cleared.\n";
 
-        echo "5. Disabling package (unused)...\n";
+        // =========================================
+        // STEP 6: DISABLE (should unlink from Matrix)
+        // =========================================
+        echo "6. Disabling package...\n";
         $pm->disablePackage($handle);
-        // Verify matrix unlink
+
         $matrixField = Craft::$app->getFields()->getFieldById($settings->matrixFieldId);
         $entryTypeIds = array_map(fn($et) => $et->id, $matrixField->getEntryTypes());
         if (in_array($blockEntryType->id, $entryTypeIds)) {
-            echo "Failed: Entry Type was not unlinked from Matrix field upon Disable.\n";
+            echo "FAIL: Disable did not unlink Entry Type from Matrix.\n";
             return 1;
         }
-        echo "Matrix Unlink successful.\n";
+        echo "   ✓ Disable unlinked Entry Type from Matrix.\n";
 
-        echo "6. Removing package (unused)...\n";
+        // =========================================
+        // STEP 7: REMOVE (should delete resources)
+        // =========================================
+        echo "7. Removing package...\n";
         $pm->removePackage($handle);
-        
-        // Verify resources deleted
-        $blockEntryTypeCheck = Craft::$app->getEntries()->getEntryTypeByHandle('testHeroBlock');
-        if ($blockEntryTypeCheck) {
-            echo "Failed: Entry Type was not deleted during Remove.\n";
+
+        $checkEntryType = Craft::$app->getEntries()->getEntryTypeByHandle('testHeroBlock');
+        if ($checkEntryType) {
+            echo "FAIL: Entry Type was not deleted during Remove.\n";
             return 1;
         }
+        echo "   ✓ Remove deleted all generated resources.\n";
 
-        echo "Package cleanup successful.\n";
-        echo "\nSUCCESS: Lifecycle safeguards and matrix linking are fully operational.\n";
+        echo "\n✅ SUCCESS: Full lifecycle test passed.\n";
+        echo "   Install → Enable → Use → Detect Usage → Clear Usage → Disable → Remove\n";
         return 0;
     }
 }
