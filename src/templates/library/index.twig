@@ -1,0 +1,56 @@
+{% extends "_layouts/cp" %}
+{% set title = "Library" %}
+{% set selectedSubnavItem = "library" %}
+
+{% block sidebar %}
+    {% include "site7-studio/_components/sidebar" with { selectedItem: 'sections' } only %}
+{% endblock %}
+
+{% block toolbar %}
+    <div class="flex flex-nowrap align-center" style="width: 100%;">
+        <div class="flex-grow">
+            <div class="texticon search icon clearable">
+                {{ tag('input', {
+                    id: 'site7-search-input',
+                    type: 'text',
+                    class: 'text fullwidth',
+                    placeholder: 'Search sections...',
+                    'aria-label': 'Search',
+                }) }}
+                <div class="clear hidden" title="Clear"></div>
+            </div>
+        </div>
+        <div class="btn menubtn" data-icon="filter">{{ "Filter"|t('site7-studio') }}</div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="site7-card-grid">
+        {% include "site7-studio/_components/asset-card" with { 
+            name: 'Hero Banner', 
+            description: 'A large hero banner with a call to action.',
+            category: 'Headers',
+            status: 'Active'
+        } only %}
+        {% include "site7-studio/_components/asset-card" with { 
+            name: 'Feature List', 
+            description: 'A grid of features with icons.',
+            category: 'Content',
+            status: 'Active'
+        } only %}
+        {% include "site7-studio/_components/asset-card" with { 
+            name: 'Pricing Table', 
+            description: 'Three tier pricing table.',
+            category: 'Commerce',
+            status: 'Draft'
+        } only %}
+    </div>
+
+    {# 
+    {% include "site7-studio/_components/empty-state" with { 
+        message: 'No Assets Found',
+        subtext: 'Try adjusting your filters or search query.',
+        icon: '🔍'
+    } only %} 
+    #}
+{% endblock %}

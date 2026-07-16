@@ -38,4 +38,36 @@ trait PluginTrait
     {
         return $this->get('permissions');
     }
+
+    /**
+     * @return \site7\studio\interfaces\ManifestReaderInterface|null
+     */
+    public function getManifestReader(): ?\craft\base\Component
+    {
+        return $this->get('manifestReader');
+    }
+
+    /**
+     * @return \site7\studio\interfaces\ComponentRegistryInterface|null
+     */
+    public function getComponentRegistry(): ?\craft\base\Component
+    {
+        return $this->get('componentRegistry');
+    }
+
+    /**
+     * @return \site7\studio\interfaces\SearchServiceInterface|null
+     */
+    public function getSearchService(): ?\craft\base\Component
+    {
+        return $this->get('searchService');
+    }
+
+    /**
+     * @return \site7\studio\interfaces\LibraryServiceInterface|null
+     */
+    public function getLibraryService(): ?\craft\base\Component
+    {
+        return $this->get('libraryService');
+    }
 }

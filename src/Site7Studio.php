@@ -10,6 +10,7 @@ use site7\studio\models\Settings;
 use site7\studio\providers\CoreServiceProvider;
 use site7\studio\providers\CpServiceProvider;
 use site7\studio\providers\EventServiceProvider;
+use site7\studio\providers\LibraryServiceProvider;
 
 /**
  * Site7 Studio plugin
@@ -50,6 +51,7 @@ class Site7Studio extends Plugin
             new CoreServiceProvider(),
             new EventServiceProvider(),
             new CpServiceProvider(),
+            new LibraryServiceProvider(),
         ];
 
         foreach ($providers as $provider) {
@@ -65,6 +67,15 @@ class Site7Studio extends Plugin
     /**
      * @inheritdoc
      */
+    public function getCpNavItem(): ?array
+    {
+        $items = $this->getNavigation()->getNavItems();
+        return $items[0] ?? parent::getCpNavItem();
+    }
+
+    /**
+     * @inheritdoc
+     */
     protected function createSettingsModel(): ?Model
     {
         return new Settings();
@@ -73,13 +84,10 @@ class Site7Studio extends Plugin
     /**
      * @inheritdoc
      */
-    protected function settingsHtml(): ?string
+    public function getSettingsResponse(): mixed
     {
-        return Craft::$app->view->renderTemplate(
-            'site7-studio/settings',
-            [
-                'settings' => $this->getSettings()
-            ]
+        return Craft::$app->getResponse()->redirect(
+            \craft\helpers\UrlHelper::cpUrl('site7-studio/settings')
         );
     }
 }

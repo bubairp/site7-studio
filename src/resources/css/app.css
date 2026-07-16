@@ -1,0 +1,172 @@
+/* ==========================================================================
+   Site7 Studio – Custom Styles
+   Only styles for patterns that Craft CMS does not provide natively.
+   Everything else uses Craft's built-in CP classes.
+   ========================================================================== */
+
+/* ----- Asset Card Grid ----- */
+/* Craft has no built-in card grid. This is custom. */
+.site7-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* ----- Asset Card ----- */
+/* Craft has no preview card component. This is custom. */
+.site7-card {
+    position: relative;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--large-border-radius);
+    overflow: hidden;
+    background: var(--white);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.site7-card:hover {
+    border-color: var(--gray-300);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.site7-card-image {
+    background: var(--gray-050);
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-400);
+    font-size: var(--font-size);
+}
+
+.site7-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.site7-card-body {
+    padding: 16px;
+}
+
+.site7-card-category {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+}
+
+.site7-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 4px 0;
+}
+
+.site7-card-description {
+    font-size: 13px;
+    color: var(--gray-500);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* ----- Status Badge (on card) ----- */
+/* Craft has status dots, but not pill badges for cards. */
+.site7-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+}
+
+.site7-badge--active {
+    background-color: var(--teal-050);
+    color: var(--teal-700);
+}
+
+.site7-badge--draft {
+    background-color: var(--yellow-050);
+    color: var(--yellow-700);
+}
+
+.site7-badge--coming-soon {
+    background-color: var(--gray-100);
+    color: var(--gray-500);
+}
+
+.site7-card .site7-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+/* ----- Dashboard Stat Cards ----- */
+/* Craft has no stat/metric card. This is custom. */
+.site7-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.site7-stat-card {
+    background: var(--gray-050);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--medium-border-radius);
+    padding: 16px;
+    text-align: center;
+}
+
+.site7-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gray-900);
+    line-height: 1.2;
+}
+
+.site7-stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
+/* ----- Quick Actions Block (Dashboard) ----- */
+.site7-quick-actions {
+    margin-top: 24px;
+}
+
+.site7-quick-actions h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin: 0 0 12px 0;
+}
+
+/* ----- Widget Overrides ----- */
+.site7-widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.site7-widget-phase {
+    display: inline-block;
+    background: var(--gray-100);
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--gray-600);
+}

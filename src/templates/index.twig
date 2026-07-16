@@ -1,6 +1,36 @@
 {% extends "_layouts/cp" %}
-{% set title = "Site7 Studio" %}
+{% set title = "Dashboard" %}
+{% set selectedSubnavItem = "dashboard" %}
+
+
 
 {% block content %}
-    <p>Welcome to the Site7 Studio Control Panel.</p>
+    <div class="site7-stat-grid">
+        {% include "site7-studio/_components/stat-card" with { value: sectionsCount ?? 0, label: 'Installed Sections' } only %}
+        {% include "site7-studio/_components/stat-card" with { value: templatesCount ?? 0, label: 'Installed Templates' } only %}
+        {% include "site7-studio/_components/stat-card" with { value: version ?? '1.0.0', label: 'Version' } only %}
+    </div>
+
+    <div class="pane">
+        <h2>{{ "Platform Status"|t('site7-studio') }}</h2>
+        <div class="meta">
+            <div class="data">
+                <dt>{{ "Status"|t('site7-studio') }}</dt>
+                <dd><span class="status green"></span> {{ platformStatus ?? 'Active' }}</dd>
+            </div>
+            <div class="data">
+                <dt>{{ "Current Phase"|t('site7-studio') }}</dt>
+                <dd>{{ currentPhase ?? 'Phase 3.5' }}</dd>
+            </div>
+        </div>
+    </div>
+
+    <div class="site7-quick-actions">
+        <h3>{{ "Quick Actions"|t('site7-studio') }}</h3>
+        <div class="flex">
+            <a href="{{ url('site7-studio/library') }}" class="btn submit">{{ "Browse Library"|t('site7-studio') }}</a>
+            <a href="{{ url('site7-studio/templates') }}" class="btn">{{ "Templates"|t('site7-studio') }}</a>
+            <a href="{{ url('site7-studio/settings') }}" class="btn">{{ "Settings"|t('site7-studio') }}</a>
+        </div>
+    </div>
 {% endblock %}

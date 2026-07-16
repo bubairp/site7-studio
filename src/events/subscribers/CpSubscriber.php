@@ -3,10 +3,8 @@
 namespace site7\studio\events\subscribers;
 
 use Craft;
-use craft\events\RegisterCpNavItemsEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\services\UserPermissions;
-use craft\web\twig\variables\Cp;
 use site7\studio\events\EventSubscriberInterface;
 use site7\studio\events\RegisterNavigationEvent;
 use site7\studio\events\RegisterPermissionsEvent;
@@ -27,29 +25,18 @@ class CpSubscriber implements EventSubscriberInterface
     {
         return [
             // Subscribe to Craft Core Events
-            [Cp::class, Cp::EVENT_REGISTER_CP_NAV_ITEMS, 'onRegisterCpNavItems'],
             [UserPermissions::class, UserPermissions::EVENT_REGISTER_PERMISSIONS, 'onRegisterPermissions'],
             
             // Subscribe to Site7 Internal Registry Events
             [RegisterNavigationEvent::class, RegisterNavigationEvent::class, 'onRegisterSite7Navigation'],
             [RegisterPermissionsEvent::class, RegisterPermissionsEvent::class, 'onRegisterSite7Permissions'],
+            
+            // Subscribe to Widget Registration
+            [\craft\services\Dashboard::class, \craft\services\Dashboard::EVENT_REGISTER_WIDGET_TYPES, 'onRegisterWidgetTypes'],
         ];
     }
 
-    /**
-     * Handles Craft's native CP Nav registration event.
-     * We retrieve all compiled items from our internal NavigationRegistry and inject them.
-     *
-     * @param RegisterCpNavItemsEvent $event
-     */
-    public function onRegisterCpNavItems(RegisterCpNavItemsEvent $event): void
-    {
-        $items = Site7Studio::getInstance()->getNavigation()->getNavItems();
-        
-        foreach ($items as $item) {
-            $event->navItems[] = $item;
-        }
-    }
+
 
     /**
      * Handles Craft's native Permission registration event.
@@ -77,6 +64,12 @@ class CpSubscriber implements EventSubscriberInterface
             'url' => 'site7-studio',
             'label' => 'Site7 Studio',
             'icon' => '@site7/studio/icon.svg',
+            'subnav' => [
+                'dashboard' => ['label' => 'Dashboard', 'url' => 'site7-studio'],
+                'library' => ['label' => 'Library', 'url' => 'site7-studio/library'],
+                'templates' => ['label' => 'Templates', 'url' => 'site7-studio/templates'],
+                'settings' => ['label' => 'Settings', 'url' => 'site7-studio/settings'],
+            ],
         ]);
     }
 
@@ -92,5 +85,15 @@ class CpSubscriber implements EventSubscriberInterface
             'accessSite7Studio', 
             ['label' => 'Access Site7 Studio']
         );
+    }
+
+    /**
+     * Registers Site7 Studio dashboard widgets.
+     *
+     * @param \craft\events\RegisterComponentTypesEvent $event
+     */
+    public function onRegisterWidgetTypes(\craft\events\RegisterComponentTypesEvent $event): void
+    {
+        $event->types[] = \site7\studio\widgets\LibraryWidget::class;
     }
 }

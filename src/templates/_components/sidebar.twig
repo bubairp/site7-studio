@@ -1,0 +1,22 @@
+{#
+ # Library Sidebar Component
+ #
+ # Uses Craft's built-in _includes/nav pattern with heading groups.
+ # Renders inside {% block sidebar %} in the CP layout.
+ #
+ # Params:
+ #   selectedItem (string, optional) – key of the currently selected nav item
+ #}
+{% set sidebarItems = {
+    library: { heading: 'Library', nested: {
+        sections: { label: 'Sections', url: 'site7-studio/library' },
+        patterns: { label: 'Patterns', url: 'site7-studio/library' },
+        kits: { label: 'Starter Kits', url: 'site7-studio/library' },
+    }},
+} %}
+
+{% include "_includes/nav" with {
+    label: 'Library Navigation',
+    items: sidebarItems,
+    selectedItem: selectedItem ?? 'browse',
+} only %}

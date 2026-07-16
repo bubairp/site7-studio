@@ -1,0 +1,24 @@
+<div class="site7-widget">
+    <div class="site7-widget-header">
+        <div class="site7-widget-meta">
+            <strong>{{ "Version"|t('site7-studio') }}:</strong> {{ version }}<br>
+            <strong>{{ "Status"|t('site7-studio') }}:</strong> <span class="site7-status-active">{{ platformStatus }}</span>
+        </div>
+        <div>
+            <span class="site7-widget-phase">{{ "Phase"|t('site7-studio') }}: {{ currentPhase }}</span>
+        </div>
+    </div>
+
+    <div class="site7-stat-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 16px;">
+        {% include "site7-studio/_components/stat-card" with { value: componentsCount ?? 0, label: 'Installed Sections' } only %}
+        {% include "site7-studio/_components/stat-card" with { value: templatesCount ?? 0, label: 'Installed Templates' } only %}
+    </div>
+
+    <div class="site7-quick-actions">
+        <h3>{{ "Quick Actions"|t('site7-studio') }}</h3>
+        <div class="site7-quick-actions-row">
+            <a href="{{ url('site7-studio/library') }}" class="btn submit">{{ "Browse Library"|t('site7-studio') }}</a>
+            <a href="{{ url('site7-studio/settings') }}" class="btn">{{ "Settings"|t('site7-studio') }}</a>
+        </div>
+    </div>
+</div>

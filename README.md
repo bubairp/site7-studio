@@ -2,6 +2,11 @@
 
 Site7 Studio is a visual website builder and package engine for Craft CMS 5.
 
+## Architecture
+
+Site7 Studio follows a strict **Craft CMS First** UI architecture. 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the rules regarding UI component usage, custom styling, and Vue.js boundaries.
+
 ## Project Structure
 
 - `src/` - Plugin source code

@@ -1,6 +1,100 @@
-{# @var plugin \site7\studio\Site7Studio #}
-{# @var settings \site7\studio\models\Settings #}
+{% extends "_layouts/cp" %}
+{% set title = "Settings" %}
+{% set selectedSubnavItem = "settings" %}
 
-{% import "_includes/forms" as forms %}
+{% set tabs = {
+    general: { label: 'General'|t('site7-studio'), url: '#general' },
+    developer: { label: 'Developer Mode'|t('site7-studio'), url: '#developer' },
+    paths: { label: 'Paths'|t('site7-studio'), url: '#paths' },
+    system: { label: 'System'|t('site7-studio'), url: '#system' },
+    about: { label: 'About'|t('site7-studio'), url: '#about' }
+} %}
 
-<p>Site7 Studio foundation settings will be configured in future sprints.</p>
+{% block content %}
+    <div id="general" class="site7-settings-section">
+        <h2>{{ "General"|t('site7-studio') }}</h2>
+        <p class="site7-text-muted">{{ "Configure basic platform settings."|t('site7-studio') }}</p>
+        <hr class="site7-divider">
+        <div class="field">
+            <div class="heading">
+                <label>{{ "Library Name"|t('site7-studio') }}</label>
+            </div>
+            <div class="input ltr">
+                <input class="text fullwidth" type="text" value="Site7 Studio" autocomplete="off">
+            </div>
+        </div>
+    </div>
+
+    <div id="developer" class="site7-settings-section hidden">
+        <h2>{{ "Developer Mode"|t('site7-studio') }}</h2>
+        <p class="site7-text-muted">{{ "Enable advanced debugging and developer tools."|t('site7-studio') }}</p>
+        <hr class="site7-divider">
+        
+        <div class="field">
+            <div class="heading">
+                <label>{{ "Enable Developer Mode"|t('site7-studio') }}</label>
+                <div class="instructions"><p>{{ "When enabled, verbose logging and debug tools are active."|t('site7-studio') }}</p></div>
+            </div>
+            <div class="input ltr">
+                <div class="lightswitch">
+                    <div class="lightswitch-container">
+                        <div class="label on"></div>
+                        <div class="handle"></div>
+                        <div class="label off"></div>
+                    </div>
+                    <input type="hidden" name="devMode" value="0">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="paths" class="site7-settings-section hidden">
+        <h2>{{ "Paths"|t('site7-studio') }}</h2>
+        <p class="site7-text-muted">{{ "Configure where Site7 Studio stores its assets."|t('site7-studio') }}</p>
+        <hr class="site7-divider">
+        
+        <div class="field">
+            <div class="heading">
+                <label>{{ "Section Paths"|t('site7-studio') }}</label>
+                <div class="instructions"><p>{{ "Define where Section JSON files are located."|t('site7-studio') }}</p></div>
+            </div>
+            <div class="input ltr">
+                <input class="text fullwidth" type="text" value="@templates/_components" autocomplete="off">
+            </div>
+        </div>
+    </div>
+
+    <div id="system" class="site7-settings-section hidden">
+        <h2>{{ "System"|t('site7-studio') }}</h2>
+        <p class="site7-text-muted">{{ "Cache and log management."|t('site7-studio') }}</p>
+        <hr class="site7-divider">
+        
+        <div class="field">
+            <div class="heading">
+                <label>{{ "Clear Cache"|t('site7-studio') }}</label>
+            </div>
+            <div class="input ltr">
+                <button type="button" class="btn">{{ "Clear Cache"|t('site7-studio') }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="about" class="site7-settings-section hidden">
+        <h2>{{ "About Site7 Studio"|t('site7-studio') }}</h2>
+        <p class="site7-text-muted">{{ "Version and system information."|t('site7-studio') }}</p>
+        <hr class="site7-divider">
+        
+        <div class="pane padded">
+            <div class="meta">
+                <div class="data">
+                    <dt>{{ "Version"|t('site7-studio') }}</dt>
+                    <dd>1.0.0</dd>
+                </div>
+                <div class="data">
+                    <dt>{{ "Platform Status"|t('site7-studio') }}</dt>
+                    <dd><span class="status green"></span> Active</dd>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

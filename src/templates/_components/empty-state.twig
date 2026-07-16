@@ -1,0 +1,22 @@
+{#
+ # Empty State Component
+ #
+ # Params:
+ #   icon        (string, optional)  – emoji or text icon (default: 📂)
+ #   message     (string, required)  – heading text
+ #   subtext     (string, optional)  – descriptive paragraph
+ #   actionLabel (string, optional)  – CTA button label
+ #   actionUrl   (string, optional)  – CTA button URL
+ #}
+<div class="zilch">
+    <div>
+        {{ icon ?? '📂' }}
+    </div>
+    <p>{{ message }}</p>
+    {% if subtext is defined and subtext %}
+        <p class="light">{{ subtext }}</p>
+    {% endif %}
+    {% if actionLabel is defined and actionUrl is defined %}
+        <a href="{{ actionUrl }}" class="btn submit">{{ actionLabel }}</a>
+    {% endif %}
+</div>
