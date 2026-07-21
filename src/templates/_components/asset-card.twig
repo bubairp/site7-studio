@@ -39,5 +39,18 @@
                 </div>
             {% endif %}
         {% endif %}
+        {% if package.type|lower == 'template' %}
+            {% set manifest = package.getManifest() %}
+            {% if manifest and manifest.requires is defined and manifest.requires.patterns is defined and manifest.requires.patterns|length %}
+                <div class="site7-card-included-sections" style="margin-top: 10px; font-size: 0.85em; color: #536476;">
+                    <strong>Included Patterns:</strong> {{ manifest.requires.patterns|join(', ') }}
+                </div>
+            {% endif %}
+            {% if manifest and manifest.requires is defined and manifest.requires.sections is defined and manifest.requires.sections|length %}
+                <div class="site7-card-included-sections" style="margin-top: 4px; font-size: 0.85em; color: #536476;">
+                    <strong>Included Sections:</strong> {{ manifest.requires.sections|join(', ') }}
+                </div>
+            {% endif %}
+        {% endif %}
     </div>
 </a>

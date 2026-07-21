@@ -139,13 +139,13 @@ class PackageManagerService extends Component
             if ($manifest && !empty($manifest->requires['sections'])) {
                 foreach ($manifest->requires['sections'] as $requiredHandle) {
                     $requiredRecord = $this->getPackageByHandle($requiredHandle);
-                    
+
                     if (!$requiredRecord) {
                         // Attempt discovery to find newly added packages
                         $this->discoverPackages();
                         $requiredRecord = $this->getPackageByHandle($requiredHandle);
                     }
-                    
+
                     if ($requiredRecord) {
                         if ($requiredRecord->status !== 'enabled') {
                             if ($requiredRecord->status === 'available') {
@@ -155,6 +155,38 @@ class PackageManagerService extends Component
                         }
                     } else {
                         throw new \Exception("Required section package '{$requiredHandle}' was not found.");
+                    }
+                }
+            }
+        }
+
+        // If it is a template, verify and install required Patterns and Sections first.
+        // Templates are never stored as content and never generate their own Craft
+        // resources - installing one only cascades into its required Patterns/Sections.
+        // A required Pattern's own installPackage() call below already cascades into
+        // its required Sections, so this achieves full transitive installation.
+        if ($record->type === 'template') {
+            $manifest = $record->getManifest();
+            if ($manifest) {
+                foreach (['patterns' => 'pattern', 'sections' => 'section'] as $requiresKey => $requiredKind) {
+                    foreach ($manifest->requires[$requiresKey] ?? [] as $requiredHandle) {
+                        $requiredRecord = $this->getPackageByHandle($requiredHandle);
+
+                        if (!$requiredRecord) {
+                            $this->discoverPackages();
+                            $requiredRecord = $this->getPackageByHandle($requiredHandle);
+                        }
+
+                        if ($requiredRecord) {
+                            if ($requiredRecord->status !== 'enabled') {
+                                if ($requiredRecord->status === 'available') {
+                                    $this->installPackage($requiredHandle);
+                                }
+                                $this->enablePackage($requiredHandle);
+                            }
+                        } else {
+                            throw new \Exception("Required {$requiredKind} package '{$requiredHandle}' was not found.");
+                        }
                     }
                 }
             }

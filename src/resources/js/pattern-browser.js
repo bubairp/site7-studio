@@ -60,6 +60,7 @@
             this.$tabs = $('<div class="site7-tabs flex gap-xs" style="display: flex;"></div>').appendTo($headerLeft);
             this.$tabs.append(`<button type="button" class="btn ${this.activeTab === 'section' ? 'active' : ''}" data-tab="section">Sections</button>`);
             this.$tabs.append(`<button type="button" class="btn ${this.activeTab === 'pattern' ? 'active' : ''}" data-tab="pattern">Patterns</button>`);
+            this.$tabs.append(`<button type="button" class="btn ${this.activeTab === 'template' ? 'active' : ''}" data-tab="template">Templates</button>`);
             
             // Search & Close Group
             const $headerRight = $('<div style="display: flex; align-items: center; gap: 16px;"></div>').appendTo($header);
@@ -147,6 +148,12 @@
             }, this));
         },
 
+        tabLabel: function() {
+            if (this.activeTab === 'section') return 'Sections';
+            if (this.activeTab === 'pattern') return 'Patterns';
+            return 'Templates';
+        },
+
         renderCategories: function() {
             this.$categoryList.empty();
             
@@ -165,7 +172,7 @@
             const cats = Array.from(categories).sort();
             
             this.$categoryList.append(
-                `<li class="cs-item ${this.activeCategory === 'all' ? 'sel' : ''}"><div class="cs-item__btn cs-item__page-btn" data-category="all" tabindex="0" role="button"><div class="cp-icon"></div><div class="label">All ${this.activeTab === 'section' ? 'Sections' : 'Patterns'}</div></div></li>`
+                `<li class="cs-item ${this.activeCategory === 'all' ? 'sel' : ''}"><div class="cs-item__btn cs-item__page-btn" data-category="all" tabindex="0" role="button"><div class="cp-icon"></div><div class="label">All ${this.tabLabel()}</div></div></li>`
             );
             
             cats.forEach(c => {
@@ -228,6 +235,18 @@
             }
             
             filtered.forEach(p => {
+                let includedHtml = '';
+                if (p.type.toLowerCase() === 'template' && p.requires) {
+                    const patterns = Array.isArray(p.requires.patterns) ? p.requires.patterns : [];
+                    const sections = Array.isArray(p.requires.sections) ? p.requires.sections : [];
+                    if (patterns.length) {
+                        includedHtml += `<div style="margin-bottom: 4px; font-size: 12px; color: #6b7a8a;"><strong>Included Patterns:</strong> ${patterns.join(', ')}</div>`;
+                    }
+                    if (sections.length) {
+                        includedHtml += `<div style="margin-bottom: 8px; font-size: 12px; color: #6b7a8a;"><strong>Included Sections:</strong> ${sections.join(', ')}</div>`;
+                    }
+                }
+
                 const $card = $(`
                     <div class="site7-card" style="display: flex; flex-direction: column; background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden;">
                         <div class="site7-card-image" style="height: 160px; background: #f3f5f8; border-bottom: 1px solid #e1e5ea; position: relative;">
@@ -239,7 +258,7 @@
                             </div>
                             <h4 style="margin: 0 0 8px 0; font-size: 15px; color: #3f4d5a;">${p.name}</h4>
                             <p style="margin: 0 0 16px 0; font-size: 13px; color: #6b7a8a; flex: 1;">${p.description || 'No description.'}</p>
-                            
+                            ${includedHtml}
                             <div style="display: flex; gap: 8px; margin-top: auto;">
                                 <button type="button" class="btn site7-pattern-preview-btn" data-url="${p.renderUrl}" style="flex: 1; justify-content: center;">Preview</button>
                                 <button type="button" class="btn submit site7-pattern-insert-btn" data-handle="${p.handle}" data-type="${p.type.toLowerCase()}" data-block-type-handle="${p.blockTypeHandle || ''}" style="flex: 1; justify-content: center;">Insert</button>
@@ -247,7 +266,7 @@
                         </div>
                     </div>
                 `);
-                
+
                 this.$grid.append($card);
             });
         },

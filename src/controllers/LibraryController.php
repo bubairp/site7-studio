@@ -75,6 +75,13 @@ class LibraryController extends Controller
             $hasPreviewTemplate = file_exists($packagePath . '/preview/preview.twig');
         }
 
+        // Patterns and Templates never have their own preview.twig - actionRenderPreview()
+        // composes their preview from their required Sections' templates instead, so the
+        // iframe below is always renderable for these types regardless of file presence.
+        if (in_array($package->type, ['pattern', 'template'], true)) {
+            $hasPreviewTemplate = true;
+        }
+
         return $this->renderTemplate('site7-studio/library/preview', [
             'title' => 'Preview: ' . $package->name,
             'package' => $package,
@@ -108,17 +115,30 @@ class LibraryController extends Controller
             if ($manifest && !empty($manifest->requires['sections'])) {
                 $demoContent = $manifest->demoContent ?? [];
                 foreach ($manifest->requires['sections'] as $sectionHandle) {
-                    $sectionPath = Site7Studio::getInstance()->packageManager->getPackagePath($sectionHandle);
-                    if ($sectionPath && file_exists($sectionPath . '/template.twig')) {
-                        $sectionData = $demoContent[$sectionHandle] ?? $demoContent[str_replace('-', '_', $sectionHandle)] ?? [];
-                        try {
-                            $view->setTemplatesPath($sectionPath);
-                            $renderedContent .= $view->renderTemplate('template.twig', ['block' => $sectionData]);
-                            $packageCss .= $this->getPackageStyles($sectionPath);
-                        } catch (\Throwable $e) {
-                            Craft::error("Error rendering section {$sectionHandle} for pattern {$handle}: " . $e->getMessage(), __METHOD__);
-                        }
-                    }
+                    $sectionData = $demoContent[$sectionHandle] ?? $demoContent[str_replace('-', '_', $sectionHandle)] ?? [];
+                    [$html, $css] = $this->renderSectionForPreview($view, $sectionHandle, $sectionData, $handle);
+                    $renderedContent .= $html;
+                    $packageCss .= $css;
+                }
+            }
+        } elseif ($package->type === 'template') {
+            $manifest = $package->getManifest();
+            if ($manifest) {
+                $templateDemoContent = $manifest->demoContent ?? [];
+                $templateService = new \site7\studio\services\TemplateInsertionService();
+                $sectionEntries = $templateService->resolveSectionEntries($manifest);
+
+                foreach ($sectionEntries as $entry) {
+                    $sectionHandle = $entry['handle'];
+                    $snakeHandle = str_replace('-', '_', $sectionHandle);
+                    $sectionData = $templateDemoContent[$sectionHandle]
+                        ?? $templateDemoContent[$snakeHandle]
+                        ?? $entry['fallbackDemo'][$sectionHandle]
+                        ?? $entry['fallbackDemo'][$snakeHandle]
+                        ?? [];
+                    [$html, $css] = $this->renderSectionForPreview($view, $sectionHandle, $sectionData, $handle);
+                    $renderedContent .= $html;
+                    $packageCss .= $css;
                 }
             }
         } else {
@@ -207,6 +227,31 @@ class LibraryController extends Controller
             return file_get_contents($stylePath) . "\n";
         }
         return '';
+    }
+
+    /**
+     * Renders a single Section's template.twig with the given demo data for use inside a
+     * composed preview (Pattern or Template), returning its HTML and CSS. Errors are logged
+     * and swallowed so one broken Section doesn't blank out the rest of the preview.
+     *
+     * @return array{0: string, 1: string} [html, css]
+     */
+    private function renderSectionForPreview(\craft\web\View $view, string $sectionHandle, array $sectionData, string $composedFromHandle): array
+    {
+        $sectionPath = Site7Studio::getInstance()->packageManager->getPackagePath($sectionHandle);
+        if (!$sectionPath || !file_exists($sectionPath . '/template.twig')) {
+            return ['', ''];
+        }
+
+        try {
+            $view->setTemplatesPath($sectionPath);
+            $html = $view->renderTemplate('template.twig', ['block' => $sectionData]);
+            $css = $this->getPackageStyles($sectionPath);
+            return [$html, $css];
+        } catch (\Throwable $e) {
+            Craft::error("Error rendering section {$sectionHandle} for {$composedFromHandle}: " . $e->getMessage(), __METHOD__);
+            return ['', ''];
+        }
     }
 
     /**

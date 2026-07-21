@@ -3,8 +3,8 @@
 {% set selectedSubnavItem = "library" %}
 
 {% block sidebar %}
-    {% include "site7-studio/_components/sidebar" with { 
-        selectedItem: (currentType == 'pattern' ? 'patterns' : (currentType == 'starter-kit' ? 'kits' : 'sections')) 
+    {% include "site7-studio/_components/sidebar" with {
+        selectedItem: (currentType == 'pattern' ? 'patterns' : (currentType == 'template' ? 'templates' : (currentType == 'starter-kit' ? 'kits' : 'sections')))
     } only %}
 {% endblock %}
 

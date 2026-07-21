@@ -124,6 +124,24 @@ class PackageActionController extends Controller
     }
 
     /**
+     * Gets the serialized block structures for a template to inject into Matrix.
+     */
+    public function actionGetTemplateBlocks()
+    {
+        $this->requireAcceptsJson();
+
+        $handle = Craft::$app->getRequest()->getRequiredParam('handle');
+
+        $service = new \site7\studio\services\TemplateInsertionService();
+        $blocks = $service->getTemplateBlocks($handle);
+
+        return $this->asJson([
+            'success' => true,
+            'blocks' => $blocks
+        ]);
+    }
+
+    /**
      * Gets the data for the Pattern Browser UI.
      */
     public function actionGetBrowserData()

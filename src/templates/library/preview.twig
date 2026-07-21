@@ -2,8 +2,8 @@
 {% set selectedSubnavItem = "library" %}
 
 {% block sidebar %}
-    {% include "site7-studio/_components/sidebar" with { 
-        selectedItem: (package.type == 'pattern' ? 'patterns' : (package.type == 'starter-kit' ? 'kits' : 'sections')) 
+    {% include "site7-studio/_components/sidebar" with {
+        selectedItem: (package.type == 'pattern' ? 'patterns' : (package.type == 'template' ? 'templates' : (package.type == 'starter-kit' ? 'kits' : 'sections')))
     } only %}
 {% endblock %}
 

@@ -101,6 +101,8 @@
                         this.insertSection($matrixContainer, handle, blockTypeHandle);
                     } else if (type === 'pattern') {
                         this.insertPattern($matrixContainer, handle);
+                    } else if (type === 'template') {
+                        this.insertTemplate($matrixContainer, handle);
                     }
                 }
             }, this));
@@ -184,7 +186,33 @@
                 }, this)
             });
         },
-        
+
+        insertTemplate: function($matrixContainer, handle) {
+            // Fetch the flattened Section list from API. Templates resolve to the same
+            // {type, typeId, fields} block shape as Patterns, so block creation is shared.
+            const url = Craft.getActionUrl ? Craft.getActionUrl('site7-studio/package-action/get-template-blocks') : '/admin/site7-studio/package-action/get-template-blocks';
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                data: { handle: handle },
+                dataType: 'json',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                success: $.proxy(function(response) {
+                    if (response.success && response.blocks) {
+                        this.createBlocksSequentially($matrixContainer, response.blocks);
+                    } else {
+                        Craft.cp.displayError('Failed to load template blocks: ' + (response.error || 'Unknown error'));
+                    }
+                }, this),
+                error: $.proxy(function() {
+                    Craft.cp.displayError('Error fetching template blocks.');
+                }, this)
+            });
+        },
+
         createBlocksSequentially: async function($matrixContainer, blocks) {
             if (blocks.length === 0) return;
             
@@ -233,7 +261,11 @@
                                 await Craft.sendActionRequest("POST", "elements/save-draft", { data: saveData });
 
                                 await manager.addElementCard(element);
-                                await manager.markAsDirty();
+                                // Not awaited: markAsDirty() only flags the field's unsaved-changes
+                                // indicator and its returned promise can hang indefinitely (observed
+                                // under automated/backgrounded conditions), which would otherwise
+                                // permanently stall this loop after the first block.
+                                manager.markAsDirty();
                             }
                         } catch (err) {
                             console.error('Failed to create block:', err);
@@ -241,7 +273,7 @@
                     }
                 }
                 
-                Craft.cp.displayNotice('Pattern inserted.');
+                Craft.cp.displayNotice('Content inserted.');
                 return;
             }
 
