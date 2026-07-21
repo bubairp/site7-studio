@@ -6,5 +6,7 @@
     "version": "1.0.0",
     "author": "Site7",
     "description": "Frequently asked questions section.",
+    "category": "Marketing",
+    "tags": ["FAQ", "Accordion"],
     "dependencies": []
 }

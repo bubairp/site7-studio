@@ -7,7 +7,13 @@
 {% set badgeClass = package.status|lower == 'installed' ? 'site7-badge--active' :
                     (package.status|lower == 'enabled' ? 'site7-badge--active' : 'site7-badge--draft') %}
 
-<a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="site7-card" style="text-decoration: none; display: block; color: inherit;">
+<a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" 
+   class="site7-card" 
+   style="text-decoration: none; display: block; color: inherit;"
+   data-status="{{ package.status|lower }}"
+   data-category="{{ package.category|default('uncategorized')|lower }}"
+   data-tags="{{ (package.tags is iterable ? package.tags : (package.tags|default('')|split(',')))|join(',')|lower }}"
+   data-author="{{ package.author|default('anonymous')|lower }}">
     <span class="site7-badge {{ badgeClass }}" style="position: absolute; top: 10px; right: 10px;">{{ package.status|title }}</span>
 
     <div class="site7-card-image" style="position: relative; overflow: hidden;">
@@ -25,5 +31,13 @@
         </div>
         <h4 class="site7-card-title">{{ package.name }}</h4>
         <p class="site7-card-description">{{ package.description|default('No description provided.') }}</p>
+        {% if package.type|lower == 'pattern' %}
+            {% set manifest = package.getManifest() %}
+            {% if manifest and manifest.requires is defined and manifest.requires.sections is defined and manifest.requires.sections|length %}
+                <div class="site7-card-included-sections" style="margin-top: 10px; font-size: 0.85em; color: #536476;">
+                    <strong>Included Sections:</strong> {{ manifest.requires.sections|join(', ') }}
+                </div>
+            {% endif %}
+        {% endif %}
     </div>
 </a>

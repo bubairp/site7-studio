@@ -43,6 +43,8 @@ class PackageRepository extends Component
         $record->version = $package->manifest->version;
         $record->author = $package->manifest->author;
         $record->description = $package->manifest->description;
+        $record->category = $package->manifest->category;
+        $record->tags = is_array($package->manifest->tags) ? implode(',', $package->manifest->tags) : $package->manifest->tags;
         
         // This is a simplified save logic. Complex relationships (Components, Templates)
         // would be handled by a more advanced PackageService in subsequent milestones.

@@ -6,5 +6,7 @@
     "version": "1.0.0",
     "author": "Site7",
     "description": "Image gallery section.",
+    "category": "Media",
+    "tags": ["Gallery", "Images"],
     "dependencies": []
 }

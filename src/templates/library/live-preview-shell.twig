@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+    {{ craft.vite.script("src/index.js", false) }}
+    {% if craft.vite.devServerRunning() %}
+        <link rel="stylesheet" href="/styles.css?v={{ now | date('U') }}" />
+    {% else %}
+        <style>
+            {{ dynamicCss|raw }}
+        </style>
+    {% endif %}
+</head>
+<body class="bg-white">
+    {{ content|raw }}
+</body>
+</html>

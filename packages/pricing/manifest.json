@@ -6,5 +6,7 @@
     "version": "1.0.0",
     "author": "Site7",
     "description": "Pricing table section.",
+    "category": "Marketing",
+    "tags": ["Pricing", "Compare"],
     "dependencies": []
 }

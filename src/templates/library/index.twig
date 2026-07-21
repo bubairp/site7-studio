@@ -3,7 +3,9 @@
 {% set selectedSubnavItem = "library" %}
 
 {% block sidebar %}
-    {% include "site7-studio/_components/sidebar" with { selectedItem: 'sections' } only %}
+    {% include "site7-studio/_components/sidebar" with { 
+        selectedItem: (currentType == 'pattern' ? 'patterns' : (currentType == 'starter-kit' ? 'kits' : 'sections')) 
+    } only %}
 {% endblock %}
 
 {% block toolbar %}
@@ -20,7 +22,43 @@
                 <div class="clear hidden" title="Clear"></div>
             </div>
         </div>
-        <div class="btn menubtn" data-icon="filter">{{ "Filter"|t('site7-studio') }}</div>
+        <div class="btn menubtn" data-icon="filter" id="site7-filter-btn">{{ "Filter"|t('site7-studio') }}</div>
+        <div class="menu" id="site7-filter-menu" style="padding: 16px; min-width: 260px; max-height: 450px; overflow-y: auto; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); display: none; z-index: 100;">
+            <div class="site7-filter-group" style="margin-bottom: 16px;">
+                <h5 style="margin: 0 0 8px 0; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #536476; border-bottom: 1px solid #e1e5ea; padding-bottom: 4px;">Status</h5>
+                <div class="checkbox-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;"><input type="checkbox" name="status" value="available"> Available</label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;"><input type="checkbox" name="status" value="installed"> Installed</label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;"><input type="checkbox" name="status" value="enabled"> Enabled</label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;"><input type="checkbox" name="status" value="disabled"> Disabled</label>
+                </div>
+            </div>
+            
+            <div class="site7-filter-group" style="margin-bottom: 16px;">
+                <h5 style="margin: 0 0 8px 0; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #536476; border-bottom: 1px solid #e1e5ea; padding-bottom: 4px;">Category</h5>
+                <div class="checkbox-group" id="filter-categories" style="display: flex; flex-direction: column; gap: 6px;">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+            
+            <div class="site7-filter-group" style="margin-bottom: 16px;">
+                <h5 style="margin: 0 0 8px 0; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #536476; border-bottom: 1px solid #e1e5ea; padding-bottom: 4px;">Tags</h5>
+                <div class="checkbox-group" id="filter-tags" style="display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; padding-right: 4px;">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+            
+            <div class="site7-filter-group" style="margin-bottom: 16px;">
+                <h5 style="margin: 0 0 8px 0; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #536476; border-bottom: 1px solid #e1e5ea; padding-bottom: 4px;">Author</h5>
+                <div class="checkbox-group" id="filter-authors" style="display: flex; flex-direction: column; gap: 6px;">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+            
+            <div style="border-top: 1px solid #e1e5ea; padding-top: 12px; display: flex; justify-content: flex-end;">
+                <button type="button" class="btn" id="site7-clear-filters-btn" style="font-size: 12px; padding: 4px 10px;">Clear Filters</button>
+            </div>
+        </div>
     </div>
 {% endblock %}
 
@@ -31,6 +69,10 @@
             <a href="{{ url('site7-studio/setup') }}" style="margin-left: 10px; text-decoration: underline; font-weight: bold;">Complete Setup &rarr;</a>
         </div>
     {% endif %}
+
+    <div id="site7-package-count" style="margin-bottom: 15px; color: #536476; font-size: 0.95em;">
+        Showing <span id="site7-count-visible">{{ packages|length }}</span> of <span id="site7-count-total">{{ packages|length }}</span> packages.
+    </div>
 
     <div class="site7-card-grid">
         {% for package in packages %}
@@ -45,6 +87,13 @@
                 icon: 'library'
             } only %}
         {% endfor %}
+    </div>
+
+    <div id="site7-no-results" style="display: none; margin-top: 20px;">
+        {% include "site7-studio/_components/empty-state" with { 
+            message: 'No packages found matching your search or filters.',
+            icon: '🔍'
+        } only %}
     </div>
 
     {# 

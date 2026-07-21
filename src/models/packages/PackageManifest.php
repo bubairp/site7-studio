@@ -16,8 +16,13 @@ class PackageManifest extends Model
     public string $version = '1.0.0';
     public string $author = '';
     public string $description = '';
+    public ?string $category = null;
+    public array $tags = [];
     public array $compatibility = [];
     public array $dependencies = [];
+    public array $requires = [];
+    public array $demoContent = [];
+    public ?string $preview = null;
 
     /**
      * @inheritdoc
@@ -26,8 +31,8 @@ class PackageManifest extends Model
     {
         $rules = parent::defineRules();
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion'], 'required'];
-        $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description'], 'string'];
-        $rules[] = [['compatibility', 'dependencies'], 'safe'];
+        $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview'], 'string'];
+        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent'], 'safe'];
         return $rules;
     }
 }

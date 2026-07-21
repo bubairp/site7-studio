@@ -133,6 +133,33 @@ class PackageManagerService extends Component
             return false;
         }
 
+        // If it is a pattern, verify and install required Sections first
+        if ($record->type === 'pattern') {
+            $manifest = $record->getManifest();
+            if ($manifest && !empty($manifest->requires['sections'])) {
+                foreach ($manifest->requires['sections'] as $requiredHandle) {
+                    $requiredRecord = $this->getPackageByHandle($requiredHandle);
+                    
+                    if (!$requiredRecord) {
+                        // Attempt discovery to find newly added packages
+                        $this->discoverPackages();
+                        $requiredRecord = $this->getPackageByHandle($requiredHandle);
+                    }
+                    
+                    if ($requiredRecord) {
+                        if ($requiredRecord->status !== 'enabled') {
+                            if ($requiredRecord->status === 'available') {
+                                $this->installPackage($requiredHandle);
+                            }
+                            $this->enablePackage($requiredHandle);
+                        }
+                    } else {
+                        throw new \Exception("Required section package '{$requiredHandle}' was not found.");
+                    }
+                }
+            }
+        }
+
         // We assume the package is in our local source for MVP
         $pluginPath = Craft::getAlias('@site7/studio'); // resolves to src/
         $basePath = dirname($pluginPath); // resolves to plugins/site7-studio/
@@ -145,7 +172,7 @@ class PackageManagerService extends Component
         $generatedResources = [];
         try {
             // 1. Generate Craft Resources
-            if (is_dir($packagePath)) {
+            if ($record->type === 'section' && is_dir($packagePath)) {
                 $generatedResources = \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->generateResources($packagePath);
                 
                 // Save generated resource UIDs somewhere? For MVP, we will rely on handle conventions
@@ -161,8 +188,7 @@ class PackageManagerService extends Component
 
             $transaction->commit();
 
-            // Auto-sync project config so "Apply YAML Changes" banner never appears
-            Craft::$app->getProjectConfig()->rebuild();
+            $this->invalidateCraftCaches();
 
             return true;
         } catch (\Throwable $e) {
@@ -180,9 +206,12 @@ class PackageManagerService extends Component
      */
     public function enablePackage(string $handle): bool
     {
-        $this->linkToMatrix($handle);
+        $record = $this->getPackageByHandle($handle);
+        if ($record && $record->type === 'section') {
+            $this->linkToMatrix($handle);
+        }
         $result = $this->updatePackageStatus($handle, 'enabled');
-        Craft::$app->getProjectConfig()->rebuild();
+        $this->invalidateCraftCaches();
         return $result;
     }
 
@@ -191,28 +220,118 @@ class PackageManagerService extends Component
      */
     public function disablePackage(string $handle): bool
     {
-        $this->unlinkFromMatrix($handle);
+        $record = $this->getPackageByHandle($handle);
+        if ($record && $record->type === 'section') {
+            $this->unlinkFromMatrix($handle);
+        }
         $result = $this->updatePackageStatus($handle, 'disabled');
-        Craft::$app->getProjectConfig()->rebuild();
+        $this->invalidateCraftCaches();
         return $result;
     }
 
-    /**
-     * Removes a package (updates status to 'available').
-     */
     public function removePackage(string $handle): bool
     {
-        $this->unlinkFromMatrix($handle);
-        
-        // Remove resources
-        $packagePath = $this->getPackagePath($handle);
-        if ($packagePath && is_dir($packagePath)) {
-            \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->removePackageResources($packagePath);
+        $record = $this->getPackageByHandle($handle);
+        if ($record && $record->type === 'section') {
+            $this->unlinkFromMatrix($handle);
+            
+            // Remove resources
+            $packagePath = $this->getPackagePath($handle);
+            if ($packagePath && is_dir($packagePath)) {
+                \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->removePackageResources($packagePath);
+            }
         }
 
         $result = $this->updatePackageStatus($handle, 'available');
-        Craft::$app->getProjectConfig()->rebuild();
+        $this->invalidateCraftCaches();
         return $result;
+    }
+    /**
+     * Invalidates all relevant Craft CMS internal caches after modifying
+     * package resources or Matrix field configurations.
+     *
+     * This is critical for same-process operations (e.g. CLI tests that
+     * install → enable → save content in one invocation). Craft caches
+     * field instances in a private `_fields` property on the Fields service;
+     * without clearing it the Matrix field retains its old entryTypes list
+     * and silently drops blocks for newly linked types.
+     */
+    private function invalidateCraftCaches(): void
+    {
+        // 1. Rebuild project config YAML so the "Apply YAML Changes" banner never appears
+        Craft::$app->getProjectConfig()->rebuild();
+
+        // 2. Refresh the DB schema cache (new columns from new fields)
+        Craft::$app->getDb()->getSchema()->refresh();
+
+        // 3. Bump the field version counter
+        Craft::$app->getFields()->updateFieldVersion();
+
+        // 4. Refresh the entry types registry
+        Craft::$app->getEntries()->refreshEntryTypes();
+
+        // 5. Clear the private _fields cache on the Fields service so
+        //    getFieldById() returns a completely fresh instance next time.
+        //    There is no public API for this in Craft 5.
+        try {
+            $fieldsRef = new \ReflectionProperty(\craft\services\Fields::class, '_fields');
+            $fieldsRef->setAccessible(true);
+            $fieldsRef->setValue(Craft::$app->getFields(), null);
+            
+            $layoutsRef = new \ReflectionProperty(\craft\services\Fields::class, '_layouts');
+            $layoutsRef->setAccessible(true);
+            $layoutsRef->setValue(Craft::$app->getFields(), null);
+        } catch (\ReflectionException $e) {
+            Craft::warning('Could not clear Fields caches: ' . $e->getMessage(), __METHOD__);
+        }
+
+        // 6. Clear _entryTypes on any already-loaded Matrix field instances.
+        //    Matrix.php caches entry types in a private _entryTypes array that
+        //    is populated once at init. If the field object is held by something
+        //    (e.g. a FieldLayout already stored on an Entry), the stale list
+        //    causes _createEntriesFromSerializedData to silently skip new types.
+        $settings = \site7\studio\Site7Studio::getInstance()->getSettings();
+        if (!empty($settings->matrixFieldId)) {
+            $matrixField = Craft::$app->getFields()->getFieldById($settings->matrixFieldId);
+            if ($matrixField instanceof \craft\fields\Matrix) {
+                // Re-populate _entryTypes from the fresh project config
+                $matrixField->setEntryTypes(
+                    array_map(fn($et) => $et->id, $matrixField->getEntryTypes())
+                );
+                // If the above produces the old list (because the field was just re-loaded
+                // from cache), fall back to reading the project config directly
+                try {
+                    $ref = new \ReflectionProperty(\craft\fields\Matrix::class, '_entryTypes');
+                    $ref->setAccessible(true);
+                    $ref->setValue($matrixField, []);
+                    // Force re-population from the DB by reading the field's settings
+                    $fieldConfig = Craft::$app->getProjectConfig()->get("fields.{$matrixField->uid}");
+                    if (isset($fieldConfig['settings']['entryTypes'])) {
+                        $entryTypeIds = [];
+                        foreach ($fieldConfig['settings']['entryTypes'] as $assocItem) {
+                            if (isset($assocItem['__assoc__'])) {
+                                foreach ($assocItem['__assoc__'] as [$key, $val]) {
+                                    if ($key === 'uid') {
+                                        $entryType = Craft::$app->getEntries()->getEntryTypeByUid($val);
+                                        if ($entryType) {
+                                            $entryTypeIds[] = $entryType;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (!empty($entryTypeIds)) {
+                            $ref->setValue($matrixField, $entryTypeIds);
+                        }
+                    }
+                } catch (\ReflectionException $e) {
+                    Craft::warning('Could not reset Matrix._entryTypes: ' . $e->getMessage(), __METHOD__);
+                }
+            }
+        }
+
+        // 7. Invalidate element query caches
+        Craft::$app->getElements()->invalidateCachesForElementType(\craft\elements\Entry::class);
     }
 
     /**

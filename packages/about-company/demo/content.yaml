@@ -1,0 +1,12 @@
+blocks:
+  -
+    type: aboutCompany
+    hero_banner:
+      heading: "About Our Company"
+      displayTitle: true
+      subtitle: "ESTABLISHED 2026"
+      switchOffDes: true
+      description: "We are a team of visionary designers and developers building the future of content management systems."
+      themeDark: true
+    team:
+      heading: "Meet Our Experts"

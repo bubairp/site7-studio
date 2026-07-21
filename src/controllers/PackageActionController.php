@@ -104,4 +104,89 @@ class PackageActionController extends Controller
 
         return $this->redirectToPostedUrl();
     }
+
+    /**
+     * Gets the serialized block structures for a pattern to inject into Matrix.
+     */
+    public function actionGetPatternBlocks()
+    {
+        $this->requireAcceptsJson();
+        
+        $handle = Craft::$app->getRequest()->getRequiredParam('handle');
+        
+        $service = new \site7\studio\services\PatternInsertionService();
+        $blocks = $service->getPatternBlocks($handle);
+
+        return $this->asJson([
+            'success' => true,
+            'blocks' => $blocks
+        ]);
+    }
+
+    /**
+     * Gets the data for the Pattern Browser UI.
+     */
+    public function actionGetBrowserData()
+    {
+        $this->requireAcceptsJson();
+        
+        $type = Craft::$app->getRequest()->getParam('type', 'pattern');
+        
+        $allPackages = Site7Studio::getInstance()->packageManager->getAllPackages();
+        $packages = array_filter($allPackages, function($p) use ($type) {
+            // Only display enabled packages in the Content Browser
+            if ($p->status !== 'enabled') {
+                return false;
+            }
+            if (strtolower($type) === 'all') {
+                return true;
+            }
+            return strtolower($p->type) === strtolower($type);
+        });
+        
+        $data = [];
+        foreach ($packages as $pkg) {
+            $manifest = $pkg->getManifest();
+            
+            $tags = $pkg->tags ?? [];
+            if (is_string($tags)) {
+                $tags = array_map('trim', explode(',', $tags));
+            }
+            
+            $blockTypeHandle = null;
+            if (strtolower($pkg->type) === 'section') {
+                $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($pkg->handle);
+                if ($packagePath) {
+                    $matrixYamlPath = $packagePath . '/matrix.yaml';
+                    if (file_exists($matrixYamlPath)) {
+                        $matrixData = \Symfony\Component\Yaml\Yaml::parseFile($matrixYamlPath);
+                        if (isset($matrixData['blocks'][0]['handle'])) {
+                            $blockTypeHandle = $matrixData['blocks'][0]['handle'];
+                        }
+                    }
+                }
+            }
+            
+            $data[] = [
+                'handle' => $pkg->handle,
+                'name' => $pkg->name,
+                'type' => $pkg->type,
+                'status' => $pkg->status,
+                'description' => $pkg->description,
+                'category' => $pkg->category ?? 'Uncategorized',
+                'tags' => $tags,
+                'version' => $pkg->version,
+                'author' => $pkg->author ?? 'Unknown',
+                'requires' => $manifest->requires ?? [],
+                'previewImageUrl' => \craft\helpers\UrlHelper::cpUrl('site7-studio/library/package/' . $pkg->handle . '/preview-image'),
+                'renderUrl' => \craft\helpers\UrlHelper::cpUrl('site7-studio/library/package/' . $pkg->handle . '/render-preview'),
+                'blockTypeHandle' => $blockTypeHandle
+            ];
+        }
+
+        return $this->asJson([
+            'success' => true,
+            'packages' => $data
+        ]);
+    }
 }

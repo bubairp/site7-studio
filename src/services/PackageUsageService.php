@@ -45,17 +45,21 @@ class PackageUsageService extends Component
             $entryType = $entriesService->getEntryTypeByHandle($blockHandle);
             if (!$entryType) continue;
 
-            // Find all instances of this block
-            $blockEntries = Entry::find()->typeId($entryType->id)->all();
+            // Direct DB Query to find Matrix blocks and their owners
+            $blockRows = (new \craft\db\Query())
+                ->from('{{%entries}}')
+                ->where(['typeId' => $entryType->id])
+                ->all();
             
-            foreach ($blockEntries as $block) {
-                // In Craft 5, matrix blocks are entries that belong to a parent element
-                // The parent element is accessible via getOwner()
-                $owner = $block->getOwner();
-                if ($owner && $owner instanceof Entry) {
-                    if (!isset($seenEntryIds[$owner->id])) {
-                        $seenEntryIds[$owner->id] = true;
-                        $affectedEntries[] = $owner;
+            foreach ($blockRows as $row) {
+                $ownerId = $row['primaryOwnerId'] ?? null;
+                if ($ownerId) {
+                    $owner = Entry::find()->id($ownerId)->status(null)->one();
+                    if ($owner) {
+                        if (!isset($seenEntryIds[$owner->id])) {
+                            $seenEntryIds[$owner->id] = true;
+                            $affectedEntries[] = $owner;
+                        }
                     }
                 }
             }

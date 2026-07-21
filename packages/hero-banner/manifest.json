@@ -6,5 +6,7 @@
     "version": "1.0.0",
     "author": "Site7",
     "description": "A high impact hero section.",
+    "category": "Header",
+    "tags": ["Hero", "Slider"],
     "dependencies": []
 }

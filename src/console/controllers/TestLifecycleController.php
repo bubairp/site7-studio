@@ -20,11 +20,7 @@ class TestLifecycleController extends Controller
         $pm = Site7Studio::getInstance()->packageManager;
 
         // Reset package to available
-        $package = $pm->getPackageByHandle($handle);
-        if ($package) {
-            $package->status = 'available';
-            $package->save();
-        }
+        $pm->removePackage($handle);
 
         $settings = Site7Studio::getInstance()->getSettings();
         if (!$settings->matrixFieldId) {
@@ -88,8 +84,11 @@ class TestLifecycleController extends Controller
         $entry->slug = "lifecycle-test-" . time();
         $entry->authorId = 1;
 
+        $blockEntryType = Craft::$app->getEntries()->getEntryTypeByHandle('testHeroBlock');
+        echo "DEBUG: Saving content with type: " . $blockEntryType->handle . " (ID: " . $blockEntryType->id . ")\n";
+
         $entry->setFieldValue('site7Components', [
-            [
+            'new1' => [
                 'type' => $blockEntryType->handle,
                 'fields' => [
                     'heroHeading' => 'Test',
@@ -99,8 +98,19 @@ class TestLifecycleController extends Controller
         ]);
 
         if (!Craft::$app->getElements()->saveElement($entry)) {
-            echo "FAIL: Could not save entry.\n";
+            echo "FAIL: Could not save entry. Errors: " . json_encode($entry->getErrors()) . "\n";
             return 1;
+        }
+        echo "   ✓ Entry saved. ID: " . $entry->id . "\n";
+
+        // Query database directly for blocks owned by this entry
+        $rows = (new \craft\db\Query())
+            ->from('{{%entries}}')
+            ->where(['primaryOwnerId' => $entry->id])
+            ->all();
+        echo "DEBUG: Rows with primaryOwnerId " . $entry->id . " count = " . count($rows) . "\n";
+        foreach ($rows as $row) {
+            echo "DEBUG: Row ID " . $row['id'] . " has typeId " . ($row['typeId'] ?? 'NULL') . "\n";
         }
 
         // =========================================

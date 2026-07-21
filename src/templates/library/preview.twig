@@ -2,7 +2,9 @@
 {% set selectedSubnavItem = "library" %}
 
 {% block sidebar %}
-    {% include "site7-studio/_components/sidebar" with { selectedItem: 'sections' } only %}
+    {% include "site7-studio/_components/sidebar" with { 
+        selectedItem: (package.type == 'pattern' ? 'patterns' : (package.type == 'starter-kit' ? 'kits' : 'sections')) 
+    } only %}
 {% endblock %}
 
 {% block content %}
@@ -12,18 +14,21 @@
             <a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="btn">Back to Details</a>
         </div>
 
-        <div class="site7-card" style="padding: 24px; background: #fff; min-height: 400px;">
-            {% if hasPreviewImage %}
-                <div style="text-align: center;">
+        <div class="site7-card" style="padding: 0; overflow: hidden; background: #fff; min-height: 450px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            {% if hasPreviewTemplate %}
+                <iframe src="{{ url('site7-studio/library/package/' ~ package.handle ~ '/render-preview') }}" 
+                        style="width: 100%; height: 600px; border: none; display: block;"></iframe>
+            {% elseif hasPreviewImage %}
+                <div style="text-align: center; padding: 24px;">
                     <img src="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview-image') }}" 
                          alt="Preview of {{ package.name }}" 
                          style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1);">
                 </div>
             {% else %}
-                <div style="text-align: center; color: #666; padding-top: 100px;">
+                <div style="text-align: center; color: #666; padding: 100px 24px;">
                     <span data-icon="image" style="font-size: 48px; color: #ccc;"></span>
                     <h3 style="margin-top: 16px; color: #666;">No Preview Available</h3>
-                    <p class="light">This package does not have a preview image yet.</p>
+                    <p class="light">This package does not have a preview template or image yet.</p>
                 </div>
             {% endif %}
         </div>

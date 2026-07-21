@@ -41,6 +41,8 @@ class Site7Studio extends Plugin
     {
         parent::init();
 
+        Craft::setAlias('@packages', dirname($this->getBasePath()) . '/packages');
+
         // Defer most setup tasks until Craft is fully initialized
         Craft::$app->onInit(function() {
             $this->attachEventHandlers();
@@ -68,6 +70,32 @@ class Site7Studio extends Plugin
     {
         // Event listeners will be registered in future sprints
         
+        // Inject Pattern insertion JS into the CP
+        if (Craft::$app->getRequest()->getIsCpRequest() && !Craft::$app->getRequest()->getIsConsoleRequest()) {
+            \yii\base\Event::on(
+                \craft\web\View::class,
+                \craft\web\View::EVENT_BEFORE_RENDER_PAGE_TEMPLATE,
+                function (\craft\events\TemplateEvent $event) {
+                    $settings = \site7\studio\Site7Studio::getInstance()->getSettings();
+                    $matrixHandle = '';
+                    if ($settings->matrixFieldId) {
+                        $matrixField = Craft::$app->getFields()->getFieldById($settings->matrixFieldId);
+                        if ($matrixField) {
+                            $matrixHandle = $matrixField->handle;
+                        }
+                    }
+
+                    Craft::$app->getView()->registerJs(
+                        'window.site7Studio = ' . json_encode([
+                            'matrixFieldHandle' => $matrixHandle
+                        ]) . ';',
+                        \craft\web\View::POS_HEAD
+                    );
+                    Craft::$app->getView()->registerAssetBundle(\site7\studio\assetbundles\PatternMatrixBundle::class);
+                }
+            );
+        }
+
         // Register CP routes to point to our controllers instead of rendering templates directly
         \yii\base\Event::on(
             UrlManager::class,
@@ -79,6 +107,7 @@ class Site7Studio extends Plugin
                 $event->rules['site7-studio/library'] = 'site7-studio/library/index';
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>'] = 'site7-studio/library/package';
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview'] = 'site7-studio/library/preview';
+                $event->rules['site7-studio/library/package/<handle:[\w\-]+>/render-preview'] = 'site7-studio/library/render-preview';
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview-image'] = 'site7-studio/library/preview-image';
             }
         );
