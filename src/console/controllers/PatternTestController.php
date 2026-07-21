@@ -29,6 +29,7 @@ class PatternTestController extends Controller
         $blocks = $insertion->getPatternBlocks('about-company');
 
         echo "Found " . count($blocks) . " blocks.\n";
+        echo "Blocks JSON: " . json_encode($blocks, JSON_PRETTY_PRINT) . "\n";
 
         echo "Testing Browser Data API Logic...\n";
         $allPackages = Site7Studio::getInstance()->packageManager->getAllPackages();

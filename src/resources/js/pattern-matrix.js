@@ -161,8 +161,6 @@
         },
 
         insertPattern: function($matrixContainer, handle) {
-            Craft.cp.showSpinner();
-
             // Fetch template blocks from API
             const url = Craft.getActionUrl ? Craft.getActionUrl('site7-studio/package-action/get-pattern-blocks') : '/admin/site7-studio/package-action/get-pattern-blocks';
             
@@ -170,8 +168,11 @@
                 url: url,
                 type: 'GET',
                 data: { handle: handle },
+                dataType: 'json',
+                headers: {
+                    'Accept': 'application/json'
+                },
                 success: $.proxy(function(response) {
-                    Craft.cp.hideSpinner();
                     if (response.success && response.blocks) {
                         this.createBlocksSequentially($matrixContainer, response.blocks);
                     } else {
@@ -179,23 +180,20 @@
                     }
                 }, this),
                 error: $.proxy(function() {
-                    Craft.cp.hideSpinner();
                     Craft.cp.displayError('Error fetching pattern blocks.');
                 }, this)
             });
         },
         
-        createBlocksSequentially: function($matrixContainer, blocks) {
+        createBlocksSequentially: async function($matrixContainer, blocks) {
             if (blocks.length === 0) return;
             
             const manager = $matrixContainer.data('nestedElementManager') || $matrixContainer.data('nested-element-manager');
             const matrixInstance = $matrixContainer.data('matrix');
 
-            blocks.forEach(block => {
-                const searchHandle = block.type;
-
-                // If Craft 5 NestedElementManager
-                if (manager) {
+            if (manager) {
+                for (const block of blocks) {
+                    const searchHandle = block.type;
                     let attributes = null;
                     if (manager.settings && Array.isArray(manager.settings.createAttributes)) {
                         const normalize = str => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -213,17 +211,43 @@
                         }
                     }
                     if (attributes) {
-                        manager.createElement(attributes);
-                        return;
+                        const postData = Object.assign({
+                            elementType: manager.elementType,
+                            ownerId: manager.settings.ownerId,
+                            fieldId: manager.settings.fieldId,
+                            siteId: manager.settings.ownerSiteId
+                        }, attributes, {
+                            fields: block.fields
+                        });
+                        
+                        try {
+                            const response = await Craft.sendActionRequest("POST", "elements/create", { data: postData });
+                            if (response && response.data && response.data.element) {
+                                await manager.addElementCard(response.data.element);
+                                await manager.markAsDirty();
+                            }
+                        } catch (err) {
+                            console.error('Failed to create block:', err);
+                        }
                     }
                 }
+                
+                Craft.cp.displayNotice('Pattern inserted.');
+                return;
+            }
+
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+
+            for (const block of blocks) {
+                const searchHandle = block.type;
 
                 // If Craft 4 MatrixInput
                 if (matrixInstance) {
                     const $addBtn = matrixInstance.$container.find(`.buttons .btn[data-type="${searchHandle}"]`);
                     if ($addBtn.length) {
                         $addBtn.trigger('click').trigger('activate');
-                        return;
+                        await delay(500);
+                        continue;
                     }
                 }
 
@@ -235,10 +259,11 @@
 
                 if ($addBtn.length) {
                     $addBtn.trigger('click').trigger('activate');
+                    await delay(500);
                 } else {
                     console.warn('Matrix block type button not found for: ' + block.type);
                 }
-            });
+            }
             
             Craft.cp.displayNotice('Pattern inserted.');
         }

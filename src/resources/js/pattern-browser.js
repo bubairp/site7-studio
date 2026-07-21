@@ -98,6 +98,9 @@
 
         onTabSelect: function(e) {
             e.preventDefault();
+            if (!this.packages || !this.packages.length) {
+                return;
+            }
             this.activeTab = $(e.currentTarget).data('tab');
             this.activeCategory = 'all'; // Reset category on tab change
             
@@ -111,12 +114,13 @@
 
         loadData: function() {
             Craft.postActionRequest('site7-studio/package-action/get-browser-data', { type: 'all' }, $.proxy(function(response, textStatus) {
-                if (textStatus === 'success' && response.success) {
+                if (textStatus === 'success' && response && response.success) {
                     this.packages = response.packages || [];
                     this.renderCategories();
                     this.renderGrid();
                 } else {
-                    this.$grid.html('<p class="error">Failed to load content.</p>');
+                    const errorMsg = (response && response.error) ? response.error : 'Failed to load content.';
+                    this.$grid.html(`<p class="error">${errorMsg}</p>`);
                 }
             }, this));
         },
@@ -158,6 +162,8 @@
                 try {
                     recentlyUsed = JSON.parse(localStorage.getItem('site7-recently-used') || '[]');
                 } catch(err) {}
+                
+                recentlyUsed = recentlyUsed.filter(item => item && item.handle && item.type);
                 
                 const recentlyUsedHandles = recentlyUsed
                     .filter(item => item.type === this.activeTab)
@@ -225,12 +231,15 @@
         },
 
         onSearch: function(e) {
-            this.searchQuery = $(e.currentTarget).val().toLowerCase();
+            this.searchQuery = ($(e.currentTarget).val() || '').toLowerCase();
             this.renderGrid();
         },
 
         onCategorySelect: function(e) {
             e.preventDefault();
+            if (!this.packages || !this.packages.length) {
+                return;
+            }
             this.activeCategory = $(e.currentTarget).data('category');
             this.renderCategories(); // update active state
             this.renderGrid();
@@ -280,6 +289,7 @@
                 recentlyUsed = JSON.parse(localStorage.getItem('site7-recently-used') || '[]');
             } catch(err) {}
             
+            recentlyUsed = recentlyUsed.filter(item => item && item.handle && item.type);
             recentlyUsed = recentlyUsed.filter(item => item.handle !== handle);
             recentlyUsed.unshift({ handle: handle, type: type, timestamp: Date.now() });
             recentlyUsed = recentlyUsed.slice(0, 10);
