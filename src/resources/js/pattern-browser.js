@@ -6,6 +6,7 @@
         return;
     }
 
+
     const Site7PatternBrowser = Garnish.Modal.extend({
         $body: null,
         $sidebar: null,
@@ -28,60 +29,69 @@
                 this.activeTab = defaultTab || 'section';
             }
             
-            // Build Modal HTML
-            const $container = $('<div class="modal site7-pattern-browser-modal" style="width: 90vw; height: 90vh; max-width: 1200px; padding: 0; display: flex; flex-direction: column; overflow: hidden; background: #f8fafc;"></div>').appendTo($(document.body));
+            // Build Modal HTML matching Craft CMS native cs-modal structure
+            const $container = $('<div class="modal cs-modal site7-pattern-browser-modal" style="width: 90vw; height: 90vh; max-width: 1200px; padding: 0; display: flex; flex-direction: column; overflow: hidden;"></div>').appendTo($(document.body));
             
             // Header
-            const $header = $('<div class="header" style="padding: 20px 24px; background: #fff; border-bottom: 1px solid #e1e5ea; display: flex; justify-content: space-between; align-items: center;"></div>').appendTo($container);
+            const $header = $('<div class="cs-header" style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, #e1e5ea); background: var(--bg-color, #fff);"></div>').appendTo($container);
             
             const $headerLeft = $('<div style="display: flex; align-items: center; gap: 30px;"></div>').appendTo($header);
-            $headerLeft.append('<h2 style="margin: 0; font-size: 18px; color: #3f4d5a;">Site7 Content Browser</h2>');
+            $headerLeft.append('<h2 class="h3" style="margin: 0;">Site7 Content Browser</h2>');
             
             // Tabs
-            this.$tabs = $('<div class="site7-tabs" style="display: flex; gap: 20px;"></div>').appendTo($headerLeft);
+            this.$tabs = $('<div class="site7-tabs flex gap-xs" style="display: flex;"></div>').appendTo($headerLeft);
+            this.$tabs.append(`<button type="button" class="btn ${this.activeTab === 'section' ? 'active' : ''}" data-tab="section">Sections</button>`);
+            this.$tabs.append(`<button type="button" class="btn ${this.activeTab === 'pattern' ? 'active' : ''}" data-tab="pattern">Patterns</button>`);
             
-            const sectionStyle = this.activeTab === 'section'
-                ? 'text-decoration: none; font-weight: bold; color: #5b32d5; border-bottom: 2px solid #5b32d5; padding-bottom: 4px;'
-                : 'text-decoration: none; color: #8f98a3; padding-bottom: 4px;';
-                
-            const patternStyle = this.activeTab === 'pattern'
-                ? 'text-decoration: none; font-weight: bold; color: #5b32d5; border-bottom: 2px solid #5b32d5; padding-bottom: 4px;'
-                : 'text-decoration: none; color: #8f98a3; padding-bottom: 4px;';
-                
-            this.$tabs.append(`<a href="#" data-tab="section" style="${sectionStyle}">Sections</a>`);
-            this.$tabs.append(`<a href="#" data-tab="pattern" style="${patternStyle}">Patterns</a>`);
-            
-            const $searchContainer = $('<div class="texticon search icon clearable" style="width: 300px;"></div>').appendTo($header);
+            // Search & Close Group
+            const $headerRight = $('<div style="display: flex; align-items: center; gap: 16px;"></div>').appendTo($header);
+            const $searchContainer = $('<div class="texticon search icon clearable" style="width: 250px; margin: 0;"></div>').appendTo($headerRight);
             this.$search = $('<input type="text" class="text fullwidth" placeholder="Search content..." aria-label="Search">').appendTo($searchContainer);
             
+            const $closeBtn = $('<button type="button" class="btn" style="padding: 6px 12px;">Close</button>').appendTo($headerRight);
+            
             // Body container
-            const $bodyContainer = $('<div class="body" style="display: flex; flex: 1; overflow: hidden;"></div>').appendTo($container);
+            const $bodyContainer = $('<div class="cs-body" style="display: flex; flex: 1; overflow: hidden; height: 100%;"></div>').appendTo($container);
             
             // Sidebar
-            this.$sidebar = $('<div class="sidebar" style="width: 220px; background: #fff; border-right: 1px solid #e1e5ea; padding: 20px; overflow-y: auto;"></div>').appendTo($bodyContainer);
-            this.$sidebar.append('<h3 style="font-size: 11px; text-transform: uppercase; color: #8f98a3; margin-bottom: 10px; letter-spacing: 0.5px;">Categories</h3>');
-            this.$categoryList = $('<ul style="list-style: none; padding: 0; margin: 0;"></ul>').appendTo(this.$sidebar);
+            this.$sidebar = $('<div class="cs-sidebar cs-selected-screen" role="navigation"></div>').appendTo($bodyContainer);
             
-            // Main Content
-            this.$main = $('<div class="main" style="flex: 1; padding: 24px; overflow-y: auto;"></div>').appendTo($bodyContainer);
-            this.$grid = $('<div class="site7-card-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;"></div>').appendTo(this.$main);
+            // Sidebar Header (matching native Pages/Sources header)
+            const $sidebarHeader = $('<div class="cs-header"></div>').appendTo(this.$sidebar);
+            $sidebarHeader.append('<h2 class="h3">Categories</h2>');
+            
+            const $sidebarContent = $('<div class="cs-sidebar-content"></div>').appendTo(this.$sidebar);
+            this.$categoryList = $('<ol class="cs-sidebar-list"></ol>').appendTo($sidebarContent);
+            
+            // Main Content Area
+            this.$main = $('<div class="cs-content" style="flex: 1; padding: 24px; overflow-y: auto; background: var(--bg-light-color, #f8fafc); width: 100%; height: 100%;"></div>').appendTo($bodyContainer);
+            this.$grid = $('<div class="site7-card-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;"></div>').appendTo(this.$main);
             
             // Loading State
             this.$grid.append('<div class="spinner big"></div>');
             
             this.base($container, {
                 resizable: false,
-                autoShow: true
+                autoShow: true,
+                fade: true
             });
             
+            this.on('hide', $.proxy(function() {
+                setTimeout($.proxy(function() {
+                    this.destroy();
+                }, this), 300);
+            }, this));
+            
+            $closeBtn.on('click', $.proxy(this, 'hide'));
+
             this.loadData();
             this.bindEvents();
         },
 
         bindEvents: function() {
             this.$search.on('input', $.proxy(this, 'onSearch'));
-            this.$tabs.on('click', 'a', $.proxy(this, 'onTabSelect'));
-            this.$categoryList.on('click', 'a', $.proxy(this, 'onCategorySelect'));
+            this.$tabs.on('click', 'button', $.proxy(this, 'onTabSelect'));
+            this.$categoryList.on('click', '.cs-item__btn', $.proxy(this, 'onCategorySelect'));
             this.$grid.on('click', '.site7-pattern-insert-btn', $.proxy(this, 'onInsertClick'));
             this.$grid.on('click', '.site7-pattern-preview-btn', $.proxy(this, 'onPreviewClick'));
         },
@@ -92,8 +102,8 @@
             this.activeCategory = 'all'; // Reset category on tab change
             
             // Update tab UI
-            this.$tabs.find('a').css({ 'color': '#8f98a3', 'border-bottom': 'none', 'font-weight': 'normal' });
-            $(e.currentTarget).css({ 'color': '#5b32d5', 'border-bottom': '2px solid #5b32d5', 'font-weight': 'bold' });
+            this.$tabs.find('button').removeClass('active');
+            $(e.currentTarget).addClass('active');
             
             this.renderCategories();
             this.renderGrid();
@@ -116,7 +126,7 @@
             
             // Add Recently Used category at the top
             this.$categoryList.append(
-                `<li><a href="#" data-category="recently-used" style="display: block; padding: 8px 12px; border-radius: 4px; color: #3f4d5a; text-decoration: none; ${this.activeCategory === 'recently-used' ? 'background: #f3f5f8; font-weight: bold;' : ''}">Recently Used</a></li>`
+                `<li class="cs-item ${this.activeCategory === 'recently-used' ? 'sel' : ''}"><div class="cs-item__btn cs-item__page-btn" data-category="recently-used" tabindex="0" role="button"><div class="cp-icon"></div><div class="label">Recently Used</div></div></li>`
             );
             
             const categories = new Set();
@@ -129,12 +139,12 @@
             const cats = Array.from(categories).sort();
             
             this.$categoryList.append(
-                `<li><a href="#" data-category="all" style="display: block; padding: 8px 12px; border-radius: 4px; color: #3f4d5a; text-decoration: none; ${this.activeCategory === 'all' ? 'background: #f3f5f8; font-weight: bold;' : ''}">All ${this.activeTab === 'section' ? 'Sections' : 'Patterns'}</a></li>`
+                `<li class="cs-item ${this.activeCategory === 'all' ? 'sel' : ''}"><div class="cs-item__btn cs-item__page-btn" data-category="all" tabindex="0" role="button"><div class="cp-icon"></div><div class="label">All ${this.activeTab === 'section' ? 'Sections' : 'Patterns'}</div></div></li>`
             );
             
             cats.forEach(c => {
                 this.$categoryList.append(
-                    `<li><a href="#" data-category="${c}" style="display: block; padding: 8px 12px; border-radius: 4px; color: #3f4d5a; text-decoration: none; ${this.activeCategory === c ? 'background: #f3f5f8; font-weight: bold;' : ''}">${c}</a></li>`
+                    `<li class="cs-item ${this.activeCategory === c ? 'sel' : ''}"><div class="cs-item__btn cs-item__page-btn" data-category="${c}" tabindex="0" role="button"><div class="cp-icon"></div><div class="label">${c}</div></div></li>`
                 );
             });
         },
@@ -230,27 +240,31 @@
             e.preventDefault();
             const url = $(e.currentTarget).data('url');
             
-            // Open a nested modal or takeover for preview
-            const $previewContainer = $('<div class="modal site7-pattern-preview-modal" style="width: 95vw; height: 95vh; max-width: 1400px; padding: 0; display: flex; flex-direction: column; background: #fff;"></div>').appendTo($(document.body));
+            // Open a nested modal or takeover for preview using native Craft CMS cs-modal design
+            const $previewContainer = $('<div class="modal cs-modal site7-pattern-preview-modal" style="width: 95vw; height: 95vh; max-width: 1400px; padding: 0; display: flex; flex-direction: column; overflow: hidden;"></div>').appendTo($(document.body));
             
-            const $header = $('<div class="header" style="padding: 16px 24px; border-bottom: 1px solid #e1e5ea; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;"></div>').appendTo($previewContainer);
-            $header.append('<h2 style="margin: 0; font-size: 16px;">Pattern Preview</h2>');
-            const $closeBtn = $('<button type="button" class="btn">Close Preview</button>').appendTo($header);
+            const $header = $('<div class="cs-header" style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, #e1e5ea); background: var(--bg-color, #fff);"></div>').appendTo($previewContainer);
+            $header.append('<h2 class="h3" style="margin: 0;">Component Preview</h2>');
+            const $closeBtn = $('<button type="button" class="btn" style="padding: 6px 12px;">Close</button>').appendTo($header);
             
-            const $iframeContainer = $('<div style="flex: 1; overflow: hidden; position: relative;"></div>').appendTo($previewContainer);
+            const $bodyContainer = $('<div class="cs-body" style="display: flex; flex: 1; overflow: hidden; height: 100%; background: var(--bg-light-color, #f8fafc);"></div>').appendTo($previewContainer);
+            const $iframeContainer = $('<div class="cs-content" style="flex: 1; overflow: hidden; position: relative; padding: 0; height: 100%; width: 100%;"></div>').appendTo($bodyContainer);
             $iframeContainer.append(`<iframe src="${url}" style="width: 100%; height: 100%; border: none;"></iframe>`);
             
             const previewModal = new Garnish.Modal($previewContainer, {
                 resizable: true,
-                autoShow: true
+                autoShow: true,
+                fade: true
+            });
+            
+            previewModal.on('hide', function() {
+                setTimeout(() => {
+                    previewModal.destroy();
+                }, 300);
             });
             
             $closeBtn.on('click', function() {
                 previewModal.hide();
-                setTimeout(() => {
-                    previewModal.destroy();
-                    $previewContainer.remove();
-                }, 300);
             });
         },
 
@@ -276,11 +290,6 @@
             if (this.onSelectCallback) {
                 this.onSelectCallback(handle, type, blockTypeHandle);
             }
-            
-            setTimeout($.proxy(function() {
-                this.destroy();
-                this.$container.remove();
-            }, this), 300);
         }
     });
 
