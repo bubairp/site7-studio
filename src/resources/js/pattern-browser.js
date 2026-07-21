@@ -68,7 +68,7 @@
             this.$grid = $('<div class="site7-card-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;"></div>').appendTo(this.$main);
             
             // Loading State
-            this.$grid.append('<div class="spinner big"></div>');
+            this.$grid.append('<div style="grid-column: span 3; display: flex; justify-content: center; align-items: center; min-height: 200px; width: 100%;"><div class="spinner big"></div></div>');
             
             this.base($container, {
                 resizable: false,
