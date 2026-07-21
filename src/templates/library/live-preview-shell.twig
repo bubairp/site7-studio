@@ -12,6 +12,11 @@
             {{ dynamicCss|raw }}
         </style>
     {% endif %}
+    {% if packageCss is defined and packageCss %}
+        <style>
+            {{ packageCss|raw }}
+        </style>
+    {% endif %}
 </head>
 <body class="bg-white">
     {{ content|raw }}

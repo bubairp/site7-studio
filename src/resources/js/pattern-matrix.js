@@ -211,19 +211,28 @@
                         }
                     }
                     if (attributes) {
-                        const postData = Object.assign({
+                        const createData = Object.assign({
                             elementType: manager.elementType,
                             ownerId: manager.settings.ownerId,
                             fieldId: manager.settings.fieldId,
                             siteId: manager.settings.ownerSiteId
-                        }, attributes, {
-                            fields: block.fields
-                        });
-                        
+                        }, attributes);
+
                         try {
-                            const response = await Craft.sendActionRequest("POST", "elements/create", { data: postData });
-                            if (response && response.data && response.data.element) {
-                                await manager.addElementCard(response.data.element);
+                            const createResponse = await Craft.sendActionRequest("POST", "elements/create", { data: createData });
+                            const element = createResponse && createResponse.data && createResponse.data.element;
+                            if (element) {
+                                // elements/create only creates a bare draft; field content must be
+                                // applied via elements/save-draft, same as the native editor slideout does.
+                                const saveData = {
+                                    elementId: element.id,
+                                    draftId: element.draftId,
+                                    siteId: element.siteId,
+                                    fields: block.fields
+                                };
+                                await Craft.sendActionRequest("POST", "elements/save-draft", { data: saveData });
+
+                                await manager.addElementCard(element);
                                 await manager.markAsDirty();
                             }
                         } catch (err) {

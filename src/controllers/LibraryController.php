@@ -101,6 +101,7 @@ class LibraryController extends Controller
         $view = Craft::$app->getView();
         $originalTemplatesPath = $view->getTemplatesPath();
         $renderedContent = '';
+        $packageCss = '';
 
         if ($package->type === 'pattern') {
             $manifest = $package->getManifest();
@@ -113,6 +114,7 @@ class LibraryController extends Controller
                         try {
                             $view->setTemplatesPath($sectionPath);
                             $renderedContent .= $view->renderTemplate('template.twig', ['block' => $sectionData]);
+                            $packageCss .= $this->getPackageStyles($sectionPath);
                         } catch (\Throwable $e) {
                             Craft::error("Error rendering section {$sectionHandle} for pattern {$handle}: " . $e->getMessage(), __METHOD__);
                         }
@@ -166,12 +168,13 @@ class LibraryController extends Controller
                 $view->setTemplatesPath($packagePath);
                 $templateToRender = (strpos($previewTwigPath, 'preview/preview.twig') !== false) ? 'preview/preview.twig' : 'template.twig';
                 $renderedContent = $view->renderTemplate($templateToRender, $data);
+                $packageCss = $this->getPackageStyles($packagePath);
             } catch (\Throwable $e) {
                 $view->setTemplatesPath($originalTemplatesPath);
                 throw $e;
             }
         }
-        
+
         $view->setTemplatesPath($originalTemplatesPath);
 
         $dynamicCss = '';
@@ -190,7 +193,20 @@ class LibraryController extends Controller
         return $this->renderTemplate('site7-studio/library/live-preview-shell', [
             'content' => $renderedContent,
             'dynamicCss' => $dynamicCss,
+            'packageCss' => $packageCss,
         ]);
+    }
+
+    /**
+     * Reads a package's resources/style.css, if present.
+     */
+    private function getPackageStyles(string $packagePath): string
+    {
+        $stylePath = $packagePath . '/resources/style.css';
+        if (file_exists($stylePath)) {
+            return file_get_contents($stylePath) . "\n";
+        }
+        return '';
     }
 
     /**
