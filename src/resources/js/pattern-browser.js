@@ -29,8 +29,26 @@
                 this.activeTab = defaultTab || 'section';
             }
             
-            // Build Modal HTML matching Craft CMS native cs-modal structure
-            const $container = $('<div class="modal cs-modal site7-pattern-browser-modal" style="width: 90vw; height: 90vh; max-width: 1200px; padding: 0; display: flex; flex-direction: column; overflow: hidden;"></div>').appendTo($(document.body));
+            // Garnish.Modal clears the container's inline width/height/min-width/min-height
+            // to "" every time it measures/positions the modal (see updateSizeAndPosition() in
+            // garnish.js), so sizing set via inline style here is wiped out and the modal ends up
+            // shrink-wrapped to whatever content happens to be rendered at that moment (e.g. the
+            // loading spinner) instead of the intended 90vw x 90vh. A real stylesheet rule survives
+            // that reset (only the inline override is cleared), so the size is declared there instead.
+            // Craft's own `.modal:not(.fitted, .fullscreen)` rule (width/height: 66%) has higher
+            // specificity (two classes) than a plain `.site7-pattern-browser-modal` selector, so it
+            // silently wins the cascade and overrides our intended size. Matching that specificity
+            // here (two classes) is what actually lets our size take effect.
+            if ($('#site7-pattern-browser-modal-styles').length === 0) {
+                $('<style id="site7-pattern-browser-modal-styles">.modal.site7-pattern-browser-modal { width: 90vw; height: 90vh; max-width: 1200px; }</style>').appendTo(document.head);
+            }
+
+            // Build Modal HTML matching Craft CMS native cs-modal structure.
+            // Starts at opacity:0 because Garnish.Modal's show() only fades the container in
+            // *after* it's already appended and visible on the page (see show() in garnish.js) —
+            // without this, the fully-built, unpositioned container flashes on screen for a frame
+            // before Garnish takes over and fades it in, which reads as a "blink" on open.
+            const $container = $('<div class="modal cs-modal site7-pattern-browser-modal" style="padding: 0; display: flex; flex-direction: column; overflow: hidden; opacity: 0;"></div>').appendTo($(document.body));
             
             // Header
             const $header = $('<div class="cs-header" style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, #e1e5ea); background: var(--bg-color, #fff);"></div>').appendTo($container);
@@ -64,11 +82,14 @@
             this.$categoryList = $('<ol class="cs-sidebar-list"></ol>').appendTo($sidebarContent);
             
             // Main Content Area
-            this.$main = $('<div class="cs-content" style="flex: 1; padding: 24px; overflow-y: auto; background: var(--bg-light-color, #f8fafc); width: 100%; height: 100%;"></div>').appendTo($bodyContainer);
+            this.$main = $('<div class="cs-content" style="flex: 1; padding: 24px; overflow-y: auto; background: var(--bg-light-color, #f8fafc); width: 100%; height: 100%; position: relative;"></div>').appendTo($bodyContainer);
             this.$grid = $('<div class="site7-card-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;"></div>').appendTo(this.$main);
-            
-            // Loading State
-            this.$grid.append('<div style="grid-column: span 3; display: flex; justify-content: center; align-items: center; min-height: 200px; width: 100%;"><div class="spinner big"></div></div>');
+
+            // Loading State. Centered against $main itself (absolute + transform) rather than
+            // as a grid item, since $grid only ever sizes to its own content (the spinner) and
+            // that content isn't tall enough to center against — the previous version had the
+            // spinner sitting near the top of the modal instead of in the middle of it.
+            this.$loader = $('<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center;"><div class="spinner big"></div></div>').appendTo(this.$main);
             
             this.base($container, {
                 resizable: false,
@@ -114,6 +135,7 @@
 
         loadData: function() {
             Craft.postActionRequest('site7-studio/package-action/get-browser-data', { type: 'all' }, $.proxy(function(response, textStatus) {
+                this.$loader.remove();
                 if (textStatus === 'success' && response && response.success) {
                     this.packages = response.packages || [];
                     this.renderCategories();
