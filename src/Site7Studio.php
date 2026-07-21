@@ -5,6 +5,8 @@ namespace site7\studio;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
+use craft\elements\Entry;
+use craft\events\DefineAltActionsEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\web\UrlManager;
 use site7\studio\base\PluginTrait;
@@ -95,6 +97,53 @@ class Site7Studio extends Plugin
                 }
             );
         }
+
+        // Add "Save as Template" to the entry edit screen's existing Save dropdown.
+        // Uses no custom 'action' key, so it reuses the default save action exactly
+        // like Craft's own "Save and continue editing" item - the entry is persisted
+        // normally, then the redirect (with a marker query param) brings the editor
+        // back to this same page, where template-wizard.js opens the wizard modal.
+        \yii\base\Event::on(
+            Entry::class,
+            Entry::EVENT_DEFINE_ALT_ACTIONS,
+            function (DefineAltActionsEvent $event) {
+                /** @var Entry $entry */
+                $entry = $event->sender;
+                if (!$entry->id) {
+                    return;
+                }
+
+                $settings = Site7Studio::getInstance()->getSettings();
+                if (!$settings->matrixFieldId) {
+                    return;
+                }
+                $matrixField = Craft::$app->getFields()->getFieldById($settings->matrixFieldId);
+                if (!$matrixField || !$entry->getFieldLayout()?->getFieldByHandle($matrixField->handle)) {
+                    return;
+                }
+
+                // Blocks inserted via this plugin's own Section/Pattern/Template insert
+                // flow can remain provisional drafts on the owner until a subsequent
+                // native full-page save merges them, so the default (canonical-only)
+                // field-value query can under-report; check inclusively of drafts here.
+                $fv = $entry->getFieldValue($matrixField->handle);
+                if (!$fv || $fv->status(null)->drafts(null)->savedDraftsOnly(false)->count() === 0) {
+                    return;
+                }
+
+                $editUrl = $entry->getCpEditUrl();
+                if (!$editUrl) {
+                    return;
+                }
+                $separator = str_contains($editUrl, '?') ? '&' : '?';
+
+                $event->altActions[] = [
+                    'label' => Craft::t('site7-studio', 'Save as Template'),
+                    'redirect' => $editUrl . $separator . 'site7SaveAsTemplate=1&site7EntryId=' . $entry->id,
+                    'eventData' => ['autosave' => false],
+                ];
+            }
+        );
 
         // Register CP routes to point to our controllers instead of rendering templates directly
         \yii\base\Event::on(

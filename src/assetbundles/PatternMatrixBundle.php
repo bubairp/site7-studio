@@ -20,6 +20,7 @@ class PatternMatrixBundle extends AssetBundle
         $this->js = [
             'js/pattern-browser.js',
             'js/pattern-matrix.js',
+            'js/template-wizard.js',
         ];
 
         parent::init();
