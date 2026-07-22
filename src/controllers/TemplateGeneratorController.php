@@ -48,4 +48,46 @@ class TemplateGeneratorController extends Controller
 
         return $this->asJson(['success' => true, 'handle' => $record->handle]);
     }
+
+    /**
+     * Lists the Section/Entry Type options the "Create from Template" wizard can
+     * generate an Entry into.
+     */
+    public function actionGetCreateOptions()
+    {
+        $this->requireAcceptsJson();
+
+        $entryTypes = (new \site7\studio\services\TemplateInsertionService())->getEligibleEntryTypes();
+
+        return $this->asJson(['success' => true, 'entryTypes' => $entryTypes]);
+    }
+
+    /**
+     * Generates a brand new Entry from a Template package ("Create from Template").
+     */
+    public function actionCreateFromTemplate()
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+
+        $request = Craft::$app->getRequest();
+        $handle = $request->getRequiredBodyParam('handle');
+        $entryTypeId = (int)$request->getRequiredBodyParam('entryTypeId');
+        $title = trim((string)$request->getRequiredBodyParam('title'));
+        $slug = trim((string)$request->getBodyParam('slug', ''));
+
+        if ($title === '') {
+            return $this->asJson(['success' => false, 'error' => 'A Title is required.']);
+        }
+
+        try {
+            $entry = (new \site7\studio\services\TemplateInsertionService())
+                ->createEntryFromTemplate($handle, $entryTypeId, $title, $slug !== '' ? $slug : null);
+        } catch (\Throwable $e) {
+            Craft::error('Create from Template failed: ' . $e->getMessage(), __METHOD__);
+            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
+        }
+
+        return $this->asJson(['success' => true, 'cpEditUrl' => $entry->getCpEditUrl()]);
+    }
 }

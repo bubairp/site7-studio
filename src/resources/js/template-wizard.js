@@ -114,6 +114,153 @@
         }
     });
 
+    const Site7CreateFromTemplateWizard = Garnish.Modal.extend({
+        $entryTypeSelect: null,
+        $titleInput: null,
+        $slugInput: null,
+        $createBtn: null,
+        templateHandle: null,
+
+        init: function(templateHandle) {
+            this.templateHandle = templateHandle;
+
+            const $container = $('<div class="modal cs-modal site7-template-wizard-modal" style="padding: 0; display: flex; flex-direction: column; overflow: hidden; opacity: 0;"></div>').appendTo($(document.body));
+
+            const $header = $('<div class="cs-header" style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, #e1e5ea); background: var(--bg-color, #fff);"></div>').appendTo($container);
+            $header.append('<h2 class="h3" style="margin: 0;">Create Page from Template</h2>');
+            const $closeBtn = $('<button type="button" class="btn" style="padding: 6px 12px;">Close</button>').appendTo($header);
+
+            const $body = $('<div class="cs-content" style="padding: 24px; overflow-y: auto;"></div>').appendTo($container);
+
+            const $form = $(`
+                <div>
+                    <div class="field" style="margin-bottom: 16px;">
+                        <div class="heading"><label for="site7cft-section">Create In</label></div>
+                        <div class="input"><select id="site7cft-section" class="fullwidth"><option value="">Loading&hellip;</option></select></div>
+                    </div>
+                    <div class="field" style="margin-bottom: 16px;">
+                        <div class="heading"><label for="site7cft-title">Title</label></div>
+                        <div class="input"><input type="text" id="site7cft-title" class="text fullwidth" required></div>
+                    </div>
+                    <div class="field" style="margin-bottom: 0;">
+                        <div class="heading"><label for="site7cft-slug">Slug (optional)</label></div>
+                        <div class="input"><input type="text" id="site7cft-slug" class="text fullwidth"></div>
+                    </div>
+                </div>
+            `).appendTo($body);
+
+            this.$entryTypeSelect = $form.find('#site7cft-section');
+            this.$titleInput = $form.find('#site7cft-title');
+            this.$slugInput = $form.find('#site7cft-slug');
+
+            const $footer = $('<div class="cs-header" style="padding: 16px 24px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border-color, #e1e5ea);"></div>').appendTo($container);
+            this.$createBtn = $('<button type="button" class="btn submit">Create Page</button>').appendTo($footer);
+
+            this.base($container, {
+                resizable: false,
+                autoShow: true,
+                fade: true
+            });
+
+            this.on('hide', $.proxy(function() {
+                setTimeout($.proxy(function() {
+                    this.destroy();
+                }, this), 300);
+            }, this));
+
+            $closeBtn.on('click', $.proxy(this, 'hide'));
+            this.$createBtn.on('click', $.proxy(this, 'onCreate'));
+
+            this.loadEntryTypes();
+        },
+
+        loadEntryTypes: function() {
+            const url = Craft.getActionUrl('site7-studio/template-generator/get-create-options');
+            fetch(url, {
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' }
+            })
+                .then(res => res.json())
+                .then($.proxy(function(response) {
+                    this.$entryTypeSelect.empty();
+                    const entryTypes = (response && response.entryTypes) || [];
+                    if (!entryTypes.length) {
+                        this.$entryTypeSelect.append('<option value="">No eligible Section found</option>');
+                        this.$createBtn.prop('disabled', true);
+                        return;
+                    }
+                    entryTypes.forEach(function(et) {
+                        this.$entryTypeSelect.append(
+                            $('<option></option>')
+                                .val(et.entryTypeId)
+                                .text(et.sectionName + ' — ' + et.entryTypeName)
+                        );
+                    }, this);
+                }, this))
+                .catch($.proxy(function() {
+                    this.$entryTypeSelect.empty().append('<option value="">Could not load Sections</option>');
+                }, this));
+        },
+
+        onCreate: function() {
+            const entryTypeId = this.$entryTypeSelect.val();
+            const title = this.$titleInput.val().trim();
+
+            if (!entryTypeId) {
+                Craft.cp.displayError('Choose where to create the page.');
+                return;
+            }
+            if (!title) {
+                Craft.cp.displayError('A Title is required.');
+                return;
+            }
+
+            this.$createBtn.addClass('loading').prop('disabled', true);
+
+            const url = Craft.getActionUrl('site7-studio/template-generator/create-from-template');
+            const body = new URLSearchParams();
+            body.append('handle', this.templateHandle);
+            body.append('entryTypeId', entryTypeId);
+            body.append('title', title);
+            body.append('slug', this.$slugInput.val().trim());
+
+            fetch(url, {
+                method: 'POST',
+                body: body,
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-Token': Craft.csrfTokenValue
+                }
+            })
+                .then(res => res.json())
+                .then($.proxy(function(response) {
+                    this.$createBtn.removeClass('loading').prop('disabled', false);
+                    if (response.success) {
+                        window.location.href = response.cpEditUrl;
+                    } else {
+                        Craft.cp.displayError(response.error || 'Could not create the page.');
+                    }
+                }, this))
+                .catch($.proxy(function() {
+                    this.$createBtn.removeClass('loading').prop('disabled', false);
+                    Craft.cp.displayError('Error creating the page.');
+                }, this));
+        }
+    });
+
+    function checkForCreateFromTemplateTrigger() {
+        $(document).on('click', '#site7-create-from-template-btn', function(e) {
+            e.preventDefault();
+            const handle = $(this).data('handle');
+            if (handle) {
+                new Site7CreateFromTemplateWizard(handle);
+            }
+        });
+    }
+
+    window.Site7CreateFromTemplateWizard = Site7CreateFromTemplateWizard;
+
     function checkForSaveAsTemplateTrigger() {
         const params = new URLSearchParams(window.location.search);
         if (params.get('site7SaveAsTemplate') === '1') {
@@ -133,5 +280,6 @@
     window.Site7TemplateWizard = Site7TemplateWizard;
 
     $(checkForSaveAsTemplateTrigger);
+    $(checkForCreateFromTemplateTrigger);
 
 })(jQuery);

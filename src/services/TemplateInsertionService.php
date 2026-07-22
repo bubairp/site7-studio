@@ -4,6 +4,8 @@ namespace site7\studio\services;
 
 use Craft;
 use craft\base\Component;
+use craft\elements\Entry;
+use craft\models\Section;
 use site7\studio\models\packages\PackageManifest;
 use site7\studio\Site7Studio;
 use Symfony\Component\Yaml\Yaml;
@@ -120,5 +122,121 @@ class TemplateInsertionService extends Component
         }
 
         return $blocks;
+    }
+
+    /**
+     * Lists the Section/Entry Type combinations a Template can be generated into -
+     * any Entry Type whose field layout includes the configured Site7 Matrix field.
+     *
+     * @return array<int, array{entryTypeId: int, entryTypeName: string, sectionId: int, sectionName: string, showSlugField: bool}>
+     */
+    public function getEligibleEntryTypes(): array
+    {
+        $matrixHandle = $this->getMatrixFieldHandle();
+        if (!$matrixHandle) {
+            return [];
+        }
+
+        $entriesService = Craft::$app->getEntries();
+        $options = [];
+
+        foreach ($entriesService->getAllSections() as $section) {
+            foreach ($entriesService->getEntryTypesBySectionId($section->id) as $entryType) {
+                $field = $entryType->getFieldLayout()?->getFieldByHandle($matrixHandle);
+                if (!$field) {
+                    continue;
+                }
+
+                $options[] = [
+                    'entryTypeId' => $entryType->id,
+                    'entryTypeName' => $entryType->name,
+                    'sectionId' => $section->id,
+                    'sectionName' => $section->name,
+                    'showSlugField' => (bool)$entryType->showSlugField,
+                ];
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * Creates a brand new Entry from a Template package ("Create from Template"), the
+     * reverse of TemplateGeneratorService::generateFromEntry(). The entry is created
+     * disabled so an editor can review it before publishing, exactly like landing on
+     * a manually-created entry's edit screen for the first time.
+     *
+     * @throws \Exception if the Template, Matrix field, or Entry Type/Section can't be resolved.
+     */
+    public function createEntryFromTemplate(string $templateHandle, int $entryTypeId, string $title, ?string $slug): Entry
+    {
+        $matrixHandle = $this->getMatrixFieldHandle();
+        if (!$matrixHandle) {
+            throw new \Exception('No Site7 Matrix field is configured.');
+        }
+
+        $entriesService = Craft::$app->getEntries();
+        $entryType = $entriesService->getEntryTypeById($entryTypeId);
+        if (!$entryType) {
+            throw new \Exception('Entry Type not found.');
+        }
+
+        $section = $this->findSectionForEntryType($entryTypeId);
+        if (!$section) {
+            throw new \Exception('This Entry Type is not attached to a Section.');
+        }
+
+        $blocks = $this->getTemplateBlocks($templateHandle);
+        if (empty($blocks)) {
+            throw new \Exception('This Template has no content to generate an Entry from.');
+        }
+
+        $entry = new Entry();
+        $entry->sectionId = $section->id;
+        $entry->typeId = $entryType->id;
+        $entry->siteId = Craft::$app->getSites()->getPrimarySite()->id;
+        $entry->title = $title;
+        $entry->enabled = false;
+        if ($slug !== null && $slug !== '' && $entryType->showSlugField) {
+            $entry->slug = $slug;
+        }
+
+        $matrixValue = [];
+        foreach ($blocks as $i => $block) {
+            $matrixValue['new' . ($i + 1)] = [
+                'type' => $block['type'],
+                'fields' => $block['fields'],
+            ];
+        }
+        $entry->setFieldValue($matrixHandle, $matrixValue);
+
+        if (!Craft::$app->getElements()->saveElement($entry)) {
+            throw new \Exception('Could not create the Entry: ' . implode(' ', $entry->getFirstErrors()));
+        }
+
+        return $entry;
+    }
+
+    private function findSectionForEntryType(int $entryTypeId): ?Section
+    {
+        $entriesService = Craft::$app->getEntries();
+        foreach ($entriesService->getAllSections() as $section) {
+            foreach ($entriesService->getEntryTypesBySectionId($section->id) as $entryType) {
+                if ($entryType->id === $entryTypeId) {
+                    return $section;
+                }
+            }
+        }
+        return null;
+    }
+
+    private function getMatrixFieldHandle(): ?string
+    {
+        $settings = Site7Studio::getInstance()->getSettings();
+        if (!$settings->matrixFieldId) {
+            return null;
+        }
+        $field = Craft::$app->getFields()->getFieldById($settings->matrixFieldId);
+        return $field?->handle;
     }
 }

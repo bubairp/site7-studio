@@ -19,6 +19,10 @@
                 {# Preview button is ALWAYS visible, regardless of status #}
                 <a href="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview') }}" class="btn">Preview</a>
 
+                {% if package.type|lower == 'template' and package.status == 'enabled' %}
+                    <button type="button" class="btn submit" id="site7-create-from-template-btn" data-handle="{{ package.handle }}">Create Page from Template</button>
+                {% endif %}
+
                 {% if not isSetupComplete %}
                     <a href="{{ url('site7-studio/setup') }}" class="btn submit">Complete Setup to Install</a>
                 {% else %}
