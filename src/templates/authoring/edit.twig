@@ -205,6 +205,40 @@
                     <button type="submit" class="btn submit">{{ "Save Template"|t('site7-studio') }}</button>
                 </div>
             </form>
+        {% elseif package.type == 'starter-kit' %}
+            <p class="light">{{ "Drag Templates from the library on the left into the canvas to add Pages, reorder them, then select a Page to set its Title, Slug, and Entry Type (a Template's own content is never changed - a Starter Kit only references it)."|t('site7-studio') }}</p>
+            <form method="post" accept-charset="UTF-8" id="site7-starter-kit-builder-form">
+                {{ csrfInput() }}
+                {{ redirectInput('site7-studio/packages/' ~ package.handle ~ '/edit') }}
+                <input type="hidden" name="action" value="site7-studio/package-authoring/save-starter-kit">
+                <input type="hidden" name="handle" value="{{ package.handle }}">
+                <input type="hidden" name="composition" id="site7-sk-composition-input">
+
+                <div id="site7-starter-kit-builder"
+                     data-available-templates="{{ availableTemplates|json_encode|escape('html_attr') }}"
+                     data-eligible-entry-types="{{ eligibleEntryTypes|json_encode|escape('html_attr') }}"
+                     data-composition="{{ starterKitComposition|json_encode|escape('html_attr') }}">
+                    <div class="site7-pb-column site7-pb-sidebar">
+                        <h3>{{ "Available Templates"|t('site7-studio') }}</h3>
+                        <input type="text" id="site7-sk-search" class="text fullwidth" placeholder="{{ 'Search Templates...'|t('site7-studio') }}">
+                        <div id="site7-sk-library"></div>
+                    </div>
+                    <div class="site7-pb-column site7-pb-canvas">
+                        <h3>{{ "Starter Kit Canvas"|t('site7-studio') }}</h3>
+                        <div id="site7-sk-canvas-list" class="site7-pb-dropzone"></div>
+                    </div>
+                    <div class="site7-pb-column site7-pb-properties">
+                        <h3>{{ "Page Properties"|t('site7-studio') }}</h3>
+                        <div id="site7-sk-properties-body">
+                            <p class="light">{{ "Select a Page in the canvas to edit its Title, Slug, and Entry Type."|t('site7-studio') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; text-align: right;">
+                    <button type="submit" class="btn submit">{{ "Save Starter Kit"|t('site7-studio') }}</button>
+                </div>
+            </form>
         {% else %}
             <p class="light">{{ "The {type} Builder is coming in a later increment - for now, {type} packages are configured by hand-editing their manifest and package files."|t('site7-studio', {type: package.type|title}) }}</p>
         {% endif %}

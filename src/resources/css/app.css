@@ -372,10 +372,11 @@ pre.code {
     color: var(--gray-600);
 }
 
-/* ----- Pattern Builder / Template Builder: 3-column layout ----- */
+/* ----- Pattern Builder / Template Builder / Starter Kit Builder: 3-column layout ----- */
 /* Craft has no visual drag-and-drop composition builder. */
 #site7-pattern-builder,
-#site7-template-builder {
+#site7-template-builder,
+#site7-starter-kit-builder {
     display: flex;
     gap: 16px;
     align-items: flex-start;

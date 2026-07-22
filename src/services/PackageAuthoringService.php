@@ -602,4 +602,144 @@ class PackageAuthoringService extends Component
 
         file_put_contents($packagePath . '/manifest.json', json_encode($manifestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
+
+    /**
+     * The Starter Kit Builder's left sidebar library - every installed
+     * Template. sourceEntryType (when present - i.e. the Template was
+     * captured via "Save as Template") is passed through so the Builder can
+     * default a dropped Template's Page to the matching Entry Type.
+     *
+     * @return array<int, array{handle: string, name: string, category: string, previewImageUrl: string, sourceEntryType: ?string}>
+     */
+    public function getAvailableTemplates(): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $templates = [];
+
+        foreach ($packageManager->getAllPackages() as $pkg) {
+            if (strtolower($pkg->type) !== 'template') {
+                continue;
+            }
+            $manifest = $pkg->getManifest();
+            $templates[] = [
+                'handle' => $pkg->handle,
+                'name' => $pkg->name,
+                'category' => $pkg->category ?: 'Uncategorized',
+                'previewImageUrl' => UrlHelper::cpUrl('site7-studio/library/package/' . $pkg->handle . '/preview-image'),
+                'sourceEntryType' => $manifest?->sourceEntryType,
+            ];
+        }
+
+        return $templates;
+    }
+
+    /**
+     * Entry Types eligible to receive Site7 content, for the Starter Kit
+     * Builder's per-Page Entry Type picker - the same set (and eligibility
+     * rule) "Create Page from Template" already uses.
+     *
+     * @return array<int, array{entryTypeId: int, entryTypeHandle: string, entryTypeName: string, sectionId: int, sectionHandle: string, sectionName: string, showSlugField: bool, preferred: bool}>
+     */
+    public function getEligibleEntryTypesForStarterKit(): array
+    {
+        return (new TemplateInsertionService())->getEligibleEntryTypes();
+    }
+
+    /**
+     * The Starter Kit Builder's canvas, hydrated from the Starter Kit's own
+     * manifest.pages - Phase 10's frozen schema. Each Page is a structural
+     * reference only (title/slug/section/entry type + the Template handle
+     * it was built from) - a Starter Kit never stores page content itself,
+     * per "Starter Kits must never duplicate Template definitions."
+     *
+     * @return array<int, array{title: string, slug: string, sectionHandle: ?string, entryTypeHandle: ?string, templateHandle: string, templateName: string}>
+     */
+    public function getStarterKitComposition(string $handle): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $record = $packageManager->getPackageByHandle($handle);
+        $manifest = $record?->getManifest();
+        if (!$manifest) {
+            return [];
+        }
+
+        $composition = [];
+        foreach ($manifest->pages ?? [] as $page) {
+            $templateHandle = (string)($page['templateHandle'] ?? '');
+            $templateRecord = $packageManager->getPackageByHandle($templateHandle);
+            $composition[] = [
+                'title' => (string)($page['title'] ?? ''),
+                'slug' => (string)($page['slug'] ?? ''),
+                'sectionHandle' => $page['sectionHandle'] ?? null,
+                'entryTypeHandle' => $page['entryTypeHandle'] ?? null,
+                'templateHandle' => $templateHandle,
+                'templateName' => $templateRecord->name ?? $templateHandle,
+            ];
+        }
+
+        return $composition;
+    }
+
+    /**
+     * Saves the Starter Kit Builder's canvas back to the manifest. Only
+     * pages and requires.templates change - a Page references a Template by
+     * handle only, never duplicating its definition.
+     *
+     * @param array $pages Ordered list of {title, slug?, entryTypeHandle?, templateHandle}; invalid/unknown Template handles are dropped.
+     * @throws \Exception if the package isn't a Starter Kit, or no valid Pages were given.
+     */
+    public function saveStarterKitComposition(string $handle, array $pages): void
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $packagePath = $packageManager->getPackagePath($handle);
+        $record = $packageManager->getPackageByHandle($handle);
+        if (!$packagePath || !$record) {
+            throw new \Exception('Package not found.');
+        }
+        if ($record->type !== 'starter-kit') {
+            throw new \Exception('This package is not a Starter Kit.');
+        }
+
+        $entryTypesByHandle = [];
+        foreach ((new TemplateInsertionService())->getEligibleEntryTypes() as $option) {
+            $entryTypesByHandle[$option['entryTypeHandle']] = $option;
+        }
+
+        $normalizedPages = [];
+        $requiresTemplates = [];
+
+        foreach ($pages as $page) {
+            $templateHandle = trim((string)($page['templateHandle'] ?? ''));
+            $title = trim((string)($page['title'] ?? ''));
+            if ($templateHandle === '' || $title === '') {
+                continue;
+            }
+            $templateRecord = $packageManager->getPackageByHandle($templateHandle);
+            if (!$templateRecord || strtolower($templateRecord->type) !== 'template') {
+                continue;
+            }
+
+            $entryTypeHandle = trim((string)($page['entryTypeHandle'] ?? ''));
+            $entryTypeOption = $entryTypesByHandle[$entryTypeHandle] ?? null;
+
+            $normalizedPages[] = [
+                'title' => $title,
+                'slug' => trim((string)($page['slug'] ?? '')) ?: null,
+                'sectionHandle' => $entryTypeOption['sectionHandle'] ?? null,
+                'entryTypeHandle' => $entryTypeOption['entryTypeHandle'] ?? null,
+                'templateHandle' => $templateHandle,
+            ];
+            $requiresTemplates[] = $templateHandle;
+        }
+
+        if (empty($normalizedPages)) {
+            throw new \Exception('Add at least one Page to the Starter Kit.');
+        }
+
+        $manifestData = json_decode(file_get_contents($packagePath . '/manifest.json'), true) ?: [];
+        $manifestData['pages'] = $normalizedPages;
+        $manifestData['requires']['templates'] = array_values(array_unique($requiresTemplates));
+
+        file_put_contents($packagePath . '/manifest.json', json_encode($manifestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
 }

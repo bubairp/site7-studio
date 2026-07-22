@@ -132,7 +132,7 @@ class TemplateInsertionService extends Component
      *   'preferred' - e.g. the Entry Type a Template was originally generated from
      *   (manifest.sourceEntryType), so the "Create from Template" wizard can default
      *   to it. Purely a UI hint; the editor can still pick any eligible option.
-     * @return array<int, array{entryTypeId: int, entryTypeName: string, sectionId: int, sectionName: string, showSlugField: bool, preferred: bool}>
+     * @return array<int, array{entryTypeId: int, entryTypeHandle: string, entryTypeName: string, sectionId: int, sectionHandle: string, sectionName: string, showSlugField: bool, preferred: bool}>
      */
     public function getEligibleEntryTypes(?string $preferredEntryTypeHandle = null): array
     {
@@ -153,8 +153,10 @@ class TemplateInsertionService extends Component
 
                 $options[] = [
                     'entryTypeId' => $entryType->id,
+                    'entryTypeHandle' => $entryType->handle,
                     'entryTypeName' => $entryType->name,
                     'sectionId' => $section->id,
+                    'sectionHandle' => $section->handle,
                     'sectionName' => $section->name,
                     'showSlugField' => (bool)$entryType->showSlugField,
                     'preferred' => $preferredEntryTypeHandle !== null && $entryType->handle === $preferredEntryTypeHandle,

@@ -94,6 +94,15 @@ class PackageAuthoringController extends Controller
             $templateComposition = $authoringService->getTemplateComposition($handle);
         }
 
+        $availableTemplates = [];
+        $eligibleEntryTypes = [];
+        $starterKitComposition = [];
+        if ($package->type === 'starter-kit') {
+            $availableTemplates = $authoringService->getAvailableTemplates();
+            $eligibleEntryTypes = $authoringService->getEligibleEntryTypesForStarterKit();
+            $starterKitComposition = $authoringService->getStarterKitComposition($handle);
+        }
+
         $previewImageUrl = null;
         $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($handle);
         if ($packagePath) {
@@ -114,6 +123,9 @@ class PackageAuthoringController extends Controller
             'patternComposition' => $patternComposition,
             'availableTemplateItems' => $availableTemplateItems,
             'templateComposition' => $templateComposition,
+            'availableTemplates' => $availableTemplates,
+            'eligibleEntryTypes' => $eligibleEntryTypes,
+            'starterKitComposition' => $starterKitComposition,
             'previewImageUrl' => $previewImageUrl,
         ]);
     }
@@ -236,6 +248,28 @@ class PackageAuthoringController extends Controller
         }
 
         Craft::$app->getSession()->setNotice('Template saved.');
+        return $this->redirectToPostedUrl();
+    }
+
+    /**
+     * Saves the Starter Kit Builder's canvas.
+     */
+    public function actionSaveStarterKit()
+    {
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $handle = (string)$request->getRequiredBodyParam('handle');
+        $composition = json_decode((string)$request->getBodyParam('composition', '[]'), true);
+
+        try {
+            (new PackageAuthoringService())->saveStarterKitComposition($handle, is_array($composition) ? $composition : []);
+        } catch (\Throwable $e) {
+            Craft::$app->getSession()->setError($e->getMessage());
+            return $this->redirectToPostedUrl();
+        }
+
+        Craft::$app->getSession()->setNotice('Starter Kit saved.');
         return $this->redirectToPostedUrl();
     }
 }
