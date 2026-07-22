@@ -19,12 +19,13 @@
     </div>
 {% endblock %}
 
-{% set canAuthor = currentUser.can(constant('site7\\studio\\Site7Studio::PERMISSION_PACKAGE_AUTHORING')) %}
-{% set canDeleteThis = canAuthor or (package.type == 'template' and package.creatorId and package.creatorId == currentUser.id) %}
+{% set isDevMode = craft.app.config.general.devMode %}
+{% set isOwnTemplate = package.type == 'template' and package.creatorId and package.creatorId == currentUser.id %}
+{% set canManageThis = isDevMode or isOwnTemplate %}
 
 {% block actionButton %}
     <div class="flex">
-        {% if canAuthor %}
+        {% if canManageThis %}
             <a href="{{ url('site7-studio/packages/' ~ package.handle ~ '/edit') }}" class="btn">{{ "Edit"|t('site7-studio') }}</a>
         {% endif %}
 
@@ -100,7 +101,7 @@
             {% endif %}
         {% endif %}
 
-        {% if canDeleteThis %}
+        {% if canManageThis %}
             <form method="post" accept-charset="UTF-8" id="deleteForm">
                 {{ csrfInput() }}
                 {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}

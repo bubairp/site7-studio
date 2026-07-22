@@ -15,16 +15,30 @@ use site7\studio\services\PackageAuthoringService;
 class PackageAuthoringController extends Controller
 {
     /**
-     * Every action here is the Package Authoring surface (the New Package
-     * wizard and the Package Editor) - developer-only, per
-     * Site7Studio::PERMISSION_PACKAGE_AUTHORING. "Save as Template" and
-     * deleting a self-captured Template live in other controllers and stay
-     * open to every user.
+     * Package Authoring's access rule: full access in Craft's Dev Mode; in
+     * production, only through for a Template the current user personally
+     * captured via "Save as Template" (mirrors
+     * PackageActionController::actionDelete()'s own exception for deleting
+     * a self-captured Template - here it also covers editing one). Pass
+     * null when there's no existing package yet (actionNew/actionCreate) -
+     * that always denies in production, since creating any brand new
+     * package is Dev-Mode-only.
      */
-    public function beforeAction($action): bool
+    private function requireAuthoringAccess(?string $handle): void
     {
-        $this->requirePermission(Site7Studio::PERMISSION_PACKAGE_AUTHORING);
-        return parent::beforeAction($action);
+        if (Site7Studio::isDevMode()) {
+            return;
+        }
+
+        $record = $handle !== null ? Site7Studio::getInstance()->packageManager->getPackageByHandle($handle) : null;
+        $isOwnTemplate = $record
+            && $record->type === 'template'
+            && $record->creatorId !== null
+            && (int)$record->creatorId === (int)Craft::$app->getUser()->getId();
+
+        if (!$isOwnTemplate) {
+            throw new \yii\web\ForbiddenHttpException('Package Authoring is only available in Dev Mode.');
+        }
     }
 
     /**
@@ -32,6 +46,7 @@ class PackageAuthoringController extends Controller
      */
     public function actionNew()
     {
+        $this->requireAuthoringAccess(null);
         $this->view->registerAssetBundle(\site7\studio\assetbundles\LibraryBundle::class);
 
         $preselectedType = (string)Craft::$app->getRequest()->getQueryParam('type', 'section');
@@ -51,6 +66,7 @@ class PackageAuthoringController extends Controller
     public function actionCreate()
     {
         $this->requirePostRequest();
+        $this->requireAuthoringAccess(null);
 
         $request = Craft::$app->getRequest();
         $meta = [
@@ -80,6 +96,7 @@ class PackageAuthoringController extends Controller
      */
     public function actionEdit(string $handle)
     {
+        $this->requireAuthoringAccess($handle);
         $this->view->registerAssetBundle(\site7\studio\assetbundles\LibraryBundle::class);
 
         $package = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
@@ -152,6 +169,7 @@ class PackageAuthoringController extends Controller
 
         $request = Craft::$app->getRequest();
         $handle = (string)$request->getRequiredBodyParam('handle');
+        $this->requireAuthoringAccess($handle);
 
         $fields = [];
         foreach (['name', 'description', 'category', 'author', 'version', 'tags'] as $key) {
@@ -180,6 +198,7 @@ class PackageAuthoringController extends Controller
 
         $request = Craft::$app->getRequest();
         $handle = (string)$request->getRequiredBodyParam('handle');
+        $this->requireAuthoringAccess($handle);
         $file = \craft\web\UploadedFile::getInstanceByName('previewImage');
 
         if (!$file) {
@@ -207,6 +226,7 @@ class PackageAuthoringController extends Controller
 
         $request = Craft::$app->getRequest();
         $handle = (string)$request->getRequiredBodyParam('handle');
+        $this->requireAuthoringAccess($handle);
         $fields = (array)$request->getBodyParam('fields', []);
 
         try {
@@ -229,6 +249,7 @@ class PackageAuthoringController extends Controller
 
         $request = Craft::$app->getRequest();
         $handle = (string)$request->getRequiredBodyParam('handle');
+        $this->requireAuthoringAccess($handle);
         $composition = json_decode((string)$request->getBodyParam('composition', '[]'), true);
 
         try {
@@ -251,6 +272,7 @@ class PackageAuthoringController extends Controller
 
         $request = Craft::$app->getRequest();
         $handle = (string)$request->getRequiredBodyParam('handle');
+        $this->requireAuthoringAccess($handle);
         $composition = json_decode((string)$request->getBodyParam('composition', '[]'), true);
 
         try {
@@ -273,6 +295,7 @@ class PackageAuthoringController extends Controller
 
         $request = Craft::$app->getRequest();
         $handle = (string)$request->getRequiredBodyParam('handle');
+        $this->requireAuthoringAccess($handle);
         $composition = json_decode((string)$request->getBodyParam('composition', '[]'), true);
 
         try {

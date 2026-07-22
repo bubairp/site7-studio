@@ -114,17 +114,15 @@ class PackageActionController extends Controller
 
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
-        // Deleting is normally gated behind the Package Authoring permission,
-        // but a user who captured a Template themselves via "Save as
-        // Template" (open to everyone) can also delete that specific
-        // Template without needing the broader permission.
-        $currentUser = Craft::$app->getUser();
-        if (!$currentUser->checkPermission(Site7Studio::PERMISSION_PACKAGE_AUTHORING)) {
+        // Deleting is normally Dev-Mode-only (Package Authoring), but a user
+        // who captured a Template themselves via "Save as Template" (open
+        // to everyone) can also delete that specific Template in production.
+        if (!Site7Studio::isDevMode()) {
             $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
             $isOwnTemplate = $record
                 && $record->type === 'template'
                 && $record->creatorId !== null
-                && (int)$record->creatorId === (int)$currentUser->getId();
+                && (int)$record->creatorId === (int)Craft::$app->getUser()->getId();
             if (!$isOwnTemplate) {
                 throw new \yii\web\ForbiddenHttpException('You are not permitted to delete this package.');
             }

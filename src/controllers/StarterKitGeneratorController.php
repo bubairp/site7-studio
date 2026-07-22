@@ -20,7 +20,9 @@ class StarterKitGeneratorController extends Controller
     public function actionGetEntries()
     {
         $this->requireAcceptsJson();
-        $this->requirePermission(Site7Studio::PERMISSION_PACKAGE_AUTHORING);
+        if (!Site7Studio::isDevMode()) {
+            throw new \yii\web\ForbiddenHttpException('Package Authoring is only available in Dev Mode.');
+        }
 
         $settings = Site7Studio::getInstance()->getSettings();
         $matrixField = $settings->matrixFieldId ? Craft::$app->getFields()->getFieldById($settings->matrixFieldId) : null;
@@ -59,7 +61,9 @@ class StarterKitGeneratorController extends Controller
     {
         $this->requirePostRequest();
         $this->requireAcceptsJson();
-        $this->requirePermission(Site7Studio::PERMISSION_PACKAGE_AUTHORING);
+        if (!Site7Studio::isDevMode()) {
+            throw new \yii\web\ForbiddenHttpException('Package Authoring is only available in Dev Mode.');
+        }
 
         $request = Craft::$app->getRequest();
         $entryIds = (array)$request->getRequiredBodyParam('entryIds');

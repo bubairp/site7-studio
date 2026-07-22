@@ -29,14 +29,6 @@ class Site7Studio extends Plugin
 {
     use PluginTrait;
 
-    /**
-     * Gates the New Package wizard and Package Editor (create/edit/delete
-     * for Sections, Patterns, Templates, and Starter Kits). Admins have it
-     * automatically; everyone else needs it granted in Craft's own
-     * Users -> Permissions settings.
-     */
-    public const PERMISSION_PACKAGE_AUTHORING = 'site7Studio-packageAuthoring';
-
     public string $schemaVersion = '1.0.2';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
@@ -57,6 +49,18 @@ class Site7Studio extends Plugin
         Craft::$app->onInit(function() {
             $this->attachEventHandlers();
         });
+    }
+
+    /**
+     * Gates Package Authoring (the New Package wizard and Package Editor -
+     * create/edit/delete for Sections, Patterns, Templates, and Starter
+     * Kits) to Craft's own Dev Mode. "Save as Template" and managing a
+     * Template you personally captured that way stay available regardless
+     * - see PackageAuthoringController and PackageActionController::actionDelete().
+     */
+    public static function isDevMode(): bool
+    {
+        return (bool)Craft::$app->getConfig()->getGeneral()->devMode;
     }
 
     /**
@@ -176,29 +180,6 @@ class Site7Studio extends Plugin
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview-image'] = 'site7-studio/library/preview-image';
                 $event->rules['site7-studio/packages/new'] = 'site7-studio/package-authoring/new';
                 $event->rules['site7-studio/packages/<handle:[\w\-]+>/edit'] = 'site7-studio/package-authoring/edit';
-            }
-        );
-
-        // Package Authoring (the New Package wizard and Package Editor - creating,
-        // editing, and deleting Sections/Patterns/Templates/Starter Kits) is
-        // developer-only work on top of the frozen architecture, gated behind its
-        // own permission. Admins have every permission automatically (Craft's own
-        // behavior); everyone else needs it explicitly granted. "Save as Template"
-        // and deleting a Template you personally captured that way stay open to
-        // every user regardless of this permission - see actionSaveAsTemplate()
-        // and PackageActionController::actionDelete().
-        \yii\base\Event::on(
-            \craft\services\UserPermissions::class,
-            \craft\services\UserPermissions::EVENT_REGISTER_PERMISSIONS,
-            function (\craft\events\RegisterUserPermissionsEvent $event) {
-                $event->permissions[] = [
-                    'heading' => 'Site7 Studio',
-                    'permissions' => [
-                        self::PERMISSION_PACKAGE_AUTHORING => [
-                            'label' => Craft::t('site7-studio', 'Author packages (create, edit, delete Sections, Patterns, Templates, and Starter Kits)'),
-                        ],
-                    ],
-                ];
             }
         );
     }
