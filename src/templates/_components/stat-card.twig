@@ -4,8 +4,11 @@
  # Params:
  #   value (string|number, required) – the metric number
  #   label (string, required)        – label under the number
+ #   url   (string, optional)        – makes the whole card a link (e.g. into the Library, filtered)
  #}
-<div class="site7-stat-card">
+{% set tag = url ? 'a' : 'div' %}
+{% set attrs = url ? {href: url} : {} %}
+{% tag tag with attrs|merge({class: 'site7-stat-card' ~ (url ? ' site7-stat-card--link' : '')}) %}
     <div class="site7-stat-value">{{ value }}</div>
     <div class="site7-stat-label">{{ label }}</div>
-</div>
+{% endtag %}

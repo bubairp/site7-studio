@@ -58,11 +58,19 @@
 }
 
 .site7-stat-card {
+    display: block;
     background: var(--gray-050);
     border: 1px solid var(--gray-200);
     border-radius: var(--medium-border-radius);
     padding: 16px;
     text-align: center;
+    text-decoration: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.site7-stat-card--link:hover {
+    border-color: var(--gray-300);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .site7-stat-value {

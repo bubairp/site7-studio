@@ -2,38 +2,68 @@
 {% set title = "Dashboard" %}
 {% set selectedSubnavItem = "dashboard" %}
 
-
-
 {% block content %}
     <div class="site7-stat-grid">
-        {% include "site7-studio/_components/stat-card" with { value: sectionsCount ?? 0, label: 'Installed Sections' } only %}
-        {% include "site7-studio/_components/stat-card" with { value: templatesCount ?? 0, label: 'Installed Templates' } only %}
-        {% include "site7-studio/_components/stat-card" with { value: version ?? '1.0.0', label: 'Version' } only %}
+        {% include "site7-studio/_components/stat-card" with {
+            value: byType.section ?? 0,
+            label: 'Sections',
+            url: url('site7-studio/library', {type: 'section'}),
+        } only %}
+        {% include "site7-studio/_components/stat-card" with {
+            value: byType.pattern ?? 0,
+            label: 'Patterns',
+            url: url('site7-studio/library', {type: 'pattern'}),
+        } only %}
+        {% include "site7-studio/_components/stat-card" with {
+            value: byType.template ?? 0,
+            label: 'Templates',
+            url: url('site7-studio/library', {type: 'template'}),
+        } only %}
+        {% include "site7-studio/_components/stat-card" with {
+            value: byType['starter-kit'] ?? 0,
+            label: 'Starter Kits',
+            url: url('site7-studio/library', {type: 'starter-kit'}),
+        } only %}
     </div>
 
     <div class="pane">
         <h2>{{ "Platform Status"|t('site7-studio') }}</h2>
-        <div class="meta" style="margin-bottom: 20px;">
-            <div class="data">
-                <dt>{{ "Setup Status"|t('site7-studio') }}</dt>
-                <dd>
+        <div class="meta">
+            <div class="field">
+                <div class="heading"><label>{{ "Setup Status"|t('site7-studio') }}</label></div>
+                <div class="input">
                     {% if isSetupComplete %}
-                        <span class="status green"></span> ✓ Setup Complete
+                        <span class="status-label green"><span class="status green"></span><span class="status-label-text">{{ "Complete"|t('site7-studio') }}</span></span>
                     {% else %}
-                        <span class="status red"></span> ⚠ Setup Required
+                        <span class="status-label red"><span class="status red"></span><span class="status-label-text">{{ "Required"|t('site7-studio') }}</span></span>
                     {% endif %}
-                </dd>
+                </div>
             </div>
-            <div class="data">
-                <dt>{{ "Current Phase"|t('site7-studio') }}</dt>
-                <dd>{{ currentPhase ?? 'Phase 7.0' }}</dd>
+            <div class="field">
+                <div class="heading"><label>{{ "Total Packages"|t('site7-studio') }}</label></div>
+                <div class="input">{{ totalPackages ?? 0 }}</div>
+            </div>
+            <div class="field">
+                <div class="heading"><label>{{ "Enabled"|t('site7-studio') }}</label></div>
+                <div class="input">{{ byStatus.enabled ?? 0 }}</div>
+            </div>
+            {% if (byStatus.available ?? 0) > 0 %}
+                <div class="field">
+                    <div class="heading"><label>{{ "Available to Install"|t('site7-studio') }}</label></div>
+                    <div class="input">{{ byStatus.available }}</div>
+                </div>
+            {% endif %}
+            <div class="field">
+                <div class="heading"><label>{{ "Plugin Version"|t('site7-studio') }}</label></div>
+                <div class="input">{{ version ?? '1.0.0' }}</div>
             </div>
         </div>
 
         {% if not isSetupComplete %}
-            <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 4px; border: 1px solid #ffeeba;">
-                <strong>Warning:</strong> You must complete the First-Time Setup Wizard before you can install Site7 packages.<br><br>
-                <a href="{{ url('site7-studio/setup') }}" class="btn submit">Complete Setup</a>
+            <div class="site7-notice site7-notice--warning">
+                <strong>{{ "Warning:"|t('site7-studio') }}</strong> {{ "You must complete the First-Time Setup Wizard before you can install Site7 packages."|t('site7-studio') }}
+                <br><br>
+                <a href="{{ url('site7-studio/setup') }}" class="btn submit">{{ "Complete Setup"|t('site7-studio') }}</a>
             </div>
         {% endif %}
     </div>
