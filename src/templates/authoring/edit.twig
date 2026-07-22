@@ -1,0 +1,99 @@
+{% extends "_layouts/cp" %}
+{% set selectedSubnavItem = "library" %}
+{% set authoringStatusColors = {draft: 'gray', preview: 'blue', testing: 'amber', published: 'teal', deprecated: 'orange', archived: 'red'} %}
+{% set authoringStatusColor = authoringStatusColors[package.authoringStatus] ?? 'gray' %}
+{% set typeLabel = package.type == 'starter-kit' ? 'Starter Kits' : package.type|title ~ 's' %}
+{% set crumbs = [
+    {label: 'Library'|t('site7-studio'), url: 'site7-studio/library'},
+    {label: typeLabel, url: 'site7-studio/library?type=' ~ package.type},
+    {label: package.name, url: 'site7-studio/library/package/' ~ package.handle},
+    {label: 'Edit'|t('site7-studio'), current: true},
+] %}
+
+{% block pageTitle %}
+    <div class="flex flex-nowrap flex-gap-s" style="align-items: center;">
+        <h1 id="page-heading" class="screen-title">{{ "Edit"|t('site7-studio') }}: {{ package.name }}</h1>
+        <span class="status-label {{ authoringStatusColor }}">
+            <span class="status {{ authoringStatusColor }}"></span>
+            <span class="status-label-text">{{ package.authoringStatus|default('draft')|title }}</span>
+        </span>
+    </div>
+{% endblock %}
+
+{% block actionButton %}
+    <a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="btn">{{ "View in Library"|t('site7-studio') }}</a>
+{% endblock %}
+
+{% set packageTags = package.tags is iterable ? package.tags|join(', ') : package.tags %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ redirectInput('site7-studio/packages/' ~ package.handle ~ '/edit') }}
+        <input type="hidden" name="action" value="site7-studio/package-authoring/save">
+        <input type="hidden" name="handle" value="{{ package.handle }}">
+
+        <section class="site7-detail-section">
+            <h2>{{ "General"|t('site7-studio') }}</h2>
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7pe-name">{{ "Name"|t('site7-studio') }}</label></div>
+                <div class="input"><input type="text" id="site7pe-name" name="name" class="text fullwidth" value="{{ package.name }}" required></div>
+            </div>
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7pe-description">{{ "Description"|t('site7-studio') }}</label></div>
+                <div class="input"><textarea id="site7pe-description" name="description" class="text fullwidth" rows="3">{{ package.description }}</textarea></div>
+            </div>
+            <div class="flex flex-gap-m" style="margin-bottom: 16px;">
+                <div class="field flex-grow">
+                    <div class="heading"><label for="site7pe-category">{{ "Category"|t('site7-studio') }}</label></div>
+                    <div class="input"><input type="text" id="site7pe-category" name="category" class="text fullwidth" value="{{ package.category }}"></div>
+                </div>
+                <div class="field flex-grow">
+                    <div class="heading"><label for="site7pe-tags">{{ "Tags"|t('site7-studio') }}</label></div>
+                    <div class="input"><input type="text" id="site7pe-tags" name="tags" class="text fullwidth" value="{{ packageTags }}" placeholder="Comma-separated"></div>
+                </div>
+            </div>
+            <div class="flex flex-gap-m">
+                <div class="field flex-grow">
+                    <div class="heading"><label for="site7pe-version">{{ "Version"|t('site7-studio') }}</label></div>
+                    <div class="input"><input type="text" id="site7pe-version" name="version" class="text fullwidth" value="{{ package.version }}"></div>
+                </div>
+                <div class="field flex-grow">
+                    <div class="heading"><label for="site7pe-author">{{ "Author"|t('site7-studio') }}</label></div>
+                    <div class="input"><input type="text" id="site7pe-author" name="author" class="text fullwidth" value="{{ package.author }}"></div>
+                </div>
+            </div>
+            <div style="margin-top: 16px;">
+                <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
+            </div>
+        </section>
+
+        <hr>
+
+        <section class="site7-detail-section">
+            <h2>{{ "Package Information"|t('site7-studio') }}</h2>
+            <div class="meta">
+                <div class="field">
+                    <div class="heading"><label>{{ "Handle"|t('site7-studio') }}</label></div>
+                    <div class="input"><code>{{ package.handle }}</code></div>
+                </div>
+                <div class="field">
+                    <div class="heading"><label>{{ "Package Type"|t('site7-studio') }}</label></div>
+                    <div class="input">{{ package.type|title }}</div>
+                </div>
+                <div class="field">
+                    <div class="heading"><label>{{ "Install Status"|t('site7-studio') }}</label></div>
+                    <div class="input">{{ package.status|title }}</div>
+                </div>
+                <div class="field">
+                    <div class="heading"><label>{{ "Created"|t('site7-studio') }}</label></div>
+                    <div class="input">{{ package.dateCreated|datetime('short') }}</div>
+                </div>
+                <div class="field">
+                    <div class="heading"><label>{{ "Last Updated"|t('site7-studio') }}</label></div>
+                    <div class="input">{{ package.dateUpdated|datetime('short') }}</div>
+                </div>
+            </div>
+        </section>
+    </form>
+{% endblock %}

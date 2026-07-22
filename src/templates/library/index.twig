@@ -117,6 +117,8 @@
             <a href="{{ lib.pageUrl(baseParams, {view: 'table', page: null}) }}" class="btn {{ viewMode == 'table' ? 'active' }}" data-icon="list" title="{{ 'Display in a table'|t('site7-studio') }}" aria-label="{{ 'Display in a table'|t('site7-studio') }}"></a>
             <a href="{{ lib.pageUrl(baseParams, {view: 'thumbs', page: null}) }}" class="btn {{ viewMode == 'thumbs' ? 'active' }}" data-icon="grid" title="{{ 'Display as thumbnails'|t('site7-studio') }}" aria-label="{{ 'Display as thumbnails'|t('site7-studio') }}"></a>
         </section>
+
+        <a href="{{ url('site7-studio/packages/new') }}" class="btn submit" style="margin-left: 8px;">{{ "New Package"|t('site7-studio') }}</a>
     </div>
 {% endblock %}
 

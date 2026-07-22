@@ -1,0 +1,83 @@
+{% extends "_layouts/cp" %}
+{% set selectedSubnavItem = "library" %}
+{% set crumbs = [
+    {label: 'Library'|t('site7-studio'), url: 'site7-studio/library'},
+    {label: 'New Package'|t('site7-studio'), current: true},
+] %}
+
+{% set packageTypes = {
+    'section': {label: 'Section', description: 'A reusable content block.'},
+    'pattern': {label: 'Pattern', description: 'A reusable group of Sections.'},
+    'template': {label: 'Template', description: 'A reusable page blueprint.'},
+    'starter-kit': {label: 'Starter Kit', description: 'A reusable website blueprint.'},
+} %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8" id="site7-new-package-form">
+        {{ csrfInput() }}
+        {{ redirectInput('site7-studio/library') }}
+        <input type="hidden" name="action" value="site7-studio/package-authoring/create">
+
+        <section class="site7-detail-section">
+            <h2>{{ "1. Choose Package Type"|t('site7-studio') }}</h2>
+            <div class="site7-package-type-options">
+                {% for value, info in packageTypes %}
+                    <label class="site7-package-type-option">
+                        <input type="radio" name="type" value="{{ value }}" {{ loop.first ? 'checked' }} required>
+                        <span class="site7-package-type-option-label">{{ info.label }}</span>
+                        <span class="light">{{ info.description }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+        </section>
+
+        <hr>
+
+        <section class="site7-detail-section">
+            <h2>{{ "2. Package Details"|t('site7-studio') }}</h2>
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7np-name">{{ "Name"|t('site7-studio') }}</label></div>
+                <div class="input"><input type="text" id="site7np-name" name="name" class="text fullwidth" required></div>
+            </div>
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading">
+                    <label for="site7np-handle">{{ "Handle"|t('site7-studio') }}</label>
+                    <div class="instructions"><p>{{ "Auto-generated from the name - only change this if you need a specific one."|t('site7-studio') }}</p></div>
+                </div>
+                <div class="input"><input type="text" id="site7np-handle" name="handle" class="text fullwidth code" placeholder="(auto)"></div>
+            </div>
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7np-description">{{ "Description"|t('site7-studio') }}</label></div>
+                <div class="input"><textarea id="site7np-description" name="description" class="text fullwidth" rows="3"></textarea></div>
+            </div>
+            <div class="flex flex-gap-m" style="margin-bottom: 16px;">
+                <div class="field flex-grow">
+                    <div class="heading"><label for="site7np-category">{{ "Category"|t('site7-studio') }}</label></div>
+                    <div class="input"><input type="text" id="site7np-category" name="category" class="text fullwidth"></div>
+                </div>
+                <div class="field flex-grow">
+                    <div class="heading"><label for="site7np-tags">{{ "Tags"|t('site7-studio') }}</label></div>
+                    <div class="input"><input type="text" id="site7np-tags" name="tags" class="text fullwidth" placeholder="Comma-separated"></div>
+                </div>
+            </div>
+            <div class="flex flex-gap-m">
+                <div class="field flex-grow">
+                    <div class="heading"><label for="site7np-version">{{ "Version"|t('site7-studio') }}</label></div>
+                    <div class="input"><input type="text" id="site7np-version" name="version" class="text fullwidth" value="1.0.0"></div>
+                </div>
+                <div class="field flex-grow">
+                    <div class="heading"><label for="site7np-author">{{ "Author"|t('site7-studio') }}</label></div>
+                    <div class="input"><input type="text" id="site7np-author" name="author" class="text fullwidth"></div>
+                </div>
+            </div>
+        </section>
+
+        <hr>
+
+        <section class="site7-detail-section">
+            <h2>{{ "3. Create Package"|t('site7-studio') }}</h2>
+            <p class="light">{{ "The package is created as a Draft - you'll configure its Content, Preview, and Dependencies afterward."|t('site7-studio') }}</p>
+            <button type="submit" class="btn submit">{{ "Create Package"|t('site7-studio') }}</button>
+        </section>
+    </form>
+{% endblock %}

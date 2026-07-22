@@ -21,6 +21,8 @@
 
 {% block actionButton %}
     <div class="flex">
+        <a href="{{ url('site7-studio/packages/' ~ package.handle ~ '/edit') }}" class="btn">{{ "Edit"|t('site7-studio') }}</a>
+
         {# Preview button is ALWAYS visible, regardless of status #}
         <button type="button" class="btn" id="site7-preview-btn"
             data-handle="{{ package.handle }}"
@@ -95,8 +97,20 @@
     </div>
 {% endblock %}
 
+{% set authoringStatusColors = {draft: 'gray', preview: 'blue', testing: 'amber', published: 'teal', deprecated: 'orange', archived: 'red'} %}
+{% set authoringStatusColor = authoringStatusColors[package.authoringStatus] ?? 'gray' %}
+
 {% block details %}
     <div class="meta">
+        <div class="field">
+            <div class="heading"><label>{{ "Authoring Status"|t('site7-studio') }}</label></div>
+            <div class="input">
+                <span class="status-label {{ authoringStatusColor }}">
+                    <span class="status {{ authoringStatusColor }}"></span>
+                    <span class="status-label-text">{{ package.authoringStatus|default('draft')|title }}</span>
+                </span>
+            </div>
+        </div>
         <div class="field">
             <div class="heading"><label>{{ "Author"|t('site7-studio') }}</label></div>
             <div class="input">{{ package.author|default('Unknown') }}</div>

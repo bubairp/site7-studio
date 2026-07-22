@@ -29,7 +29,7 @@ class Site7Studio extends Plugin
 {
     use PluginTrait;
 
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.0.1';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -158,6 +158,8 @@ class Site7Studio extends Plugin
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview'] = 'site7-studio/library/preview';
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/render-preview'] = 'site7-studio/library/render-preview';
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview-image'] = 'site7-studio/library/preview-image';
+                $event->rules['site7-studio/packages/new'] = 'site7-studio/package-authoring/new';
+                $event->rules['site7-studio/packages/<handle:[\w\-]+>/edit'] = 'site7-studio/package-authoring/edit';
             }
         );
     }

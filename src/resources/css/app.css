@@ -324,6 +324,33 @@ pre.code {
     font-weight: bold;
 }
 
+/* ----- New Package Wizard: Package Type cards ----- */
+/* Craft has no radio-card selector component. */
+.site7-package-type-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.site7-package-type-option {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--medium-border-radius);
+    cursor: pointer;
+}
+
+.site7-package-type-option:has(input:checked) {
+    border-color: var(--blue-400, #3b82f6);
+    background: var(--blue-050, #eff6ff);
+}
+
+.site7-package-type-option-label {
+    font-weight: 600;
+}
+
 /* ----- Widget Overrides ----- */
 .site7-widget-header {
     display: flex;
