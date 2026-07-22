@@ -63,7 +63,7 @@ class CpSubscriber implements EventSubscriberInterface
         $event->registry->registerNavItem([
             'url' => 'site7-studio',
             'label' => 'Site7 Studio',
-            'icon' => '@site7/studio/icon.svg',
+            'icon' => 'layer-group',
             'subnav' => [
                 'dashboard' => ['label' => 'Dashboard', 'url' => 'site7-studio'],
                 'library' => ['label' => 'Library', 'url' => 'site7-studio/library'],
