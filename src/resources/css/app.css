@@ -372,9 +372,10 @@ pre.code {
     color: var(--gray-600);
 }
 
-/* ----- Pattern Builder: 3-column layout ----- */
+/* ----- Pattern Builder / Template Builder: 3-column layout ----- */
 /* Craft has no visual drag-and-drop composition builder. */
-#site7-pattern-builder {
+#site7-pattern-builder,
+#site7-template-builder {
     display: flex;
     gap: 16px;
     align-items: flex-start;
@@ -500,4 +501,32 @@ pre.code {
     font-weight: 600;
     margin-bottom: 4px;
     color: var(--gray-600);
+}
+
+/* Template Builder: adds a type filter and per-item type badges on top of
+   the Pattern Builder's shared .site7-pb-* column/card/dropzone layout. */
+.site7-tb-filter {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.site7-tb-type-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 6px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.site7-tb-type-badge.site7-tb-type-section {
+    background: var(--blue-050, #eff6ff);
+    color: var(--blue-600, #2563eb);
+}
+
+.site7-tb-type-badge.site7-tb-type-pattern {
+    background: var(--teal-050, #f0fdfa);
+    color: var(--teal-600, #0d9488);
 }

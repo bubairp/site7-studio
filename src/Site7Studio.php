@@ -137,9 +137,17 @@ class Site7Studio extends Plugin
                 }
                 $separator = str_contains($editUrl, '?') ? '&' : '?';
 
+                // The CP edit screen normally hands us a provisional draft here, whose
+                // own element id differs from the real (canonical) entry's id. The
+                // "Save" that runs before this redirect merges that draft into the
+                // canonical entry, so a draft id baked into the redirect URL can point
+                // to an element that's gone by the time the page reloads - the
+                // intermittent "Entry not found" error. Always use the canonical id.
+                $canonicalId = $entry->getCanonicalId() ?? $entry->id;
+
                 $event->altActions[] = [
                     'label' => Craft::t('site7-studio', 'Save as Template'),
-                    'redirect' => $editUrl . $separator . 'site7SaveAsTemplate=1&site7EntryId=' . $entry->id,
+                    'redirect' => $editUrl . $separator . 'site7SaveAsTemplate=1&site7EntryId=' . $canonicalId,
                     'eventData' => ['autosave' => false],
                 ];
             }

@@ -72,6 +72,30 @@
     <hr>
 
     <section class="site7-detail-section">
+        <h2>{{ "Preview Image"|t('site7-studio') }}</h2>
+        <p class="light">{{ "Shown as this package's thumbnail throughout the Library."|t('site7-studio') }}</p>
+        <div class="flex flex-nowrap flex-gap-m" style="align-items: flex-start;">
+            {% if previewImageUrl %}
+                <img src="{{ previewImageUrl }}" alt="" style="width: 160px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid var(--hairline-color);">
+            {% else %}
+                <div class="light" style="width: 160px; height: 100px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--hairline-color); border-radius: 4px;">{{ "No image"|t('site7-studio') }}</div>
+            {% endif %}
+            <form method="post" accept-charset="UTF-8" enctype="multipart/form-data">
+                {{ csrfInput() }}
+                {{ redirectInput('site7-studio/packages/' ~ package.handle ~ '/edit') }}
+                <input type="hidden" name="action" value="site7-studio/package-authoring/upload-preview-image">
+                <input type="hidden" name="handle" value="{{ package.handle }}">
+                <div class="field" style="margin-bottom: 8px;">
+                    <div class="input"><input type="file" name="previewImage" accept="image/png,image/jpeg,image/gif,image/webp" required></div>
+                </div>
+                <button type="submit" class="btn submit">{{ "Upload"|t('site7-studio') }}</button>
+            </form>
+        </div>
+    </section>
+
+    <hr>
+
+    <section class="site7-detail-section">
         <h2>{{ "Package Builder"|t('site7-studio') }}</h2>
         {% if package.type == 'section' %}
             <p class="light">{{ "Fields are all plain text for now. Each row becomes a real Craft field when this Section is installed."|t('site7-studio') }}</p>
@@ -142,6 +166,45 @@
                     <button type="submit" class="btn submit">{{ "Save Pattern"|t('site7-studio') }}</button>
                 </div>
             </form>
+        {% elseif package.type == 'template' %}
+            <p class="light">{{ "Drag Sections and Patterns from the library on the left into the canvas, reorder them, then select a Section to set its Default Values (a Pattern's own content is configured in the Pattern's own editor - a Template only references it)."|t('site7-studio') }}</p>
+            <p class="light"><em>{{ "Install order is always Patterns, then Sections, regardless of how they're arranged here."|t('site7-studio') }}</em></p>
+            <form method="post" accept-charset="UTF-8" id="site7-template-builder-form">
+                {{ csrfInput() }}
+                {{ redirectInput('site7-studio/packages/' ~ package.handle ~ '/edit') }}
+                <input type="hidden" name="action" value="site7-studio/package-authoring/save-template">
+                <input type="hidden" name="handle" value="{{ package.handle }}">
+                <input type="hidden" name="composition" id="site7-tb-composition-input">
+
+                <div id="site7-template-builder"
+                     data-available-items="{{ availableTemplateItems|json_encode|escape('html_attr') }}"
+                     data-composition="{{ templateComposition|json_encode|escape('html_attr') }}">
+                    <div class="site7-pb-column site7-pb-sidebar">
+                        <h3>{{ "Available Packages"|t('site7-studio') }}</h3>
+                        <input type="text" id="site7-tb-search" class="text fullwidth" placeholder="{{ 'Search Sections & Patterns...'|t('site7-studio') }}">
+                        <div class="site7-tb-filter" id="site7-tb-filter">
+                            <button type="button" class="btn small active" data-filter="all">{{ "All"|t('site7-studio') }}</button>
+                            <button type="button" class="btn small" data-filter="section">{{ "Sections"|t('site7-studio') }}</button>
+                            <button type="button" class="btn small" data-filter="pattern">{{ "Patterns"|t('site7-studio') }}</button>
+                        </div>
+                        <div id="site7-tb-library"></div>
+                    </div>
+                    <div class="site7-pb-column site7-pb-canvas">
+                        <h3>{{ "Template Canvas"|t('site7-studio') }}</h3>
+                        <div id="site7-tb-canvas-list" class="site7-pb-dropzone"></div>
+                    </div>
+                    <div class="site7-pb-column site7-pb-properties">
+                        <h3>{{ "Properties"|t('site7-studio') }}</h3>
+                        <div id="site7-tb-properties-body">
+                            <p class="light">{{ "Select a Section in the canvas to edit its Default Values."|t('site7-studio') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; text-align: right;">
+                    <button type="submit" class="btn submit">{{ "Save Template"|t('site7-studio') }}</button>
+                </div>
+            </form>
         {% else %}
             <p class="light">{{ "The {type} Builder is coming in a later increment - for now, {type} packages are configured by hand-editing their manifest and package files."|t('site7-studio', {type: package.type|title}) }}</p>
         {% endif %}
@@ -173,5 +236,14 @@
                 <div class="input">{{ package.dateUpdated|datetime('short') }}</div>
             </div>
         </div>
+        <form method="post" accept-charset="UTF-8" style="margin-top: 16px;">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/library') }}
+            <input type="hidden" name="action" value="site7-studio/package-action/delete">
+            <input type="hidden" name="handle" value="{{ package.handle }}">
+            <button type="button" class="btn delete"
+                onclick="if(confirm('Permanently delete {{ package.name|e('js') }}? This deletes its entire folder from disk and cannot be undone.')) { this.closest('form').submit(); }"
+            >{{ "Delete Package"|t('site7-studio') }}</button>
+        </form>
     </section>
 {% endblock %}

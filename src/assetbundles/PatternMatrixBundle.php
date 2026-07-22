@@ -24,6 +24,7 @@ class PatternMatrixBundle extends AssetBundle
             'js/starter-kit-wizard.js',
             'js/package-builder.js',
             'js/pattern-builder.js',
+            'js/template-builder.js',
         ];
 
         parent::init();

@@ -89,16 +89,16 @@
 
         openPatternModal: function($matrixContainer, defaultTab, e) {
             e.preventDefault();
-            
+
             if (typeof window.Site7PatternBrowser === 'undefined') {
                 Craft.cp.displayError('Site7 Browser component not loaded.');
                 return;
             }
 
-            new window.Site7PatternBrowser(defaultTab, $.proxy(function(handle, type, blockTypeHandle) {
+            new window.Site7PatternBrowser(defaultTab, $.proxy(function(handle, type, blockTypeHandle, blockTypeId) {
                 if (handle && type) {
                     if (type === 'section') {
-                        this.insertSection($matrixContainer, handle, blockTypeHandle);
+                        this.insertSection($matrixContainer, handle, blockTypeHandle, blockTypeId);
                     } else if (type === 'pattern') {
                         this.insertPattern($matrixContainer, handle);
                     } else if (type === 'template') {
@@ -108,29 +108,63 @@
             }, this));
         },
 
-        insertSection: function($matrixContainer, handle, blockTypeHandle) {
+        // Resolves the createAttributes to pass to manager.createElement() for a
+        // given target Entry Type. Craft's NestedElementManager represents this
+        // two different ways depending on how many Entry Types the field allows:
+        //  - Multiple Entry Types: settings.createAttributes is an ARRAY of
+        //    {label, attributes} options (one per type), which is what backs the
+        //    native "+" button's dropdown menu.
+        //  - Exactly one Entry Type: settings.createAttributes is a single plain
+        //    OBJECT ({typeId: N, ...}) - there's no dropdown, so Craft skips the
+        //    array entirely. Code that only ever handled the array shape (as this
+        //    did previously) silently fails every insert in this case, since the
+        //    array-only loop is skipped and nothing is ever found.
+        // Matching prefers the exact typeId (passed from the server, which knows
+        // the real Entry Type id) over fuzzy label/handle string matching, which
+        // only worked by coincidence when a Section's name happened to normalize
+        // the same as its handle.
+        resolveCreateAttributes: function(manager, searchHandle, typeId) {
+            if (!manager || !manager.settings) {
+                return null;
+            }
+            const createAttributes = manager.settings.createAttributes;
+            if (!createAttributes) {
+                return null;
+            }
+
+            if (!Array.isArray(createAttributes)) {
+                if (typeId != null && createAttributes.typeId != null && Number(createAttributes.typeId) !== Number(typeId)) {
+                    return null;
+                }
+                return createAttributes;
+            }
+
+            const normalize = str => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const normalizedSearch = normalize(searchHandle);
+
+            for (let i = 0; i < createAttributes.length; i++) {
+                const attrObj = createAttributes[i];
+                if (typeId != null && attrObj.attributes && Number(attrObj.attributes.typeId) === Number(typeId)) {
+                    return attrObj.attributes;
+                }
+                const normalizedLabel = normalize(attrObj.label);
+                if (normalizedLabel === normalizedSearch ||
+                    normalize(attrObj.attributes?.typeHandle) === normalizedSearch ||
+                    normalize(attrObj.attributes?.type) === normalizedSearch) {
+                    return attrObj.attributes;
+                }
+            }
+            return null;
+        },
+
+        insertSection: function($matrixContainer, handle, blockTypeHandle, blockTypeId) {
             const searchHandle = blockTypeHandle || handle;
             const manager = $matrixContainer.data('nestedElementManager') || $matrixContainer.data('nested-element-manager');
             const matrixInstance = $matrixContainer.data('matrix');
 
             // If Craft 5 NestedElementManager
             if (manager) {
-                let attributes = null;
-                if (manager.settings && Array.isArray(manager.settings.createAttributes)) {
-                    const normalize = str => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const normalizedSearch = normalize(searchHandle);
-                    
-                    for (let i = 0; i < manager.settings.createAttributes.length; i++) {
-                        const attrObj = manager.settings.createAttributes[i];
-                        const normalizedLabel = normalize(attrObj.label);
-                        if (normalizedLabel === normalizedSearch || 
-                            normalize(attrObj.attributes?.typeHandle) === normalizedSearch || 
-                            normalize(attrObj.attributes?.type) === normalizedSearch) {
-                            attributes = attrObj.attributes;
-                            break;
-                        }
-                    }
-                }
+                const attributes = this.resolveCreateAttributes(manager, searchHandle, blockTypeId);
                 if (attributes) {
                     manager.createElement(attributes);
                     Craft.cp.displayNotice('Section inserted.');
@@ -221,23 +255,7 @@
 
             if (manager) {
                 for (const block of blocks) {
-                    const searchHandle = block.type;
-                    let attributes = null;
-                    if (manager.settings && Array.isArray(manager.settings.createAttributes)) {
-                        const normalize = str => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                        const normalizedSearch = normalize(searchHandle);
-                        
-                        for (let i = 0; i < manager.settings.createAttributes.length; i++) {
-                            const attrObj = manager.settings.createAttributes[i];
-                            const normalizedLabel = normalize(attrObj.label);
-                            if (normalizedLabel === normalizedSearch || 
-                                normalize(attrObj.attributes?.typeHandle) === normalizedSearch || 
-                                normalize(attrObj.attributes?.type) === normalizedSearch) {
-                                attributes = attrObj.attributes;
-                                break;
-                            }
-                        }
-                    }
+                    const attributes = this.resolveCreateAttributes(manager, block.type, block.typeId);
                     if (attributes) {
                         const createData = Object.assign({
                             elementType: manager.elementType,

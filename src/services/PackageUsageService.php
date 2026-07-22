@@ -45,12 +45,20 @@ class PackageUsageService extends Component
             $entryType = $entriesService->getEntryTypeByHandle($blockHandle);
             if (!$entryType) continue;
 
-            // Direct DB Query to find Matrix blocks and their owners
+            // Direct DB Query to find Matrix blocks and their owners. Joined against
+            // elements to exclude trashed blocks (dateDeleted) and draft-only blocks
+            // (canonicalId) - without this, removing a block from a page only ever
+            // stopped counting as "usage" once the whole owning entry was deleted,
+            // since the trashed block's own row was still sitting in {{%entries}}.
             $blockRows = (new \craft\db\Query())
-                ->from('{{%entries}}')
-                ->where(['typeId' => $entryType->id])
+                ->select(['entries.primaryOwnerId'])
+                ->from(['entries' => '{{%entries}}'])
+                ->innerJoin('{{%elements}} elements', '[[elements.id]] = [[entries.id]]')
+                ->where(['entries.typeId' => $entryType->id])
+                ->andWhere(['elements.dateDeleted' => null])
+                ->andWhere(['elements.canonicalId' => null])
                 ->all();
-            
+
             foreach ($blockRows as $row) {
                 $ownerId = $row['primaryOwnerId'] ?? null;
                 if ($ownerId) {

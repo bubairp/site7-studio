@@ -37,6 +37,18 @@
         </form>
     {% endif %}
 {% endmacro %}
+
+{% macro deleteActionForm(package, redirectUrl, btnClass) %}
+    <form method="post" accept-charset="UTF-8" class="site7-inline-action-form">
+        {{ csrfInput() }}
+        {{ redirectInput(redirectUrl) }}
+        <input type="hidden" name="action" value="site7-studio/package-action/delete">
+        <input type="hidden" name="handle" value="{{ package.handle }}">
+        <button type="button" class="{{ btnClass }} delete icon" title="{{ 'Delete'|t('site7-studio') }}" aria-label="{{ 'Delete'|t('site7-studio') }}"
+            onclick="if(confirm('Permanently delete this package? This deletes its entire folder from disk and cannot be undone.')) { this.closest('form').submit(); }"
+        ></button>
+    </form>
+{% endmacro %}
 {% import _self as lib %}
 
 {% block sidebar %}
@@ -118,7 +130,13 @@
             <a href="{{ lib.pageUrl(baseParams, {view: 'thumbs', page: null}) }}" class="btn {{ viewMode == 'thumbs' ? 'active' }}" data-icon="grid" title="{{ 'Display as thumbnails'|t('site7-studio') }}" aria-label="{{ 'Display as thumbnails'|t('site7-studio') }}"></a>
         </section>
 
-        <a href="{{ url('site7-studio/packages/new') }}" class="btn submit" style="margin-left: 8px;">{{ "New Package"|t('site7-studio') }}</a>
+        {% set newButtonLabels = {
+            section: 'New Section',
+            pattern: 'New Pattern',
+            template: 'New Template',
+            'starter-kit': 'New Kit',
+        } %}
+        <a href="{{ url('site7-studio/packages/new', {type: currentType}) }}" class="btn submit" style="margin-left: 8px;">{{ (newButtonLabels[currentType] ?? 'New Entry')|t('site7-studio') }}</a>
     </div>
 {% endblock %}
 
@@ -201,7 +219,10 @@
                                 <td data-title="{{ 'Version'|t('site7-studio') }}">v{{ package.version }}</td>
                                 <td data-title="{{ 'Author'|t('site7-studio') }}">{{ package.author|default('Unknown') }}</td>
                                 <td data-title="{{ 'Action'|t('site7-studio') }}">
-                                    {{ lib.statusActionForm(package, craft.app.request.url, isSetupComplete, 'btn small') }}
+                                    <div class="flex flex-nowrap flex-gap-xs">
+                                        {{ lib.statusActionForm(package, craft.app.request.url, isSetupComplete, 'btn small') }}
+                                        {{ lib.deleteActionForm(package, craft.app.request.url, 'btn small') }}
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -233,8 +254,9 @@
                                         <a class="label-link" href="{{ url('site7-studio/library/package/' ~ package.handle) }}">{{ package.name }}</a>
                                     </div>
                                     <p class="light card-subtitle">{{ package.category|default(package.type|title) }} &middot; v{{ package.version }}</p>
-                                    <div class="site7-card-action">
+                                    <div class="site7-card-action flex flex-nowrap flex-gap-xs">
                                         {{ lib.statusActionForm(package, craft.app.request.url, isSetupComplete, 'btn small') }}
+                                        {{ lib.deleteActionForm(package, craft.app.request.url, 'btn small') }}
                                     </div>
                                 </div>
                                 <div class="thumb">

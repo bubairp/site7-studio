@@ -1,35 +1,37 @@
 /**
- * Site7 Studio - Pattern Builder.
+ * Site7 Studio - Template Builder.
  *
- * A small vanilla-JS mini-app operating on one in-memory array (the
- * canvas "composition"), rendered from and serialized back to a single
- * hidden JSON input on save - no framework, no per-row form field naming
- * scheme to keep in sync with the server.
+ * Same mini-app pattern as the Pattern Builder (pattern-builder.js): one
+ * in-memory "composition" array, rendered from and serialized back to a
+ * single hidden JSON input on save. The Template Builder's canvas can hold
+ * both Sections and Patterns (a Pattern Builder's canvas only holds
+ * Sections), and each item tracks its own `type` alongside its `handle`.
  */
 (function() {
-    var root = document.getElementById('site7-pattern-builder');
+    var root = document.getElementById('site7-template-builder');
     if (!root) {
         return;
     }
 
-    var availableSections = JSON.parse(root.getAttribute('data-available-sections') || '[]');
+    var availableItems = JSON.parse(root.getAttribute('data-available-items') || '[]');
     var composition = JSON.parse(root.getAttribute('data-composition') || '[]');
     var selectedIndex = null;
-    var dragReorderIndex = null;
+    var activeFilter = 'all';
     var dirty = false;
 
-    var libraryEl = document.getElementById('site7-pb-library');
-    var canvasEl = document.getElementById('site7-pb-canvas-list');
-    var propertiesEl = document.getElementById('site7-pb-properties-body');
-    var searchEl = document.getElementById('site7-pb-search');
-    var form = document.getElementById('site7-pattern-builder-form');
-    var compositionInput = document.getElementById('site7-pb-composition-input');
+    var libraryEl = document.getElementById('site7-tb-library');
+    var canvasEl = document.getElementById('site7-tb-canvas-list');
+    var propertiesEl = document.getElementById('site7-tb-properties-body');
+    var searchEl = document.getElementById('site7-tb-search');
+    var filterEl = document.getElementById('site7-tb-filter');
+    var form = document.getElementById('site7-template-builder-form');
+    var compositionInput = document.getElementById('site7-tb-composition-input');
 
-    function findSectionDef(handle) {
-        return availableSections.find(function(s) { return s.handle === handle; });
+    function findItemDef(type, handle) {
+        return availableItems.find(function(i) { return i.type === type && i.handle === handle; });
     }
 
-    // The canvas lives entirely in memory until "Save Pattern" is clicked.
+    // The canvas lives entirely in memory until "Save Template" is clicked.
     // The page also has a separate General-info form with its own Save
     // button - submitting that (or navigating away some other way) reloads
     // the page and silently discards any unsaved canvas edits. Warn instead.
@@ -49,13 +51,16 @@
 
     function renderLibrary() {
         var query = (searchEl.value || '').toLowerCase().trim();
-        var matches = availableSections.filter(function(s) {
-            return !query || s.name.toLowerCase().indexOf(query) !== -1 || s.category.toLowerCase().indexOf(query) !== -1;
+        var matches = availableItems.filter(function(i) {
+            if (activeFilter !== 'all' && i.type !== activeFilter) {
+                return false;
+            }
+            return !query || i.name.toLowerCase().indexOf(query) !== -1 || i.category.toLowerCase().indexOf(query) !== -1;
         });
 
         var byCategory = {};
-        matches.forEach(function(s) {
-            (byCategory[s.category] = byCategory[s.category] || []).push(s);
+        matches.forEach(function(i) {
+            (byCategory[i.category] = byCategory[i.category] || []).push(i);
         });
 
         libraryEl.innerHTML = '';
@@ -65,24 +70,31 @@
             heading.textContent = category;
             libraryEl.appendChild(heading);
 
-            byCategory[category].forEach(function(section) {
+            byCategory[category].forEach(function(item) {
                 var card = document.createElement('div');
                 card.className = 'site7-pb-library-card';
                 card.draggable = true;
-                card.dataset.sectionHandle = section.handle;
+                card.dataset.itemHandle = item.handle;
+                card.dataset.itemType = item.type;
 
                 var img = document.createElement('img');
-                img.src = section.previewImageUrl;
+                img.src = item.previewImageUrl;
                 img.alt = '';
                 img.onerror = function() { this.style.visibility = 'hidden'; };
                 card.appendChild(img);
 
                 var label = document.createElement('span');
-                label.textContent = section.name;
+                label.textContent = item.name;
+                label.style.flex = '1';
                 card.appendChild(label);
 
+                var badge = document.createElement('span');
+                badge.className = 'site7-tb-type-badge site7-tb-type-' + item.type;
+                badge.textContent = item.type;
+                card.appendChild(badge);
+
                 card.addEventListener('dragstart', function(e) {
-                    e.dataTransfer.setData('application/x-site7-section', section.handle);
+                    e.dataTransfer.setData('application/x-site7-item', JSON.stringify({ type: item.type, handle: item.handle }));
                     e.dataTransfer.effectAllowed = 'copy';
                 });
 
@@ -93,10 +105,22 @@
         if (!matches.length) {
             var empty = document.createElement('p');
             empty.className = 'light';
-            empty.textContent = 'No Sections found.';
+            empty.textContent = 'No Sections or Patterns found.';
             libraryEl.appendChild(empty);
         }
     }
+
+    filterEl.addEventListener('click', function(e) {
+        var btn = e.target.closest('button[data-filter]');
+        if (!btn) {
+            return;
+        }
+        activeFilter = btn.dataset.filter;
+        Array.from(filterEl.querySelectorAll('button')).forEach(function(b) {
+            b.classList.toggle('active', b === btn);
+        });
+        renderLibrary();
+    });
 
     // ----- Canvas (center) -----
 
@@ -106,7 +130,7 @@
         if (!composition.length) {
             var empty = document.createElement('p');
             empty.className = 'light';
-            empty.textContent = 'Drag Sections here to build the Pattern.';
+            empty.textContent = 'Drag Sections or Patterns here to build the Template.';
             canvasEl.appendChild(empty);
             return;
         }
@@ -121,9 +145,14 @@
             number.textContent = (index + 1) + '.';
             card.appendChild(number);
 
+            var badge = document.createElement('span');
+            badge.className = 'site7-tb-type-badge site7-tb-type-' + item.type;
+            badge.textContent = item.type;
+            card.appendChild(badge);
+
             var name = document.createElement('span');
             name.className = 'site7-pb-card-name';
-            name.textContent = item.sectionName;
+            name.textContent = item.name;
             card.appendChild(name);
 
             var actions = document.createElement('div');
@@ -140,7 +169,7 @@
             var duplicateBtn = makeIconButton('copy', 'Duplicate');
             duplicateBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                var clone = { sectionHandle: item.sectionHandle, sectionName: item.sectionName, defaultValues: Object.assign({}, item.defaultValues) };
+                var clone = { type: item.type, handle: item.handle, name: item.name, defaultValues: Object.assign({}, item.defaultValues) };
                 composition.splice(index + 1, 0, clone);
                 markDirty();
                 renderCanvas();
@@ -171,25 +200,28 @@
             });
 
             card.addEventListener('dragstart', function(e) {
-                dragReorderIndex = index;
                 e.dataTransfer.setData('application/x-site7-reorder', String(index));
                 e.dataTransfer.effectAllowed = 'move';
-            });
-
-            card.addEventListener('dragend', function() {
-                dragReorderIndex = null;
             });
 
             canvasEl.appendChild(card);
 
             if (!item.collapsed) {
-                var summaryEntries = Object.keys(item.defaultValues || {}).filter(function(k) { return item.defaultValues[k]; });
-                if (summaryEntries.length) {
-                    var summary = document.createElement('div');
-                    summary.className = 'light';
-                    summary.style.cssText = 'margin: -4px 0 8px 28px; font-size: 12px;';
-                    summary.textContent = summaryEntries.map(function(k) { return k + ': ' + item.defaultValues[k]; }).join(', ');
-                    canvasEl.appendChild(summary);
+                if (item.type === 'pattern') {
+                    var patternNote = document.createElement('div');
+                    patternNote.className = 'light';
+                    patternNote.style.cssText = 'margin: -4px 0 8px 28px; font-size: 12px;';
+                    patternNote.textContent = 'Pattern - content configured in its own editor.';
+                    canvasEl.appendChild(patternNote);
+                } else {
+                    var summaryEntries = Object.keys(item.defaultValues || {}).filter(function(k) { return item.defaultValues[k]; });
+                    if (summaryEntries.length) {
+                        var summary = document.createElement('div');
+                        summary.className = 'light';
+                        summary.style.cssText = 'margin: -4px 0 8px 28px; font-size: 12px;';
+                        summary.textContent = summaryEntries.map(function(k) { return k + ': ' + item.defaultValues[k]; }).join(', ');
+                        canvasEl.appendChild(summary);
+                    }
                 }
             }
         });
@@ -219,12 +251,31 @@
         }
 
         var item = composition[selectedIndex];
-        var sectionDef = findSectionDef(item.sectionHandle);
-        var fields = sectionDef ? sectionDef.fields : [];
+        var itemDef = findItemDef(item.type, item.handle);
 
         var heading = document.createElement('p');
-        heading.innerHTML = '<strong>' + escapeHtml(item.sectionName) + '</strong>';
+        heading.innerHTML = '<strong>' + escapeHtml(item.name) + '</strong>';
         propertiesEl.appendChild(heading);
+
+        if (item.type === 'pattern') {
+            var note = document.createElement('p');
+            note.className = 'light';
+            note.textContent = 'A Template only references a Pattern - its content is configured in the Pattern\'s own editor.';
+            propertiesEl.appendChild(note);
+
+            if (itemDef && itemDef.editUrl) {
+                var link = document.createElement('a');
+                link.href = itemDef.editUrl;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.className = 'btn small';
+                link.textContent = 'Edit ' + item.name;
+                propertiesEl.appendChild(link);
+            }
+            return;
+        }
+
+        var fields = itemDef ? itemDef.fields : [];
 
         if (!fields.length) {
             var none = document.createElement('p');
@@ -250,18 +301,12 @@
                 item.defaultValues = item.defaultValues || {};
                 item.defaultValues[field.handle] = input.value;
                 markDirty();
-                renderCanvasSummaryOnly();
+                renderCanvas();
             });
             wrap.appendChild(input);
 
             propertiesEl.appendChild(wrap);
         });
-    }
-
-    // Re-render just the canvas (to refresh the collapsed Default Values
-    // summary) without losing focus on the properties panel's inputs.
-    function renderCanvasSummaryOnly() {
-        renderCanvas();
     }
 
     function escapeHtml(str) {
@@ -287,17 +332,24 @@
 
         var dropIndex = computeDropIndex(e.clientY);
 
-        var sectionHandle = e.dataTransfer.getData('application/x-site7-section');
+        var itemRaw = e.dataTransfer.getData('application/x-site7-item');
         var reorderIndexRaw = e.dataTransfer.getData('application/x-site7-reorder');
 
-        if (sectionHandle) {
-            var sectionDef = findSectionDef(sectionHandle);
-            if (!sectionDef) {
+        if (itemRaw) {
+            var parsed;
+            try {
+                parsed = JSON.parse(itemRaw);
+            } catch (err) {
+                return;
+            }
+            var itemDef = findItemDef(parsed.type, parsed.handle);
+            if (!itemDef) {
                 return;
             }
             composition.splice(dropIndex, 0, {
-                sectionHandle: sectionDef.handle,
-                sectionName: sectionDef.name,
+                type: itemDef.type,
+                handle: itemDef.handle,
+                name: itemDef.name,
                 defaultValues: {},
             });
             selectedIndex = dropIndex;
@@ -339,7 +391,8 @@
         dirty = false;
         compositionInput.value = JSON.stringify(composition.map(function(item) {
             return {
-                sectionHandle: item.sectionHandle,
+                type: item.type,
+                handle: item.handle,
                 defaultValues: item.defaultValues || {},
             };
         }));

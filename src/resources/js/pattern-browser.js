@@ -261,7 +261,7 @@
                             ${includedHtml}
                             <div style="display: flex; gap: 8px; margin-top: auto;">
                                 <button type="button" class="btn site7-pattern-preview-btn" data-url="${p.renderUrl}" style="flex: 1; justify-content: center;">Preview</button>
-                                <button type="button" class="btn submit site7-pattern-insert-btn" data-handle="${p.handle}" data-type="${p.type.toLowerCase()}" data-block-type-handle="${p.blockTypeHandle || ''}" style="flex: 1; justify-content: center;">Insert</button>
+                                <button type="button" class="btn submit site7-pattern-insert-btn" data-handle="${p.handle}" data-type="${p.type.toLowerCase()}" data-block-type-handle="${p.blockTypeHandle || ''}" data-block-type-id="${p.blockTypeId || ''}" style="flex: 1; justify-content: center;">Insert</button>
                             </div>
                         </div>
                     </div>
@@ -323,7 +323,8 @@
             const handle = $(e.currentTarget).data('handle');
             const type = $(e.currentTarget).data('type');
             const blockTypeHandle = $(e.currentTarget).data('block-type-handle');
-            
+            const blockTypeId = $(e.currentTarget).data('block-type-id') || null;
+
             // Save to recently used in localStorage
             let recentlyUsed = [];
             try {
@@ -339,7 +340,7 @@
             this.hide();
             
             if (this.onSelectCallback) {
-                this.onSelectCallback(handle, type, blockTypeHandle);
+                this.onSelectCallback(handle, type, blockTypeHandle, blockTypeId);
             }
         }
     });

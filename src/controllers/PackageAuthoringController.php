@@ -21,8 +21,14 @@ class PackageAuthoringController extends Controller
     {
         $this->view->registerAssetBundle(\site7\studio\assetbundles\LibraryBundle::class);
 
+        $preselectedType = (string)Craft::$app->getRequest()->getQueryParam('type', 'section');
+        if (!in_array($preselectedType, PackageAuthoringService::VALID_TYPES, true)) {
+            $preselectedType = 'section';
+        }
+
         return $this->renderTemplate('site7-studio/authoring/new', [
             'title' => 'New Package',
+            'preselectedType' => $preselectedType,
         ]);
     }
 
@@ -49,7 +55,7 @@ class PackageAuthoringController extends Controller
             $record = (new PackageAuthoringService())->createPackage($meta);
         } catch (\Throwable $e) {
             Craft::$app->getSession()->setError($e->getMessage());
-            return $this->redirectToPostedUrl();
+            return $this->redirect('site7-studio/packages/new?type=' . $meta['type']);
         }
 
         Craft::$app->getSession()->setNotice('Package created. Continue setting it up below.');
@@ -81,12 +87,34 @@ class PackageAuthoringController extends Controller
             $patternComposition = $authoringService->getPatternComposition($handle);
         }
 
+        $availableTemplateItems = [];
+        $templateComposition = [];
+        if ($package->type === 'template') {
+            $availableTemplateItems = $authoringService->getAvailableSectionsAndPatterns();
+            $templateComposition = $authoringService->getTemplateComposition($handle);
+        }
+
+        $previewImageUrl = null;
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($handle);
+        if ($packagePath) {
+            foreach (PackageAuthoringService::PREVIEW_IMAGE_EXTENSIONS as $extension) {
+                $imagePath = $packagePath . '/preview/preview.' . $extension;
+                if (file_exists($imagePath)) {
+                    $previewImageUrl = \craft\helpers\UrlHelper::cpUrl('site7-studio/library/package/' . $handle . '/preview-image', ['v' => filemtime($imagePath)]);
+                    break;
+                }
+            }
+        }
+
         return $this->renderTemplate('site7-studio/authoring/edit', [
             'title' => 'Edit: ' . $package->name,
             'package' => $package,
             'sectionFields' => $sectionFields,
             'availableSections' => $availableSections,
             'patternComposition' => $patternComposition,
+            'availableTemplateItems' => $availableTemplateItems,
+            'templateComposition' => $templateComposition,
+            'previewImageUrl' => $previewImageUrl,
         ]);
     }
 
@@ -115,6 +143,33 @@ class PackageAuthoringController extends Controller
         }
 
         Craft::$app->getSession()->setNotice('Package saved.');
+        return $this->redirectToPostedUrl();
+    }
+
+    /**
+     * Saves an uploaded preview thumbnail for the Package Editor.
+     */
+    public function actionUploadPreviewImage()
+    {
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $handle = (string)$request->getRequiredBodyParam('handle');
+        $file = \craft\web\UploadedFile::getInstanceByName('previewImage');
+
+        if (!$file) {
+            Craft::$app->getSession()->setError('Choose an image to upload.');
+            return $this->redirectToPostedUrl();
+        }
+
+        try {
+            (new PackageAuthoringService())->savePreviewImage($handle, $file);
+        } catch (\Throwable $e) {
+            Craft::$app->getSession()->setError($e->getMessage());
+            return $this->redirectToPostedUrl();
+        }
+
+        Craft::$app->getSession()->setNotice('Preview image updated.');
         return $this->redirectToPostedUrl();
     }
 
@@ -159,6 +214,28 @@ class PackageAuthoringController extends Controller
         }
 
         Craft::$app->getSession()->setNotice('Pattern saved.');
+        return $this->redirectToPostedUrl();
+    }
+
+    /**
+     * Saves the Template Builder's canvas.
+     */
+    public function actionSaveTemplate()
+    {
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $handle = (string)$request->getRequiredBodyParam('handle');
+        $composition = json_decode((string)$request->getBodyParam('composition', '[]'), true);
+
+        try {
+            (new PackageAuthoringService())->saveTemplateComposition($handle, is_array($composition) ? $composition : []);
+        } catch (\Throwable $e) {
+            Craft::$app->getSession()->setError($e->getMessage());
+            return $this->redirectToPostedUrl();
+        }
+
+        Craft::$app->getSession()->setNotice('Template saved.');
         return $this->redirectToPostedUrl();
     }
 }

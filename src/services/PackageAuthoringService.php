@@ -150,6 +150,41 @@ class PackageAuthoringService extends Component
         return $record;
     }
 
+    public const PREVIEW_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+
+    /**
+     * Saves an uploaded preview thumbnail as packages/<handle>/preview/preview.<ext>,
+     * removing any previous preview image of a different extension so there's
+     * never more than one on disk at a time.
+     *
+     * @throws \Exception if the package doesn't exist or the file isn't a
+     *     supported image type.
+     */
+    public function savePreviewImage(string $handle, \craft\web\UploadedFile $file): void
+    {
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($handle);
+        if (!$packagePath) {
+            throw new \Exception('Package not found.');
+        }
+
+        $extension = strtolower((string)$file->getExtension());
+        if (!in_array($extension, self::PREVIEW_IMAGE_EXTENSIONS, true)) {
+            throw new \Exception('Preview image must be one of: ' . implode(', ', self::PREVIEW_IMAGE_EXTENSIONS) . '.');
+        }
+
+        $previewDir = $packagePath . '/preview';
+        FileHelper::createDirectory($previewDir);
+
+        foreach (self::PREVIEW_IMAGE_EXTENSIONS as $existingExt) {
+            $existingPath = $previewDir . '/preview.' . $existingExt;
+            if (file_exists($existingPath)) {
+                unlink($existingPath);
+            }
+        }
+
+        $file->saveAs($previewDir . '/preview.' . $extension);
+    }
+
     /**
      * The Section Builder's read side: merges fields.yaml's field definitions
      * with preview/preview-data.yaml's demo values into one editable list.
@@ -419,6 +454,149 @@ class PackageAuthoringService extends Component
         }
 
         $manifestData = json_decode(file_get_contents($packagePath . '/manifest.json'), true) ?: [];
+        $manifestData['requires']['sections'] = $sectionHandles;
+        $manifestData['demoContent'] = $demoContent;
+
+        file_put_contents($packagePath . '/manifest.json', json_encode($manifestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    /**
+     * The Template Builder's left sidebar library - every installed Section
+     * AND Pattern, since a Template composes both. Sections carry their own
+     * field defs (for the right sidebar's Default Value overrides); Patterns
+     * don't - a Template never overrides a Pattern's own content, only
+     * references it by handle, per "Templates must never duplicate package
+     * definitions."
+     *
+     * @return array<int, array{handle: string, name: string, type: string, category: string, previewImageUrl: string, fields: array}>
+     */
+    public function getAvailableSectionsAndPatterns(): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $items = [];
+
+        foreach ($packageManager->getAllPackages() as $pkg) {
+            $type = strtolower($pkg->type);
+            if ($type !== 'section' && $type !== 'pattern') {
+                continue;
+            }
+            $items[] = [
+                'handle' => $pkg->handle,
+                'name' => $pkg->name,
+                'type' => $type,
+                'category' => $pkg->category ?: 'Uncategorized',
+                'previewImageUrl' => UrlHelper::cpUrl('site7-studio/library/package/' . $pkg->handle . '/preview-image'),
+                'editUrl' => UrlHelper::cpUrl('site7-studio/packages/' . $pkg->handle . '/edit'),
+                'fields' => $type === 'section' ? $this->getSectionFieldDefs($pkg->handle) : [],
+            ];
+        }
+
+        return $items;
+    }
+
+    /**
+     * The Template Builder's canvas, hydrated from the Template's own
+     * manifest. requires.patterns and requires.sections are stored as two
+     * separate ordered lists (Phase 9's frozen schema, where all Patterns
+     * install before any bare Sections) - read back here as Patterns first,
+     * then Sections, which is also each list's true install order.
+     *
+     * @return array<int, array{type: string, handle: string, name: string, defaultValues: array}>
+     */
+    public function getTemplateComposition(string $handle): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $record = $packageManager->getPackageByHandle($handle);
+        $manifest = $record?->getManifest();
+        if (!$manifest) {
+            return [];
+        }
+
+        $composition = [];
+        foreach ($manifest->requires['patterns'] ?? [] as $patternHandle) {
+            $patternRecord = $packageManager->getPackageByHandle($patternHandle);
+            $composition[] = [
+                'type' => 'pattern',
+                'handle' => $patternHandle,
+                'name' => $patternRecord->name ?? $patternHandle,
+                'defaultValues' => [],
+            ];
+        }
+        foreach ($manifest->requires['sections'] ?? [] as $sectionHandle) {
+            $sectionRecord = $packageManager->getPackageByHandle($sectionHandle);
+            $snakeHandle = str_replace('-', '_', $sectionHandle);
+            $composition[] = [
+                'type' => 'section',
+                'handle' => $sectionHandle,
+                'name' => $sectionRecord->name ?? $sectionHandle,
+                'defaultValues' => $manifest->demoContent[$sectionHandle] ?? $manifest->demoContent[$snakeHandle] ?? [],
+            ];
+        }
+
+        return $composition;
+    }
+
+    /**
+     * Saves the Template Builder's canvas back to the manifest. The canvas
+     * lets Sections and Patterns be freely interleaved and reordered for
+     * visual composition, but requires.patterns/requires.sections stay two
+     * separate ordered lists on disk (the existing, frozen schema) - so on
+     * save this splits the single visual order into "all Patterns, in the
+     * order they appeared" + "all bare Sections, in the order they
+     * appeared." Install order is always Patterns-then-Sections regardless
+     * of how they were interleaved in the canvas; this is an existing
+     * platform limitation (see TemplateGeneratorService::detectPatternReferences),
+     * not one introduced here.
+     *
+     * demoContent is only ever written for bare Section items - a Template
+     * never overrides a Pattern's own Default Values, only references the
+     * Pattern by handle.
+     *
+     * @param array $items Ordered list of {type: 'section'|'pattern', handle, defaultValues?}; invalid/unknown/mismatched-type entries are dropped.
+     * @throws \Exception if the package isn't a Template, or nothing valid was given.
+     */
+    public function saveTemplateComposition(string $handle, array $items): void
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $packagePath = $packageManager->getPackagePath($handle);
+        $record = $packageManager->getPackageByHandle($handle);
+        if (!$packagePath || !$record) {
+            throw new \Exception('Package not found.');
+        }
+        if ($record->type !== 'template') {
+            throw new \Exception('This package is not a Template.');
+        }
+
+        $patternHandles = [];
+        $sectionHandles = [];
+        $demoContent = [];
+
+        foreach ($items as $item) {
+            $itemType = strtolower((string)($item['type'] ?? ''));
+            $itemHandle = trim((string)($item['handle'] ?? ''));
+            if ($itemHandle === '') {
+                continue;
+            }
+            $itemRecord = $packageManager->getPackageByHandle($itemHandle);
+            if (!$itemRecord || strtolower($itemRecord->type) !== $itemType) {
+                continue;
+            }
+
+            if ($itemType === 'pattern') {
+                $patternHandles[] = $itemHandle;
+            } elseif ($itemType === 'section') {
+                $sectionHandles[] = $itemHandle;
+                $defaultValues = $item['defaultValues'] ?? [];
+                $demoContent[$itemHandle] = is_array($defaultValues) ? $defaultValues : [];
+            }
+        }
+
+        if (empty($patternHandles) && empty($sectionHandles)) {
+            throw new \Exception('Add at least one Section or Pattern to the Template.');
+        }
+
+        $manifestData = json_decode(file_get_contents($packagePath . '/manifest.json'), true) ?: [];
+        $manifestData['requires']['patterns'] = $patternHandles;
         $manifestData['requires']['sections'] = $sectionHandles;
         $manifestData['demoContent'] = $demoContent;
 

@@ -309,6 +309,39 @@ class PackageManagerService extends Component
         $this->invalidateCraftCaches();
         return $result;
     }
+
+    /**
+     * Permanently deletes a package: unlinks/removes any generated Craft
+     * resources first (same as removePackage()), then deletes its DB record
+     * and its entire folder from disk. Irreversible - the caller is
+     * responsible for confirming with the user and checking usage first.
+     */
+    public function deletePackage(string $handle): bool
+    {
+        $record = $this->getPackageByHandle($handle);
+        if (!$record) {
+            return false;
+        }
+
+        if ($record->type === 'section') {
+            $this->unlinkFromMatrix($handle);
+        }
+
+        $packagePath = $this->getPackagePath($handle);
+        if ($packagePath && is_dir($packagePath)) {
+            \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->removePackageResources($packagePath);
+        }
+
+        $record->delete();
+
+        if ($packagePath && is_dir($packagePath)) {
+            \craft\helpers\FileHelper::removeDirectory($packagePath);
+        }
+
+        $this->invalidateCraftCaches();
+        return true;
+    }
+
     /**
      * Invalidates all relevant Craft CMS internal caches after modifying
      * package resources or Matrix field configurations.

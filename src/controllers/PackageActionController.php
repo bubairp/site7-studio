@@ -106,6 +106,39 @@ class PackageActionController extends Controller
     }
 
     /**
+     * Permanently deletes a package (its DB record and its folder on disk).
+     */
+    public function actionDelete()
+    {
+        $this->requirePostRequest();
+
+        $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
+
+        $usage = Site7Studio::getInstance()->packageUsage->getUsage($handle);
+        if (!empty($usage)) {
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Cannot delete package. It is currently in use by ' . count($usage) . ' entries.'));
+            return $this->redirectToPostedUrl();
+        }
+
+        // Grab the type before deleting - once the record's gone there's
+        // nothing left to look it up from, and the caller needs it to land
+        // back on the right type-filtered Library view (Sections stay on
+        // Sections, Patterns stay on Patterns, etc.) instead of the default.
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        $type = $record->type ?? 'section';
+
+        $success = Site7Studio::getInstance()->packageManager->deletePackage($handle);
+
+        if ($success) {
+            Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package deleted successfully.'));
+            return $this->redirect('site7-studio/library?type=' . $type);
+        }
+
+        Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Could not delete package.'));
+        return $this->redirectToPostedUrl();
+    }
+
+    /**
      * Gets the serialized block structures for a pattern to inject into Matrix.
      */
     public function actionGetPatternBlocks()
@@ -172,6 +205,7 @@ class PackageActionController extends Controller
             }
             
             $blockTypeHandle = null;
+            $blockTypeId = null;
             if (strtolower($pkg->type) === 'section') {
                 $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($pkg->handle);
                 if ($packagePath) {
@@ -180,6 +214,11 @@ class PackageActionController extends Controller
                         $matrixData = \Symfony\Component\Yaml\Yaml::parseFile($matrixYamlPath);
                         if (isset($matrixData['blocks'][0]['handle'])) {
                             $blockTypeHandle = $matrixData['blocks'][0]['handle'];
+                            // The entry type's real ID, so the client can match it exactly
+                            // instead of relying on fuzzy label/handle string matching -
+                            // see pattern-matrix.js's resolveCreateAttributes().
+                            $entryType = Craft::$app->getEntries()->getEntryTypeByHandle($blockTypeHandle);
+                            $blockTypeId = $entryType?->id;
                         }
                     }
                 }
@@ -198,7 +237,8 @@ class PackageActionController extends Controller
                 'requires' => $manifest->requires ?? [],
                 'previewImageUrl' => \craft\helpers\UrlHelper::cpUrl('site7-studio/library/package/' . $pkg->handle . '/preview-image'),
                 'renderUrl' => \craft\helpers\UrlHelper::cpUrl('site7-studio/library/package/' . $pkg->handle . '/render-preview'),
-                'blockTypeHandle' => $blockTypeHandle
+                'blockTypeHandle' => $blockTypeHandle,
+                'blockTypeId' => $blockTypeId,
             ];
         }
 

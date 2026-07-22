@@ -173,7 +173,7 @@ class LibraryController extends Controller
         $hasPreviewImage = false;
         $hasPreviewTemplate = false;
         if ($packagePath) {
-            $hasPreviewImage = file_exists($packagePath . '/preview/preview.png');
+            $hasPreviewImage = $this->findPreviewImagePath($packagePath) !== null;
             $hasPreviewTemplate = file_exists($packagePath . '/preview/preview.twig');
         }
 
@@ -361,16 +361,40 @@ class LibraryController extends Controller
             throw new \yii\web\NotFoundHttpException("Package not found");
         }
 
-        $imagePath = $packagePath . '/preview/preview.png';
-        if (!file_exists($imagePath)) {
+        $imagePath = $this->findPreviewImagePath($packagePath);
+        if (!$imagePath) {
             throw new \yii\web\NotFoundHttpException("Preview image not found");
         }
 
+        $mimeTypes = [
+            'png' => 'image/png',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+        ];
+        $extension = strtolower(pathinfo($imagePath, PATHINFO_EXTENSION));
+
         $response = Craft::$app->getResponse();
-        $response->headers->set('Content-Type', 'image/png');
+        $response->headers->set('Content-Type', $mimeTypes[$extension] ?? 'application/octet-stream');
         $response->headers->set('Cache-Control', 'public, max-age=86400');
         $response->format = \yii\web\Response::FORMAT_RAW;
         $response->data = file_get_contents($imagePath);
         return $response;
+    }
+
+    /**
+     * Finds the on-disk preview image for a package, whatever extension it
+     * was uploaded with (see PackageAuthoringService::savePreviewImage()).
+     */
+    private function findPreviewImagePath(string $packagePath): ?string
+    {
+        foreach (\site7\studio\services\PackageAuthoringService::PREVIEW_IMAGE_EXTENSIONS as $extension) {
+            $path = $packagePath . '/preview/preview.' . $extension;
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+        return null;
     }
 }

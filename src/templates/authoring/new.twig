@@ -23,7 +23,7 @@
             <div class="site7-package-type-options">
                 {% for value, info in packageTypes %}
                     <label class="site7-package-type-option">
-                        <input type="radio" name="type" value="{{ value }}" {{ loop.first ? 'checked' }} required>
+                        <input type="radio" name="type" value="{{ value }}" {{ (preselectedType ?? 'section') == value ? 'checked' }} required>
                         <span class="site7-package-type-option-label">{{ info.label }}</span>
                         <span class="light">{{ info.description }}</span>
                     </label>

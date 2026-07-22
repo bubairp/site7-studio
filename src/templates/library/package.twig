@@ -94,6 +94,20 @@
                 </form>
             {% endif %}
         {% endif %}
+
+        <form method="post" accept-charset="UTF-8" id="deleteForm">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
+            <input type="hidden" name="action" value="site7-studio/package-action/delete">
+            <input type="hidden" name="handle" value="{{ package.handle }}">
+            <button type="button" class="btn delete icon {{ usage is not empty ? 'disabled' : '' }}"
+                {% if usage is not empty %}
+                    disabled title="{{ 'Cannot delete while in use'|t('site7-studio') }}"
+                {% else %}
+                    onclick="if(confirm('Permanently delete this package? This deletes its entire folder from disk and cannot be undone.')) { this.closest('form').submit(); }"
+                {% endif %}
+            >{{ "Delete"|t('site7-studio') }}</button>
+        </form>
     </div>
 {% endblock %}
 
