@@ -215,6 +215,42 @@
     margin: 0 auto;
 }
 
+/* ----- Package detail: content sections ----- */
+/* Craft's content-pane has no built-in rhythm for multiple stacked h2
+   sections in a single read-only detail view (as opposed to a form's
+   fields) - this gives them consistent breathing room instead of the
+   heading crowding directly into whatever came before it. */
+.site7-detail-section h2 {
+    margin-top: 0;
+}
+
+.site7-detail-section h3 {
+    margin-bottom: 8px;
+}
+
+.content-pane hr {
+    margin: 24px 0;
+    border: none;
+    border-top: 1px solid var(--gray-200);
+}
+
+.site7-detail-thumb {
+    flex-shrink: 0;
+    width: 160px;
+    height: 160px;
+    border-radius: var(--medium-border-radius);
+    overflow: hidden;
+    background: var(--gray-050);
+    border: 1px solid var(--gray-200);
+}
+
+.site7-detail-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
 /* ----- Package detail: demo content JSON preview ----- */
 /* Craft has no generic "code block" component. */
 pre.code {

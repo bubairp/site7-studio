@@ -130,72 +130,79 @@
 {% endblock %}
 
 {% block content %}
-    <h2>{{ "Overview"|t('site7-studio') }}</h2>
-    <p>{{ package.description|default('No description provided.') }}</p>
+    <section class="site7-detail-section">
+        <h2>{{ "Overview"|t('site7-studio') }}</h2>
+        <div class="flex flex-nowrap flex-gap-l">
+            {% if hasPreviewImage %}
+                <div class="site7-detail-thumb">
+                    <img src="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview-image') }}" alt="{{ package.name }}">
+                </div>
+            {% endif %}
+            <p class="readable">{{ package.description|default('No description provided.') }}</p>
+        </div>
+    </section>
 
     {% if package.type|lower == 'pattern' or package.type|lower == 'template' %}
         {% set manifest = package.getManifest() %}
-        <h2>{{ package.type|title }} {{ "Composition"|t('site7-studio') }}</h2>
-        <table class="data fullwidth">
-            <tbody>
+        <hr>
+        <section class="site7-detail-section">
+            <h2>{{ package.type|title }} {{ "Composition"|t('site7-studio') }}</h2>
+            <div class="meta">
                 {% if package.type|lower == 'template' %}
-                    <tr>
-                        <th class="thin">{{ "Included Patterns"|t('site7-studio') }}</th>
-                        <td>
+                    <div class="field">
+                        <div class="heading"><label>{{ "Included Patterns"|t('site7-studio') }}</label></div>
+                        <div class="input">
                             {% if manifest and manifest.requires.patterns is defined and manifest.requires.patterns|length %}
                                 {{ manifest.requires.patterns|map(p => p|title)|join(', ') }}
                             {% else %}
                                 <span class="light">{{ "None"|t('site7-studio') }}</span>
                             {% endif %}
-                        </td>
-                    </tr>
+                        </div>
+                    </div>
                 {% endif %}
-                <tr>
-                    <th class="thin">{{ "Included Sections"|t('site7-studio') }}</th>
-                    <td>
+                <div class="field">
+                    <div class="heading"><label>{{ "Included Sections"|t('site7-studio') }}</label></div>
+                    <div class="input">
                         {% if manifest and manifest.requires.sections is defined and manifest.requires.sections|length %}
                             {{ manifest.requires.sections|map(s => s|title)|join(', ') }}
                         {% else %}
                             <span class="light">{{ "None"|t('site7-studio') }}</span>
                         {% endif %}
-                    </td>
-                </tr>
-                <tr>
-                    <th class="thin">{{ "Demo Content Definition"|t('site7-studio') }}</th>
-                    <td>
-                        {% if manifest and manifest.demoContent is defined and manifest.demoContent %}
-                            <pre class="code">{{ manifest.demoContent|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
-                        {% else %}
-                            <span class="light">{{ "None"|t('site7-studio') }}</span>
-                        {% endif %}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                    </div>
+                </div>
+            </div>
+            {% if manifest and manifest.demoContent is defined and manifest.demoContent %}
+                <h3>{{ "Demo Content Definition"|t('site7-studio') }}</h3>
+                <pre class="code">{{ manifest.demoContent|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+            {% endif %}
+        </section>
     {% endif %}
 
-    <h2>{{ "Usage"|t('site7-studio') }}</h2>
-    {% if usage is defined and usage is not empty %}
-        <div class="site7-notice site7-notice--warning">
-            <strong>{{ "In Use:"|t('site7-studio') }}</strong> {{ "This package cannot be disabled or removed while it is being used in content."|t('site7-studio') }}
-        </div>
-        <table class="data fullwidth">
-            <thead>
-                <tr>
-                    <th>{{ "Entry Title"|t('site7-studio') }}</th>
-                    <th class="thin">{{ "Action"|t('site7-studio') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for entry in usage %}
+    <hr>
+    <section class="site7-detail-section">
+        <h2>{{ "Usage"|t('site7-studio') }}</h2>
+        {% if usage is defined and usage is not empty %}
+            <div class="site7-notice site7-notice--warning">
+                <strong>{{ "In Use:"|t('site7-studio') }}</strong> {{ "This package cannot be disabled or removed while it is being used in content."|t('site7-studio') }}
+            </div>
+            <table class="data fullwidth">
+                <thead>
                     <tr>
-                        <td>{{ entry.title }} <span class="light">({{ entry.section.name|default('Unknown Section') }})</span></td>
-                        <td><a href="{{ entry.cpEditUrl }}" target="_blank">{{ "Edit"|t('site7-studio') }} &rarr;</a></td>
+                        <th>{{ "Entry Title"|t('site7-studio') }}</th>
+                        <th class="thin">{{ "Action"|t('site7-studio') }}</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p class="light">{{ "This package is not currently used in any entries."|t('site7-studio') }}</p>
-    {% endif %}
+                </thead>
+                <tbody>
+                    {% for entry in usage %}
+                        <tr>
+                            <td>{{ entry.title }} <span class="light">({{ entry.section.name|default('Unknown Section') }})</span></td>
+                            <td><a href="{{ entry.cpEditUrl }}" target="_blank">{{ "Edit"|t('site7-studio') }} &rarr;</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="light">{{ "This package is not currently used in any entries."|t('site7-studio') }}</p>
+        {% endif %}
+    </section>
 {% endblock %}
