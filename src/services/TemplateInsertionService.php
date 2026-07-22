@@ -128,9 +128,13 @@ class TemplateInsertionService extends Component
      * Lists the Section/Entry Type combinations a Template can be generated into -
      * any Entry Type whose field layout includes the configured Site7 Matrix field.
      *
-     * @return array<int, array{entryTypeId: int, entryTypeName: string, sectionId: int, sectionName: string, showSlugField: bool}>
+     * @param string|null $preferredEntryTypeHandle Marks the matching option as
+     *   'preferred' - e.g. the Entry Type a Template was originally generated from
+     *   (manifest.sourceEntryType), so the "Create from Template" wizard can default
+     *   to it. Purely a UI hint; the editor can still pick any eligible option.
+     * @return array<int, array{entryTypeId: int, entryTypeName: string, sectionId: int, sectionName: string, showSlugField: bool, preferred: bool}>
      */
-    public function getEligibleEntryTypes(): array
+    public function getEligibleEntryTypes(?string $preferredEntryTypeHandle = null): array
     {
         $matrixHandle = $this->getMatrixFieldHandle();
         if (!$matrixHandle) {
@@ -153,6 +157,7 @@ class TemplateInsertionService extends Component
                     'sectionId' => $section->id,
                     'sectionName' => $section->name,
                     'showSlugField' => (bool)$entryType->showSlugField,
+                    'preferred' => $preferredEntryTypeHandle !== null && $entryType->handle === $preferredEntryTypeHandle,
                 ];
             }
         }
@@ -191,6 +196,9 @@ class TemplateInsertionService extends Component
             throw new \Exception('This Template has no content to generate an Entry from.');
         }
 
+        $package = Site7Studio::getInstance()->packageManager->getPackageByHandle($templateHandle);
+        $manifest = $package?->getManifest();
+
         $entry = new Entry();
         $entry->sectionId = $section->id;
         $entry->typeId = $entryType->id;
@@ -209,6 +217,16 @@ class TemplateInsertionService extends Component
             ];
         }
         $entry->setFieldValue($matrixHandle, $matrixValue);
+
+        // Restore the source Entry's own captured custom field values (e.g. Theme,
+        // Header Style - anything besides the Matrix field), skipping any handle no
+        // longer present on the target Entry Type's field layout.
+        $entryFieldLayout = $entryType->getFieldLayout();
+        foreach ($manifest?->entryFields ?? [] as $fieldHandle => $fieldValue) {
+            if ($entryFieldLayout?->getFieldByHandle($fieldHandle)) {
+                $entry->setFieldValue($fieldHandle, $fieldValue);
+            }
+        }
 
         if (!Craft::$app->getElements()->saveElement($entry)) {
             throw new \Exception('Could not create the Entry: ' . implode(' ', $entry->getFirstErrors()));

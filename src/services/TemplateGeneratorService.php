@@ -64,6 +64,12 @@ class TemplateGeneratorService extends Component
 
         [$requiresPatterns, $requiresSections] = $this->detectPatternReferences($sectionHandles);
 
+        // Capture the source Entry's own custom fields (its Section/Entry Type field
+        // layout) - everything except the Site7 Matrix field, which is captured above
+        // via demoContent/requires instead. Structural identity (handles) only, per
+        // the "DO NOT SAVE" rule - never the entry's own runtime ID/slug/title/etc.
+        $entryFields = $this->extractFieldValues($entry, [$matrixHandle]);
+
         $handle = $this->generateUniqueHandle($meta['name']);
         $packagePath = rtrim(Craft::getAlias('@packages'), '/') . '/' . $handle;
         FileHelper::createDirectory($packagePath);
@@ -80,11 +86,14 @@ class TemplateGeneratorService extends Component
             'description' => $meta['description'] ?? '',
             'category' => $meta['category'] ?? null,
             'tags' => $tags,
+            'sourceEntryType' => $entry->getType()->handle,
+            'sourceSection' => $entry->getSection()?->handle,
             'requires' => array_filter([
                 'patterns' => $requiresPatterns,
                 'sections' => $requiresSections,
             ]),
             'demoContent' => $demoContent,
+            'entryFields' => $entryFields,
             'dependencies' => [],
         ];
 
@@ -158,11 +167,16 @@ class TemplateGeneratorService extends Component
     }
 
     /**
-     * Reads a nested block's custom field values into a plain associative array.
-     * Section fields are all PlainText today (CraftResourceService's MVP scope), so
-     * a general field-type serializer isn't needed - values are read as-is.
+     * Reads a nested block's (or a top-level Entry's) custom field values into a
+     * plain associative array. Section/entry fields are all PlainText today
+     * (CraftResourceService's MVP scope), so a general field-type serializer isn't
+     * needed - values are read as-is.
+     *
+     * $skipHandles excludes relational/non-scalar fields (e.g. the Site7 Matrix
+     * field itself, when reading a top-level Entry) that would otherwise hit the
+     * (string) cast below and fatal - ElementQueryInterface has no __toString().
      */
-    private function extractFieldValues(Entry $block): array
+    private function extractFieldValues(Entry $block, array $skipHandles = []): array
     {
         $values = [];
         $layout = $block->getFieldLayout();
@@ -170,6 +184,9 @@ class TemplateGeneratorService extends Component
             return $values;
         }
         foreach ($layout->getCustomFields() as $field) {
+            if (in_array($field->handle, $skipHandles, true)) {
+                continue;
+            }
             $value = $block->getFieldValue($field->handle);
             if (is_scalar($value) || $value === null) {
                 $values[$field->handle] = $value;

@@ -57,7 +57,14 @@ class TemplateGeneratorController extends Controller
     {
         $this->requireAcceptsJson();
 
-        $entryTypes = (new \site7\studio\services\TemplateInsertionService())->getEligibleEntryTypes();
+        $handle = Craft::$app->getRequest()->getParam('handle');
+        $preferredEntryTypeHandle = null;
+        if ($handle) {
+            $package = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+            $preferredEntryTypeHandle = $package?->getManifest()?->sourceEntryType;
+        }
+
+        $entryTypes = (new \site7\studio\services\TemplateInsertionService())->getEligibleEntryTypes($preferredEntryTypeHandle);
 
         return $this->asJson(['success' => true, 'entryTypes' => $entryTypes]);
     }

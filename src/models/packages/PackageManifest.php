@@ -25,14 +25,30 @@ class PackageManifest extends Model
     public ?string $preview = null;
 
     /**
+     * The handle of the Entry Type/Section a Template was generated from ("Save as
+     * Template"), kept as structural identity only - never a runtime ID. Used to
+     * pre-select a matching option in the "Create from Template" wizard when one is
+     * still installed; the editor can always choose a different Entry Type instead.
+     */
+    public ?string $sourceEntryType = null;
+    public ?string $sourceSection = null;
+
+    /**
+     * The source Entry's own custom field values (i.e. its Section/Entry Type field
+     * layout), keyed by field handle - everything except the Site7 Matrix field
+     * itself, which is captured separately via demoContent/requires.
+     */
+    public array $entryFields = [];
+
+    /**
      * @inheritdoc
      */
     protected function defineRules(): array
     {
         $rules = parent::defineRules();
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion'], 'required'];
-        $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview'], 'string'];
-        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent'], 'safe'];
+        $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview', 'sourceEntryType', 'sourceSection'], 'string'];
+        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields'], 'safe'];
         return $rules;
     }
 }

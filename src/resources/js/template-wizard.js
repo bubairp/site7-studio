@@ -175,7 +175,7 @@
         },
 
         loadEntryTypes: function() {
-            const url = Craft.getActionUrl('site7-studio/template-generator/get-create-options');
+            const url = Craft.getActionUrl('site7-studio/template-generator/get-create-options', { handle: this.templateHandle });
             fetch(url, {
                 credentials: 'same-origin',
                 headers: { 'Accept': 'application/json' }
@@ -194,6 +194,7 @@
                             $('<option></option>')
                                 .val(et.entryTypeId)
                                 .text(et.sectionName + ' — ' + et.entryTypeName)
+                                .prop('selected', !!et.preferred)
                         );
                     }, this);
                 }, this))
