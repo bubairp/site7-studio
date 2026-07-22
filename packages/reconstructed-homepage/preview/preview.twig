@@ -1,0 +1,6 @@
+<div class="site7-template-preview">
+    {% include "@packages/hero-banner/template.twig" with { block: block['hero-banner']|default({}) } only %}
+    {% include "@packages/team/template.twig" with { block: block['team']|default({}) } only %}
+    {% include "@packages/pricing/template.twig" with { block: block['pricing']|default({}) } only %}
+    {% include "@packages/faq/template.twig" with { block: block['faq']|default({}) } only %}
+</div>

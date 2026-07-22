@@ -1,0 +1,9 @@
+block:
+    hero-banner:
+        heading: 'About Our Company'
+    team:
+        heading: 'Meet Our Experts'
+    pricing:
+        heading: 'Our Plans'
+    faq:
+        heading: null

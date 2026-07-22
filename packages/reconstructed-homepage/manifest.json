@@ -1,0 +1,38 @@
+{
+    "schemaVersion": "1",
+    "handle": "reconstructed-homepage",
+    "name": "Reconstructed Homepage",
+    "type": "template",
+    "version": "1.0.0",
+    "author": "admin",
+    "description": "A homepage reconstructed automatically from an existing page via Save as Template.",
+    "category": "Page",
+    "tags": [
+        "Reconstructed",
+        "Save As Template"
+    ],
+    "requires": {
+        "patterns": [
+            "about-company"
+        ],
+        "sections": [
+            "pricing",
+            "faq"
+        ]
+    },
+    "demoContent": {
+        "hero-banner": {
+            "heading": "About Our Company"
+        },
+        "team": {
+            "heading": "Meet Our Experts"
+        },
+        "pricing": {
+            "heading": "Our Plans"
+        },
+        "faq": {
+            "heading": null
+        }
+    },
+    "dependencies": []
+}
