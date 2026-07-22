@@ -176,19 +176,27 @@
 
 /* ----- Package Preview Modal ----- */
 /* Craft's base .modal is sized for small forms; this one needs to be a large
-   preview surface. */
+   preview surface. Garnish.Modal writes its own display/height/min-height
+   directly onto the container as inline styles when it shows/positions
+   itself - which, being inline, wins over anything set here at the class
+   level. The !importants below are what actually get the box its own fixed
+   size and flex layout back; without them Garnish's inline height sticks at
+   whatever it measured before the image/iframe had loaded, and content
+   silently overflows past the box with no scrollbar. */
 .site7-preview-modal {
     width: 90vw;
     max-width: 1100px;
-    height: 85vh;
+    height: 80vh !important;
     padding: 0;
-    display: flex;
+    display: flex !important;
     flex-direction: column;
     overflow: hidden;
 }
 
 .site7-preview-modal-body {
     flex: 1;
+    min-height: 0; /* flex children default to min-height:auto, which refuses to
+                       shrink below the image's natural size and defeats overflow:auto */
     overflow: auto;
     background: var(--gray-050);
 }
@@ -202,9 +210,9 @@
 }
 
 .site7-preview-modal-body img {
-    max-width: 100%;
     display: block;
-    margin: 24px auto;
+    max-width: 100%;
+    margin: 0 auto;
 }
 
 /* ----- Package detail: demo content JSON preview ----- */
