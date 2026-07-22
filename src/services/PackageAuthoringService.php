@@ -8,6 +8,7 @@ use craft\helpers\FileHelper;
 use craft\helpers\StringHelper;
 use site7\studio\Site7Studio;
 use site7\studio\records\PackageRecord;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Backs the Package Authoring Platform's New Package wizard and Package
@@ -146,5 +147,140 @@ class PackageAuthoringService extends Component
         $record->save();
 
         return $record;
+    }
+
+    /**
+     * The Section Builder's read side: merges fields.yaml's field definitions
+     * with preview/preview-data.yaml's demo values into one editable list.
+     * Section fields are all PlainText today (this plugin's established MVP
+     * scope), so there's nothing type-specific to surface per field yet.
+     *
+     * @return array<int, array{handle: string, name: string, instructions: string, demoValue: string}>
+     */
+    public function getSectionFields(string $handle): array
+    {
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($handle);
+        if (!$packagePath) {
+            return [];
+        }
+
+        $fields = [];
+        $fieldsYamlPath = $packagePath . '/fields.yaml';
+        if (file_exists($fieldsYamlPath)) {
+            $data = Yaml::parseFile($fieldsYamlPath);
+            foreach ($data['fields'] ?? [] as $def) {
+                if (empty($def['handle'])) {
+                    continue;
+                }
+                $fields[$def['handle']] = [
+                    'handle' => $def['handle'],
+                    'name' => $def['name'] ?? $def['handle'],
+                    'instructions' => $def['instructions'] ?? '',
+                    'demoValue' => '',
+                ];
+            }
+        }
+
+        $previewDataPath = $packagePath . '/preview/preview-data.yaml';
+        if (file_exists($previewDataPath)) {
+            $data = Yaml::parseFile($previewDataPath);
+            foreach ($data['block'] ?? [] as $fieldHandle => $value) {
+                if (isset($fields[$fieldHandle])) {
+                    $fields[$fieldHandle]['demoValue'] = (string)$value;
+                }
+            }
+        }
+
+        return array_values($fields);
+    }
+
+    /**
+     * The Section Builder's write side. Regenerates fields.yaml, matrix.yaml,
+     * and preview/preview-data.yaml from the submitted field list - the same
+     * three files CraftResourceService reads on Install, so a Section built
+     * this way installs exactly like a hand-written one. template.twig is
+     * only auto-generated the first time, so any hand-written markup from a
+     * later editing pass survives re-saving the field list.
+     *
+     * @param array $fields List of {handle, name, instructions?, demoValue?}; blank rows are dropped.
+     * @throws \Exception if the package isn't a Section, or no valid fields were given.
+     */
+    public function saveSectionFields(string $handle, array $fields): void
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $packagePath = $packageManager->getPackagePath($handle);
+        $record = $packageManager->getPackageByHandle($handle);
+        if (!$packagePath || !$record) {
+            throw new \Exception('Package not found.');
+        }
+        if ($record->type !== 'section') {
+            throw new \Exception('This package is not a Section.');
+        }
+
+        $cleanFields = [];
+        foreach ($fields as $field) {
+            $fieldHandle = trim((string)($field['handle'] ?? ''));
+            $name = trim((string)($field['name'] ?? ''));
+            if ($fieldHandle === '' || $name === '') {
+                continue;
+            }
+            $cleanFields[] = [
+                'handle' => $fieldHandle,
+                'name' => $name,
+                'instructions' => (string)($field['instructions'] ?? ''),
+                'demoValue' => (string)($field['demoValue'] ?? ''),
+            ];
+        }
+
+        if (empty($cleanFields)) {
+            throw new \Exception('Add at least one field.');
+        }
+
+        $fieldsYaml = [
+            'name' => $record->name . ' Fields',
+            'fields' => array_map(fn($f) => [
+                'handle' => $f['handle'],
+                'name' => $f['name'],
+                'type' => 'PlainText',
+                'instructions' => $f['instructions'],
+            ], $cleanFields),
+        ];
+        file_put_contents($packagePath . '/fields.yaml', Yaml::dump($fieldsYaml, 4));
+
+        // Reuse the existing block/Entry Type handle if matrix.yaml already
+        // exists, so re-saving doesn't rename an already-installed Entry Type
+        // out from under any live content.
+        $blockHandle = null;
+        $matrixYamlPath = $packagePath . '/matrix.yaml';
+        if (file_exists($matrixYamlPath)) {
+            $existing = Yaml::parseFile($matrixYamlPath);
+            $blockHandle = $existing['blocks'][0]['handle'] ?? null;
+        }
+        if (!$blockHandle) {
+            $blockHandle = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $handle))));
+        }
+
+        $matrixYaml = [
+            'name' => $record->name . ' Matrix',
+            'blocks' => [[
+                'handle' => $blockHandle,
+                'name' => $record->name,
+                'fields' => array_map(fn($f) => $f['handle'], $cleanFields),
+            ]],
+        ];
+        file_put_contents($matrixYamlPath, Yaml::dump($matrixYaml, 4));
+
+        $demoData = ['block' => array_combine(
+            array_map(fn($f) => $f['handle'], $cleanFields),
+            array_map(fn($f) => $f['demoValue'], $cleanFields)
+        )];
+        FileHelper::createDirectory($packagePath . '/preview');
+        file_put_contents($packagePath . '/preview/preview-data.yaml', Yaml::dump($demoData, 4));
+
+        $templatePath = $packagePath . '/template.twig';
+        if (!file_exists($templatePath)) {
+            $rows = implode("\n", array_map(fn($f) => "    <p>{{ block.{$f['handle']} }}</p>", $cleanFields));
+            file_put_contents($templatePath, "<div class=\"site7-component {$handle}\">\n{$rows}\n</div>\n");
+        }
     }
 }

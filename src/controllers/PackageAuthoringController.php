@@ -68,9 +68,14 @@ class PackageAuthoringController extends Controller
             throw new \yii\web\NotFoundHttpException('Package not found');
         }
 
+        $sectionFields = $package->type === 'section'
+            ? (new PackageAuthoringService())->getSectionFields($handle)
+            : [];
+
         return $this->renderTemplate('site7-studio/authoring/edit', [
             'title' => 'Edit: ' . $package->name,
             'package' => $package,
+            'sectionFields' => $sectionFields,
         ]);
     }
 
@@ -99,6 +104,28 @@ class PackageAuthoringController extends Controller
         }
 
         Craft::$app->getSession()->setNotice('Package saved.');
+        return $this->redirectToPostedUrl();
+    }
+
+    /**
+     * Saves the Section Builder's field list.
+     */
+    public function actionSaveFields()
+    {
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $handle = (string)$request->getRequiredBodyParam('handle');
+        $fields = (array)$request->getBodyParam('fields', []);
+
+        try {
+            (new PackageAuthoringService())->saveSectionFields($handle, $fields);
+        } catch (\Throwable $e) {
+            Craft::$app->getSession()->setError($e->getMessage());
+            return $this->redirectToPostedUrl();
+        }
+
+        Craft::$app->getSession()->setNotice('Package Builder saved.');
         return $this->redirectToPostedUrl();
     }
 }

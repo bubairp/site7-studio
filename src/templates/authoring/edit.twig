@@ -67,33 +67,78 @@
                 <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
             </div>
         </section>
-
-        <hr>
-
-        <section class="site7-detail-section">
-            <h2>{{ "Package Information"|t('site7-studio') }}</h2>
-            <div class="meta">
-                <div class="field">
-                    <div class="heading"><label>{{ "Handle"|t('site7-studio') }}</label></div>
-                    <div class="input"><code>{{ package.handle }}</code></div>
-                </div>
-                <div class="field">
-                    <div class="heading"><label>{{ "Package Type"|t('site7-studio') }}</label></div>
-                    <div class="input">{{ package.type|title }}</div>
-                </div>
-                <div class="field">
-                    <div class="heading"><label>{{ "Install Status"|t('site7-studio') }}</label></div>
-                    <div class="input">{{ package.status|title }}</div>
-                </div>
-                <div class="field">
-                    <div class="heading"><label>{{ "Created"|t('site7-studio') }}</label></div>
-                    <div class="input">{{ package.dateCreated|datetime('short') }}</div>
-                </div>
-                <div class="field">
-                    <div class="heading"><label>{{ "Last Updated"|t('site7-studio') }}</label></div>
-                    <div class="input">{{ package.dateUpdated|datetime('short') }}</div>
-                </div>
-            </div>
-        </section>
     </form>
+
+    <hr>
+
+    <section class="site7-detail-section">
+        <h2>{{ "Package Builder"|t('site7-studio') }}</h2>
+        {% if package.type == 'section' %}
+            <p class="light">{{ "Fields are all plain text for now. Each row becomes a real Craft field when this Section is installed."|t('site7-studio') }}</p>
+            <form method="post" accept-charset="UTF-8" id="site7-section-builder-form">
+                {{ csrfInput() }}
+                {{ redirectInput('site7-studio/packages/' ~ package.handle ~ '/edit') }}
+                <input type="hidden" name="action" value="site7-studio/package-authoring/save-fields">
+                <input type="hidden" name="handle" value="{{ package.handle }}">
+
+                <table class="data fullwidth" id="site7-section-fields-table">
+                    <thead>
+                        <tr>
+                            <th>{{ "Handle"|t('site7-studio') }}</th>
+                            <th>{{ "Name"|t('site7-studio') }}</th>
+                            <th>{{ "Instructions"|t('site7-studio') }}</th>
+                            <th>{{ "Demo Value"|t('site7-studio') }}</th>
+                            <th class="thin"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for field in sectionFields %}
+                            <tr>
+                                <td><input type="text" name="fields[{{ loop.index0 }}][handle]" class="text code" value="{{ field.handle }}"></td>
+                                <td><input type="text" name="fields[{{ loop.index0 }}][name]" class="text" value="{{ field.name }}"></td>
+                                <td><input type="text" name="fields[{{ loop.index0 }}][instructions]" class="text fullwidth" value="{{ field.instructions }}"></td>
+                                <td><input type="text" name="fields[{{ loop.index0 }}][demoValue]" class="text fullwidth" value="{{ field.demoValue }}"></td>
+                                <td><button type="button" class="btn delete icon site7-remove-field-row" title="{{ 'Remove'|t('site7-studio') }}"></button></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <button type="button" class="btn" id="site7-add-field-row">{{ "+ Add Field"|t('site7-studio') }}</button>
+                    <button type="submit" class="btn submit">{{ "Save Package Builder"|t('site7-studio') }}</button>
+                </div>
+            </form>
+        {% else %}
+            <p class="light">{{ "The {type} Builder is coming in a later increment - for now, {type} packages are configured by hand-editing their manifest and package files."|t('site7-studio', {type: package.type|title}) }}</p>
+        {% endif %}
+    </section>
+
+    <hr>
+
+    <section class="site7-detail-section">
+        <h2>{{ "Package Information"|t('site7-studio') }}</h2>
+        <div class="meta">
+            <div class="field">
+                <div class="heading"><label>{{ "Handle"|t('site7-studio') }}</label></div>
+                <div class="input"><code>{{ package.handle }}</code></div>
+            </div>
+            <div class="field">
+                <div class="heading"><label>{{ "Package Type"|t('site7-studio') }}</label></div>
+                <div class="input">{{ package.type|title }}</div>
+            </div>
+            <div class="field">
+                <div class="heading"><label>{{ "Install Status"|t('site7-studio') }}</label></div>
+                <div class="input">{{ package.status|title }}</div>
+            </div>
+            <div class="field">
+                <div class="heading"><label>{{ "Created"|t('site7-studio') }}</label></div>
+                <div class="input">{{ package.dateCreated|datetime('short') }}</div>
+            </div>
+            <div class="field">
+                <div class="heading"><label>{{ "Last Updated"|t('site7-studio') }}</label></div>
+                <div class="input">{{ package.dateUpdated|datetime('short') }}</div>
+            </div>
+        </div>
+    </section>
 {% endblock %}
