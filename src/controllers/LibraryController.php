@@ -131,26 +131,44 @@ class LibraryController extends Controller
         $isSetupComplete = !empty($settings->matrixFieldId);
 
         $usage = Site7Studio::getInstance()->packageUsage->getUsage($handle);
+        [$hasPreviewImage, $hasPreviewTemplate] = $this->getPreviewFlags($package);
 
         return $this->renderTemplate('site7-studio/library/package', [
             'title' => $package->name,
             'package' => $package,
             'isSetupComplete' => $isSetupComplete,
             'usage' => $usage,
+            'hasPreviewImage' => $hasPreviewImage,
+            'hasPreviewTemplate' => $hasPreviewTemplate,
         ]);
     }
 
     public function actionPreview(string $handle)
     {
         $this->view->registerAssetBundle(\site7\studio\assetbundles\LibraryBundle::class);
-        
+
         $package = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
-        
+
         if (!$package) {
             throw new \yii\web\NotFoundHttpException("Package not found");
         }
-        
-        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($handle);
+
+        [$hasPreviewImage, $hasPreviewTemplate] = $this->getPreviewFlags($package);
+
+        return $this->renderTemplate('site7-studio/library/preview', [
+            'title' => 'Preview: ' . $package->name,
+            'package' => $package,
+            'hasPreviewImage' => $hasPreviewImage,
+            'hasPreviewTemplate' => $hasPreviewTemplate,
+        ]);
+    }
+
+    /**
+     * @return array{0: bool, 1: bool} [hasPreviewImage, hasPreviewTemplate]
+     */
+    private function getPreviewFlags($package): array
+    {
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($package->handle);
 
         $hasPreviewImage = false;
         $hasPreviewTemplate = false;
@@ -161,17 +179,12 @@ class LibraryController extends Controller
 
         // Patterns and Templates never have their own preview.twig - actionRenderPreview()
         // composes their preview from their required Sections' templates instead, so the
-        // iframe below is always renderable for these types regardless of file presence.
+        // iframe is always renderable for these types regardless of file presence.
         if (in_array($package->type, ['pattern', 'template'], true)) {
             $hasPreviewTemplate = true;
         }
 
-        return $this->renderTemplate('site7-studio/library/preview', [
-            'title' => 'Preview: ' . $package->name,
-            'package' => $package,
-            'hasPreviewImage' => $hasPreviewImage,
-            'hasPreviewTemplate' => $hasPreviewTemplate,
-        ]);
+        return [$hasPreviewImage, $hasPreviewTemplate];
     }
 
     /**

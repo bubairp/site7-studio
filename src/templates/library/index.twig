@@ -2,6 +2,8 @@
 {% set title = "Library" %}
 {% set selectedSubnavItem = "library" %}
 
+{% set statusColors = {available: 'gray', installed: 'blue', enabled: 'teal', disabled: 'red'} %}
+
 {% set baseParams = {
     type: currentType,
     q: q ?: null,
@@ -98,6 +100,34 @@
     </div>
 {% endblock %}
 
+{% block footer %}
+    {% if packages|length %}
+        <div id="count-container" class="light">
+            <div class="flex pagination">
+                <nav class="flex" aria-label="{{ 'package pagination'|t('site7-studio') }}">
+                    {% if page > 1 %}
+                        <a class="page-link prev-page" href="{{ lib.pageUrl(baseParams, {page: page - 1}) }}" title="{{ 'Previous Page'|t('site7-studio') }}"></a>
+                    {% else %}
+                        <button type="button" class="page-link prev-page disabled" disabled title="{{ 'Previous Page'|t('site7-studio') }}"></button>
+                    {% endif %}
+                    {% if page < totalPages %}
+                        <a class="page-link next-page" href="{{ lib.pageUrl(baseParams, {page: page + 1}) }}" title="{{ 'Next Page'|t('site7-studio') }}"></a>
+                    {% else %}
+                        <button type="button" class="page-link next-page disabled" disabled title="{{ 'Next Page'|t('site7-studio') }}"></button>
+                    {% endif %}
+                </nav>
+                <div class="page-info">
+                    {{ "{first}–{last} of {total} packages"|t('site7-studio', {
+                        first: (page - 1) * perPage + 1,
+                        last: min(page * perPage, total),
+                        total: total,
+                    }) }}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
     {% if not isSetupComplete %}
         <div class="site7-notice site7-notice--warning">
@@ -108,40 +138,62 @@
 
     {% if packages|length %}
         {% if viewMode == 'table' %}
-            <table class="data fullwidth">
-                <thead>
-                    <tr>
-                        <th>{{ "Package"|t('site7-studio') }}</th>
-                        <th>{{ "Category"|t('site7-studio') }}</th>
-                        <th>{{ "Tags"|t('site7-studio') }}</th>
-                        <th>{{ "Version"|t('site7-studio') }}</th>
-                        <th>{{ "Status"|t('site7-studio') }}</th>
-                        <th>{{ "Author"|t('site7-studio') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for package in packages %}
-                        {% set badgeClass = package.status|lower == 'available' ? 'site7-badge--draft' : 'site7-badge--active' %}
+            <div class="tableview tablepane">
+                <table class="data fullwidth big" data-name="{{ currentType|title }}s">
+                    <caption class="visually-hidden">{{ currentType|title }}s</caption>
+                    <thead>
                         <tr>
-                            <td class="thin"><a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="cell-bold">{{ package.name }}</a></td>
-                            <td>{{ package.category|default('—') }}</td>
-                            <td class="light">{{ (package.tags is iterable ? package.tags|join(', ') : package.tags)|default('—') }}</td>
-                            <td>v{{ package.version }}</td>
-                            <td><span class="site7-badge {{ badgeClass }}">{{ package.status|title }}</span></td>
-                            <td>{{ package.author|default('Unknown') }}</td>
+                            <th scope="col">{{ "Package"|t('site7-studio') }}</th>
+                            <th scope="col">{{ "Status"|t('site7-studio') }}</th>
+                            <th scope="col">{{ "Category"|t('site7-studio') }}</th>
+                            <th scope="col">{{ "Tags"|t('site7-studio') }}</th>
+                            <th scope="col">{{ "Version"|t('site7-studio') }}</th>
+                            <th scope="col">{{ "Author"|t('site7-studio') }}</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for package in packages %}
+                            {% set color = statusColors[package.status] ?? 'gray' %}
+                            <tr data-id="{{ package.handle }}" data-title="{{ package.name }}">
+                                <th data-title="{{ 'Package'|t('site7-studio') }}" scope="row">
+                                    <div class="flex">
+                                        <div class="chip small element chromeless"
+                                             style="--custom-border-color: var(--{{ color }}-200); --custom-bg-color: var(--{{ color }}-050); --custom-text-color: var(--{{ color }}-900);">
+                                            <div class="chip-content">
+                                                <div class="label">
+                                                    <a class="label-link" href="{{ url('site7-studio/library/package/' ~ package.handle) }}"><span>{{ package.name }}</span></a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <td data-title="{{ 'Status'|t('site7-studio') }}">
+                                    <span class="status-label {{ color }}">
+                                        <span class="status {{ color }}"></span>
+                                        <span class="status-label-text">{{ package.status|title }}</span>
+                                    </span>
+                                </td>
+                                <td data-title="{{ 'Category'|t('site7-studio') }}">{{ package.category|default('—') }}</td>
+                                <td data-title="{{ 'Tags'|t('site7-studio') }}" class="light">{{ (package.tags is iterable ? package.tags|join(', ') : package.tags)|default('—') }}</td>
+                                <td data-title="{{ 'Version'|t('site7-studio') }}">v{{ package.version }}</td>
+                                <td data-title="{{ 'Author'|t('site7-studio') }}">{{ package.author|default('Unknown') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         {% else %}
             <ul class="card-grid">
                 {% for package in packages %}
-                    {% set badgeClass = package.status|lower == 'available' ? 'site7-badge--draft' : 'site7-badge--active' %}
+                    {% set color = statusColors[package.status] ?? 'gray' %}
                     <li>
                         <div class="element card thumb-end">
                             <div class="card-titlebar">
                                 <div class="flex flex-nowrap flex-gap-s">
-                                    <span class="site7-badge {{ badgeClass }}">{{ package.status|title }}</span>
+                                    <span class="status-label {{ color }}">
+                                        <span class="status {{ color }}"></span>
+                                        <span class="status-label-text">{{ package.status|title }}</span>
+                                    </span>
                                 </div>
                                 <div class="card-actions-container">
                                     <div class="card-actions">
@@ -169,30 +221,6 @@
             </ul>
         {% endif %}
 
-        <div class="flex flex-justify-space-between site7-pagination">
-            <div class="light">
-                {{ "Showing {first}–{last} of {total} packages."|t('site7-studio', {
-                    first: (page - 1) * perPage + 1,
-                    last: min(page * perPage, total),
-                    total: total,
-                }) }}
-            </div>
-            {% if totalPages > 1 %}
-                <div class="flex flex-gap-s">
-                    {% if page > 1 %}
-                        <a class="btn" href="{{ lib.pageUrl(baseParams, {page: page - 1}) }}">{{ "Previous"|t('site7-studio') }}</a>
-                    {% else %}
-                        <span class="btn disabled">{{ "Previous"|t('site7-studio') }}</span>
-                    {% endif %}
-                    <span class="light">{{ "Page {page} of {totalPages}"|t('site7-studio', {page: page, totalPages: totalPages}) }}</span>
-                    {% if page < totalPages %}
-                        <a class="btn" href="{{ lib.pageUrl(baseParams, {page: page + 1}) }}">{{ "Next"|t('site7-studio') }}</a>
-                    {% else %}
-                        <span class="btn disabled">{{ "Next"|t('site7-studio') }}</span>
-                    {% endif %}
-                </div>
-            {% endif %}
-        </div>
     {% else %}
         {% include "site7-studio/_components/empty-state" with {
             message: (q or status or categoryFilters|length or tagFilters|length or authorFilters|length) ? 'No packages found matching your search or filters.' : 'No packages found',

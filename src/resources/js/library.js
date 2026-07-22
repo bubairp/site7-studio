@@ -144,3 +144,66 @@
         });
     }
 })();
+
+/**
+ * Site7 Studio - Package Preview Modal
+ *
+ * The package detail page's Preview button used to link to a standalone page
+ * (still reachable directly - site7-studio/library/package/<handle>/preview -
+ * for a no-JS fallback); this shows the same content in a modal instead so
+ * reviewing a package doesn't navigate away from its detail page.
+ */
+(function($) {
+    if (typeof Craft === 'undefined' || typeof Garnish === 'undefined') {
+        return;
+    }
+
+    var previewBtn = document.getElementById('site7-preview-btn');
+    if (!previewBtn) {
+        return;
+    }
+
+    var Site7PreviewModal = Garnish.Modal.extend({
+        init: function(data) {
+            var $container = $('<div class="modal site7-preview-modal" style="opacity: 0;"></div>').appendTo($(document.body));
+
+            var $header = $('<div class="cs-header" style="padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, #e1e5ea);"></div>').appendTo($container);
+            $header.append($('<h2 class="h3" style="margin: 0;"></h2>').text('Preview: ' + data.name));
+            var $closeBtn = $('<button type="button" class="btn" style="padding: 6px 12px;">Close</button>').appendTo($header);
+
+            var $body = $('<div class="site7-preview-modal-body"></div>').appendTo($container);
+
+            if (data.hasTemplate === '1') {
+                $('<iframe frameborder="0"></iframe>').attr('src', data.renderUrl).appendTo($body);
+            } else if (data.hasImage === '1') {
+                $('<img>').attr({src: data.imageUrl, alt: 'Preview of ' + data.name}).appendTo($body);
+            } else {
+                $('<p class="light" style="padding: 40px; text-align: center;">No preview available for this package yet.</p>').appendTo($body);
+            }
+
+            this.base($container, {
+                resizable: false,
+                autoShow: true,
+                fade: true
+            });
+
+            this.on('hide', $.proxy(function() {
+                setTimeout($.proxy(function() {
+                    this.destroy();
+                }, this), 300);
+            }, this));
+
+            $closeBtn.on('click', $.proxy(this, 'hide'));
+        }
+    });
+
+    previewBtn.addEventListener('click', function() {
+        new Site7PreviewModal({
+            name: previewBtn.getAttribute('data-name'),
+            hasTemplate: previewBtn.getAttribute('data-has-template'),
+            hasImage: previewBtn.getAttribute('data-has-image'),
+            renderUrl: previewBtn.getAttribute('data-render-url'),
+            imageUrl: previewBtn.getAttribute('data-image-url'),
+        });
+    });
+})(jQuery);

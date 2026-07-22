@@ -1,22 +1,35 @@
 {% extends "_layouts/cp" %}
 {% set selectedSubnavItem = "library" %}
-{% set badgeClass = package.status == 'enabled' ? 'site7-badge--active' : (package.status == 'available' ? 'site7-badge--draft' : 'site7-badge--coming-soon') %}
-
-{% block sidebar %}
-    {% include "site7-studio/_components/sidebar" with {
-        selectedItem: (package.type == 'pattern' ? 'patterns' : (package.type == 'template' ? 'templates' : (package.type == 'starter-kit' ? 'kits' : 'sections')))
-    } only %}
-{% endblock %}
+{% set statusColors = {available: 'gray', installed: 'blue', enabled: 'teal', disabled: 'red'} %}
+{% set statusColor = statusColors[package.status] ?? 'gray' %}
+{% set typeLabel = package.type == 'starter-kit' ? 'Starter Kits' : package.type|title ~ 's' %}
+{% set crumbs = [
+    {label: 'Library'|t('site7-studio'), url: 'site7-studio/library'},
+    {label: typeLabel, url: 'site7-studio/library?type=' ~ package.type},
+    {label: package.name, current: true},
+] %}
 
 {% block pageTitle %}
-    <h1 id="page-heading" class="screen-title">{{ package.name }}</h1>
-    <span class="site7-badge {{ badgeClass }}" style="margin-left: 8px;">{{ package.status|title }}</span>
+    <div class="flex flex-nowrap flex-gap-s" style="align-items: center;">
+        <h1 id="page-heading" class="screen-title">{{ package.name }}</h1>
+        <span class="status-label {{ statusColor }}">
+            <span class="status {{ statusColor }}"></span>
+            <span class="status-label-text">{{ package.status|title }}</span>
+        </span>
+    </div>
 {% endblock %}
 
 {% block actionButton %}
     <div class="flex">
         {# Preview button is ALWAYS visible, regardless of status #}
-        <a href="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview') }}" class="btn">{{ "Preview"|t('site7-studio') }}</a>
+        <button type="button" class="btn" id="site7-preview-btn"
+            data-handle="{{ package.handle }}"
+            data-name="{{ package.name }}"
+            data-has-template="{{ hasPreviewTemplate ? '1' : '0' }}"
+            data-has-image="{{ hasPreviewImage ? '1' : '0' }}"
+            data-render-url="{{ url('site7-studio/library/package/' ~ package.handle ~ '/render-preview') }}"
+            data-image-url="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview-image') }}"
+        >{{ "Preview"|t('site7-studio') }}</button>
 
         {% if package.type|lower == 'template' and package.status == 'enabled' %}
             <button type="button" class="btn submit" id="site7-create-from-template-btn" data-handle="{{ package.handle }}">{{ "Create Page from Template"|t('site7-studio') }}</button>
