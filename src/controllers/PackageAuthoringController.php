@@ -68,14 +68,25 @@ class PackageAuthoringController extends Controller
             throw new \yii\web\NotFoundHttpException('Package not found');
         }
 
+        $authoringService = new PackageAuthoringService();
+
         $sectionFields = $package->type === 'section'
-            ? (new PackageAuthoringService())->getSectionFields($handle)
+            ? $authoringService->getSectionFields($handle)
             : [];
+
+        $availableSections = [];
+        $patternComposition = [];
+        if ($package->type === 'pattern') {
+            $availableSections = $authoringService->getAvailableSections();
+            $patternComposition = $authoringService->getPatternComposition($handle);
+        }
 
         return $this->renderTemplate('site7-studio/authoring/edit', [
             'title' => 'Edit: ' . $package->name,
             'package' => $package,
             'sectionFields' => $sectionFields,
+            'availableSections' => $availableSections,
+            'patternComposition' => $patternComposition,
         ]);
     }
 
@@ -126,6 +137,28 @@ class PackageAuthoringController extends Controller
         }
 
         Craft::$app->getSession()->setNotice('Package Builder saved.');
+        return $this->redirectToPostedUrl();
+    }
+
+    /**
+     * Saves the Pattern Builder's canvas.
+     */
+    public function actionSavePattern()
+    {
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $handle = (string)$request->getRequiredBodyParam('handle');
+        $composition = json_decode((string)$request->getBodyParam('composition', '[]'), true);
+
+        try {
+            (new PackageAuthoringService())->savePatternComposition($handle, is_array($composition) ? $composition : []);
+        } catch (\Throwable $e) {
+            Craft::$app->getSession()->setError($e->getMessage());
+            return $this->redirectToPostedUrl();
+        }
+
+        Craft::$app->getSession()->setNotice('Pattern saved.');
         return $this->redirectToPostedUrl();
     }
 }

@@ -371,3 +371,133 @@ pre.code {
     text-transform: uppercase;
     color: var(--gray-600);
 }
+
+/* ----- Pattern Builder: 3-column layout ----- */
+/* Craft has no visual drag-and-drop composition builder. */
+#site7-pattern-builder {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.site7-pb-column {
+    background: var(--gray-050);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--medium-border-radius);
+    padding: 12px;
+}
+
+.site7-pb-column h3 {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-500);
+}
+
+.site7-pb-sidebar,
+.site7-pb-properties {
+    flex: 0 0 260px;
+}
+
+.site7-pb-canvas {
+    flex: 1;
+    min-width: 0;
+}
+
+#site7-pb-search {
+    margin-bottom: 10px;
+}
+
+.site7-pb-category-heading {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin: 12px 0 4px 0;
+}
+
+.site7-pb-category-heading:first-child {
+    margin-top: 0;
+}
+
+.site7-pb-library-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--small-border-radius, 3px);
+    background: var(--white);
+    margin-bottom: 6px;
+    cursor: grab;
+    font-size: 13px;
+}
+
+.site7-pb-library-card img {
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border-radius: 3px;
+    flex-shrink: 0;
+    background: var(--gray-100);
+}
+
+.site7-pb-dropzone {
+    min-height: 120px;
+    border: 2px dashed var(--gray-200);
+    border-radius: var(--medium-border-radius);
+    padding: 8px;
+}
+
+.site7-pb-dropzone.site7-pb-dragover {
+    border-color: var(--blue-400, #3b82f6);
+    background: var(--blue-050, #eff6ff);
+}
+
+.site7-pb-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--medium-border-radius);
+    margin-bottom: 8px;
+    cursor: grab;
+}
+
+.site7-pb-card.site7-pb-selected {
+    border-color: var(--blue-400, #3b82f6);
+    box-shadow: 0 0 0 1px var(--blue-400, #3b82f6);
+}
+
+.site7-pb-card-number {
+    font-weight: 700;
+    color: var(--gray-400);
+    width: 20px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.site7-pb-card-name {
+    flex: 1;
+    font-weight: 600;
+}
+
+.site7-pb-card-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.site7-pb-properties-field {
+    margin-bottom: 12px;
+}
+
+.site7-pb-properties-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--gray-600);
+}

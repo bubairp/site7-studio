@@ -6,6 +6,7 @@ use Craft;
 use craft\base\Component;
 use craft\helpers\FileHelper;
 use craft\helpers\StringHelper;
+use craft\helpers\UrlHelper;
 use site7\studio\Site7Studio;
 use site7\studio\records\PackageRecord;
 use Symfony\Component\Yaml\Yaml;
@@ -282,5 +283,145 @@ class PackageAuthoringService extends Component
             $rows = implode("\n", array_map(fn($f) => "    <p>{{ block.{$f['handle']} }}</p>", $cleanFields));
             file_put_contents($templatePath, "<div class=\"site7-component {$handle}\">\n{$rows}\n</div>\n");
         }
+    }
+
+    /**
+     * The Pattern Builder's left-sidebar Section library: every installed
+     * Section, with its field definitions embedded so the Builder can render
+     * the right-sidebar "Default Values" inputs for any Section dropped onto
+     * the canvas without a further round-trip.
+     *
+     * @return array<int, array{handle: string, name: string, category: string, previewImageUrl: string, fields: array}>
+     */
+    public function getAvailableSections(): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $sections = [];
+
+        foreach ($packageManager->getAllPackages() as $pkg) {
+            if (strtolower($pkg->type) !== 'section') {
+                continue;
+            }
+            $sections[] = [
+                'handle' => $pkg->handle,
+                'name' => $pkg->name,
+                'category' => $pkg->category ?: 'Uncategorized',
+                'previewImageUrl' => UrlHelper::cpUrl('site7-studio/library/package/' . $pkg->handle . '/preview-image'),
+                'fields' => $this->getSectionFieldDefs($pkg->handle),
+            ];
+        }
+
+        return $sections;
+    }
+
+    /**
+     * @return array<int, array{handle: string, name: string}>
+     */
+    public function getSectionFieldDefs(string $sectionHandle): array
+    {
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($sectionHandle);
+        if (!$packagePath) {
+            return [];
+        }
+
+        $fieldsYamlPath = $packagePath . '/fields.yaml';
+        if (!file_exists($fieldsYamlPath)) {
+            return [];
+        }
+
+        $data = Yaml::parseFile($fieldsYamlPath);
+        $out = [];
+        foreach ($data['fields'] ?? [] as $def) {
+            if (empty($def['handle'])) {
+                continue;
+            }
+            $out[] = ['handle' => $def['handle'], 'name' => $def['name'] ?? $def['handle']];
+        }
+        return $out;
+    }
+
+    /**
+     * The Pattern Builder's canvas, hydrated from the Pattern's own manifest -
+     * requires.sections (order) and demoContent (each instance's own Default
+     * Values, which "belong to the Pattern only" and never touch the
+     * referenced Section package itself).
+     *
+     * @return array<int, array{sectionHandle: string, sectionName: string, defaultValues: array}>
+     */
+    public function getPatternComposition(string $handle): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $record = $packageManager->getPackageByHandle($handle);
+        $manifest = $record?->getManifest();
+        if (!$manifest) {
+            return [];
+        }
+
+        $composition = [];
+        foreach ($manifest->requires['sections'] ?? [] as $sectionHandle) {
+            $sectionRecord = $packageManager->getPackageByHandle($sectionHandle);
+            $snakeHandle = str_replace('-', '_', $sectionHandle);
+            $composition[] = [
+                'sectionHandle' => $sectionHandle,
+                'sectionName' => $sectionRecord->name ?? $sectionHandle,
+                'defaultValues' => $manifest->demoContent[$sectionHandle] ?? $manifest->demoContent[$snakeHandle] ?? [],
+            ];
+        }
+
+        return $composition;
+    }
+
+    /**
+     * Saves the Pattern Builder's canvas back to the manifest. Only
+     * requires.sections and demoContent change - a Pattern never duplicates
+     * a Section's own definition, only references it by handle, per Phase
+     * 11.2's "Patterns do NOT create new Sections" rule.
+     *
+     * Note: demoContent is keyed by section handle (matching the existing,
+     * frozen manifest schema also used by Templates) - if the same Section
+     * appears more than once in a Pattern, its Default Values are shared
+     * across every instance. That's an existing schema limitation, not one
+     * introduced here.
+     *
+     * @param array $sections Ordered list of {sectionHandle, defaultValues?}; invalid/unknown Section handles are dropped.
+     * @throws \Exception if the package isn't a Pattern, or no valid Sections were given.
+     */
+    public function savePatternComposition(string $handle, array $sections): void
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $packagePath = $packageManager->getPackagePath($handle);
+        $record = $packageManager->getPackageByHandle($handle);
+        if (!$packagePath || !$record) {
+            throw new \Exception('Package not found.');
+        }
+        if ($record->type !== 'pattern') {
+            throw new \Exception('This package is not a Pattern.');
+        }
+
+        $sectionHandles = [];
+        $demoContent = [];
+        foreach ($sections as $section) {
+            $sectionHandle = trim((string)($section['sectionHandle'] ?? ''));
+            if ($sectionHandle === '') {
+                continue;
+            }
+            $sectionRecord = $packageManager->getPackageByHandle($sectionHandle);
+            if (!$sectionRecord || strtolower($sectionRecord->type) !== 'section') {
+                continue;
+            }
+            $sectionHandles[] = $sectionHandle;
+            $defaultValues = $section['defaultValues'] ?? [];
+            $demoContent[$sectionHandle] = is_array($defaultValues) ? $defaultValues : [];
+        }
+
+        if (empty($sectionHandles)) {
+            throw new \Exception('Add at least one Section to the Pattern.');
+        }
+
+        $manifestData = json_decode(file_get_contents($packagePath . '/manifest.json'), true) ?: [];
+        $manifestData['requires']['sections'] = $sectionHandles;
+        $manifestData['demoContent'] = $demoContent;
+
+        file_put_contents($packagePath . '/manifest.json', json_encode($manifestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 }

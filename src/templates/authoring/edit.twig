@@ -109,6 +109,39 @@
                     <button type="submit" class="btn submit">{{ "Save Package Builder"|t('site7-studio') }}</button>
                 </div>
             </form>
+        {% elseif package.type == 'pattern' %}
+            <p class="light">{{ "Drag Sections from the library on the left into the canvas, reorder them, then select a card to set its Default Values (these belong to this Pattern only - the Section package itself is never changed)."|t('site7-studio') }}</p>
+            <form method="post" accept-charset="UTF-8" id="site7-pattern-builder-form">
+                {{ csrfInput() }}
+                {{ redirectInput('site7-studio/packages/' ~ package.handle ~ '/edit') }}
+                <input type="hidden" name="action" value="site7-studio/package-authoring/save-pattern">
+                <input type="hidden" name="handle" value="{{ package.handle }}">
+                <input type="hidden" name="composition" id="site7-pb-composition-input">
+
+                <div id="site7-pattern-builder"
+                     data-available-sections="{{ availableSections|json_encode|escape('html_attr') }}"
+                     data-composition="{{ patternComposition|json_encode|escape('html_attr') }}">
+                    <div class="site7-pb-column site7-pb-sidebar">
+                        <h3>{{ "Available Sections"|t('site7-studio') }}</h3>
+                        <input type="text" id="site7-pb-search" class="text fullwidth" placeholder="{{ 'Search Sections...'|t('site7-studio') }}">
+                        <div id="site7-pb-library"></div>
+                    </div>
+                    <div class="site7-pb-column site7-pb-canvas">
+                        <h3>{{ "Pattern Canvas"|t('site7-studio') }}</h3>
+                        <div id="site7-pb-canvas-list" class="site7-pb-dropzone"></div>
+                    </div>
+                    <div class="site7-pb-column site7-pb-properties">
+                        <h3>{{ "Section Properties"|t('site7-studio') }}</h3>
+                        <div id="site7-pb-properties-body">
+                            <p class="light">{{ "Select a Section in the canvas to edit its Default Values."|t('site7-studio') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; text-align: right;">
+                    <button type="submit" class="btn submit">{{ "Save Pattern"|t('site7-studio') }}</button>
+                </div>
+            </form>
         {% else %}
             <p class="light">{{ "The {type} Builder is coming in a later increment - for now, {type} packages are configured by hand-editing their manifest and package files."|t('site7-studio', {type: package.type|title}) }}</p>
         {% endif %}
