@@ -9,19 +9,90 @@ use Symfony\Component\Yaml\Yaml;
 
 class LibraryController extends Controller
 {
+    private const PER_PAGE = 24;
+
     public function actionIndex()
     {
         $this->view->registerAssetBundle(\site7\studio\assetbundles\LibraryBundle::class);
-        
-        $type = Craft::$app->getRequest()->getQueryParam('type', 'section');
-        
+
+        $request = Craft::$app->getRequest();
+        $type = $request->getQueryParam('type', 'section');
+        $q = trim((string)$request->getQueryParam('q', ''));
+        $status = trim((string)$request->getQueryParam('status', ''));
+        $categoryFilters = array_map('strtolower', (array)$request->getQueryParam('category', []));
+        $tagFilters = array_map('strtolower', (array)$request->getQueryParam('tag', []));
+        $authorFilters = array_map('strtolower', (array)$request->getQueryParam('author', []));
+        // Named viewMode, not view - "view" is a reserved global in Craft's own CP
+        // Twig layouts (the View service instance); reusing it as a template
+        // variable shadows that global and breaks _layouts/cp.twig.
+        $viewMode = $request->getQueryParam('view', 'thumbs') === 'table' ? 'table' : 'thumbs';
+
         $allPackages = Site7Studio::getInstance()->packageManager->getAllPackages();
-        
+
         // Filter packages by requested type
-        $packages = array_filter($allPackages, function($p) use ($type) {
+        $typePackages = array_values(array_filter($allPackages, function($p) use ($type) {
             return strtolower($p->type) === strtolower($type);
-        });
-        
+        }));
+
+        // Facet option lists are built from the type-filtered set (before search/status/
+        // category/tag/author narrows it further), so checked-off options don't disappear
+        // from their own menu.
+        $categories = [];
+        $tags = [];
+        $authors = [];
+        foreach ($typePackages as $p) {
+            if ($p->category) {
+                $categories[strtolower($p->category)] = $p->category;
+            }
+            if ($p->author) {
+                $authors[strtolower($p->author)] = $p->author;
+            }
+            $pTags = $p->tags ?? [];
+            if (is_string($pTags)) {
+                $pTags = array_filter(array_map('trim', explode(',', $pTags)));
+            }
+            foreach ($pTags as $t) {
+                $tags[strtolower($t)] = $t;
+            }
+        }
+        ksort($categories);
+        ksort($tags);
+        ksort($authors);
+
+        $packages = array_values(array_filter($typePackages, function($p) use ($q, $status, $categoryFilters, $tagFilters, $authorFilters) {
+            if ($q !== '') {
+                $haystack = strtolower($p->name . ' ' . $p->description);
+                if (!str_contains($haystack, strtolower($q))) {
+                    return false;
+                }
+            }
+            if ($status !== '' && strtolower($p->status) !== strtolower($status)) {
+                return false;
+            }
+            if (!empty($categoryFilters) && !in_array(strtolower((string)$p->category), $categoryFilters, true)) {
+                return false;
+            }
+            if (!empty($authorFilters) && !in_array(strtolower((string)$p->author), $authorFilters, true)) {
+                return false;
+            }
+            if (!empty($tagFilters)) {
+                $pTags = $p->tags ?? [];
+                if (is_string($pTags)) {
+                    $pTags = array_filter(array_map('trim', explode(',', $pTags)));
+                }
+                $pTags = array_map('strtolower', $pTags);
+                if (empty(array_intersect($tagFilters, $pTags))) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+
+        $total = count($packages);
+        $totalPages = max(1, (int)ceil($total / self::PER_PAGE));
+        $page = max(1, min($totalPages, (int)$request->getQueryParam('page', 1)));
+        $packages = array_slice($packages, ($page - 1) * self::PER_PAGE, self::PER_PAGE);
+
         $settings = \site7\studio\Site7Studio::getInstance()->getSettings();
         $isSetupComplete = !empty($settings->matrixFieldId);
 
@@ -30,6 +101,19 @@ class LibraryController extends Controller
             'packages' => $packages,
             'currentType' => $type,
             'isSetupComplete' => $isSetupComplete,
+            'q' => $q,
+            'status' => $status,
+            'categories' => $categories,
+            'tags' => $tags,
+            'authors' => $authors,
+            'categoryFilters' => $categoryFilters,
+            'tagFilters' => $tagFilters,
+            'authorFilters' => $authorFilters,
+            'viewMode' => $viewMode,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'total' => $total,
+            'perPage' => self::PER_PAGE,
         ]);
     }
 

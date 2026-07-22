@@ -1,5 +1,6 @@
 {% extends "_layouts/cp" %}
 {% set selectedSubnavItem = "library" %}
+{% set badgeClass = package.status == 'enabled' ? 'site7-badge--active' : (package.status == 'available' ? 'site7-badge--draft' : 'site7-badge--coming-soon') %}
 
 {% block sidebar %}
     {% include "site7-studio/_components/sidebar" with {
@@ -7,229 +8,181 @@
     } only %}
 {% endblock %}
 
-{% block content %}
-    <div class="site7-package-details" style="max-width: 800px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <h1 style="margin: 0;">{{ package.name }}</h1>
-                <span class="site7-badge {{ package.status == 'enabled' ? 'site7-badge--active' : 'site7-badge--draft' }}">{{ package.status|title }}</span>
-            </div>
-            
-            <div style="display: flex; gap: 8px;">
-                {# Preview button is ALWAYS visible, regardless of status #}
-                <a href="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview') }}" class="btn">Preview</a>
+{% block pageTitle %}
+    <h1 id="page-heading" class="screen-title">{{ package.name }}</h1>
+    <span class="site7-badge {{ badgeClass }}" style="margin-left: 8px;">{{ package.status|title }}</span>
+{% endblock %}
 
-                {% if package.type|lower == 'template' and package.status == 'enabled' %}
-                    <button type="button" class="btn submit" id="site7-create-from-template-btn" data-handle="{{ package.handle }}">Create Page from Template</button>
-                {% endif %}
+{% block actionButton %}
+    <div class="flex">
+        {# Preview button is ALWAYS visible, regardless of status #}
+        <a href="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview') }}" class="btn">{{ "Preview"|t('site7-studio') }}</a>
 
-                {% if not isSetupComplete %}
-                    <a href="{{ url('site7-studio/setup') }}" class="btn submit">Complete Setup to Install</a>
-                {% else %}
-                    {% if package.status == 'available' %}
-                        <form method="post" accept-charset="UTF-8">
-                            {{ csrfInput() }}
-                            {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
-                            <input type="hidden" name="action" value="site7-studio/package-action/install">
-                            <input type="hidden" name="handle" value="{{ package.handle }}">
-                            <button type="submit" class="btn submit">Install Package</button>
-                        </form>
-                    {% else %}
-                        {% if package.status == 'installed' or package.status == 'disabled' %}
-                            <form method="post" accept-charset="UTF-8">
-                                {{ csrfInput() }}
-                                {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
-                                <input type="hidden" name="action" value="site7-studio/package-action/enable">
-                                <input type="hidden" name="handle" value="{{ package.handle }}">
-                                <button type="submit" class="btn submit">Enable</button>
-                            </form>
-                        {% endif %}
-                        
-                        {% if package.status == 'enabled' %}
-                            <form method="post" accept-charset="UTF-8" id="disableForm">
-                                {{ csrfInput() }}
-                                {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
-                                <input type="hidden" name="action" value="site7-studio/package-action/disable">
-                                <input type="hidden" name="handle" value="{{ package.handle }}">
-                                <button type="button" class="btn {{ usage is not empty ? 'disabled' : '' }}" 
-                                    {% if usage is not empty %}
-                                        disabled title="Cannot disable while in use"
-                                    {% else %}
-                                        onclick="if(confirm('Are you sure you want to disable this package? It will no longer be available to content editors.')) { this.closest('form').submit(); }"
-                                    {% endif %}
-                                >Disable</button>
-                            </form>
-                        {% endif %}
-                        
-                        <form method="post" accept-charset="UTF-8" id="removeForm">
-                            {{ csrfInput() }}
-                            {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
-                            <input type="hidden" name="action" value="site7-studio/package-action/remove">
-                            <input type="hidden" name="handle" value="{{ package.handle }}">
-                            <button type="button" class="btn delete icon {{ usage is not empty ? 'disabled' : '' }}" 
-                                {% if usage is not empty %}
-                                    disabled title="Cannot remove while in use"
-                                {% else %}
-                                    onclick="if(confirm('Are you sure you want to remove this package? This will delete all generated fields, entry types, and templates.')) { this.closest('form').submit(); }"
-                                {% endif %}
-                            >Remove</button>
-                        </form>
-                    {% endif %}
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="site7-card" style="padding: 24px;">
-            <h3>Overview</h3>
-            <p>{{ package.description|default('No description provided.') }}</p>
-            
-            <table class="data fullwidth" style="margin-top: 24px;">
-                <tbody>
-                    <tr>
-                        <th style="width: 30%;">Author</th>
-                        <td>{{ package.author|default('Unknown') }}</td>
-                    </tr>
-                    <tr>
-                        <th>Version</th>
-                        <td>{{ package.version }}</td>
-                    </tr>
-                    <tr>
-                        <th>Package Type</th>
-                        <td>{{ package.type|title }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        {% if package.type|lower == 'pattern' %}
-            {% set manifest = package.getManifest() %}
-            <div class="site7-card" style="padding: 24px; margin-top: 24px;">
-                <h3>Pattern Composition</h3>
-                <table class="data fullwidth" style="margin-top: 16px;">
-                    <tbody>
-                        <tr>
-                            <th style="width: 30%;">Included Sections</th>
-                            <td>
-                                {% if manifest and manifest.requires is defined and manifest.requires.sections is defined and manifest.requires.sections|length %}
-                                    <ul style="margin: 0; padding-left: 20px;">
-                                        {% for sec in manifest.requires.sections %}
-                                            <li>{{ sec|title }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                {% else %}
-                                    <span class="light">None</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Demo Content Definition</th>
-                            <td>
-                                {% if manifest and manifest.demoContent is defined and manifest.demoContent %}
-                                    <pre style="margin: 0; background: #f8fafc; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; max-height: 250px;">{{ manifest.demoContent|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
-                                {% else %}
-                                    <span class="light">None</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        {% if package.type|lower == 'template' and package.status == 'enabled' %}
+            <button type="button" class="btn submit" id="site7-create-from-template-btn" data-handle="{{ package.handle }}">{{ "Create Page from Template"|t('site7-studio') }}</button>
         {% endif %}
 
-        {% if package.type|lower == 'template' %}
-            {% set manifest = package.getManifest() %}
-            <div class="site7-card" style="padding: 24px; margin-top: 24px;">
-                <h3>Template Composition</h3>
-                <table class="data fullwidth" style="margin-top: 16px;">
-                    <tbody>
-                        <tr>
-                            <th style="width: 30%;">Included Patterns</th>
-                            <td>
-                                {% if manifest and manifest.requires is defined and manifest.requires.patterns is defined and manifest.requires.patterns|length %}
-                                    <ul style="margin: 0; padding-left: 20px;">
-                                        {% for pat in manifest.requires.patterns %}
-                                            <li>{{ pat|title }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                {% else %}
-                                    <span class="light">None</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Included Sections</th>
-                            <td>
-                                {% if manifest and manifest.requires is defined and manifest.requires.sections is defined and manifest.requires.sections|length %}
-                                    <ul style="margin: 0; padding-left: 20px;">
-                                        {% for sec in manifest.requires.sections %}
-                                            <li>{{ sec|title }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                {% else %}
-                                    <span class="light">None</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Demo Content Definition</th>
-                            <td>
-                                {% if manifest and manifest.demoContent is defined and manifest.demoContent %}
-                                    <pre style="margin: 0; background: #f8fafc; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; max-height: 250px;">{{ manifest.demoContent|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
-                                {% else %}
-                                    <span class="light">None</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
-
-        <div class="site7-card" style="padding: 24px; margin-top: 24px;">
-            <h3>Compatibility &amp; Dependencies</h3>
-            
-            <table class="data fullwidth" style="margin-top: 16px;">
-                <tbody>
-                    <tr>
-                        <th style="width: 30%;">Required Craft Version</th>
-                        <td>{{ package.requiredCraftVersion|default('Not specified') }}</td>
-                    </tr>
-                    <tr>
-                        <th>Required Site7 Version</th>
-                        <td>{{ package.minimumStudioVersion|default('Not specified') }}</td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            <h4 style="margin-top: 24px;">Dependencies</h4>
-            <p class="light">No dependencies required.</p>
-        </div>
-
-        <div class="site7-card" style="padding: 24px; margin-top: 24px;">
-            <h3>Usage</h3>
-            {% if usage is defined and usage is not empty %}
-                <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; border: 1px solid #ffeeba; margin-top: 10px; margin-bottom: 16px;">
-                    <strong>In Use:</strong> This package cannot be disabled or removed while it is being used in content.
-                </div>
-                <table class="data fullwidth">
-                    <thead>
-                        <tr>
-                            <th>Entry Title</th>
-                            <th style="width: 100px;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for entry in usage %}
-                            <tr>
-                                <td>{{ entry.title }} <span class="light">({{ entry.section.name|default('Unknown Section') }})</span></td>
-                                <td><a href="{{ entry.cpEditUrl }}" target="_blank">Edit &rarr;</a></td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        {% if not isSetupComplete %}
+            <a href="{{ url('site7-studio/setup') }}" class="btn submit">{{ "Complete Setup to Install"|t('site7-studio') }}</a>
+        {% else %}
+            {% if package.status == 'available' %}
+                <form method="post" accept-charset="UTF-8">
+                    {{ csrfInput() }}
+                    {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
+                    <input type="hidden" name="action" value="site7-studio/package-action/install">
+                    <input type="hidden" name="handle" value="{{ package.handle }}">
+                    <button type="submit" class="btn submit">{{ "Install Package"|t('site7-studio') }}</button>
+                </form>
             {% else %}
-                <p class="light">This package is not currently used in any entries.</p>
+                {% if package.status == 'installed' or package.status == 'disabled' %}
+                    <form method="post" accept-charset="UTF-8">
+                        {{ csrfInput() }}
+                        {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
+                        <input type="hidden" name="action" value="site7-studio/package-action/enable">
+                        <input type="hidden" name="handle" value="{{ package.handle }}">
+                        <button type="submit" class="btn submit">{{ "Enable"|t('site7-studio') }}</button>
+                    </form>
+                {% endif %}
+
+                {% if package.status == 'enabled' %}
+                    <form method="post" accept-charset="UTF-8" id="disableForm">
+                        {{ csrfInput() }}
+                        {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
+                        <input type="hidden" name="action" value="site7-studio/package-action/disable">
+                        <input type="hidden" name="handle" value="{{ package.handle }}">
+                        <button type="button" class="btn {{ usage is not empty ? 'disabled' : '' }}"
+                            {% if usage is not empty %}
+                                disabled title="{{ 'Cannot disable while in use'|t('site7-studio') }}"
+                            {% else %}
+                                onclick="if(confirm('Are you sure you want to disable this package? It will no longer be available to content editors.')) { this.closest('form').submit(); }"
+                            {% endif %}
+                        >{{ "Disable"|t('site7-studio') }}</button>
+                    </form>
+                {% endif %}
+
+                <form method="post" accept-charset="UTF-8" id="removeForm">
+                    {{ csrfInput() }}
+                    {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
+                    <input type="hidden" name="action" value="site7-studio/package-action/remove">
+                    <input type="hidden" name="handle" value="{{ package.handle }}">
+                    <button type="button" class="btn delete icon {{ usage is not empty ? 'disabled' : '' }}"
+                        {% if usage is not empty %}
+                            disabled title="{{ 'Cannot remove while in use'|t('site7-studio') }}"
+                        {% else %}
+                            onclick="if(confirm('Are you sure you want to remove this package? This will delete all generated fields, entry types, and templates.')) { this.closest('form').submit(); }"
+                        {% endif %}
+                    >{{ "Remove"|t('site7-studio') }}</button>
+                </form>
             {% endif %}
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block details %}
+    <div class="meta">
+        <div class="field">
+            <div class="heading"><label>{{ "Author"|t('site7-studio') }}</label></div>
+            <div class="input">{{ package.author|default('Unknown') }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Version"|t('site7-studio') }}</label></div>
+            <div class="input">{{ package.version }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Package Type"|t('site7-studio') }}</label></div>
+            <div class="input">{{ package.type|title }}</div>
+        </div>
+        {% if package.category %}
+            <div class="field">
+                <div class="heading"><label>{{ "Category"|t('site7-studio') }}</label></div>
+                <div class="input">{{ package.category }}</div>
+            </div>
+        {% endif %}
+        {% set packageTags = package.tags is iterable ? package.tags : (package.tags|default('')|split(',')) %}
+        {% if packageTags|length %}
+            <div class="field">
+                <div class="heading"><label>{{ "Tags"|t('site7-studio') }}</label></div>
+                <div class="input">{{ packageTags|join(', ') }}</div>
+            </div>
+        {% endif %}
+        <div class="field">
+            <div class="heading"><label>{{ "Required Craft Version"|t('site7-studio') }}</label></div>
+            <div class="input">{{ package.requiredCraftVersion|default('Not specified') }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Required Site7 Version"|t('site7-studio') }}</label></div>
+            <div class="input">{{ package.minimumStudioVersion|default('Not specified') }}</div>
         </div>
     </div>
+{% endblock %}
+
+{% block content %}
+    <h2>{{ "Overview"|t('site7-studio') }}</h2>
+    <p>{{ package.description|default('No description provided.') }}</p>
+
+    {% if package.type|lower == 'pattern' or package.type|lower == 'template' %}
+        {% set manifest = package.getManifest() %}
+        <h2>{{ package.type|title }} {{ "Composition"|t('site7-studio') }}</h2>
+        <table class="data fullwidth">
+            <tbody>
+                {% if package.type|lower == 'template' %}
+                    <tr>
+                        <th class="thin">{{ "Included Patterns"|t('site7-studio') }}</th>
+                        <td>
+                            {% if manifest and manifest.requires.patterns is defined and manifest.requires.patterns|length %}
+                                {{ manifest.requires.patterns|map(p => p|title)|join(', ') }}
+                            {% else %}
+                                <span class="light">{{ "None"|t('site7-studio') }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
+                <tr>
+                    <th class="thin">{{ "Included Sections"|t('site7-studio') }}</th>
+                    <td>
+                        {% if manifest and manifest.requires.sections is defined and manifest.requires.sections|length %}
+                            {{ manifest.requires.sections|map(s => s|title)|join(', ') }}
+                        {% else %}
+                            <span class="light">{{ "None"|t('site7-studio') }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th class="thin">{{ "Demo Content Definition"|t('site7-studio') }}</th>
+                    <td>
+                        {% if manifest and manifest.demoContent is defined and manifest.demoContent %}
+                            <pre class="code">{{ manifest.demoContent|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+                        {% else %}
+                            <span class="light">{{ "None"|t('site7-studio') }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    {% endif %}
+
+    <h2>{{ "Usage"|t('site7-studio') }}</h2>
+    {% if usage is defined and usage is not empty %}
+        <div class="site7-notice site7-notice--warning">
+            <strong>{{ "In Use:"|t('site7-studio') }}</strong> {{ "This package cannot be disabled or removed while it is being used in content."|t('site7-studio') }}
+        </div>
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "Entry Title"|t('site7-studio') }}</th>
+                    <th class="thin">{{ "Action"|t('site7-studio') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in usage %}
+                    <tr>
+                        <td>{{ entry.title }} <span class="light">({{ entry.section.name|default('Unknown Section') }})</span></td>
+                        <td><a href="{{ entry.cpEditUrl }}" target="_blank">{{ "Edit"|t('site7-studio') }} &rarr;</a></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="light">{{ "This package is not currently used in any entries."|t('site7-studio') }}</p>
+    {% endif %}
 {% endblock %}

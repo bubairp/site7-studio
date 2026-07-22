@@ -4,15 +4,7 @@
    Everything else uses Craft's built-in CP classes.
    ========================================================================== */
 
-/* ----- Asset Card Grid ----- */
-/* Craft has no built-in card grid. This is custom. */
-.site7-card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-/* ----- Asset Card ----- */
+/* ----- Package Preview Card (used standalone on the Preview page) ----- */
 /* Craft has no preview card component. This is custom. */
 .site7-card {
     position: relative;
@@ -26,49 +18,6 @@
 .site7-card:hover {
     border-color: var(--gray-300);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.site7-card-image {
-    background: var(--gray-050);
-    height: 160px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--gray-400);
-    font-size: var(--font-size);
-}
-
-.site7-card-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.site7-card-body {
-    padding: 16px;
-}
-
-.site7-card-category {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--gray-500);
-    margin-bottom: 4px;
-}
-
-.site7-card-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--gray-900);
-    margin: 0 0 4px 0;
-}
-
-.site7-card-description {
-    font-size: 13px;
-    color: var(--gray-500);
-    margin: 0;
-    line-height: 1.4;
 }
 
 /* ----- Status Badge (on card) ----- */
@@ -97,12 +46,6 @@
 .site7-badge--coming-soon {
     background-color: var(--gray-100);
     color: var(--gray-500);
-}
-
-.site7-card .site7-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
 }
 
 /* ----- Dashboard Stat Cards ----- */
@@ -148,6 +91,118 @@
     font-weight: 600;
     color: var(--gray-700);
     margin: 0 0 12px 0;
+}
+
+/* ----- Library Toolbar: Status Menu & Filter Menu ----- */
+/* .menu is Craft's own dropdown component, normally positioned by
+   Garnish.MenuBtn's JS, which reparents it to <body> with computed fixed
+   coordinates so it floats above any ancestor's stacking context. Ours has no
+   MenuBtn instance, so library.js's toggleFloatingMenu() does the same thing
+   by hand; these rules just cover its non-positioned baseline (hidden, sized). */
+.site7-status-menu,
+.site7-filter-menu {
+    z-index: 1000;
+    display: none;
+}
+
+.site7-filter-menu {
+    padding: 16px;
+    min-width: 260px;
+    max-height: 450px;
+    overflow-y: auto;
+}
+
+.site7-filter-group {
+    margin-bottom: 16px;
+}
+
+.site7-filter-group:last-of-type {
+    margin-bottom: 12px;
+}
+
+.site7-filter-group h5 {
+    margin: 0 0 8px 0;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-500);
+    border-bottom: 1px solid var(--gray-200);
+    padding-bottom: 4px;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.checkbox-group.scrollable {
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.site7-filter-footer {
+    border-top: 1px solid var(--gray-200);
+    padding-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ----- Library Grid: fallback when a Template/Pattern has no preview image ----- */
+/* Craft's own asset thumb has nothing to fall back to when there's no image. */
+.card.thumb-end .thumb.site7-thumb-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-050);
+    color: var(--gray-400);
+}
+
+.card.thumb-end .thumb.site7-thumb-fallback::after {
+    content: "No preview";
+    font-size: 11px;
+}
+
+.card-subtitle {
+    margin: 2px 0 0 0;
+    font-size: 12px;
+}
+
+.site7-pagination {
+    margin-top: 16px;
+    align-items: center;
+}
+
+/* ----- Package detail: demo content JSON preview ----- */
+/* Craft has no generic "code block" component. */
+pre.code {
+    margin: 0;
+    background: var(--gray-050);
+    padding: 10px;
+    border-radius: var(--medium-border-radius);
+    overflow-x: auto;
+    font-size: 0.85em;
+    max-height: 250px;
+}
+
+/* ----- Simple inline notice banner (setup warnings) ----- */
+.site7-notice {
+    padding: 15px;
+    border-radius: var(--medium-border-radius);
+    margin-bottom: 20px;
+}
+
+.site7-notice--warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.site7-notice--warning a {
+    margin-left: 10px;
+    text-decoration: underline;
+    font-weight: bold;
 }
 
 /* ----- Widget Overrides ----- */

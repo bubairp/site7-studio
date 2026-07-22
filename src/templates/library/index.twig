@@ -2,6 +2,21 @@
 {% set title = "Library" %}
 {% set selectedSubnavItem = "library" %}
 
+{% set baseParams = {
+    type: currentType,
+    q: q ?: null,
+    status: status ?: null,
+    category: categoryFilters,
+    tag: tagFilters,
+    author: authorFilters,
+    view: viewMode,
+} %}
+
+{% macro pageUrl(baseParams, overrides) %}
+    {{ url('site7-studio/library', baseParams|merge(overrides)) }}
+{% endmacro %}
+{% import _self as lib %}
+
 {% block sidebar %}
     {% include "site7-studio/_components/sidebar" with {
         selectedItem: (currentType == 'pattern' ? 'patterns' : (currentType == 'template' ? 'templates' : (currentType == 'starter-kit' ? 'kits' : 'sections')))
@@ -10,97 +25,179 @@
 
 {% block toolbar %}
     <div class="flex flex-nowrap align-center" style="width: 100%;">
-        <div class="flex-grow">
-            <div class="texticon search icon clearable">
-                {{ tag('input', {
-                    id: 'site7-search-input',
-                    type: 'text',
-                    class: 'text fullwidth',
-                    placeholder: 'Search sections...',
-                    'aria-label': 'Search',
-                }) }}
-                <div class="clear hidden" title="Clear"></div>
+        <div>
+            <label for="site7-status-menubtn" class="visually-hidden">{{ "Status"|t('site7-studio') }}</label>
+            <button type="button" class="btn menubtn statusmenubtn" id="site7-status-menubtn">
+                {{ status ? status|title : "All"|t('site7-studio') }}
+            </button>
+            <div class="menu site7-status-menu" id="site7-status-menu">
+                <ul class="padded">
+                    <li><a data-status="" class="{{ status == '' ? 'sel' }}">{{ "All"|t('site7-studio') }}</a></li>
+                    <li><a data-status="available" class="{{ status == 'available' ? 'sel' }}">{{ "Available"|t('site7-studio') }}</a></li>
+                    <li><a data-status="installed" class="{{ status == 'installed' ? 'sel' }}">{{ "Installed"|t('site7-studio') }}</a></li>
+                    <li><a data-status="enabled" class="{{ status == 'enabled' ? 'sel' }}">{{ "Enabled"|t('site7-studio') }}</a></li>
+                    <li><a data-status="disabled" class="{{ status == 'disabled' ? 'sel' }}">{{ "Disabled"|t('site7-studio') }}</a></li>
+                </ul>
             </div>
         </div>
-        <div class="btn menubtn" data-icon="filter" id="site7-filter-btn">{{ "Filter"|t('site7-studio') }}</div>
-        <div class="menu" id="site7-filter-menu" style="padding: 16px; min-width: 260px; max-height: 450px; overflow-y: auto; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); display: none; z-index: 100;">
-            <div class="site7-filter-group" style="margin-bottom: 16px;">
-                <h5 style="margin: 0 0 8px 0; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #536476; border-bottom: 1px solid #e1e5ea; padding-bottom: 4px;">Status</h5>
-                <div class="checkbox-group" style="display: flex; flex-direction: column; gap: 6px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;"><input type="checkbox" name="status" value="available"> Available</label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;"><input type="checkbox" name="status" value="installed"> Installed</label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;"><input type="checkbox" name="status" value="enabled"> Enabled</label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;"><input type="checkbox" name="status" value="disabled"> Disabled</label>
+
+        <div class="search-container flex-grow texticon has-filter-btn" style="margin-left: 8px;">
+            <span class="texticon-icon search icon" aria-hidden="true"></span>
+            {{ tag('input', {
+                id: 'site7-search-input',
+                type: 'text',
+                class: 'clearable text fullwidth',
+                placeholder: 'Search '|t('site7-studio') ~ currentType ~ 's...',
+                value: q,
+                'aria-label': 'Search',
+            }) }}
+            <button type="button" class="clear-btn {{ q ? '' : 'hidden' }}" title="{{ 'Clear'|t('site7-studio') }}" aria-label="{{ 'Clear'|t('site7-studio') }}"></button>
+            <button type="button" class="filter-btn {{ (categoryFilters|length + tagFilters|length + authorFilters|length) > 0 ? 'active' }}" id="site7-filter-btn" title="{{ 'Filter'|t('site7-studio') }}"></button>
+
+            <div class="menu site7-filter-menu" id="site7-filter-menu">
+                {% if categories|length %}
+                    <div class="site7-filter-group">
+                        <h5>{{ "Category"|t('site7-studio') }}</h5>
+                        <div class="checkbox-group">
+                            {% for value, label in categories %}
+                                <label><input type="checkbox" name="category" value="{{ value }}" {{ value in categoryFilters ? 'checked' }}> {{ label|title }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                {% if tags|length %}
+                    <div class="site7-filter-group">
+                        <h5>{{ "Tags"|t('site7-studio') }}</h5>
+                        <div class="checkbox-group scrollable">
+                            {% for value, label in tags %}
+                                <label><input type="checkbox" name="tag" value="{{ value }}" {{ value in tagFilters ? 'checked' }}> {{ label|title }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                {% if authors|length %}
+                    <div class="site7-filter-group">
+                        <h5>{{ "Author"|t('site7-studio') }}</h5>
+                        <div class="checkbox-group">
+                            {% for value, label in authors %}
+                                <label><input type="checkbox" name="author" value="{{ value }}" {{ value in authorFilters ? 'checked' }}> {{ label|title }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                <div class="site7-filter-footer">
+                    <button type="button" class="btn" id="site7-clear-filters-btn">{{ "Clear Filters"|t('site7-studio') }}</button>
                 </div>
-            </div>
-            
-            <div class="site7-filter-group" style="margin-bottom: 16px;">
-                <h5 style="margin: 0 0 8px 0; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #536476; border-bottom: 1px solid #e1e5ea; padding-bottom: 4px;">Category</h5>
-                <div class="checkbox-group" id="filter-categories" style="display: flex; flex-direction: column; gap: 6px;">
-                    <!-- Dynamically populated -->
-                </div>
-            </div>
-            
-            <div class="site7-filter-group" style="margin-bottom: 16px;">
-                <h5 style="margin: 0 0 8px 0; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #536476; border-bottom: 1px solid #e1e5ea; padding-bottom: 4px;">Tags</h5>
-                <div class="checkbox-group" id="filter-tags" style="display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; padding-right: 4px;">
-                    <!-- Dynamically populated -->
-                </div>
-            </div>
-            
-            <div class="site7-filter-group" style="margin-bottom: 16px;">
-                <h5 style="margin: 0 0 8px 0; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #536476; border-bottom: 1px solid #e1e5ea; padding-bottom: 4px;">Author</h5>
-                <div class="checkbox-group" id="filter-authors" style="display: flex; flex-direction: column; gap: 6px;">
-                    <!-- Dynamically populated -->
-                </div>
-            </div>
-            
-            <div style="border-top: 1px solid #e1e5ea; padding-top: 12px; display: flex; justify-content: flex-end;">
-                <button type="button" class="btn" id="site7-clear-filters-btn" style="font-size: 12px; padding: 4px 10px;">Clear Filters</button>
             </div>
         </div>
+
+        <section class="btngroup btngroup--exclusive" style="margin-left: 8px;" aria-label="{{ 'View'|t('site7-studio') }}">
+            <a href="{{ lib.pageUrl(baseParams, {view: 'table', page: null}) }}" class="btn {{ viewMode == 'table' ? 'active' }}" data-icon="list" title="{{ 'Display in a table'|t('site7-studio') }}" aria-label="{{ 'Display in a table'|t('site7-studio') }}"></a>
+            <a href="{{ lib.pageUrl(baseParams, {view: 'thumbs', page: null}) }}" class="btn {{ viewMode == 'thumbs' ? 'active' }}" data-icon="grid" title="{{ 'Display as thumbnails'|t('site7-studio') }}" aria-label="{{ 'Display as thumbnails'|t('site7-studio') }}"></a>
+        </section>
     </div>
 {% endblock %}
 
 {% block content %}
     {% if not isSetupComplete %}
-        <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 4px; border: 1px solid #ffeeba; margin-bottom: 20px;">
-            <strong>Warning:</strong> You must complete the First-Time Setup Wizard before you can install packages. 
-            <a href="{{ url('site7-studio/setup') }}" style="margin-left: 10px; text-decoration: underline; font-weight: bold;">Complete Setup &rarr;</a>
+        <div class="site7-notice site7-notice--warning">
+            <strong>{{ "Warning:"|t('site7-studio') }}</strong> {{ "You must complete the First-Time Setup Wizard before you can install packages."|t('site7-studio') }}
+            <a href="{{ url('site7-studio/setup') }}">{{ "Complete Setup →"|t('site7-studio') }}</a>
         </div>
     {% endif %}
 
-    <div id="site7-package-count" style="margin-bottom: 15px; color: #536476; font-size: 0.95em;">
-        Showing <span id="site7-count-visible">{{ packages|length }}</span> of <span id="site7-count-total">{{ packages|length }}</span> packages.
-    </div>
-
-    <div class="site7-card-grid">
-        {% for package in packages %}
-            {% include "site7-studio/_components/asset-card" with { 
-                package: package,
-                isSetupComplete: isSetupComplete
-            } only %}
+    {% if packages|length %}
+        {% if viewMode == 'table' %}
+            <table class="data fullwidth">
+                <thead>
+                    <tr>
+                        <th>{{ "Package"|t('site7-studio') }}</th>
+                        <th>{{ "Category"|t('site7-studio') }}</th>
+                        <th>{{ "Tags"|t('site7-studio') }}</th>
+                        <th>{{ "Version"|t('site7-studio') }}</th>
+                        <th>{{ "Status"|t('site7-studio') }}</th>
+                        <th>{{ "Author"|t('site7-studio') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for package in packages %}
+                        {% set badgeClass = package.status|lower == 'available' ? 'site7-badge--draft' : 'site7-badge--active' %}
+                        <tr>
+                            <td class="thin"><a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="cell-bold">{{ package.name }}</a></td>
+                            <td>{{ package.category|default('—') }}</td>
+                            <td class="light">{{ (package.tags is iterable ? package.tags|join(', ') : package.tags)|default('—') }}</td>
+                            <td>v{{ package.version }}</td>
+                            <td><span class="site7-badge {{ badgeClass }}">{{ package.status|title }}</span></td>
+                            <td>{{ package.author|default('Unknown') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         {% else %}
-            {% include "site7-studio/_components/empty-state" with { 
-                title: 'No packages found',
-                message: 'No packages were discovered in the configured sources.',
-                icon: 'library'
-            } only %}
-        {% endfor %}
-    </div>
+            <ul class="card-grid">
+                {% for package in packages %}
+                    {% set badgeClass = package.status|lower == 'available' ? 'site7-badge--draft' : 'site7-badge--active' %}
+                    <li>
+                        <div class="element card thumb-end">
+                            <div class="card-titlebar">
+                                <div class="flex flex-nowrap flex-gap-s">
+                                    <span class="site7-badge {{ badgeClass }}">{{ package.status|title }}</span>
+                                </div>
+                                <div class="card-actions-container">
+                                    <div class="card-actions">
+                                        <a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="chromeless small btn" title="{{ 'View'|t('site7-studio') }}" aria-label="{{ 'View'|t('site7-studio') }}" data-icon="view"></a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-main">
+                                <div class="card-content">
+                                    <div class="card-heading">
+                                        <a class="label-link" href="{{ url('site7-studio/library/package/' ~ package.handle) }}">{{ package.name }}</a>
+                                    </div>
+                                    <p class="light card-subtitle">{{ package.category|default(package.type|title) }} &middot; v{{ package.version }}</p>
+                                </div>
+                                <div class="thumb">
+                                    <img src="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview-image') }}"
+                                         alt="{{ package.name }}"
+                                         loading="lazy"
+                                         onerror="this.closest('.thumb').classList.add('site7-thumb-fallback'); this.remove();">
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
 
-    <div id="site7-no-results" style="display: none; margin-top: 20px;">
-        {% include "site7-studio/_components/empty-state" with { 
-            message: 'No packages found matching your search or filters.',
+        <div class="flex flex-justify-space-between site7-pagination">
+            <div class="light">
+                {{ "Showing {first}–{last} of {total} packages."|t('site7-studio', {
+                    first: (page - 1) * perPage + 1,
+                    last: min(page * perPage, total),
+                    total: total,
+                }) }}
+            </div>
+            {% if totalPages > 1 %}
+                <div class="flex flex-gap-s">
+                    {% if page > 1 %}
+                        <a class="btn" href="{{ lib.pageUrl(baseParams, {page: page - 1}) }}">{{ "Previous"|t('site7-studio') }}</a>
+                    {% else %}
+                        <span class="btn disabled">{{ "Previous"|t('site7-studio') }}</span>
+                    {% endif %}
+                    <span class="light">{{ "Page {page} of {totalPages}"|t('site7-studio', {page: page, totalPages: totalPages}) }}</span>
+                    {% if page < totalPages %}
+                        <a class="btn" href="{{ lib.pageUrl(baseParams, {page: page + 1}) }}">{{ "Next"|t('site7-studio') }}</a>
+                    {% else %}
+                        <span class="btn disabled">{{ "Next"|t('site7-studio') }}</span>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        {% include "site7-studio/_components/empty-state" with {
+            message: (q or status or categoryFilters|length or tagFilters|length or authorFilters|length) ? 'No packages found matching your search or filters.' : 'No packages found',
+            subtext: (q or status or categoryFilters|length or tagFilters|length or authorFilters|length) ? null : 'No packages were discovered in the configured sources.',
             icon: '🔍'
         } only %}
-    </div>
-
-    {# 
-    {% include "site7-studio/_components/empty-state" with { 
-        message: 'No Assets Found',
-        subtext: 'Try adjusting your filters or search query.',
-        icon: '🔍'
-    } only %} 
-    #}
+    {% endif %}
 {% endblock %}
