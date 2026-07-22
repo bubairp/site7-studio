@@ -39,15 +39,19 @@
 {% endmacro %}
 
 {% macro deleteActionForm(package, redirectUrl, btnClass) %}
-    <form method="post" accept-charset="UTF-8" class="site7-inline-action-form">
-        {{ csrfInput() }}
-        {{ redirectInput(redirectUrl) }}
-        <input type="hidden" name="action" value="site7-studio/package-action/delete">
-        <input type="hidden" name="handle" value="{{ package.handle }}">
-        <button type="button" class="{{ btnClass }} delete icon" title="{{ 'Delete'|t('site7-studio') }}" aria-label="{{ 'Delete'|t('site7-studio') }}"
-            onclick="if(confirm('Permanently delete this package? This deletes its entire folder from disk and cannot be undone.')) { this.closest('form').submit(); }"
-        ></button>
-    </form>
+    {% set canAuthor = currentUser.can(constant('site7\\studio\\Site7Studio::PERMISSION_PACKAGE_AUTHORING')) %}
+    {% set canDeleteThis = canAuthor or (package.type == 'template' and package.creatorId and package.creatorId == currentUser.id) %}
+    {% if canDeleteThis %}
+        <form method="post" accept-charset="UTF-8" class="site7-inline-action-form">
+            {{ csrfInput() }}
+            {{ redirectInput(redirectUrl) }}
+            <input type="hidden" name="action" value="site7-studio/package-action/delete">
+            <input type="hidden" name="handle" value="{{ package.handle }}">
+            <button type="button" class="{{ btnClass }} delete icon" title="{{ 'Delete'|t('site7-studio') }}" aria-label="{{ 'Delete'|t('site7-studio') }}"
+                onclick="if(confirm('Permanently delete this package? This deletes its entire folder from disk and cannot be undone.')) { this.closest('form').submit(); }"
+            ></button>
+        </form>
+    {% endif %}
 {% endmacro %}
 {% import _self as lib %}
 
@@ -130,13 +134,15 @@
             <a href="{{ lib.pageUrl(baseParams, {view: 'thumbs', page: null}) }}" class="btn {{ viewMode == 'thumbs' ? 'active' }}" data-icon="grid" title="{{ 'Display as thumbnails'|t('site7-studio') }}" aria-label="{{ 'Display as thumbnails'|t('site7-studio') }}"></a>
         </section>
 
-        {% set newButtonLabels = {
-            section: 'New Section',
-            pattern: 'New Pattern',
-            template: 'New Template',
-            'starter-kit': 'New Kit',
-        } %}
-        <a href="{{ url('site7-studio/packages/new', {type: currentType}) }}" class="btn submit" style="margin-left: 8px;">{{ (newButtonLabels[currentType] ?? 'New Entry')|t('site7-studio') }}</a>
+        {% if currentUser.can(constant('site7\\studio\\Site7Studio::PERMISSION_PACKAGE_AUTHORING')) %}
+            {% set newButtonLabels = {
+                section: 'New Section',
+                pattern: 'New Pattern',
+                template: 'New Template',
+                'starter-kit': 'New Kit',
+            } %}
+            <a href="{{ url('site7-studio/packages/new', {type: currentType}) }}" class="btn submit" style="margin-left: 8px;">{{ (newButtonLabels[currentType] ?? 'New Entry')|t('site7-studio') }}</a>
+        {% endif %}
     </div>
 {% endblock %}
 

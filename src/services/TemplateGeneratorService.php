@@ -120,6 +120,12 @@ class TemplateGeneratorService extends Component
             throw new \Exception('Template was generated but could not be registered.');
         }
 
+        // Recorded so the capturing user can delete this specific Template later
+        // without needing the broader Package Authoring permission - see
+        // PackageActionController::actionDelete().
+        $record->creatorId = Craft::$app->getUser()->getId();
+        $record->save();
+
         return $record;
     }
 

@@ -15,6 +15,19 @@ use site7\studio\services\PackageAuthoringService;
 class PackageAuthoringController extends Controller
 {
     /**
+     * Every action here is the Package Authoring surface (the New Package
+     * wizard and the Package Editor) - developer-only, per
+     * Site7Studio::PERMISSION_PACKAGE_AUTHORING. "Save as Template" and
+     * deleting a self-captured Template live in other controllers and stay
+     * open to every user.
+     */
+    public function beforeAction($action): bool
+    {
+        $this->requirePermission(Site7Studio::PERMISSION_PACKAGE_AUTHORING);
+        return parent::beforeAction($action);
+    }
+
+    /**
      * The New Package wizard.
      */
     public function actionNew()
