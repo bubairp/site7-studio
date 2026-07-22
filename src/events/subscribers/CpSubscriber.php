@@ -67,7 +67,6 @@ class CpSubscriber implements EventSubscriberInterface
             'subnav' => [
                 'dashboard' => ['label' => 'Dashboard', 'url' => 'site7-studio'],
                 'library' => ['label' => 'Library', 'url' => 'site7-studio/library'],
-                'templates' => ['label' => 'Templates', 'url' => 'site7-studio/library?type=template'],
                 'settings' => ['label' => 'Settings', 'url' => 'site7-studio/settings'],
             ],
         ]);
