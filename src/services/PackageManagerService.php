@@ -192,6 +192,37 @@ class PackageManagerService extends Component
             }
         }
 
+        // If it is a Starter Kit, verify and install its required Templates first -
+        // same cascade pattern as templates cascading into patterns/sections above.
+        // This only installs the Template packages themselves; it does not create
+        // any pages - that's StarterKitInstallationService::installStarterKit()'s job,
+        // triggered by the separate "Install Starter Kit" action once this package
+        // (the Starter Kit's own library entry) is enabled.
+        if ($record->type === 'starter-kit') {
+            $manifest = $record->getManifest();
+            if ($manifest) {
+                foreach ($manifest->requires['templates'] ?? [] as $requiredHandle) {
+                    $requiredRecord = $this->getPackageByHandle($requiredHandle);
+
+                    if (!$requiredRecord) {
+                        $this->discoverPackages();
+                        $requiredRecord = $this->getPackageByHandle($requiredHandle);
+                    }
+
+                    if ($requiredRecord) {
+                        if ($requiredRecord->status !== 'enabled') {
+                            if ($requiredRecord->status === 'available') {
+                                $this->installPackage($requiredHandle);
+                            }
+                            $this->enablePackage($requiredHandle);
+                        }
+                    } else {
+                        throw new \Exception("Required template package '{$requiredHandle}' was not found.");
+                    }
+                }
+            }
+        }
+
         // We assume the package is in our local source for MVP
         $pluginPath = Craft::getAlias('@site7/studio'); // resolves to src/
         $basePath = dirname($pluginPath); // resolves to plugins/site7-studio/

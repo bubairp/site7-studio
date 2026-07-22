@@ -225,6 +225,32 @@
     background: var(--white);
 }
 
+/* ----- Starter Kit Wizard Modal ----- */
+/* Same Garnish inline-style override as .site7-preview-modal above - the
+   content here (name/description/.../entry checklist) can be tall enough to
+   need real internal scrolling rather than shrink-to-fit. */
+.site7-starter-kit-wizard-modal {
+    width: 90vw;
+    max-width: 700px;
+    height: 80vh !important;
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.site7-starter-kit-wizard-modal .cs-content {
+    flex: 1;
+    min-height: 0;
+}
+
+.site7-starter-kit-entry-list {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--medium-border-radius);
+    padding: 8px 12px;
+}
+
 .site7-preview-modal-body img {
     display: block;
     max-width: 100%;

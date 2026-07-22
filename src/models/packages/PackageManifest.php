@@ -41,6 +41,16 @@ class PackageManifest extends Model
     public array $entryFields = [];
 
     /**
+     * Starter Kit only: the pages that make up the captured site, in order.
+     * Each entry is {title, slug, sectionHandle, entryTypeHandle, templateHandle} -
+     * structural identity plus a reference to the Template package that holds the
+     * actual content, per the "never duplicate Templates inside the Starter Kit"
+     * rule. Installing a Starter Kit replays this list through the existing
+     * Create-from-Template mechanism rather than storing page content twice.
+     */
+    public array $pages = [];
+
+    /**
      * @inheritdoc
      */
     protected function defineRules(): array
@@ -48,7 +58,7 @@ class PackageManifest extends Model
         $rules = parent::defineRules();
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion'], 'required'];
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview', 'sourceEntryType', 'sourceSection'], 'string'];
-        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields'], 'safe'];
+        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages'], 'safe'];
         return $rules;
     }
 }

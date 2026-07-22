@@ -35,6 +35,10 @@
             <button type="button" class="btn submit" id="site7-create-from-template-btn" data-handle="{{ package.handle }}">{{ "Create Page from Template"|t('site7-studio') }}</button>
         {% endif %}
 
+        {% if package.type|lower == 'starter-kit' and package.status == 'enabled' %}
+            <button type="button" class="btn submit" id="site7-install-starter-kit-btn" data-handle="{{ package.handle }}">{{ "Install Starter Kit"|t('site7-studio') }}</button>
+        {% endif %}
+
         {% if not isSetupComplete %}
             <a href="{{ url('site7-studio/setup') }}" class="btn submit">{{ "Complete Setup to Install"|t('site7-studio') }}</a>
         {% else %}
@@ -141,6 +145,47 @@
             <p class="readable">{{ package.description|default('No description provided.') }}</p>
         </div>
     </section>
+
+    {% if package.type|lower == 'starter-kit' %}
+        {% set manifest = package.getManifest() %}
+        <hr>
+        <section class="site7-detail-section">
+            <h2>{{ "Starter Kit Composition"|t('site7-studio') }}</h2>
+            <div class="meta">
+                <div class="field">
+                    <div class="heading"><label>{{ "Included Templates"|t('site7-studio') }}</label></div>
+                    <div class="input">
+                        {% if manifest and manifest.requires.templates is defined and manifest.requires.templates|length %}
+                            {{ manifest.requires.templates|map(t => t|title)|join(', ') }}
+                        {% else %}
+                            <span class="light">{{ "None"|t('site7-studio') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% if manifest and manifest.pages is defined and manifest.pages|length %}
+                <h3>{{ "Pages"|t('site7-studio') }}</h3>
+                <table class="data fullwidth">
+                    <thead>
+                        <tr>
+                            <th>{{ "Title"|t('site7-studio') }}</th>
+                            <th>{{ "Section"|t('site7-studio') }}</th>
+                            <th>{{ "Template"|t('site7-studio') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for page in manifest.pages %}
+                            <tr>
+                                <td>{{ page.title }}</td>
+                                <td class="light">{{ page.sectionHandle|default('—') }}</td>
+                                <td class="light">{{ page.templateHandle|default('—') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </section>
+    {% endif %}
 
     {% if package.type|lower == 'pattern' or package.type|lower == 'template' %}
         {% set manifest = package.getManifest() %}
