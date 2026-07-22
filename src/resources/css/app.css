@@ -164,6 +164,14 @@
     font-size: 11px;
 }
 
+.site7-card-action {
+    margin-top: 8px;
+}
+
+.site7-card-action form {
+    margin: 0;
+}
+
 .card-subtitle {
     margin: 2px 0 0 0;
     font-size: 12px;

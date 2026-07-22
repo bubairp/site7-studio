@@ -17,6 +17,26 @@
 {% macro pageUrl(baseParams, overrides) %}
     {{ url('site7-studio/library', baseParams|merge(overrides)) }}
 {% endmacro %}
+
+{% macro statusActionForm(package, redirectUrl, isSetupComplete, btnClass) %}
+    {% if isSetupComplete %}
+        {% set action = package.status == 'available' ? 'install' : (package.status == 'enabled' ? 'disable' : 'enable') %}
+        {% set label = {install: 'Install', enable: 'Enable', disable: 'Disable'}[action] %}
+        <form method="post" accept-charset="UTF-8" class="site7-inline-action-form">
+            {{ csrfInput() }}
+            {{ redirectInput(redirectUrl) }}
+            <input type="hidden" name="action" value="site7-studio/package-action/{{ action }}">
+            <input type="hidden" name="handle" value="{{ package.handle }}">
+            {% if action == 'disable' %}
+                <button type="button" class="{{ btnClass }}"
+                    onclick="if(confirm('Are you sure you want to disable this package? It will no longer be available to content editors.')) { this.closest('form').submit(); }"
+                >{{ label|t('site7-studio') }}</button>
+            {% else %}
+                <button type="submit" class="{{ btnClass }}">{{ label|t('site7-studio') }}</button>
+            {% endif %}
+        </form>
+    {% endif %}
+{% endmacro %}
 {% import _self as lib %}
 
 {% block sidebar %}
@@ -149,6 +169,7 @@
                             <th scope="col">{{ "Tags"|t('site7-studio') }}</th>
                             <th scope="col">{{ "Version"|t('site7-studio') }}</th>
                             <th scope="col">{{ "Author"|t('site7-studio') }}</th>
+                            <th scope="col" class="thin">{{ "Action"|t('site7-studio') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -177,6 +198,9 @@
                                 <td data-title="{{ 'Tags'|t('site7-studio') }}" class="light">{{ (package.tags is iterable ? package.tags|join(', ') : package.tags)|default('—') }}</td>
                                 <td data-title="{{ 'Version'|t('site7-studio') }}">v{{ package.version }}</td>
                                 <td data-title="{{ 'Author'|t('site7-studio') }}">{{ package.author|default('Unknown') }}</td>
+                                <td data-title="{{ 'Action'|t('site7-studio') }}">
+                                    {{ lib.statusActionForm(package, craft.app.request.url, isSetupComplete, 'btn small') }}
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -207,6 +231,9 @@
                                         <a class="label-link" href="{{ url('site7-studio/library/package/' ~ package.handle) }}">{{ package.name }}</a>
                                     </div>
                                     <p class="light card-subtitle">{{ package.category|default(package.type|title) }} &middot; v{{ package.version }}</p>
+                                    <div class="site7-card-action">
+                                        {{ lib.statusActionForm(package, craft.app.request.url, isSetupComplete, 'btn small') }}
+                                    </div>
                                 </div>
                                 <div class="thumb">
                                     <img src="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview-image') }}"
