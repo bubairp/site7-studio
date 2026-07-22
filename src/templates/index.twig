@@ -42,7 +42,7 @@
         <h3>{{ "Quick Actions"|t('site7-studio') }}</h3>
         <div class="flex">
             <a href="{{ url('site7-studio/library') }}" class="btn submit">{{ "Browse Library"|t('site7-studio') }}</a>
-            <a href="{{ url('site7-studio/templates') }}" class="btn">{{ "Templates"|t('site7-studio') }}</a>
+            <a href="{{ url('site7-studio/library', {type: 'template'}) }}" class="btn">{{ "Templates"|t('site7-studio') }}</a>
             <a href="{{ url('site7-studio/settings') }}" class="btn">{{ "Settings"|t('site7-studio') }}</a>
         </div>
     </div>
