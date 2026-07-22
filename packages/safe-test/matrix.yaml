@@ -1,7 +1,0 @@
-name: 'Safe Test Matrix'
-blocks:
-  -
-    handle: safeTest
-    name: 'Safe Test'
-    fields:
-      - heading

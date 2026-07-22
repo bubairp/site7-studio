@@ -1,0 +1,27 @@
+{
+    "schemaVersion": "1",
+    "handle": "company",
+    "name": "Company",
+    "type": "pattern",
+    "version": "1.0.0",
+    "author": "",
+    "description": "",
+    "category": "",
+    "tags": [],
+    "requires": {
+        "sections": [
+            "hero-banner",
+            "faq"
+        ]
+    },
+    "demoContent": {
+        "hero-banner": {
+            "heading": "Hero"
+        },
+        "faq": {
+            "heading": "FAQ"
+        }
+    },
+    "pages": [],
+    "dependencies": []
+}

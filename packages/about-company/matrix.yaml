@@ -1,6 +1,0 @@
-name: 'About Company Matrix'
-blocks:
-  -
-    handle: aboutCompany
-    name: 'About Company'
-    fields: []

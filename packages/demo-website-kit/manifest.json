@@ -1,0 +1,26 @@
+{
+    "schemaVersion": "1",
+    "handle": "demo-website-kit",
+    "name": "Demo Website Kit",
+    "type": "starter-kit",
+    "version": "1.0.0",
+    "author": "",
+    "description": "",
+    "category": "",
+    "tags": [],
+    "requires": {
+        "templates": [
+            "test-3"
+        ]
+    },
+    "pages": [
+        {
+            "title": "Test 3",
+            "slug": "test-3",
+            "sectionHandle": "testPages",
+            "entryTypeHandle": "testPage",
+            "templateHandle": "test-3"
+        }
+    ],
+    "dependencies": []
+}
