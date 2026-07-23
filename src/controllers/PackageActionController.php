@@ -19,10 +19,16 @@ class PackageActionController extends Controller
     public function actionInstall()
     {
         $this->requirePostRequest();
-        
+
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
+
+        if (!Site7Studio::getInstance()->commercePackages->canInstallOrEnable($handle)) {
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'This package is not included in your current plan. Upgrade from Commerce & Licensing to install it.'));
+            return $this->redirectToPostedUrl();
+        }
+
         $success = Site7Studio::getInstance()->packageManager->installPackage($handle);
-        
+
         if ($success) {
             Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package installed successfully.'));
         } else {
@@ -38,10 +44,16 @@ class PackageActionController extends Controller
     public function actionEnable()
     {
         $this->requirePostRequest();
-        
+
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
+
+        if (!Site7Studio::getInstance()->commercePackages->canInstallOrEnable($handle)) {
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'This package is not included in your current plan. Upgrade from Commerce & Licensing to enable it.'));
+            return $this->redirectToPostedUrl();
+        }
+
         $success = Site7Studio::getInstance()->packageManager->enablePackage($handle);
-        
+
         if ($success) {
             Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package enabled successfully.'));
         } else {

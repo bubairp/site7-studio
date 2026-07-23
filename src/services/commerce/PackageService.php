@@ -93,6 +93,30 @@ class PackageService extends Component implements PackageProviderInterface
     }
 
     /**
+     * Whether $handle can be installed/enabled right now - the gate
+     * syncEntitlements() itself can't provide, since that only reacts to a
+     * plan change already having happened. Without this, a user could
+     * downgrade (disabling e.g. Pricing/Gallery), then simply go back to
+     * Library and click Install/Enable on them again with nothing stopping
+     * it. A handle Commerce24 doesn't catalog at all (never listed in any
+     * plan's includedPackages, never purchased/free - a package the
+     * developer authored locally) is never restricted; only handles
+     * syncEntitlements() would also act on are gated here.
+     */
+    public function canInstallOrEnable(string $handle): bool
+    {
+        if (!$this->client->isConfigured()) {
+            return true;
+        }
+        if (!in_array($handle, $this->getAllCommerceManagedHandles(), true)) {
+            return true;
+        }
+
+        $plan = Site7Studio::getInstance()->plan->getCurrentPlan();
+        return $plan !== null && $this->isCurrentlyAllowed($handle, $plan);
+    }
+
+    /**
      * Reconciles installed packages against $plan (the plan now in effect,
      * after an upgrade/downgrade actually applied): any enabled package no
      * longer covered by the account (not purchased, not free, not included

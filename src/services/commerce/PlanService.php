@@ -115,12 +115,20 @@ class PlanService extends Component
     }
 
     /**
-     * Refreshes the current plan and, if it differs from the plan Site7
-     * Studio last reconciled packages against, reconciles them now (see
-     * PackageService::syncEntitlements()) so a downgrade doesn't silently
-     * leave premium packages enabled. CommerceController calls this (rather
-     * than plain refreshCurrentPlan()) from wherever a plan change should
-     * visibly take effect, and flashes $disabledHandles to the user.
+     * Refreshes the current plan and reconciles installed packages against it
+     * (see PackageService::syncEntitlements()) every time this is called, not
+     * only when the plan handle itself just changed. A package can become
+     * disallowed without the plan handle changing again afterward - e.g. it
+     * was re-enabled from Library after an earlier downgrade already
+     * reconciled once, and PackageActionController::canInstallOrEnable() only
+     * blocks that going forward, not anything already enabled before that
+     * check existed (or through any other path that bypasses it). Running
+     * this unconditionally is what actually catches that drift; $changed is
+     * still reported (and the reconciled-plan cache still updated) purely for
+     * "did the plan itself change" messaging, not to gate whether syncing runs.
+     * CommerceController calls this (rather than plain refreshCurrentPlan())
+     * from wherever a plan change should visibly take effect, and flashes
+     * $disabledHandles to the user.
      *
      * @return array{plan: ?PlanInfo, changed: bool, disabledHandles: string[]}
      */
@@ -131,13 +139,13 @@ class PlanService extends Component
         $lastReconciled = Craft::$app->getCache()->get(self::LAST_RECONCILED_PLAN_CACHE_KEY) ?: null;
         $changed = $lastReconciled !== $currentHandle;
 
-        $disabledHandles = [];
         if ($changed) {
             Craft::$app->getCache()->set(self::LAST_RECONCILED_PLAN_CACHE_KEY, $currentHandle, 0);
-            if ($current !== null) {
-                $disabledHandles = (new PackageService())->syncEntitlements($current);
-            }
         }
+
+        $disabledHandles = $current !== null
+            ? (new PackageService())->syncEntitlements($current)
+            : [];
 
         return ['plan' => $current, 'changed' => $changed, 'disabledHandles' => $disabledHandles];
     }
