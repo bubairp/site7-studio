@@ -11,6 +11,7 @@ use craft\events\RegisterUrlRulesEvent;
 use craft\web\UrlManager;
 use site7\studio\base\PluginTrait;
 use site7\studio\models\Settings;
+use site7\studio\providers\CommerceServiceProvider;
 use site7\studio\providers\CoreServiceProvider;
 use site7\studio\providers\CpServiceProvider;
 use site7\studio\providers\EventServiceProvider;
@@ -25,6 +26,14 @@ use site7\studio\providers\LibraryServiceProvider;
  * @property-read \site7\studio\services\CraftResourceService $craftResourceGenerator
  * @property-read \site7\studio\services\PackageUsageService $packageUsage
  * @property-read \site7\studio\services\MarketplaceService $marketplace
+ * @property-read \site7\studio\services\commerce\CommerceClient $commerceClient
+ * @property-read \site7\studio\services\commerce\LicenseService $license
+ * @property-read \site7\studio\services\commerce\SubscriptionService $subscription
+ * @property-read \site7\studio\services\commerce\PlanService $plan
+ * @property-read \site7\studio\services\commerce\PackageService $commercePackages
+ * @property-read \site7\studio\services\commerce\DownloadService $downloads
+ * @property-read \site7\studio\services\commerce\UpdateService $updates
+ * @property-read \site7\studio\services\commerce\FeatureGateService $featureGate
  */
 class Site7Studio extends Plugin
 {
@@ -74,6 +83,7 @@ class Site7Studio extends Plugin
             new EventServiceProvider(),
             new CpServiceProvider(),
             new LibraryServiceProvider(),
+            new CommerceServiceProvider(),
         ];
 
         foreach ($providers as $provider) {
@@ -172,6 +182,12 @@ class Site7Studio extends Plugin
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function (RegisterUrlRulesEvent $event) {
                 $event->rules['site7-studio'] = 'site7-studio/default/index';
+                // Without this explicit rule, Craft's CP falls back to
+                // rendering templates/settings.twig directly (since a matching
+                // template file exists), bypassing SettingsController
+                // entirely - a pre-existing gap that only mattered once this
+                // template needed controller-supplied data (the Commerce tab).
+                $event->rules['site7-studio/settings'] = 'site7-studio/settings/index';
                 $event->rules['site7-studio/setup'] = 'site7-studio/setup/index';
                 $event->rules['site7-studio/setup/complete'] = 'site7-studio/setup/complete';
                 $event->rules['site7-studio/library'] = 'site7-studio/library/index';
@@ -187,6 +203,7 @@ class Site7Studio extends Plugin
                 // action in this plugin (see PackageActionController), which Craft
                 // resolves independently of these URL rules.
                 $event->rules['site7-studio/marketplace'] = 'site7-studio/marketplace/index';
+                $event->rules['site7-studio/commerce'] = 'site7-studio/commerce/index';
             }
         );
     }

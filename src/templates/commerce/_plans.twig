@@ -1,0 +1,68 @@
+{#
+ # Commerce & Licensing - Plans tab.
+ # Params: plans (PlanInfo[]), currentPlan (PlanInfo|null)
+ # Plan names/features/limits are never hardcoded here - everything comes
+ # straight from what Commerce24 returned (see PlanService).
+ #}
+{% if plans|length %}
+    {% set currentIndex = null %}
+    {% if currentPlan %}
+        {% for p in plans %}
+            {% if p.handle == currentPlan.handle %}{% set currentIndex = loop.index0 %}{% endif %}
+        {% endfor %}
+    {% endif %}
+    <div class="card-grid">
+        {% for planItem in plans %}
+            {% set isCurrent = currentPlan and currentPlan.handle == planItem.handle %}
+            {# Plans have no explicit tier/rank from Commerce24 - the order it
+             # returns them in (Starter -> Enterprise) is the only ordering
+             # available, so that position is what decides upgrade vs downgrade. #}
+            {% set isDowngrade = currentIndex is not null and loop.index0 < currentIndex %}
+            <div class="element card" style="{{ isCurrent ? 'border-color: var(--teal-400);' }}">
+                <div class="card-main">
+                    <div class="card-content">
+                        <div class="card-heading flex flex-nowrap flex-gap-s">
+                            {{ planItem.name }}
+                            {% if isCurrent %}
+                                <span class="status-label teal"><span class="status teal"></span><span class="status-label-text">{{ "Current"|t('site7-studio') }}</span></span>
+                            {% endif %}
+                        </div>
+                        <ul class="light">
+                            <li>{{ "Websites:"|t('site7-studio') }} {{ planItem.websiteLimit ?: '—' }}</li>
+                            <li>{{ "Users:"|t('site7-studio') }} {{ planItem.userLimit ?: '—' }}</li>
+                            <li>{{ "Storage:"|t('site7-studio') }} {{ planItem.storageLimit ?: '—' }}</li>
+                            <li>{{ "API Access:"|t('site7-studio') }} {{ planItem.apiAccess ? 'Yes' : 'No' }}</li>
+                            <li>{{ "Marketplace Access:"|t('site7-studio') }} {{ planItem.marketplaceAccess ? 'Yes' : 'No' }}</li>
+                            <li>{{ "Support:"|t('site7-studio') }} {{ planItem.supportLevel ?: '—' }}</li>
+                            <li>{{ "Update Channel:"|t('site7-studio') }} {{ planItem.updateChannel ?: '—' }}</li>
+                        </ul>
+                        {% if planItem.features|length %}
+                            <p class="light">{{ planItem.features|join(', ') }}</p>
+                        {% endif %}
+                        {% if not isCurrent %}
+                            {% set confirmMessage = isDowngrade
+                                ? "Downgrading to " ~ planItem.name ~ " takes effect immediately. Any premium package your current plan includes but " ~ planItem.name ~ " doesn’t will be disabled right away, and removable after a grace period if you don’t upgrade again. Continue?"
+                                : "Upgrading to " ~ planItem.name ~ " is a purchase - your payment method will be charged the difference immediately. Continue?"
+                            %}
+                            <form method="post" accept-charset="UTF-8">
+                                {{ csrfInput() }}
+                                {{ redirectInput('site7-studio/commerce?tab=subscription') }}
+                                <input type="hidden" name="action" value="site7-studio/commerce/{{ isDowngrade ? 'downgrade-plan' : 'upgrade-plan' }}">
+                                <input type="hidden" name="planHandle" value="{{ planItem.handle }}">
+                                <button type="button" class="btn {{ isDowngrade ? '' : 'submit' }}"
+                                    onclick="if(confirm('{{ confirmMessage|e('js') }}')) { this.closest('form').submit(); }"
+                                >{{ (isDowngrade ? 'Downgrade to' : 'Upgrade to')|t('site7-studio') }} {{ planItem.name }}</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    {% include "site7-studio/_components/empty-state" with {
+        message: 'No plans available.',
+        subtext: 'Connect Commerce24 on the Commerce tab of Settings to see Starter, Professional, Business, and Enterprise plans here.',
+        icon: '💳'
+    } only %}
+{% endif %}

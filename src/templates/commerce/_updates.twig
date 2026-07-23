@@ -1,0 +1,65 @@
+{#
+ # Commerce & Licensing - Updates tab.
+ # Params: updates {plugin, packages, security, dependencies}
+ #}
+{% set hasAny = (updates.plugin|default([])|length) or (updates.packages|default([])|length) or (updates.security|default([])|length) or (updates.dependencies|default([])|length) %}
+
+<div class="site7-quick-actions" style="margin-bottom: 16px;">
+    <div class="flex">
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/commerce?tab=updates') }}
+            <input type="hidden" name="action" value="site7-studio/commerce/check-updates">
+            <button type="submit" class="btn submit">{{ "Check Updates"|t('site7-studio') }}</button>
+        </form>
+        {% if updates.packages|default([])|length %}
+            <form method="post" accept-charset="UTF-8">
+                {{ csrfInput() }}
+                {{ redirectInput('site7-studio/commerce?tab=updates') }}
+                <input type="hidden" name="action" value="site7-studio/commerce/update-all">
+                <button type="submit" class="btn">{{ "Update All"|t('site7-studio') }}</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+{% if not hasAny %}
+    {% include "site7-studio/_components/empty-state" with {message: 'Everything is up to date.', icon: '✅'} only %}
+{% else %}
+    {% if updates.packages|default([])|length %}
+        <section class="site7-detail-section" style="margin-bottom: 24px;">
+            <h2>{{ "Package Updates"|t('site7-studio') }}</h2>
+            <form method="post" accept-charset="UTF-8">
+                {{ csrfInput() }}
+                {{ redirectInput('site7-studio/commerce?tab=updates') }}
+                <input type="hidden" name="action" value="site7-studio/commerce/update-selected">
+                <table class="data fullwidth">
+                    <thead><tr><th></th><th>{{ "Package"|t('site7-studio') }}</th><th>{{ "Available Version"|t('site7-studio') }}</th></tr></thead>
+                    <tbody>
+                        {% for handle, listing in updates.packages %}
+                            <tr>
+                                <td><input type="checkbox" name="handles[]" value="{{ handle }}"></td>
+                                <td>{{ handle }}</td>
+                                <td>v{{ listing.version }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button type="submit" class="btn submit" style="margin-top: 8px;">{{ "Update Selected"|t('site7-studio') }}</button>
+            </form>
+        </section>
+    {% endif %}
+
+    {% for section, label in {plugin: 'Plugin Updates', security: 'Security Updates', dependencies: 'Dependency Updates'} %}
+        {% if updates[section]|default([])|length %}
+            <section class="site7-detail-section" style="margin-bottom: 24px;">
+                <h2>{{ label|t('site7-studio') }}</h2>
+                <ul class="light">
+                    {% for item in updates[section] %}
+                        <li>{{ item.name ?? item.title ?? item }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+    {% endfor %}
+{% endif %}

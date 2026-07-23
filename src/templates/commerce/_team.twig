@@ -1,0 +1,34 @@
+{#
+ # Commerce & Licensing - Team tab. Business/Enterprise only, gated through
+ # FeatureGateService (never a plan-name check) - see CommerceController::actionIndex().
+ # Params: teamAllowed (bool)
+ #
+ # Future-ready architecture only, per Phase 12's scope: this reserves the
+ # tab and its gate, not a working invitation/roles backend yet.
+ #}
+{% if not teamAllowed %}
+    {% include "site7-studio/_components/empty-state" with {
+        message: 'Team Management is available on Business and Enterprise plans.',
+        subtext: 'Upgrade your plan to invite team members and manage roles/permissions.',
+        actionLabel: 'View Plans',
+        actionUrl: url('site7-studio/commerce', {tab: 'plans'}),
+        icon: '👥'
+    } only %}
+{% else %}
+    <section class="site7-detail-section" style="margin-bottom: 24px;">
+        <h2>{{ "Users"|t('site7-studio') }}</h2>
+        <p class="light">{{ "No team members yet."|t('site7-studio') }}</p>
+    </section>
+    <section class="site7-detail-section" style="margin-bottom: 24px;">
+        <h2>{{ "Roles & Permissions"|t('site7-studio') }}</h2>
+        <p class="light">{{ "Role management is not implemented yet - reserved for a future milestone."|t('site7-studio') }}</p>
+    </section>
+    <section class="site7-detail-section" style="margin-bottom: 24px;">
+        <h2>{{ "Invitations"|t('site7-studio') }}</h2>
+        <p class="light">{{ "No pending invitations."|t('site7-studio') }}</p>
+    </section>
+    <section class="site7-detail-section" style="margin-bottom: 24px;">
+        <h2>{{ "Organization"|t('site7-studio') }}</h2>
+        <p class="light">{{ "Organization details come from your Commerce24 Account tab."|t('site7-studio') }}</p>
+    </section>
+{% endif %}

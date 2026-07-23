@@ -1,0 +1,84 @@
+{#
+ # Commerce & Licensing - License tab.
+ # Params: license (LicenseInfo)
+ #}
+{% set statusColors = {active: 'teal', expired: 'red', unlicensed: 'gray', unknown: 'amber'} %}
+{% set color = statusColors[license.status] ?? 'gray' %}
+
+<div class="pane" style="margin-bottom: 24px;">
+    <div class="meta">
+        <div class="field">
+            <div class="heading"><label>{{ "License Key"|t('site7-studio') }}</label></div>
+            <div class="input light">{{ license.key ?: '—' }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "License Status"|t('site7-studio') }}</label></div>
+            <div class="input">
+                <span class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ license.status|title }}</span></span>
+            </div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Activation Date"|t('site7-studio') }}</label></div>
+            <div class="input">{{ license.activationDate ?: '—' }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Expiry Date"|t('site7-studio') }}</label></div>
+            <div class="input">{{ license.expiryDate ?: '—' }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Machine ID"|t('site7-studio') }}</label></div>
+            <div class="input light">{{ license.machineId ?: '—' }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Activated Domains"|t('site7-studio') }}</label></div>
+            <div class="input">{{ license.activatedDomains|length ? license.activatedDomains|join(', ') : '—' }}</div>
+        </div>
+    </div>
+</div>
+
+<section class="site7-detail-section" style="margin-bottom: 24px;">
+    <h2>{{ "Activate"|t('site7-studio') }}</h2>
+    <form method="post" accept-charset="UTF-8" class="flex flex-nowrap flex-gap-s">
+        {{ csrfInput() }}
+        {{ redirectInput('site7-studio/commerce?tab=license') }}
+        <input type="hidden" name="action" value="site7-studio/commerce/activate-license">
+        <input type="text" name="licenseKey" class="text" placeholder="{{ 'License key'|t('site7-studio') }}" required>
+        <button type="submit" class="btn submit">{{ "Activate"|t('site7-studio') }}</button>
+    </form>
+</section>
+
+<section class="site7-detail-section" style="margin-bottom: 24px;">
+    <h2>{{ "Transfer"|t('site7-studio') }}</h2>
+    <form method="post" accept-charset="UTF-8" class="flex flex-nowrap flex-gap-s">
+        {{ csrfInput() }}
+        {{ redirectInput('site7-studio/commerce?tab=license') }}
+        <input type="hidden" name="action" value="site7-studio/commerce/transfer-license">
+        <input type="text" name="licenseKey" class="text" placeholder="{{ 'New license key'|t('site7-studio') }}" required>
+        <button type="submit" class="btn">{{ "Transfer"|t('site7-studio') }}</button>
+    </form>
+</section>
+
+<div class="site7-quick-actions">
+    <div class="flex">
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/commerce?tab=license') }}
+            <input type="hidden" name="action" value="site7-studio/commerce/refresh-license">
+            <button type="submit" class="btn">{{ "Refresh"|t('site7-studio') }}</button>
+        </form>
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/commerce?tab=license') }}
+            <input type="hidden" name="action" value="site7-studio/commerce/validate-license">
+            <button type="submit" class="btn">{{ "Validate"|t('site7-studio') }}</button>
+        </form>
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/commerce?tab=license') }}
+            <input type="hidden" name="action" value="site7-studio/commerce/deactivate-license">
+            <button type="button" class="btn"
+                onclick="if(confirm('Deactivate this license on this machine/domain?')) { this.closest('form').submit(); }"
+            >{{ "Deactivate"|t('site7-studio') }}</button>
+        </form>
+    </div>
+</div>

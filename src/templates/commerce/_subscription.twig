@@ -1,0 +1,56 @@
+{#
+ # Commerce & Licensing - Subscription tab.
+ # Params: subscription (SubscriptionInfo)
+ #}
+{% set statusColors = {active: 'teal', canceled: 'red', past_due: 'amber', none: 'gray', unknown: 'gray'} %}
+{% set color = statusColors[subscription.status] ?? 'gray' %}
+
+<div class="pane">
+    <div class="meta">
+        <div class="field">
+            <div class="heading"><label>{{ "Current Plan"|t('site7-studio') }}</label></div>
+            <div class="input">{{ subscription.planName ?: '—' }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Status"|t('site7-studio') }}</label></div>
+            <div class="input">
+                <span class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ subscription.status|title }}</span></span>
+            </div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Renewal Date"|t('site7-studio') }}</label></div>
+            <div class="input">{{ subscription.renewalDate ?: '—' }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Billing Cycle"|t('site7-studio') }}</label></div>
+            <div class="input">{{ subscription.billingCycle ?: '—' }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="site7-quick-actions">
+    <h3>{{ "Manage Subscription"|t('site7-studio') }}</h3>
+    <div class="flex">
+        <a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}" class="btn submit">{{ "Upgrade"|t('site7-studio') }}</a>
+        <a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}" class="btn">{{ "Downgrade"|t('site7-studio') }}</a>
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/commerce?tab=subscription') }}
+            <input type="hidden" name="action" value="site7-studio/commerce/renew-subscription">
+            <button type="submit" class="btn">{{ "Renew"|t('site7-studio') }}</button>
+        </form>
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/commerce?tab=subscription') }}
+            <input type="hidden" name="action" value="site7-studio/commerce/cancel-subscription">
+            <button type="button" class="btn"
+                onclick="if(confirm('Cancel your subscription? This follows Commerce24’s own cancellation policy.')) { this.closest('form').submit(); }"
+            >{{ "Cancel"|t('site7-studio') }}</button>
+        </form>
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            <input type="hidden" name="action" value="site7-studio/commerce/open-customer-portal">
+            <button type="submit" class="btn">{{ "Manage Subscription in Commerce24 →"|t('site7-studio') }}</button>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,66 @@
+{#
+ # Commerce & Licensing - Downloads tab.
+ # Params: purchasedPackages, downloadHistory (Commerce24), importHistory, exportHistory (local .s7pkg activity)
+ #}
+<section class="site7-detail-section" style="margin-bottom: 24px;">
+    <h2>{{ "Purchased Packages"|t('site7-studio') }}</h2>
+    {% if purchasedPackages|length %}
+        <ul class="light">
+            {% for item in purchasedPackages %}
+                <li>{{ item.name ?? item.handle ?? item }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="light">{{ "No purchased packages from Commerce24 yet."|t('site7-studio') }}</p>
+    {% endif %}
+</section>
+
+<section class="site7-detail-section" style="margin-bottom: 24px;">
+    <h2>{{ "Download History"|t('site7-studio') }}</h2>
+    {% if downloadHistory|length %}
+        <table class="data fullwidth">
+            <thead><tr><th>{{ "Package"|t('site7-studio') }}</th><th>{{ "Date"|t('site7-studio') }}</th></tr></thead>
+            <tbody>
+                {% for item in downloadHistory %}
+                    <tr><td>{{ item.handle ?? '—' }}</td><td>{{ item.date ?? '—' }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="light">{{ "No download history from Commerce24 yet."|t('site7-studio') }}</p>
+    {% endif %}
+</section>
+
+<section class="site7-detail-section" style="margin-bottom: 24px;">
+    <h2>{{ "Export History"|t('site7-studio') }}</h2>
+    <p class="light">{{ "Every .s7pkg this site has generated via Marketplace → Export."|t('site7-studio') }}</p>
+    {% if exportHistory|length %}
+        <table class="data fullwidth">
+            <thead><tr><th>{{ "File"|t('site7-studio') }}</th><th>{{ "Size"|t('site7-studio') }}</th><th>{{ "Date"|t('site7-studio') }}</th></tr></thead>
+            <tbody>
+                {% for item in exportHistory %}
+                    <tr><td>{{ item.fileName }}</td><td>{{ (item.size / 1024)|round }} KB</td><td>{{ item.date }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        {% include "site7-studio/_components/empty-state" with {message: 'No exports yet.', actionLabel: 'Go to Export', actionUrl: url('site7-studio/marketplace', {tab: 'export'}), icon: '📤'} only %}
+    {% endif %}
+</section>
+
+<section class="site7-detail-section">
+    <h2>{{ "Import History"|t('site7-studio') }}</h2>
+    <p class="light">{{ "Packages currently sitting in the Local Repository, available to import."|t('site7-studio') }}</p>
+    {% if importHistory|length %}
+        <table class="data fullwidth">
+            <thead><tr><th>{{ "File"|t('site7-studio') }}</th><th>{{ "Size"|t('site7-studio') }}</th><th>{{ "Date"|t('site7-studio') }}</th></tr></thead>
+            <tbody>
+                {% for item in importHistory %}
+                    <tr><td>{{ item.fileName }}</td><td>{{ (item.size / 1024)|round }} KB</td><td>{{ item.date }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        {% include "site7-studio/_components/empty-state" with {message: 'No packages in the Local Repository yet.', actionLabel: 'Go to Marketplace', actionUrl: url('site7-studio/marketplace', {tab: 'repository'}), icon: '📥'} only %}
+    {% endif %}
+</section>

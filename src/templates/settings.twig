@@ -6,6 +6,7 @@
     general: { label: 'General'|t('site7-studio'), url: '#general' },
     developer: { label: 'Developer Mode'|t('site7-studio'), url: '#developer' },
     paths: { label: 'Paths'|t('site7-studio'), url: '#paths' },
+    commerce: { label: 'Commerce'|t('site7-studio'), url: '#commerce' },
     system: { label: 'System'|t('site7-studio'), url: '#system' },
     about: { label: 'About'|t('site7-studio'), url: '#about' }
 } %}
@@ -62,6 +63,103 @@
                 <input class="text fullwidth" type="text" value="@templates/_components" autocomplete="off">
             </div>
         </div>
+    </div>
+
+    <div id="commerce" class="site7-settings-section hidden">
+        <h2>{{ "Commerce & Licensing"|t('site7-studio') }}</h2>
+        <p class="light">{{ "Connection settings for Commerce24 - the backend for products, plans, licenses, subscriptions, and package entitlements. See the Commerce & Licensing section in the main navigation for license/subscription management."|t('site7-studio') }}</p>
+        <hr>
+
+        <form method="post" accept-charset="UTF-8" id="site7-commerce-settings-form">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/settings') }}
+            <input type="hidden" name="action" value="site7-studio/settings/save">
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7set-api-endpoint">{{ "API Endpoint"|t('site7-studio') }}</label></div>
+                <div class="input ltr"><input id="site7set-api-endpoint" class="text fullwidth" type="text" name="settings[commerceApiEndpoint]" value="{{ settings.commerceApiEndpoint }}" placeholder="https://api.commerce24.example.com" autocomplete="off"></div>
+            </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7set-environment">{{ "Environment"|t('site7-studio') }}</label></div>
+                <div class="input ltr">
+                    <div class="select">
+                        <select id="site7set-environment" name="settings[commerceEnvironment]">
+                            {% for env in ['production', 'staging', 'sandbox'] %}
+                                <option value="{{ env }}" {{ settings.commerceEnvironment == env ? 'selected' }}>{{ env|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading">
+                    <label for="site7set-api-key">{{ "API Key"|t('site7-studio') }}</label>
+                    <div class="instructions"><p>{{ "Supports Craft's $ENV_VAR_NAME syntax to keep the real key out of the database."|t('site7-studio') }}</p></div>
+                </div>
+                <div class="input ltr"><input id="site7set-api-key" class="text fullwidth code" type="text" name="settings[commerceApiKey]" value="{{ settings.commerceApiKey }}" placeholder="$COMMERCE24_API_KEY" autocomplete="off"></div>
+            </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label>{{ "Connection Status"|t('site7-studio') }}</label></div>
+                <div class="input ltr flex flex-nowrap flex-gap-s" style="align-items: center;">
+                    {% if craft.app.plugins.getPlugin('site7-studio').commerceClient.isConfigured() %}
+                        <span class="status-label teal"><span class="status teal"></span><span class="status-label-text">{{ "Configured"|t('site7-studio') }}</span></span>
+                    {% else %}
+                        <span class="status-label gray"><span class="status gray"></span><span class="status-label-text">{{ "Not Configured"|t('site7-studio') }}</span></span>
+                    {% endif %}
+                    <button type="button" class="btn" id="site7-test-connection-btn"
+                        data-url="{{ actionUrl('site7-studio/settings/test-connection') }}"
+                        data-csrf-name="{{ craft.app.config.general.csrfTokenName }}"
+                        data-csrf-value="{{ craft.app.request.csrfToken }}"
+                    >{{ "Test Connection"|t('site7-studio') }}</button>
+                    <span id="site7-test-connection-result" class="light"></span>
+                </div>
+            </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading">
+                    <label for="site7set-debug-mode">{{ "Debug Mode"|t('site7-studio') }}</label>
+                    <div class="instructions"><p>{{ "Logs every Commerce24 request/response to the Site7 Studio log."|t('site7-studio') }}</p></div>
+                </div>
+                <div class="input ltr">
+                    <label class="lightswitch-label">
+                        <input type="checkbox" name="settings[commerceDebugMode]" value="1" {{ settings.commerceDebugMode ? 'checked' }}>
+                        {{ "Enabled"|t('site7-studio') }}
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex flex-gap-m" style="margin-bottom: 16px;">
+                <div class="field flex-grow">
+                    <div class="heading"><label for="site7set-cache-duration">{{ "Cache Duration"|t('site7-studio') }}</label></div>
+                    <div class="input ltr"><input id="site7set-cache-duration" class="text fullwidth" type="number" min="1" name="settings[commerceCacheDuration]" value="{{ settings.commerceCacheDuration }}"> {{ "seconds"|t('site7-studio') }}</div>
+                </div>
+                <div class="field flex-grow">
+                    <div class="heading"><label for="site7set-timeout">{{ "Timeout"|t('site7-studio') }}</label></div>
+                    <div class="input ltr"><input id="site7set-timeout" class="text fullwidth" type="number" min="1" name="settings[commerceTimeout]" value="{{ settings.commerceTimeout }}"> {{ "seconds"|t('site7-studio') }}</div>
+                </div>
+            </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading">
+                    <label for="site7set-default-package">{{ "Default Package"|t('site7-studio') }}</label>
+                    <div class="instructions"><p>{{ "The fallback package used when a user has no active subscription."|t('site7-studio') }}</p></div>
+                </div>
+                <div class="input ltr"><input id="site7set-default-package" class="text fullwidth" type="text" name="settings[defaultPackage]" value="{{ settings.defaultPackage }}" autocomplete="off"></div>
+            </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading">
+                    <label for="site7set-offline-features">{{ "Offline Features"|t('site7-studio') }}</label>
+                    <div class="instructions"><p>{{ "One feature handle per line. These stay allowed even when Commerce24 can't be reached - everything else fails closed."|t('site7-studio') }}</p></div>
+                </div>
+                <div class="input ltr"><textarea id="site7set-offline-features" class="text fullwidth code" name="settings[commerceOfflineFeatures]" rows="3">{{ settings.commerceOfflineFeatures|join("\n") }}</textarea></div>
+            </div>
+
+            <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
+        </form>
     </div>
 
     <div id="system" class="site7-settings-section hidden">

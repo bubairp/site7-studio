@@ -1,0 +1,23 @@
+{#
+ # Commerce & Licensing - Account tab.
+ # Params: subscription (SubscriptionInfo) - used only for the manage-billing link
+ #}
+<div class="pane">
+    <h2>{{ "Customer Information"|t('site7-studio') }}</h2>
+    <p class="light">{{ "Loaded from your Commerce24 account once connected."|t('site7-studio') }}</p>
+</div>
+
+<div class="site7-quick-actions">
+    <div class="flex">
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            <input type="hidden" name="action" value="site7-studio/commerce/open-customer-portal">
+            <button type="submit" class="btn submit">{{ "Manage Billing"|t('site7-studio') }}</button>
+        </form>
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            <input type="hidden" name="action" value="site7-studio/commerce/open-customer-portal">
+            <button type="submit" class="btn">{{ "Open Customer Portal"|t('site7-studio') }}</button>
+        </form>
+    </div>
+</div>

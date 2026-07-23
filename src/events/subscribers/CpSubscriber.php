@@ -68,6 +68,7 @@ class CpSubscriber implements EventSubscriberInterface
                 'dashboard' => ['label' => 'Dashboard', 'url' => 'site7-studio'],
                 'library' => ['label' => 'Library', 'url' => 'site7-studio/library'],
                 'marketplace' => ['label' => 'Marketplace', 'url' => 'site7-studio/marketplace'],
+                'commerce' => ['label' => 'Commerce & Licensing', 'url' => 'site7-studio/commerce'],
                 'settings' => ['label' => 'Settings', 'url' => 'site7-studio/settings'],
             ],
         ]);
@@ -81,10 +82,24 @@ class CpSubscriber implements EventSubscriberInterface
     public function onRegisterSite7Permissions(RegisterPermissionsEvent $event): void
     {
         $event->registry->registerPermission(
-            'Site7 Studio', 
-            'accessSite7Studio', 
+            'Site7 Studio',
+            'accessSite7Studio',
             ['label' => 'Access Site7 Studio']
         );
+
+        // Commerce & Licensing Platform permissions - gate the Commerce
+        // section's actions, not just visibility of the nav item itself.
+        foreach ([
+            'manageCommerce' => 'Manage Commerce',
+            'manageLicense' => 'Manage License',
+            'manageSubscription' => 'Manage Subscription',
+            'manageMarketplace' => 'Manage Marketplace',
+            'managePackages' => 'Manage Packages',
+            'manageUpdates' => 'Manage Updates',
+            'manageTeam' => 'Manage Team',
+        ] as $handle => $label) {
+            $event->registry->registerPermission('Site7 Studio', $handle, ['label' => $label]);
+        }
     }
 
     /**

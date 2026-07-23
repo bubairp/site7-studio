@@ -1,0 +1,87 @@
+{#
+ # Commerce & Licensing - Overview tab.
+ # Params: license (LicenseInfo), subscription (SubscriptionInfo), plan (PlanInfo|null),
+ #         installedPackages (PackageRecord[]), updates (MarketplaceListing[] keyed by handle)
+ #}
+{% set licenseColors = {active: 'teal', expired: 'red', unlicensed: 'gray', unknown: 'amber'} %}
+{% set subscriptionColors = {active: 'teal', canceled: 'red', past_due: 'amber', none: 'gray', unknown: 'gray'} %}
+
+<div class="pane">
+    <div class="meta">
+        <div class="field">
+            <div class="heading"><label>{{ "Current Plan"|t('site7-studio') }}</label></div>
+            <div class="input"><a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}">{{ plan ? plan.name : 'None'|t('site7-studio') }}</a></div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "License Status"|t('site7-studio') }}</label></div>
+            <div class="input">
+                {% set color = licenseColors[license.status] ?? 'gray' %}
+                <a href="{{ url('site7-studio/commerce', {tab: 'license'}) }}" class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ license.status|title }}</span></a>
+            </div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Subscription Status"|t('site7-studio') }}</label></div>
+            <div class="input">
+                {% set color = subscriptionColors[subscription.status] ?? 'gray' %}
+                <a href="{{ url('site7-studio/commerce', {tab: 'subscription'}) }}" class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ subscription.status|title }}</span></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="site7-stat-grid">
+    {% include "site7-studio/_components/stat-card" with {
+        value: license.activatedDomains|length,
+        label: 'Activated Sites',
+        url: url('site7-studio/commerce', {tab: 'license'}),
+    } only %}
+    {% include "site7-studio/_components/stat-card" with {
+        value: installedPackages|length,
+        label: 'Installed Packages',
+        url: url('site7-studio/commerce', {tab: 'packages'}),
+    } only %}
+    {% include "site7-studio/_components/stat-card" with {
+        value: updates|length,
+        label: 'Available Updates',
+        url: url('site7-studio/commerce', {tab: 'updates'}),
+    } only %}
+</div>
+
+<div class="pane">
+    <h2>{{ "Plan & Renewal"|t('site7-studio') }}</h2>
+    <div class="meta">
+        <div class="field">
+            <div class="heading"><label>{{ "Package Usage"|t('site7-studio') }}</label></div>
+            <div class="input">{{ installedPackages|length }}{% if plan and plan.websiteLimit %} / {{ plan.websiteLimit }}{% endif %}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Renewal Date"|t('site7-studio') }}</label></div>
+            <div class="input">{{ subscription.renewalDate ?: '—' }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Storage Usage"|t('site7-studio') }}</label></div>
+            <div class="input light">{{ "Coming soon"|t('site7-studio') }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="site7-quick-actions">
+    <h3>{{ "Quick Actions"|t('site7-studio') }}</h3>
+    <div class="flex">
+        <a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}" class="btn submit">{{ "Upgrade Plan"|t('site7-studio') }}</a>
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/commerce?tab=license') }}
+            <input type="hidden" name="action" value="site7-studio/commerce/refresh-license">
+            <button type="submit" class="btn">{{ "Refresh License"|t('site7-studio') }}</button>
+        </form>
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/commerce?tab=updates') }}
+            <input type="hidden" name="action" value="site7-studio/commerce/check-updates">
+            <button type="submit" class="btn">{{ "Check Updates"|t('site7-studio') }}</button>
+        </form>
+        <a href="{{ url('site7-studio/marketplace') }}" class="btn">{{ "Open Marketplace"|t('site7-studio') }}</a>
+        <a href="{{ url('site7-studio/commerce', {tab: 'account'}) }}" class="btn">{{ "Manage Account"|t('site7-studio') }}</a>
+    </div>
+</div>

@@ -1,0 +1,45 @@
+{% extends "_layouts/cp" %}
+{% set selectedSubnavItem = "commerce" %}
+{% set title = "Commerce & Licensing"|t('site7-studio') %}
+
+{% set tabs = {
+    overview: {label: 'Overview'|t('site7-studio'), url: url('site7-studio/commerce', {tab: 'overview'})},
+    plans: {label: 'Plans'|t('site7-studio'), url: url('site7-studio/commerce', {tab: 'plans'})},
+    subscription: {label: 'Subscription'|t('site7-studio'), url: url('site7-studio/commerce', {tab: 'subscription'})},
+    license: {label: 'License'|t('site7-studio'), url: url('site7-studio/commerce', {tab: 'license'})},
+    packages: {label: 'Packages'|t('site7-studio'), url: url('site7-studio/commerce', {tab: 'packages'})},
+    downloads: {label: 'Downloads'|t('site7-studio'), url: url('site7-studio/commerce', {tab: 'downloads'})},
+    updates: {label: 'Updates'|t('site7-studio'), url: url('site7-studio/commerce', {tab: 'updates'})},
+    team: {label: 'Team'|t('site7-studio'), url: url('site7-studio/commerce', {tab: 'team'})},
+    account: {label: 'Account'|t('site7-studio'), url: url('site7-studio/commerce', {tab: 'account'})},
+} %}
+{% set selectedTab = activeTab %}
+
+{% block content %}
+    {% if not craft.app.plugins.getPlugin('site7-studio').commerceClient.isConfigured() %}
+        <div class="site7-notice" style="margin-bottom: 16px;">
+            {{ "Commerce24 isn't connected yet."|t('site7-studio') }}
+            <a href="{{ url('site7-studio/settings') }}#commerce">{{ "Set it up on the Commerce tab of Settings →"|t('site7-studio') }}</a>
+        </div>
+    {% endif %}
+
+    {% if activeTab == 'overview' %}
+        {% include "site7-studio/commerce/_overview" with {license: license, subscription: subscription, plan: plan, installedPackages: installedPackages, updates: updates} only %}
+    {% elseif activeTab == 'plans' %}
+        {% include "site7-studio/commerce/_plans" with {plans: plans, currentPlan: currentPlan} only %}
+    {% elseif activeTab == 'subscription' %}
+        {% include "site7-studio/commerce/_subscription" with {subscription: subscription} only %}
+    {% elseif activeTab == 'license' %}
+        {% include "site7-studio/commerce/_license" with {license: license} only %}
+    {% elseif activeTab == 'packages' %}
+        {% include "site7-studio/commerce/_packages" with {installedPackages: installedPackages, purchasedHandles: purchasedHandles, freeHandles: freeHandles, premiumHandles: premiumHandles, pendingDeletions: pendingDeletions} only %}
+    {% elseif activeTab == 'downloads' %}
+        {% include "site7-studio/commerce/_downloads" with {purchasedPackages: purchasedPackages, downloadHistory: downloadHistory, importHistory: importHistory, exportHistory: exportHistory} only %}
+    {% elseif activeTab == 'updates' %}
+        {% include "site7-studio/commerce/_updates" with {updates: updates} only %}
+    {% elseif activeTab == 'team' %}
+        {% include "site7-studio/commerce/_team" with {teamAllowed: teamAllowed} only %}
+    {% elseif activeTab == 'account' %}
+        {% include "site7-studio/commerce/_account" with {subscription: subscription} only %}
+    {% endif %}
+{% endblock %}

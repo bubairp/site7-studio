@@ -1,0 +1,95 @@
+{#
+ # Commerce & Licensing - Packages tab.
+ # Params: installedPackages (PackageRecord[]), purchasedHandles (string[]), freeHandles (string[]),
+ #         premiumHandles (string[]), pendingDeletions (array<string,string> handle => eligible-on date)
+ #}
+{% if pendingDeletions is defined and pendingDeletions|length %}
+    <section class="site7-detail-section" style="margin-bottom: 24px;">
+        <h2>{{ "Disabled by Your Plan"|t('site7-studio') }}</h2>
+        <p class="light">{{ "These packages were disabled because your current plan no longer includes them. Upgrade again before their date to keep them - otherwise they become removable."|t('site7-studio') }}</p>
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Package"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Removable On"|t('site7-studio') }}</th>
+                    <th scope="col" class="thin">{{ "Action"|t('site7-studio') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for handle, eligibleOn in pendingDeletions %}
+                    {% set isEligible = eligibleOn <= "now"|date('Y-m-d') %}
+                    <tr>
+                        <td>{{ handle }}</td>
+                        <td>
+                            {% if isEligible %}
+                                <span class="status-label red"><span class="status red"></span><span class="status-label-text">{{ "Removable now"|t('site7-studio') }}</span></span>
+                            {% else %}
+                                {{ eligibleOn }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if isEligible %}
+                                <form method="post" accept-charset="UTF-8">
+                                    {{ csrfInput() }}
+                                    {{ redirectInput('site7-studio/commerce?tab=packages') }}
+                                    <input type="hidden" name="action" value="site7-studio/commerce/remove-pending-package">
+                                    <input type="hidden" name="handle" value="{{ handle }}">
+                                    <button type="button" class="btn small submit"
+                                        onclick="if(confirm('Permanently remove {{ handle|e('js') }}? This deletes its files and cannot be undone.')) { this.closest('form').submit(); }"
+                                    >{{ "Remove Now"|t('site7-studio') }}</button>
+                                </form>
+                            {% else %}
+                                <span class="light">{{ "Not yet"|t('site7-studio') }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+{% endif %}
+
+{% if installedPackages|length %}
+    <div class="tableview tablepane">
+        <table class="data fullwidth big">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Package"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Type"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Ownership"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Version"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Author"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Support"|t('site7-studio') }}</th>
+                    <th scope="col" class="thin">{{ "Actions"|t('site7-studio') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for package in installedPackages %}
+                    {% set ownership = package.handle in purchasedHandles ? 'Purchased' : (package.handle in freeHandles ? 'Free' : (package.handle in premiumHandles ? 'Premium' : 'Unknown')) %}
+                    {% set ownershipColor = {Purchased: 'teal', Free: 'gray', Premium: 'amber', Unknown: 'gray'}[ownership] %}
+                    <tr>
+                        <th scope="row"><a href="{{ url('site7-studio/library/package/' ~ package.handle) }}">{{ package.name }}</a></th>
+                        <td>{{ package.type|title }}</td>
+                        <td><span class="status-label {{ ownershipColor }}"><span class="status {{ ownershipColor }}"></span><span class="status-label-text">{{ ownership|t('site7-studio') }}</span></span></td>
+                        <td>v{{ package.version }}</td>
+                        <td>{{ package.author|default('Unknown') }}</td>
+                        <td class="light">{{ ownership == 'Purchased' or ownership == 'Premium' ? 'Priority'|t('site7-studio') : 'Community'|t('site7-studio') }}</td>
+                        <td>
+                            <a href="{{ url('site7-studio/marketplace') }}" class="btn small">{{ "Manage"|t('site7-studio') }}</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    {% include "site7-studio/_components/empty-state" with {
+        message: 'No packages installed yet.',
+        subtext: 'Browse the Library or Marketplace to install one.',
+        icon: '📦'
+    } only %}
+{% endif %}
+
+<p class="light" style="margin-top: 16px;">
+    {{ "Install/Enable/Disable/Update/Repair/Reinstall all remain on the Library and Marketplace pages - this tab shows ownership and entitlement, not install state."|t('site7-studio') }}
+</p>
