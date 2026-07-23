@@ -1,0 +1,82 @@
+{#
+ # Marketplace - Installed tab.
+ # Params: packages (PackageRecord[]), updates (MarketplaceListing[] keyed by handle)
+ #}
+{% set statusColors = {available: 'gray', installed: 'blue', enabled: 'teal', disabled: 'red'} %}
+
+{% if packages|length %}
+    <div class="tableview tablepane">
+        <table class="data fullwidth big">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Package"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Type"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Status"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Version"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Author"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "State"|t('site7-studio') }}</th>
+                    <th scope="col" class="thin">{{ "Actions"|t('site7-studio') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for package in packages %}
+                    {% set color = statusColors[package.status] ?? 'gray' %}
+                    {% set updateListing = updates[package.handle] ?? null %}
+                    <tr>
+                        <th scope="row"><a href="{{ url('site7-studio/library/package/' ~ package.handle) }}">{{ package.name }}</a></th>
+                        <td>{{ package.type|title }}</td>
+                        <td>
+                            <span class="status-label {{ color }}">
+                                <span class="status {{ color }}"></span>
+                                <span class="status-label-text">{{ package.status|title }}</span>
+                            </span>
+                        </td>
+                        <td>v{{ package.version }}</td>
+                        <td>{{ package.author|default('Unknown') }}</td>
+                        <td>
+                            {% if package.authoringStatus == 'deprecated' %}
+                                <span class="status-label orange"><span class="status orange"></span><span class="status-label-text">{{ "Deprecated"|t('site7-studio') }}</span></span>
+                            {% elseif updateListing %}
+                                <span class="status-label amber"><span class="status amber"></span><span class="status-label-text">{{ "Update Available"|t('site7-studio') }} (v{{ updateListing.version }})</span></span>
+                            {% else %}
+                                <span class="light">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="flex flex-nowrap flex-gap-xs">
+                                {% if updateListing %}
+                                    <form method="post" accept-charset="UTF-8">
+                                        {{ csrfInput() }}
+                                        <input type="hidden" name="action" value="site7-studio/marketplace/update-package">
+                                        <input type="hidden" name="handle" value="{{ package.handle }}">
+                                        <button type="submit" class="btn small submit">{{ "Update"|t('site7-studio') }}</button>
+                                    </form>
+                                {% endif %}
+                                <form method="post" accept-charset="UTF-8">
+                                    {{ csrfInput() }}
+                                    <input type="hidden" name="action" value="site7-studio/marketplace/reinstall-package">
+                                    <input type="hidden" name="handle" value="{{ package.handle }}">
+                                    <button type="button" class="btn small"
+                                        onclick="if(confirm('Reinstall {{ package.name|e('js') }}? This removes and regenerates its Craft resources from the files currently on disk.')) { this.closest('form').submit(); }"
+                                    >{{ "Reinstall"|t('site7-studio') }}</button>
+                                </form>
+                                <form method="post" accept-charset="UTF-8">
+                                    {{ csrfInput() }}
+                                    <input type="hidden" name="action" value="site7-studio/marketplace/repair-package">
+                                    <input type="hidden" name="handle" value="{{ package.handle }}">
+                                    <button type="submit" class="btn small">{{ "Repair"|t('site7-studio') }}</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    {% include "site7-studio/_components/empty-state" with {
+        message: 'No packages installed yet.',
+        subtext: 'Install packages from the Library, or import a .s7pkg from the Import tab.',
+        icon: '📦'
+    } only %}
+{% endif %}

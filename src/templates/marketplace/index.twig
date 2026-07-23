@@ -1,0 +1,26 @@
+{% extends "_layouts/cp" %}
+{% set selectedSubnavItem = "marketplace" %}
+{% set title = "Marketplace"|t('site7-studio') %}
+
+{% set tabs = {
+    installed: {label: 'Installed'|t('site7-studio'), url: url('site7-studio/marketplace', {tab: 'installed'})},
+    import: {label: 'Import'|t('site7-studio'), url: url('site7-studio/marketplace', {tab: 'import'})},
+    export: {label: 'Export'|t('site7-studio'), url: url('site7-studio/marketplace', {tab: 'export'})},
+    updates: {label: 'Updates'|t('site7-studio'), url: url('site7-studio/marketplace', {tab: 'updates'})},
+    repository: {label: 'Repository'|t('site7-studio'), url: url('site7-studio/marketplace', {tab: 'repository'})},
+} %}
+{% set selectedTab = activeTab %}
+
+{% block content %}
+    {% if activeTab == 'installed' %}
+        {% include "site7-studio/marketplace/_installed" with {packages: packages, updates: updates} only %}
+    {% elseif activeTab == 'import' %}
+        {% include "site7-studio/marketplace/_import" with {pendingImport: pendingImport} only %}
+    {% elseif activeTab == 'export' %}
+        {% include "site7-studio/marketplace/_export" with {packages: packages} only %}
+    {% elseif activeTab == 'updates' %}
+        {% include "site7-studio/marketplace/_updates" with {updates: updates} only %}
+    {% elseif activeTab == 'repository' %}
+        {% include "site7-studio/marketplace/_repository" with {repositories: repositories, catalog: catalog} only %}
+    {% endif %}
+{% endblock %}

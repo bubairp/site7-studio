@@ -24,6 +24,7 @@ use site7\studio\providers\LibraryServiceProvider;
  * @property-read \site7\studio\services\PackageManagerService $packageManager
  * @property-read \site7\studio\services\CraftResourceService $craftResourceGenerator
  * @property-read \site7\studio\services\PackageUsageService $packageUsage
+ * @property-read \site7\studio\services\MarketplaceService $marketplace
  */
 class Site7Studio extends Plugin
 {
@@ -180,6 +181,12 @@ class Site7Studio extends Plugin
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview-image'] = 'site7-studio/library/preview-image';
                 $event->rules['site7-studio/packages/new'] = 'site7-studio/package-authoring/new';
                 $event->rules['site7-studio/packages/<handle:[\w\-]+>/edit'] = 'site7-studio/package-authoring/edit';
+                // Only the Marketplace's own navigational GET route needs an explicit
+                // rule here - actionExport/actionImportUpload/etc. are reached via the
+                // "action" hidden form field like every other package-lifecycle POST
+                // action in this plugin (see PackageActionController), which Craft
+                // resolves independently of these URL rules.
+                $event->rules['site7-studio/marketplace'] = 'site7-studio/marketplace/index';
             }
         );
     }

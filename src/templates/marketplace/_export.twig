@@ -1,0 +1,48 @@
+{#
+ # Marketplace - Export tab.
+ # Params: packages (PackageRecord[])
+ #}
+<div class="light" style="padding-bottom: 24px;">
+    {{ "Export any package as a distributable .s7pkg file. With \"Include dependencies\" checked, every package it requires is bundled alongside it (Sections for a Pattern; Patterns and Sections for a Template; Templates for a Starter Kit) - compositions only reference each other by handle, so this is what makes the archive self-contained."|t('site7-studio') }}
+</div>
+
+{% if packages|length %}
+    <div class="tableview tablepane">
+        <table class="data fullwidth big">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Package"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Type"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Version"|t('site7-studio') }}</th>
+                    <th scope="col" class="thin">{{ "Export"|t('site7-studio') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for package in packages %}
+                    <tr>
+                        <th scope="row">{{ package.name }}</th>
+                        <td>{{ package.type|title }}</td>
+                        <td>v{{ package.version }}</td>
+                        <td>
+                            <form method="post" accept-charset="UTF-8" class="flex flex-nowrap flex-gap-s" style="align-items: center;">
+                                {{ csrfInput() }}
+                                <input type="hidden" name="action" value="site7-studio/marketplace/export">
+                                <input type="hidden" name="handle" value="{{ package.handle }}">
+                                <label class="flex flex-nowrap" style="gap: 4px; font-weight: normal; white-space: nowrap;">
+                                    <input type="checkbox" name="includeDependencies" value="1" checked>
+                                    {{ "Include dependencies"|t('site7-studio') }}
+                                </label>
+                                <button type="submit" class="btn small submit">{{ "Export .s7pkg"|t('site7-studio') }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    {% include "site7-studio/_components/empty-state" with {
+        message: 'No packages available to export.',
+        icon: '📤'
+    } only %}
+{% endif %}

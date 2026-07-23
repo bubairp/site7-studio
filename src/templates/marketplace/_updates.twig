@@ -1,0 +1,39 @@
+{#
+ # Marketplace - Updates tab.
+ # Params: updates (MarketplaceListing[] keyed by installed package handle)
+ #}
+{% if updates|length %}
+    <div class="tableview tablepane">
+        <table class="data fullwidth big">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Package"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Available Version"|t('site7-studio') }}</th>
+                    <th scope="col" class="thin">{{ "Action"|t('site7-studio') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for handle, listing in updates %}
+                    <tr>
+                        <th scope="row">{{ handle }}</th>
+                        <td>v{{ listing.version }}</td>
+                        <td>
+                            <form method="post" accept-charset="UTF-8">
+                                {{ csrfInput() }}
+                                <input type="hidden" name="action" value="site7-studio/marketplace/update-package">
+                                <input type="hidden" name="handle" value="{{ handle }}">
+                                <button type="submit" class="btn small submit">{{ "Update"|t('site7-studio') }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    {% include "site7-studio/_components/empty-state" with {
+        message: 'Everything is up to date.',
+        subtext: 'No installed package has a newer version available in any registered repository.',
+        icon: '✅'
+    } only %}
+{% endif %}

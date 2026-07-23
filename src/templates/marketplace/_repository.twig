@@ -1,0 +1,42 @@
+{#
+ # Marketplace - Repository tab.
+ # Params: repositories (MarketplaceRepositoryInterface[]), catalog (MarketplaceListing[])
+ #}
+<p class="light">
+    {{ "Site7 Studio currently reads distributable packages from the Local Repository - a folder on this server where exported .s7pkg files can be placed to make them installable from here. Future repository types (remote, private, company, or the official Site7 Marketplace) register the same way, through MarketplaceRepositoryInterface, without any change to this page."|t('site7-studio') }}
+</p>
+
+{% for repository in repositories %}
+    <h2>{{ repository.getName() }}</h2>
+{% endfor %}
+
+{% if catalog|length %}
+    <div class="tableview tablepane">
+        <table class="data fullwidth big">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Package"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Type"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Version"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "File"|t('site7-studio') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for listing in catalog %}
+                    <tr>
+                        <th scope="row">{{ listing.handle }}</th>
+                        <td>{{ listing.type|title }}</td>
+                        <td>v{{ listing.version }}</td>
+                        <td class="light">{{ listing.fileName }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    {% include "site7-studio/_components/empty-state" with {
+        message: 'No packages in the Local Repository yet.',
+        subtext: 'Export a package from the Export tab, then copy the .s7pkg file into storage/site7-studio/marketplace-repo/ to make it installable from here.',
+        icon: '🗄️'
+    } only %}
+{% endif %}

@@ -8,6 +8,7 @@ use site7\studio\services\LogService;
 use site7\studio\services\CacheService;
 use site7\studio\services\PackageManagerService;
 use site7\studio\services\CraftResourceService;
+use site7\studio\services\MarketplaceService;
 
 /**
  * Class CoreServiceProvider
@@ -43,6 +44,10 @@ class CoreServiceProvider implements ServiceProviderInterface
         
         $plugin->set('packageUsage', [
             'class' => \site7\studio\services\PackageUsageService::class,
+        ]);
+
+        $plugin->set('marketplace', [
+            'class' => MarketplaceService::class,
         ]);
     }
 }

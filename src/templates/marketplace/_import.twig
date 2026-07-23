@@ -1,0 +1,99 @@
+{#
+ # Marketplace - Import tab. Select -> Validate -> Preview -> Install.
+ # Params: pendingImport (PackageValidationResult|null)
+ #}
+<section class="site7-detail-section">
+    <h2>{{ "1. Select Package"|t('site7-studio') }}</h2>
+    <form method="post" accept-charset="UTF-8" enctype="multipart/form-data">
+        {{ csrfInput() }}
+        <input type="hidden" name="action" value="site7-studio/marketplace/import-upload">
+        <div class="field" style="margin-bottom: 8px;">
+            <div class="input">
+                <input type="file" name="packageFile" accept=".s7pkg" required>
+            </div>
+        </div>
+        <button type="submit" class="btn submit">{{ "Upload & Validate"|t('site7-studio') }}</button>
+    </form>
+</section>
+
+{% if pendingImport %}
+    <section class="site7-detail-section">
+        <h2>{{ "2. Preview"|t('site7-studio') }}</h2>
+
+        {% if pendingImport.errors|length %}
+            <div class="site7-notice site7-notice--warning">
+                <strong>{{ "This package cannot be imported:"|t('site7-studio') }}</strong>
+                <ul>
+                    {% for error in pendingImport.errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if pendingImport.warnings|length %}
+            <div class="site7-notice">
+                <ul>
+                    {% for warning in pendingImport.warnings %}<li>{{ warning }}</li>{% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if pendingImport.bundle %}
+            <p>
+                <strong>{{ "Root package:"|t('site7-studio') }}</strong>
+                {{ pendingImport.bundle.rootHandle }} ({{ pendingImport.bundle.rootType|title }})
+            </p>
+            <table class="data fullwidth" style="margin-bottom: 16px;">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ "Handle"|t('site7-studio') }}</th>
+                        <th scope="col">{{ "Type"|t('site7-studio') }}</th>
+                        <th scope="col">{{ "Version"|t('site7-studio') }}</th>
+                        <th scope="col">{{ "State"|t('site7-studio') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in pendingImport.bundle.packages %}
+                        <tr>
+                            <td>{{ entry.handle }}</td>
+                            <td>{{ entry.type|title }}</td>
+                            <td>v{{ entry.version }}</td>
+                            <td>
+                                {% if entry.handle in pendingImport.conflicts %}
+                                    <span class="status-label red"><span class="status red"></span><span class="status-label-text">{{ "Conflict"|t('site7-studio') }}</span></span>
+                                {% elseif entry.handle in pendingImport.alreadyInstalled %}
+                                    <span class="status-label gray"><span class="status gray"></span><span class="status-label-text">{{ "Already Installed"|t('site7-studio') }}</span></span>
+                                {% else %}
+                                    <span class="status-label teal"><span class="status teal"></span><span class="status-label-text">{{ "New"|t('site7-studio') }}</span></span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        {% if pendingImport.valid %}
+            <h2>{{ "3. Install"|t('site7-studio') }}</h2>
+            <form method="post" accept-charset="UTF-8">
+                {{ csrfInput() }}
+                <input type="hidden" name="action" value="site7-studio/marketplace/import-install">
+                <input type="hidden" name="enable" value="1">
+                {% if pendingImport.conflicts|length %}
+                    <div class="field">
+                        <label><input type="checkbox" name="overwriteConflicts" value="1"> {{ "Overwrite the conflicting packages already installed under the same handle"|t('site7-studio') }}</label>
+                    </div>
+                {% endif %}
+                <div class="field" style="margin-bottom: 12px;">
+                    <label><input type="checkbox" name="install" value="1" checked> {{ "Install and enable the root package after import"|t('site7-studio') }}</label>
+                </div>
+                <button type="submit" class="btn submit">{{ "Confirm Install"|t('site7-studio') }}</button>
+            </form>
+        {% endif %}
+
+        <form method="post" accept-charset="UTF-8" style="margin-top: 8px;">
+            {{ csrfInput() }}
+            <input type="hidden" name="action" value="site7-studio/marketplace/import-cancel">
+            <button type="submit" class="btn">{{ "Discard"|t('site7-studio') }}</button>
+        </form>
+    </section>
+{% endif %}
