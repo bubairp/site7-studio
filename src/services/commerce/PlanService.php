@@ -128,9 +128,9 @@ class PlanService extends Component
      * "did the plan itself change" messaging, not to gate whether syncing runs.
      * CommerceController calls this (rather than plain refreshCurrentPlan())
      * from wherever a plan change should visibly take effect, and flashes
-     * $disabledHandles to the user.
+     * $disabledHandles/$reEnabledHandles to the user.
      *
-     * @return array{plan: ?PlanInfo, changed: bool, disabledHandles: string[]}
+     * @return array{plan: ?PlanInfo, changed: bool, disabledHandles: string[], reEnabledHandles: string[]}
      */
     public function refreshCurrentPlanAndSyncEntitlements(): array
     {
@@ -143,10 +143,15 @@ class PlanService extends Component
             Craft::$app->getCache()->set(self::LAST_RECONCILED_PLAN_CACHE_KEY, $currentHandle, 0);
         }
 
-        $disabledHandles = $current !== null
+        $syncResult = $current !== null
             ? (new PackageService())->syncEntitlements($current)
-            : [];
+            : ['disabled' => [], 'reEnabled' => []];
 
-        return ['plan' => $current, 'changed' => $changed, 'disabledHandles' => $disabledHandles];
+        return [
+            'plan' => $current,
+            'changed' => $changed,
+            'disabledHandles' => $syncResult['disabled'],
+            'reEnabledHandles' => $syncResult['reEnabled'],
+        ];
     }
 }

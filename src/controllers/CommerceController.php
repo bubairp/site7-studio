@@ -44,7 +44,7 @@ class CommerceController extends Controller
                 // premium packages the new plan no longer covers.
                 $planResult = $plugin->plan->refreshCurrentPlanAndSyncEntitlements();
                 $data['plan'] = $planResult['plan'];
-                $this->flashDisabledPackages($planResult['disabledHandles']);
+                $this->flashEntitlementChanges($planResult);
                 $data['installedPackages'] = $plugin->packageManager->getAllPackages();
                 $data['updates'] = $plugin->marketplace->checkForUpdates();
                 break;
@@ -60,7 +60,7 @@ class CommerceController extends Controller
                 break;
             case 'packages':
                 $planResult = $plugin->plan->refreshCurrentPlanAndSyncEntitlements();
-                $this->flashDisabledPackages($planResult['disabledHandles']);
+                $this->flashEntitlementChanges($planResult);
                 $data['installedPackages'] = $plugin->packageManager->getAllPackages();
                 $data['purchasedHandles'] = $plugin->commercePackages->getPurchasedPackages();
                 $data['freeHandles'] = $plugin->commercePackages->getFreePackages();
@@ -168,8 +168,12 @@ class CommerceController extends Controller
             // Applies immediately - no scheduling - so reconcile packages
             // against it right now rather than waiting for the next time
             // Overview/Packages happens to be visited.
-            $this->flashDisabledPackages(Site7Studio::getInstance()->plan->refreshCurrentPlanAndSyncEntitlements()['disabledHandles']);
-            Craft::$app->getSession()->setNotice('Plan upgraded.');
+            $planResult = Site7Studio::getInstance()->plan->refreshCurrentPlanAndSyncEntitlements();
+            // flashEntitlementChanges() may already set a 'notice' flash for
+            // re-enabled packages, and setNotice() only ever keeps the last
+            // one set - so this has to append to (not overwrite) that message.
+            $this->flashEntitlementChanges($planResult);
+            $this->appendNotice('Plan upgraded.');
         } catch (\Throwable $e) {
             Craft::$app->getSession()->setError('Could not upgrade plan: ' . $e->getMessage());
         }
@@ -187,8 +191,9 @@ class CommerceController extends Controller
             // Applies immediately - no scheduling - so any premium package
             // the new plan doesn't cover gets disabled right now, not on
             // some future renewal date.
-            $this->flashDisabledPackages(Site7Studio::getInstance()->plan->refreshCurrentPlanAndSyncEntitlements()['disabledHandles']);
-            Craft::$app->getSession()->setNotice('Plan downgraded.');
+            $planResult = Site7Studio::getInstance()->plan->refreshCurrentPlanAndSyncEntitlements();
+            $this->flashEntitlementChanges($planResult);
+            $this->appendNotice('Plan downgraded.');
         } catch (\Throwable $e) {
             Craft::$app->getSession()->setError('Could not downgrade plan: ' . $e->getMessage());
         }
@@ -318,19 +323,44 @@ class CommerceController extends Controller
     }
 
     /**
-     * @param string[] $disabledHandles
+     * Flashes the result of a PlanService::refreshCurrentPlanAndSyncEntitlements()
+     * call - both packages just disabled (no longer covered) and packages
+     * just auto-re-enabled (covered again, and this same mechanism was what
+     * had disabled them - see PackageService::syncEntitlements()'s docblock).
+     *
+     * @param array{disabledHandles: string[], reEnabledHandles: string[]} $planResult
      */
-    private function flashDisabledPackages(array $disabledHandles): void
+    private function flashEntitlementChanges(array $planResult): void
     {
-        if (empty($disabledHandles)) {
-            return;
+        if (!empty($planResult['disabledHandles'])) {
+            Craft::$app->getSession()->setError(
+                'Your plan no longer includes: ' . implode(', ', $planResult['disabledHandles'])
+                . '. They’ve been disabled and will be removable in '
+                . \site7\studio\services\commerce\PackageService::GRACE_PERIOD_DAYS
+                . ' days unless you upgrade again.'
+            );
         }
-        Craft::$app->getSession()->setError(
-            'Your plan no longer includes: ' . implode(', ', $disabledHandles)
-            . '. They’ve been disabled and will be removable in '
-            . \site7\studio\services\commerce\PackageService::GRACE_PERIOD_DAYS
-            . ' days unless you upgrade again.'
-        );
+        if (!empty($planResult['reEnabledHandles'])) {
+            Craft::$app->getSession()->setNotice(
+                'Your plan now includes: ' . implode(', ', $planResult['reEnabledHandles'])
+                . ' again. They’ve been automatically re-enabled.'
+            );
+        }
+    }
+
+    /**
+     * Appends $message to any notice already set (e.g. by
+     * flashEntitlementChanges()) instead of overwriting it - Craft's
+     * setNotice() only ever keeps the single most recent call. Must read
+     * back through getNotice() (not getFlash('notice')) since CP requests
+     * store the notice under a different, structured flash key - see
+     * SessionBehavior::setNotice()/getNotice().
+     */
+    private function appendNotice(string $message): void
+    {
+        $session = Craft::$app->getSession();
+        $existing = $session->getNotice();
+        $session->setNotice($existing ? $existing . ' ' . $message : $message);
     }
 
     private function flashUpdateResult(array $result): void

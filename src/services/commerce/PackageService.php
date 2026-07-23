@@ -125,19 +125,26 @@ class PackageService extends Component implements PackageProviderInterface
      * deletePendingPackage()) once the grace period has passed, since it's
      * irreversible and this reconciliation runs unattended.
      *
-     * @return string[] handles that were disabled by this call
+     * Also auto-re-enables the reverse case: a package that's disabled and
+     * back in an allowed plan/purchase, but only if $pending already has an
+     * entry for it - i.e. this exact mechanism was what disabled it. That's
+     * the only reliable signal available; a package disabled by the site
+     * owner for unrelated reasons (before or after a downgrade) was never
+     * added to $pending and is deliberately left alone, since silently
+     * re-enabling content someone chose to turn off would be worse than
+     * requiring a manual Enable click.
+     *
+     * @return array{disabled: string[], reEnabled: string[]}
      */
     public function syncEntitlements(PlanInfo $plan): array
     {
         $packageManager = Site7Studio::getInstance()->packageManager;
         $pending = $this->getPendingDeletions();
         $disabled = [];
+        $reEnabled = [];
         $managedHandles = $this->getAllCommerceManagedHandles();
 
         foreach ($packageManager->getAllPackages() as $record) {
-            if ($record->status !== 'enabled') {
-                continue;
-            }
             // Only packages Commerce24 actually catalogs (in some plan's
             // includedPackages, or purchased/free) are ever touched here -
             // a package the developer authored locally and never listed
@@ -146,9 +153,19 @@ class PackageService extends Component implements PackageProviderInterface
             if (!in_array($record->handle, $managedHandles, true)) {
                 continue;
             }
+
             if ($this->isCurrentlyAllowed($record->handle, $plan)) {
-                // Back in an allowed plan/purchase - drop any grace-period countdown.
-                unset($pending[$record->handle]);
+                if (isset($pending[$record->handle])) {
+                    unset($pending[$record->handle]);
+                    if ($record->status === 'disabled') {
+                        $packageManager->enablePackage($record->handle);
+                        $reEnabled[] = $record->handle;
+                    }
+                }
+                continue;
+            }
+
+            if ($record->status !== 'enabled') {
                 continue;
             }
 
@@ -159,7 +176,7 @@ class PackageService extends Component implements PackageProviderInterface
 
         $this->savePendingDeletions($pending);
 
-        return $disabled;
+        return ['disabled' => $disabled, 'reEnabled' => $reEnabled];
     }
 
     /**
