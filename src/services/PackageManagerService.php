@@ -296,13 +296,16 @@ class PackageManagerService extends Component
     {
         $record = $this->getPackageByHandle($handle);
         if ($record && $record->type === 'section') {
+            // Deliberately does NOT call craftResourceGenerator->removePackageResources()
+            // here - that deletes the entry type outright, which cascades into Craft
+            // soft-deleting every existing nested entry of that type (see
+            // Entries::handleDeletedEntryType()). Uninstalling (unlike deletePackage()'s
+            // permanent removal) must leave the entry type and its fields intact so a
+            // later installPackage() reuses the exact same one via
+            // CraftResourceService::createMatrixEntryType()'s existing-handle check,
+            // instead of generating a new entry type that orphans any content already
+            // authored against the old one.
             $this->unlinkFromMatrix($handle);
-            
-            // Remove resources
-            $packagePath = $this->getPackagePath($handle);
-            if ($packagePath && is_dir($packagePath)) {
-                \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->removePackageResources($packagePath);
-            }
         }
 
         $result = $this->updatePackageStatus($handle, 'available');

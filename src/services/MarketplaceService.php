@@ -8,6 +8,7 @@ use site7\studio\interfaces\MarketplaceRepositoryInterface;
 use site7\studio\records\PackageDependencyRecord;
 use site7\studio\records\PackageRecord;
 use site7\studio\records\PackageVersionRecord;
+use site7\studio\repositories\marketplace\Commerce24MarketplaceRepository;
 use site7\studio\repositories\marketplace\LocalMarketplaceRepository;
 use site7\studio\Site7Studio;
 
@@ -40,6 +41,10 @@ class MarketplaceService extends Component
         parent::init();
         if (empty($this->repositories)) {
             $this->registerRepository(new LocalMarketplaceRepository());
+            // Only lists/downloads anything once Commerce24 is configured
+            // (listAvailablePackages() returns [] otherwise) - see
+            // Commerce24MarketplaceRepository's own docblock.
+            $this->registerRepository(new Commerce24MarketplaceRepository());
         }
     }
 
@@ -59,6 +64,11 @@ class MarketplaceService extends Component
     public function getRepositories(): array
     {
         return $this->repositories;
+    }
+
+    public function getRepository(string $handle): ?MarketplaceRepositoryInterface
+    {
+        return $this->repositories[$handle] ?? null;
     }
 
     /**
@@ -124,6 +134,39 @@ class MarketplaceService extends Component
         $validation = $importService->validatePackage($listing->filePath);
         if (!$validation->valid) {
             throw new \Exception('The available update failed validation: ' . implode(' ', $validation->errors));
+        }
+
+        return $importService->importPackage($validation, [
+            'overwriteConflicts' => true,
+            'install' => true,
+            'enable' => true,
+        ]);
+    }
+
+    /**
+     * Fetches a package straight from a specific repository listing (the
+     * Repository tab's "Install" button) and imports it, regardless of
+     * whether it's currently installed - unlike updatePackage(), which only
+     * ever acts on a handle that's already present in getAllPackages().
+     * This is what makes a repository listing actually installable on its
+     * own, rather than only reachable via a manual Import upload.
+     *
+     * @throws \Exception if the repository doesn't exist, doesn't have this
+     *                     package, or the fetched archive fails validation.
+     */
+    public function installFromRepository(string $repositoryHandle, string $handle): array
+    {
+        $repository = $this->getRepository($repositoryHandle);
+        if (!$repository) {
+            throw new \Exception("Repository '{$repositoryHandle}' was not found.");
+        }
+
+        $path = $repository->fetchPackage($handle);
+
+        $importService = new PackageImportService();
+        $validation = $importService->validatePackage($path);
+        if (!$validation->valid) {
+            throw new \Exception('The package failed validation: ' . implode(' ', $validation->errors));
         }
 
         return $importService->importPackage($validation, [

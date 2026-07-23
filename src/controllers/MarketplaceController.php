@@ -189,6 +189,36 @@ class MarketplaceController extends Controller
     }
 
     /**
+     * The Repository tab's "Install" button: fetches a listed package straight
+     * from a specific repository and imports it, whether or not it's
+     * currently installed - see MarketplaceService::installFromRepository()'s
+     * docblock for why this is distinct from actionUpdatePackage().
+     */
+    public function actionInstallFromRepository()
+    {
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $repositoryHandle = (string)$request->getRequiredBodyParam('repositoryHandle');
+        $handle = (string)$request->getRequiredBodyParam('handle');
+
+        try {
+            $summary = Site7Studio::getInstance()->marketplace->installFromRepository($repositoryHandle, $handle);
+
+            $message = "'{$handle}' was installed from {$repositoryHandle}.";
+            if (!empty($summary['errors'])) {
+                Craft::$app->getSession()->setError($message . ' Errors: ' . implode(', ', $summary['errors']));
+            } else {
+                Craft::$app->getSession()->setNotice($message);
+            }
+        } catch (\Throwable $e) {
+            Craft::$app->getSession()->setError("Could not install '{$handle}' from {$repositoryHandle}: " . $e->getMessage());
+        }
+
+        return $this->redirect('site7-studio/marketplace?tab=repository');
+    }
+
+    /**
      * Removes and reinstalls a package's generated Craft resources from its current files on disk.
      */
     public function actionReinstallPackage()
