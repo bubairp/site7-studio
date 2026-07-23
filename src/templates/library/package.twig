@@ -29,6 +29,10 @@
             <a href="{{ url('site7-studio/packages/' ~ package.handle ~ '/edit') }}" class="btn">{{ "Edit"|t('site7-studio') }}</a>
         {% endif %}
 
+        {% if currentUser.can('publishPackages') %}
+            <a href="{{ url('site7-studio/packages/' ~ package.handle ~ '/publish') }}" class="btn">{{ "Publish"|t('site7-studio') }}</a>
+        {% endif %}
+
         {# Preview button is ALWAYS visible, regardless of status #}
         <button type="button" class="btn" id="site7-preview-btn"
             data-handle="{{ package.handle }}"
@@ -286,4 +290,35 @@
             <p class="light">{{ "This package is not currently used in any entries."|t('site7-studio') }}</p>
         {% endif %}
     </section>
+
+    {% if publishHistory is defined and publishHistory|length %}
+        <hr>
+        <section class="site7-detail-section">
+            <h2>{{ "Publish History"|t('site7-studio') }}</h2>
+            <table class="data fullwidth">
+                <thead>
+                    <tr>
+                        <th>{{ "Repository"|t('site7-studio') }}</th>
+                        <th>{{ "Version"|t('site7-studio') }}</th>
+                        <th>{{ "Status"|t('site7-studio') }}</th>
+                        <th>{{ "Downloads"|t('site7-studio') }}</th>
+                        <th>{{ "Published"|t('site7-studio') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set statusColors = {published: 'teal', failed: 'red', unpublished: 'gray'} %}
+                    {% for publication in publishHistory %}
+                        {% set color = statusColors[publication.status] ?? 'gray' %}
+                        <tr>
+                            <td>{{ publication.repositoryHandle }}</td>
+                            <td>v{{ publication.version }}</td>
+                            <td><span class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ publication.status|title }}</span></span></td>
+                            <td class="light">{{ publication.downloadCount }}</td>
+                            <td class="light">{{ publication.publishedAt }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
 {% endblock %}

@@ -16,6 +16,7 @@ use site7\studio\providers\CoreServiceProvider;
 use site7\studio\providers\CpServiceProvider;
 use site7\studio\providers\EventServiceProvider;
 use site7\studio\providers\LibraryServiceProvider;
+use site7\studio\providers\PublishingServiceProvider;
 
 /**
  * Site7 Studio plugin
@@ -34,6 +35,13 @@ use site7\studio\providers\LibraryServiceProvider;
  * @property-read \site7\studio\services\commerce\DownloadService $downloads
  * @property-read \site7\studio\services\commerce\UpdateService $updates
  * @property-read \site7\studio\services\commerce\FeatureGateService $featureGate
+ * @property-read \site7\studio\services\publishing\PackageBuilderService $packageBuilder
+ * @property-read \site7\studio\services\publishing\PublishValidatorService $publishValidator
+ * @property-read \site7\studio\services\publishing\RepositoryManagerService $repositoryManager
+ * @property-read \site7\studio\services\publishing\VersionManagerService $versionManager
+ * @property-read \site7\studio\services\publishing\PublishHistoryService $publishHistory
+ * @property-read \site7\studio\interfaces\PackageSignerInterface $packageSigner
+ * @property-read \site7\studio\services\publishing\PackagePublisherService $publisher
  */
 class Site7Studio extends Plugin
 {
@@ -84,6 +92,7 @@ class Site7Studio extends Plugin
             new CpServiceProvider(),
             new LibraryServiceProvider(),
             new CommerceServiceProvider(),
+            new PublishingServiceProvider(),
         ];
 
         foreach ($providers as $provider) {
@@ -197,6 +206,8 @@ class Site7Studio extends Plugin
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview-image'] = 'site7-studio/library/preview-image';
                 $event->rules['site7-studio/packages/new'] = 'site7-studio/package-authoring/new';
                 $event->rules['site7-studio/packages/<handle:[\w\-]+>/edit'] = 'site7-studio/package-authoring/edit';
+                $event->rules['site7-studio/packages/<handle:[\w\-]+>/publish'] = 'site7-studio/package-publisher/wizard';
+                $event->rules['site7-studio/publishing'] = 'site7-studio/package-publisher/index';
                 // Only the Marketplace's own navigational GET route needs an explicit
                 // rule here - actionExport/actionImportUpload/etc. are reached via the
                 // "action" hidden form field like every other package-lifecycle POST

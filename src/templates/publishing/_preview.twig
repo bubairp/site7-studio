@@ -1,0 +1,62 @@
+{#
+ # Publish wizard - Preview step.
+ # Params: package (PackageRecord), readiness (PublishReadinessResult), history (PackagePublicationRecord[])
+ #}
+<div class="pane" style="margin-bottom: 16px;">
+    <div class="meta">
+        <div class="field">
+            <div class="heading"><label>{{ "Package"|t('site7-studio') }}</label></div>
+            <div class="input">{{ package.name }} <span class="light">({{ package.handle }})</span></div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Type"|t('site7-studio') }}</label></div>
+            <div class="input">{{ package.type|title }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Version"|t('site7-studio') }}</label></div>
+            <div class="input">v{{ package.version }}</div>
+        </div>
+        <div class="field">
+            <div class="heading"><label>{{ "Validation Score"|t('site7-studio') }}</label></div>
+            <div class="input">{{ readiness.score }}% - {{ readiness.label|t('site7-studio') }}</div>
+        </div>
+    </div>
+</div>
+
+{% if readiness.warnings|length %}
+    <div class="site7-notice" style="margin-bottom: 16px;">
+        <strong>{{ "Warnings:"|t('site7-studio') }}</strong>
+        <ul>{% for warning in readiness.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+    </div>
+{% endif %}
+
+{% if history|length %}
+    <section class="site7-detail-section">
+        <h2>{{ "Previously Published"|t('site7-studio') }}</h2>
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "Repository"|t('site7-studio') }}</th>
+                    <th>{{ "Version"|t('site7-studio') }}</th>
+                    <th>{{ "Status"|t('site7-studio') }}</th>
+                    <th>{{ "Published"|t('site7-studio') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for publication in history %}
+                    <tr>
+                        <td>{{ publication.repositoryHandle }}</td>
+                        <td>v{{ publication.version }}</td>
+                        <td class="light">{{ publication.status|title }}</td>
+                        <td class="light">{{ publication.publishedAt }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+{% endif %}
+
+<div class="site7-quick-actions">
+    <a href="{{ url('site7-studio/packages/' ~ package.handle ~ '/publish', {step: 'repository'}) }}" class="btn submit">{{ "Continue to Repository"|t('site7-studio') }}</a>
+    <a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="btn">{{ "Cancel"|t('site7-studio') }}</a>
+</div>

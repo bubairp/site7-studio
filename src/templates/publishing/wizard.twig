@@ -1,0 +1,33 @@
+{% extends "_layouts/cp" %}
+{% set selectedSubnavItem = "publishing" %}
+{% set typeLabel = package.type == 'starter-kit' ? 'Starter Kits' : package.type|title ~ 's' %}
+{% set crumbs = [
+    {label: 'Library'|t('site7-studio'), url: 'site7-studio/library'},
+    {label: typeLabel, url: 'site7-studio/library?type=' ~ package.type},
+    {label: package.name, url: 'site7-studio/library/package/' ~ package.handle},
+    {label: 'Publish'|t('site7-studio'), current: true},
+] %}
+
+{% set tabs = {
+    validate: {label: 'Validate'|t('site7-studio'), url: url('site7-studio/packages/' ~ package.handle ~ '/publish', {step: 'validate'})},
+    metadata: {label: 'Metadata'|t('site7-studio'), url: url('site7-studio/packages/' ~ package.handle ~ '/publish', {step: 'metadata'})},
+    preview: {label: 'Preview'|t('site7-studio'), url: url('site7-studio/packages/' ~ package.handle ~ '/publish', {step: 'preview'})},
+    repository: {label: 'Repository & Publish'|t('site7-studio'), url: url('site7-studio/packages/' ~ package.handle ~ '/publish', {step: 'repository'})},
+} %}
+{% set selectedTab = activeStep %}
+
+{% block pageTitle %}
+    <h1 id="page-heading" class="screen-title">{{ "Publish"|t('site7-studio') }}: {{ package.name }}</h1>
+{% endblock %}
+
+{% block content %}
+    {% if activeStep == 'validate' %}
+        {% include "site7-studio/publishing/_validate" with {package: package, readiness: readiness} only %}
+    {% elseif activeStep == 'metadata' %}
+        {% include "site7-studio/publishing/_metadata" with {package: package, manifest: manifest, readiness: readiness} only %}
+    {% elseif activeStep == 'preview' %}
+        {% include "site7-studio/publishing/_preview" with {package: package, readiness: readiness, history: history} only %}
+    {% elseif activeStep == 'repository' %}
+        {% include "site7-studio/publishing/_repository" with {package: package, readiness: readiness, targets: targets, history: history} only %}
+    {% endif %}
+{% endblock %}

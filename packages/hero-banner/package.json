@@ -1,0 +1,17 @@
+{
+    "name": "hero-banner",
+    "displayName": "Hero Banner",
+    "version": "1.0.0",
+    "description": "A high impact hero section.",
+    "author": "Site7",
+    "company": "Site7 Inc.",
+    "license": "MIT",
+    "homepage": null,
+    "keywords": [],
+    "site7": {
+        "type": "section",
+        "pricingType": "free",
+        "minimumCraftVersion": "5.10.0",
+        "minimumSite7Version": "1.0.0"
+    }
+}

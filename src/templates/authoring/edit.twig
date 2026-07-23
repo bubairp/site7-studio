@@ -21,6 +21,9 @@
 {% endblock %}
 
 {% block actionButton %}
+    {% if currentUser.can('publishPackages') %}
+        <a href="{{ url('site7-studio/packages/' ~ package.handle ~ '/publish') }}" class="btn submit">{{ "Publish"|t('site7-studio') }}</a>
+    {% endif %}
     <a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="btn">{{ "View in Library"|t('site7-studio') }}</a>
 {% endblock %}
 

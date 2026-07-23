@@ -69,6 +69,7 @@ class CpSubscriber implements EventSubscriberInterface
                 'library' => ['label' => 'Library', 'url' => 'site7-studio/library'],
                 'marketplace' => ['label' => 'Marketplace', 'url' => 'site7-studio/marketplace'],
                 'commerce' => ['label' => 'Commerce & Licensing', 'url' => 'site7-studio/commerce'],
+                'publishing' => ['label' => 'Publishing', 'url' => 'site7-studio/publishing'],
                 'settings' => ['label' => 'Settings', 'url' => 'site7-studio/settings'],
             ],
         ]);
@@ -97,6 +98,17 @@ class CpSubscriber implements EventSubscriberInterface
             'managePackages' => 'Manage Packages',
             'manageUpdates' => 'Manage Updates',
             'manageTeam' => 'Manage Team',
+        ] as $handle => $label) {
+            $event->registry->registerPermission('Site7 Studio', $handle, ['label' => $label]);
+        }
+
+        // Package Publishing Platform permissions.
+        foreach ([
+            'publishPackages' => 'Publish Packages',
+            'manageRepositories' => 'Manage Repositories',
+            'manageVersions' => 'Manage Versions',
+            'viewPublishHistory' => 'View Publish History',
+            'managePackageMetadata' => 'Manage Package Metadata',
         ] as $handle => $label) {
             $event->registry->registerPermission('Site7 Studio', $handle, ['label' => $label]);
         }

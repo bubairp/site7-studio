@@ -1,0 +1,60 @@
+{#
+ # Publish wizard - Repository & Publish step.
+ # Params: package (PackageRecord), readiness (PublishReadinessResult),
+ #         targets (PackagePublishTargetInterface[]), history (PackagePublicationRecord[])
+ #}
+{% if not readiness.valid %}
+    <div class="site7-notice site7-notice--warning" style="margin-bottom: 16px;">
+        {{ "This package still fails validation - go back to the Validate step before publishing."|t('site7-studio') }}
+    </div>
+{% elseif targets is empty %}
+    {% include "site7-studio/_components/empty-state" with {
+        message: 'No repository is available to publish to right now.',
+        subtext: 'The Local Repository should always be available - check the Marketplace → Repository tab.',
+        icon: '📦'
+    } only %}
+{% else %}
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        <input type="hidden" name="action" value="site7-studio/package-publisher/publish">
+        <input type="hidden" name="handle" value="{{ package.handle }}">
+
+        <section class="site7-detail-section" style="margin-bottom: 24px;">
+            <h2>{{ "Repository"|t('site7-studio') }}</h2>
+            <div class="checkbox-group">
+                {% for handle, target in targets %}
+                    <label class="flex flex-nowrap flex-gap-s" style="margin-bottom: 8px;">
+                        <input type="radio" name="repositoryHandle" value="{{ handle }}" {{ loop.first ? 'checked' }}>
+                        {{ target.getName() }}
+                    </label>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="site7-detail-section" style="margin-bottom: 24px;">
+            <h2>{{ "Version"|t('site7-studio') }}</h2>
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label>{{ "Bump Version"|t('site7-studio') }}</label></div>
+                <div class="input">
+                    <div class="select">
+                        <select name="bumpType">
+                            <option value="">{{ "Keep current (v" ~ package.version ~ ")"|t('site7-studio') }}</option>
+                            <option value="patch">{{ "Patch"|t('site7-studio') }}</option>
+                            <option value="minor">{{ "Minor"|t('site7-studio') }}</option>
+                            <option value="major">{{ "Major"|t('site7-studio') }}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="field">
+                <div class="heading"><label for="pub-release-notes">{{ "Release Notes"|t('site7-studio') }}</label></div>
+                <div class="input"><textarea id="pub-release-notes" class="text fullwidth" name="releaseNotes" rows="3" placeholder="What changed in this release?"></textarea></div>
+            </div>
+        </section>
+
+        <button type="button" class="btn submit"
+            onclick="if(confirm('Publish {{ package.name|e('js') }} now? This builds a fresh .s7pkg and makes it available from the selected repository.')) { this.closest('form').submit(); }"
+        >{{ "Publish"|t('site7-studio') }}</button>
+        <a href="{{ url('site7-studio/packages/' ~ package.handle ~ '/publish', {step: 'preview'}) }}" class="btn">{{ "Back"|t('site7-studio') }}</a>
+    </form>
+{% endif %}

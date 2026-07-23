@@ -132,6 +132,7 @@ class LibraryController extends Controller
 
         $usage = Site7Studio::getInstance()->packageUsage->getUsage($handle);
         [$hasPreviewImage, $hasPreviewTemplate] = $this->getPreviewFlags($package);
+        $publishHistory = Site7Studio::getInstance()->publishHistory->getHistory($handle);
 
         return $this->renderTemplate('site7-studio/library/package', [
             'title' => $package->name,
@@ -140,6 +141,7 @@ class LibraryController extends Controller
             'usage' => $usage,
             'hasPreviewImage' => $hasPreviewImage,
             'hasPreviewTemplate' => $hasPreviewTemplate,
+            'publishHistory' => $publishHistory,
         ]);
     }
 

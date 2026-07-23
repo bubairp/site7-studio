@@ -98,7 +98,13 @@ class PackageAuthoringService extends Component
      * portable, single-source-of-truth definition) and its PackageRecord
      * (the DB-side mirror the Library/Package Engine actually query).
      *
-     * @param array $fields {name?, description?, category?, tags?, author?, version?}
+     * @param array $fields {name?, description?, category?, tags?, author?, version?,
+     *   displayName?, company?, website?, supportUrl?, documentationUrl?, license?,
+     *   pricingType?, minimumCraftVersion?, minimumSite7Version?, keywords?}
+     *   The Publishing-metadata keys (displayName..keywords) are optional and additive -
+     *   see PackageManifest's own docblock; they're written the same way as every
+     *   other field here (manifest.json is the source of truth, PackageRecord mirrors
+     *   what's actually queryable elsewhere in the CP).
      * @throws \Exception if the package can't be found.
      */
     public function updatePackage(string $handle, array $fields): PackageRecord
@@ -116,13 +122,20 @@ class PackageAuthoringService extends Component
 
         $manifestData = json_decode(file_get_contents($packagePath . '/manifest.json'), true) ?: [];
 
-        foreach (['name', 'description', 'category', 'author', 'version'] as $key) {
+        foreach ([
+            'name', 'description', 'category', 'author', 'version',
+            'displayName', 'company', 'website', 'supportUrl', 'documentationUrl',
+            'license', 'pricingType', 'minimumCraftVersion', 'minimumSite7Version',
+        ] as $key) {
             if (array_key_exists($key, $fields)) {
                 $manifestData[$key] = $fields[$key];
             }
         }
         if (array_key_exists('tags', $fields)) {
             $manifestData['tags'] = array_values(array_filter(array_map('trim', explode(',', (string)$fields['tags']))));
+        }
+        if (array_key_exists('keywords', $fields)) {
+            $manifestData['keywords'] = array_values(array_filter(array_map('trim', explode(',', (string)$fields['keywords']))));
         }
 
         file_put_contents($packagePath . '/manifest.json', json_encode($manifestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -144,6 +157,15 @@ class PackageAuthoringService extends Component
         }
         if (isset($manifestData['tags'])) {
             $record->tags = implode(',', $manifestData['tags']);
+        }
+        // requiredCraftVersion/minimumStudioVersion have existed on this table
+        // since the original package-tables migration but nothing populated
+        // them until now - see PackageManifest's minimumCraftVersion/minimumSite7Version.
+        if (isset($manifestData['minimumCraftVersion'])) {
+            $record->requiredCraftVersion = $manifestData['minimumCraftVersion'];
+        }
+        if (isset($manifestData['minimumSite7Version'])) {
+            $record->minimumStudioVersion = $manifestData['minimumSite7Version'];
         }
         $record->save();
 

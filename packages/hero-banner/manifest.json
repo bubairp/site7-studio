@@ -7,6 +7,19 @@
     "author": "Site7",
     "description": "A high impact hero section.",
     "category": "Header",
-    "tags": ["Hero", "Slider"],
-    "dependencies": []
+    "tags": [
+        "Hero",
+        "Slider"
+    ],
+    "dependencies": [],
+    "displayName": "",
+    "company": "Site7 Inc.",
+    "website": "",
+    "supportUrl": "",
+    "documentationUrl": "",
+    "license": "MIT",
+    "pricingType": "free",
+    "minimumCraftVersion": "5.10.0",
+    "minimumSite7Version": "1.0.0",
+    "keywords": []
 }

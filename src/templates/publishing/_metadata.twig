@@ -1,0 +1,111 @@
+{#
+ # Publish wizard - Metadata step.
+ # Params: package (PackageRecord), manifest (PackageManifest|null), readiness (PublishReadinessResult)
+ #}
+{% set packageTags = package.tags is iterable ? package.tags|join(', ') : package.tags %}
+{% set keywords = manifest and manifest.keywords is defined ? manifest.keywords|join(', ') : '' %}
+
+<form method="post" accept-charset="UTF-8">
+    {{ csrfInput() }}
+    <input type="hidden" name="action" value="site7-studio/package-publisher/save-metadata">
+    <input type="hidden" name="handle" value="{{ package.handle }}">
+
+    <section class="site7-detail-section" style="margin-bottom: 24px;">
+        <h2>{{ "Identity"|t('site7-studio') }}</h2>
+        <div class="flex flex-gap-m" style="margin-bottom: 16px;">
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-display-name">{{ "Display Name"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-display-name" class="text fullwidth" type="text" name="displayName" value="{{ manifest.displayName ?? '' }}" placeholder="{{ package.name }}"></div>
+            </div>
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-version">{{ "Version"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-version" class="text fullwidth" type="text" name="version" value="{{ package.version }}"></div>
+            </div>
+        </div>
+        <div class="field" style="margin-bottom: 16px;">
+            <div class="heading"><label for="pub-description">{{ "Description"|t('site7-studio') }}</label></div>
+            <div class="input"><textarea id="pub-description" class="text fullwidth" name="description" rows="3">{{ package.description }}</textarea></div>
+        </div>
+        <div class="flex flex-gap-m">
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-category">{{ "Category"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-category" class="text fullwidth" type="text" name="category" value="{{ package.category }}"></div>
+            </div>
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-tags">{{ "Tags"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-tags" class="text fullwidth" type="text" name="tags" value="{{ packageTags }}" placeholder="Comma-separated"></div>
+            </div>
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-keywords">{{ "Keywords"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-keywords" class="text fullwidth" type="text" name="keywords" value="{{ keywords }}" placeholder="Comma-separated"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="site7-detail-section" style="margin-bottom: 24px;">
+        <h2>{{ "Author & Organization"|t('site7-studio') }}</h2>
+        <div class="flex flex-gap-m" style="margin-bottom: 16px;">
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-author">{{ "Author"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-author" class="text fullwidth" type="text" name="author" value="{{ package.author }}"></div>
+            </div>
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-company">{{ "Company"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-company" class="text fullwidth" type="text" name="company" value="{{ manifest.company ?? '' }}"></div>
+            </div>
+        </div>
+        <div class="flex flex-gap-m">
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-website">{{ "Website"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-website" class="text fullwidth" type="text" name="website" value="{{ manifest.website ?? '' }}" placeholder="https://"></div>
+            </div>
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-support-url">{{ "Support URL"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-support-url" class="text fullwidth" type="text" name="supportUrl" value="{{ manifest.supportUrl ?? '' }}" placeholder="https://"></div>
+            </div>
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-docs-url">{{ "Documentation URL"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-docs-url" class="text fullwidth" type="text" name="documentationUrl" value="{{ manifest.documentationUrl ?? '' }}" placeholder="https://"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="site7-detail-section" style="margin-bottom: 24px;">
+        <h2>{{ "Licensing & Pricing"|t('site7-studio') }}</h2>
+        <div class="flex flex-gap-m">
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-license">{{ "License"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-license" class="text fullwidth" type="text" name="license" value="{{ manifest.license ?? '' }}" placeholder="MIT, GPL-3.0, Proprietary…"></div>
+            </div>
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-pricing-type">{{ "Pricing Type"|t('site7-studio') }}</label></div>
+                <div class="input">
+                    <div class="select">
+                        <select id="pub-pricing-type" name="pricingType">
+                            {% for value, label in {free: 'Free', premium: 'Premium', private: 'Private', enterprise: 'Enterprise'} %}
+                                <option value="{{ value }}" {{ (manifest.pricingType ?? 'free') == value ? 'selected' }}>{{ label|t('site7-studio') }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="site7-detail-section" style="margin-bottom: 24px;">
+        <h2>{{ "Compatibility"|t('site7-studio') }}</h2>
+        <div class="flex flex-gap-m">
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-min-craft">{{ "Minimum Craft Version"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-min-craft" class="text fullwidth" type="text" name="minimumCraftVersion" value="{{ manifest.minimumCraftVersion ?? '' }}" placeholder="5.0.0"></div>
+            </div>
+            <div class="field flex-grow">
+                <div class="heading"><label for="pub-min-site7">{{ "Minimum SITE7 Version"|t('site7-studio') }}</label></div>
+                <div class="input"><input id="pub-min-site7" class="text fullwidth" type="text" name="minimumSite7Version" value="{{ manifest.minimumSite7Version ?? '' }}" placeholder="1.0.0"></div>
+            </div>
+        </div>
+    </section>
+
+    <button type="submit" class="btn submit">{{ "Save & Continue to Preview"|t('site7-studio') }}</button>
+    <a href="{{ url('site7-studio/packages/' ~ package.handle ~ '/publish', {step: 'validate'}) }}" class="btn">{{ "Back"|t('site7-studio') }}</a>
+</form>

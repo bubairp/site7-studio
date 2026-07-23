@@ -50,6 +50,30 @@ class PackageManifest extends Model
      */
     public array $pages = [];
 
+    // --- Package Publishing metadata (Phase 14) ---
+    // All optional and additive - a manifest.json written before Phase 14
+    // still parses fine with these simply defaulting to null/empty, and
+    // nothing else in the Package Engine reads or requires them.
+
+    /** A friendlier name than the internal $name, for marketplace/catalog display. Falls back to $name when blank. */
+    public ?string $displayName = null;
+    public ?string $company = null;
+    public ?string $website = null;
+    public ?string $supportUrl = null;
+    public ?string $documentationUrl = null;
+
+    /** e.g. 'MIT', 'GPL-3.0', 'Proprietary' - free text, not validated against an SPDX list. */
+    public ?string $license = null;
+
+    /** One of PackagePublisher::PRICING_TYPES - see that interface/service for the fixed handle list. */
+    public string $pricingType = 'free';
+
+    public ?string $minimumCraftVersion = null;
+    public ?string $minimumSite7Version = null;
+
+    /** @var string[] Search/discovery keywords, distinct from $tags (which drive Library filtering). */
+    public array $keywords = [];
+
     /**
      * @inheritdoc
      */
@@ -58,7 +82,8 @@ class PackageManifest extends Model
         $rules = parent::defineRules();
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion'], 'required'];
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview', 'sourceEntryType', 'sourceSection'], 'string'];
-        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages'], 'safe'];
+        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords'], 'safe'];
+        $rules[] = [['displayName', 'company', 'website', 'supportUrl', 'documentationUrl', 'license', 'pricingType', 'minimumCraftVersion', 'minimumSite7Version'], 'string'];
         return $rules;
     }
 }

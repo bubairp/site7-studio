@@ -1,0 +1,44 @@
+{#
+ # Publish wizard - Validate step.
+ # Params: package (PackageRecord), readiness (PublishReadinessResult)
+ #}
+{% set scoreColor = readiness.score >= 90 ? 'teal' : (readiness.score >= 60 ? 'amber' : 'red') %}
+
+<div class="pane" style="margin-bottom: 16px;">
+    <div class="flex flex-nowrap flex-gap-l" style="align-items: center;">
+        <div style="font-size: 40px; font-weight: 700;">{{ readiness.score }}%</div>
+        <div>
+            <span class="status-label {{ scoreColor }}">
+                <span class="status {{ scoreColor }}"></span>
+                <span class="status-label-text">{{ readiness.label|t('site7-studio') }}</span>
+            </span>
+        </div>
+    </div>
+</div>
+
+{% if readiness.errors|length %}
+    <div class="site7-notice site7-notice--warning" style="margin-bottom: 16px;">
+        <strong>{{ "This package cannot be published yet:"|t('site7-studio') }}</strong>
+        <ul>
+            {% for error in readiness.errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+{% if readiness.warnings|length %}
+    <section class="site7-detail-section">
+        <h2>{{ "Suggestions"|t('site7-studio') }}</h2>
+        <ul class="light">
+            {% for warning in readiness.warnings %}<li>{{ warning }}</li>{% endfor %}
+        </ul>
+    </section>
+{% endif %}
+
+<div class="site7-quick-actions">
+    {% if readiness.valid %}
+        <a href="{{ url('site7-studio/packages/' ~ package.handle ~ '/publish', {step: 'metadata'}) }}" class="btn submit">{{ "Continue to Metadata"|t('site7-studio') }}</a>
+    {% else %}
+        <a href="{{ url('site7-studio/packages/' ~ package.handle ~ '/edit') }}" class="btn submit">{{ "Fix in Package Editor"|t('site7-studio') }}</a>
+    {% endif %}
+    <a href="{{ url('site7-studio/library/package/' ~ package.handle) }}" class="btn">{{ "Cancel"|t('site7-studio') }}</a>
+</div>

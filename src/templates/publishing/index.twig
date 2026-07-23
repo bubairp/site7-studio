@@ -1,0 +1,76 @@
+{% extends "_layouts/cp" %}
+{% set selectedSubnavItem = "publishing" %}
+{% set title = "Publishing"|t('site7-studio') %}
+
+{% block content %}
+    <section class="site7-detail-section" style="margin-bottom: 24px;">
+        <h2>{{ "Repositories"|t('site7-studio') }}</h2>
+        <p class="light">{{ "Where packages published from this site can go. Future Private/Enterprise repositories register the same way, through PackagePublishTargetInterface."|t('site7-studio') }}</p>
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Repository"|t('site7-studio') }}</th>
+                    <th scope="col">{{ "Status"|t('site7-studio') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for handle, target in targets %}
+                    <tr>
+                        <td>{{ target.getName() }}</td>
+                        <td>
+                            {% if target.supportsPublish() %}
+                                <span class="status-label teal"><span class="status teal"></span><span class="status-label-text">{{ "Available"|t('site7-studio') }}</span></span>
+                            {% else %}
+                                <span class="status-label gray"><span class="status gray"></span><span class="status-label-text">{{ "Not Configured"|t('site7-studio') }}</span></span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="site7-detail-section">
+        <h2>{{ "Publish History"|t('site7-studio') }}</h2>
+        {% if history|length %}
+            <table class="data fullwidth big">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ "Package"|t('site7-studio') }}</th>
+                        <th scope="col">{{ "Repository"|t('site7-studio') }}</th>
+                        <th scope="col">{{ "Version"|t('site7-studio') }}</th>
+                        <th scope="col">{{ "Status"|t('site7-studio') }}</th>
+                        <th scope="col">{{ "Downloads"|t('site7-studio') }}</th>
+                        <th scope="col">{{ "Published"|t('site7-studio') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for publication in history %}
+                        {% set pkg = publication.package %}
+                        {% set statusColor = {published: 'teal', failed: 'red', unpublished: 'gray'}[publication.status] ?? 'gray' %}
+                        <tr>
+                            <th scope="row">
+                                {% if pkg %}
+                                    <a href="{{ url('site7-studio/library/package/' ~ pkg.handle) }}">{{ pkg.name }}</a>
+                                {% else %}
+                                    <span class="light">{{ "Deleted package"|t('site7-studio') }}</span>
+                                {% endif %}
+                            </th>
+                            <td>{{ publication.repositoryHandle }}</td>
+                            <td>v{{ publication.version }}</td>
+                            <td><span class="status-label {{ statusColor }}"><span class="status {{ statusColor }}"></span><span class="status-label-text">{{ publication.status|title }}</span></span></td>
+                            <td class="light">{{ publication.downloadCount }}</td>
+                            <td class="light">{{ publication.publishedAt }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            {% include "site7-studio/_components/empty-state" with {
+                message: 'Nothing published yet.',
+                subtext: 'Open a package in the Library and click Publish to get started.',
+                icon: '🚀'
+            } only %}
+        {% endif %}
+    </section>
+{% endblock %}
