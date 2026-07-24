@@ -1,0 +1,28 @@
+{
+    "schemaVersion": "1",
+    "handle": "entry-type-universal-card",
+    "name": "Entry Type: Universal Card",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "admin",
+    "description": "Imported from the Craft Entry Type \"Universal Card\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "displayView",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 107,
+        "sourceHandle": "universalCard",
+        "importedAt": "2026-07-24T01:19:42-07:00",
+        "importedBy": "admin"
+    }
+}

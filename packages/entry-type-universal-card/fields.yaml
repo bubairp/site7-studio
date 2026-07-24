@@ -1,0 +1,12 @@
+name: 'Entry Type: Universal Card Fields'
+fields:
+    -
+        handle: contentType
+        name: 'Content Type'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: itemsPerRow
+        name: 'Items Per Row'
+        type: Dropdown
+        instructions: ''

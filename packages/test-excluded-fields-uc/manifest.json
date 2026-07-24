@@ -1,0 +1,72 @@
+{
+    "schemaVersion": "1",
+    "handle": "test-excluded-fields-uc",
+    "name": "Test Excluded Fields UC",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "admin",
+    "description": "Imported from the Craft Entry Type \"Universal Card\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "displayView",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [
+        {
+            "handle": "selectBlogs",
+            "name": "Select Blogs",
+            "type": "Entries",
+            "classification": "unknown-resource",
+            "detail": "Field type 'Entries' could not be classified - review manually before relying on this package."
+        },
+        {
+            "handle": "selectCasestudies",
+            "name": "Select Case Studies",
+            "type": "Entries",
+            "classification": "unknown-resource",
+            "detail": "Field type 'Entries' could not be classified - review manually before relying on this package."
+        },
+        {
+            "handle": "selectPortfolios",
+            "name": "Select Portfolios",
+            "type": "Entries",
+            "classification": "unknown-resource",
+            "detail": "Field type 'Entries' could not be classified - review manually before relying on this package."
+        },
+        {
+            "handle": "selectServices",
+            "name": "Select Services",
+            "type": "Entries",
+            "classification": "unknown-resource",
+            "detail": "Field type 'Entries' could not be classified - review manually before relying on this package."
+        },
+        {
+            "handle": "customItems",
+            "name": "Custom Items",
+            "type": "Matrix",
+            "classification": "unknown-resource",
+            "detail": "Field type 'Matrix' could not be classified - review manually before relying on this package."
+        },
+        {
+            "handle": "cardStyle",
+            "name": "Card Style",
+            "type": "Matrix",
+            "classification": "unknown-resource",
+            "detail": "Field type 'Matrix' could not be classified - review manually before relying on this package."
+        }
+    ],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 107,
+        "sourceHandle": "universalCard",
+        "importedAt": "2026-07-24T04:31:52-07:00",
+        "importedBy": "admin"
+    }
+}

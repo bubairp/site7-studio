@@ -4,25 +4,12 @@
     "name": "Test 3",
     "type": "template",
     "version": "1.0.0",
-    "author": "admin",
-    "description": "Captured from \"Test 3\" as part of the \"Demo Website Kit\" Starter Kit.",
+    "author": "",
+    "description": "",
     "category": "",
     "tags": [],
-    "sourceEntryType": "testPage",
-    "sourceSection": "testPages",
-    "requires": {
-        "patterns": [
-            "company"
-        ]
-    },
-    "demoContent": {
-        "hero-banner": {
-            "heading": "Hero"
-        },
-        "faq": {
-            "heading": "FAQ"
-        }
-    },
-    "entryFields": [],
+    "requires": [],
+    "demoContent": [],
+    "pages": [],
     "dependencies": []
 }

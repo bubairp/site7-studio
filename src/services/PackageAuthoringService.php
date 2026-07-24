@@ -208,12 +208,60 @@ class PackageAuthoringService extends Component
     }
 
     /**
+     * Reads manifest.json's `dependencies` (Shared Resources/Plugin
+     * Dependencies) and `importedFrom` provenance for display on the Package
+     * Editor - both were already written to disk by the Craft Resource
+     * Importer/Shared Resource Registry (Phases 15/16) but were never
+     * surfaced anywhere in the CP until now. Read-only; never written here.
+     *
+     * @return array{
+     *   sharedResources: array<int, array{handle: string, name: string, registered: bool, usageCount: int}>,
+     *   pluginDependencies: array<int, array{handle: string, requiredPlugin: string}>,
+     *   importedFrom: array
+     * }
+     */
+    public function getPackageDependencies(string $handle): array
+    {
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        $manifest = $record?->getManifest();
+        if (!$manifest) {
+            return ['sharedResources' => [], 'pluginDependencies' => [], 'importedFrom' => [], 'excludedFields' => []];
+        }
+
+        $registry = Site7Studio::getInstance()->sharedResourceRegistry;
+        $sharedResources = [];
+        foreach ((array)($manifest->dependencies['sharedResources'] ?? []) as $sharedHandle) {
+            if (!is_string($sharedHandle) || $sharedHandle === '') {
+                continue;
+            }
+            $registryRow = $registry->getByHandle($sharedHandle);
+            $sharedResources[] = [
+                'handle' => $sharedHandle,
+                'name' => $registryRow->name ?? $sharedHandle,
+                'registered' => $registryRow !== null,
+                'usageCount' => $registryRow ? $registry->getUsageCount($sharedHandle) : 0,
+            ];
+        }
+
+        return [
+            'sharedResources' => $sharedResources,
+            'pluginDependencies' => (array)($manifest->dependencies['pluginDependencies'] ?? []),
+            'importedFrom' => (array)$manifest->importedFrom,
+            'excludedFields' => (array)$manifest->excludedFields,
+        ];
+    }
+
+    /**
      * The Section Builder's read side: merges fields.yaml's field definitions
      * with preview/preview-data.yaml's demo values into one editable list.
-     * Section fields are all PlainText today (this plugin's established MVP
-     * scope), so there's nothing type-specific to surface per field yet.
+     * Includes each field's real `type` (Dropdown, Lightswitch, Ckeditor,
+     * etc., per CraftResourceService::FIELD_TYPE_MAP) rather than assuming
+     * PlainText - packages produced by the Craft Resource Importer
+     * (MatrixEntryTypeImportService/CraftSectionImportService) commonly have
+     * non-PlainText fields, and dropping the type here previously meant
+     * saveSectionFields() silently downgraded them to PlainText on any edit.
      *
-     * @return array<int, array{handle: string, name: string, instructions: string, demoValue: string}>
+     * @return array<int, array{handle: string, name: string, type: string, instructions: string, demoValue: string}>
      */
     public function getSectionFields(string $handle): array
     {
@@ -233,6 +281,7 @@ class PackageAuthoringService extends Component
                 $fields[$def['handle']] = [
                     'handle' => $def['handle'],
                     'name' => $def['name'] ?? $def['handle'],
+                    'type' => $def['type'] ?? 'PlainText',
                     'instructions' => $def['instructions'] ?? '',
                     'demoValue' => '',
                 ];
@@ -260,7 +309,11 @@ class PackageAuthoringService extends Component
      * only auto-generated the first time, so any hand-written markup from a
      * later editing pass survives re-saving the field list.
      *
-     * @param array $fields List of {handle, name, instructions?, demoValue?}; blank rows are dropped.
+     * @param array $fields List of {handle, name, type?, instructions?, demoValue?}; blank rows are dropped.
+     *   `type` defaults to PlainText only when not given (e.g. a brand-new row added in the
+     *   builder UI) - an existing field's real type (Dropdown, Lightswitch, Ckeditor, etc.,
+     *   as commonly produced by the Craft Resource Importer) is preserved rather than
+     *   downgraded, since getSectionFields() always round-trips the real type back in.
      * @throws \Exception if the package isn't a Section, or no valid fields were given.
      */
     public function saveSectionFields(string $handle, array $fields): void
@@ -285,6 +338,7 @@ class PackageAuthoringService extends Component
             $cleanFields[] = [
                 'handle' => $fieldHandle,
                 'name' => $name,
+                'type' => trim((string)($field['type'] ?? '')) ?: 'PlainText',
                 'instructions' => (string)($field['instructions'] ?? ''),
                 'demoValue' => (string)($field['demoValue'] ?? ''),
             ];
@@ -294,14 +348,32 @@ class PackageAuthoringService extends Component
             throw new \Exception('Add at least one field.');
         }
 
+        // The Package Builder's own field table has no UI for an Entries/
+        // Matrix field's settings (source Sections, referenced Entry Types)
+        // - carried over from the existing fields.yaml by handle so re-
+        // saving (e.g. just editing another field's Instructions) doesn't
+        // silently strip them, the same class of bug fixed earlier for a
+        // field's `type`.
+        $existingSettingsByHandle = [];
+        $fieldsYamlPath = $packagePath . '/fields.yaml';
+        if (file_exists($fieldsYamlPath)) {
+            $existingData = Yaml::parseFile($fieldsYamlPath);
+            foreach ($existingData['fields'] ?? [] as $existingDef) {
+                if (!empty($existingDef['handle']) && !empty($existingDef['settings'])) {
+                    $existingSettingsByHandle[$existingDef['handle']] = $existingDef['settings'];
+                }
+            }
+        }
+
         $fieldsYaml = [
             'name' => $record->name . ' Fields',
-            'fields' => array_map(fn($f) => [
+            'fields' => array_map(fn($f) => array_filter([
                 'handle' => $f['handle'],
                 'name' => $f['name'],
-                'type' => 'PlainText',
+                'type' => $f['type'],
                 'instructions' => $f['instructions'],
-            ], $cleanFields),
+                'settings' => $existingSettingsByHandle[$f['handle']] ?? [],
+            ], fn($v, $k) => $k !== 'settings' || !empty($v), ARRAY_FILTER_USE_BOTH), $cleanFields),
         ];
         file_put_contents($packagePath . '/fields.yaml', Yaml::dump($fieldsYaml, 4));
 

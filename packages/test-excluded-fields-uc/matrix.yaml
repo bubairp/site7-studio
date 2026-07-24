@@ -1,0 +1,8 @@
+name: 'Test Excluded Fields UC Matrix'
+blocks:
+    -
+        handle: universalCard
+        name: 'Universal Card'
+        fields:
+            - contentType
+            - itemsPerRow

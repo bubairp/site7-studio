@@ -1,0 +1,72 @@
+{% extends "_layouts/cp" %}
+{% set title = record.name %}
+{% set selectedSubnavItem = "library" %}
+
+{% block sidebar %}
+    {% include "site7-studio/_components/sidebar" with { selectedItem: 'sharedResources' } only %}
+{% endblock %}
+
+{% block content %}
+    <a href="{{ url('site7-studio/library/shared-resources') }}" class="go-back">&larr; Back to Shared Resources</a>
+
+    <div class="meta" style="margin-top: 16px;">
+        <div class="data">
+            <h5>Handle</h5>
+            <div class="value">{{ record.handle }}</div>
+        </div>
+        <div class="data">
+            <h5>Type</h5>
+            <div class="value">{{ record.type|title }}</div>
+        </div>
+        <div class="data">
+            <h5>Craft UID</h5>
+            <div class="value">{{ record.craftUid ?: '—' }}</div>
+        </div>
+        <div class="data">
+            <h5>Version</h5>
+            <div class="value">v{{ record.version }}</div>
+        </div>
+        <div class="data">
+            <h5>Status</h5>
+            <div class="value">{{ record.installStatus|title }}</div>
+        </div>
+        <div class="data">
+            <h5>Usage Count</h5>
+            <div class="value">{{ usageCount }}</div>
+        </div>
+    </div>
+
+    {% if describedFields|length %}
+        <h2>Fields</h2>
+        <table class="data fullwidth">
+            <thead><tr><th>Handle</th><th>Name</th><th>Type</th></tr></thead>
+            <tbody>
+                {% for field in describedFields %}
+                    <tr><td>{{ field.handle }}</td><td>{{ field.name }}</td><td>{{ field.type }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <h2>Referenced By (Packages)</h2>
+    {% if dependentPackages|length %}
+        <ul>
+            {% for p in dependentPackages %}
+                <li><a href="{{ url('site7-studio/library/package/' ~ p.handle) }}">{{ p.name }}</a> <span class="light">({{ p.type }})</span></li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="light">No packages currently reference this Shared Resource.</p>
+    {% endif %}
+
+    <h2>Referenced By (Other Shared Resources)</h2>
+    {% if dependentSharedResources|length %}
+        <ul>
+            {% for r in dependentSharedResources %}
+                <li><a href="{{ url('site7-studio/library/shared-resource/' ~ r.handle) }}">{{ r.name }}</a></li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="light">No other Shared Resources depend on this one.</p>
+    {% endif %}
+{% endblock %}

@@ -27,10 +27,16 @@ class PackageActionController extends Controller
             return $this->redirectToPostedUrl();
         }
 
-        $success = Site7Studio::getInstance()->packageManager->installPackage($handle);
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $success = $packageManager->installPackage($handle);
 
         if ($success) {
-            Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package installed successfully.'));
+            $warnings = $packageManager->getLastInstallWarnings();
+            if (!empty($warnings)) {
+                Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package installed with warnings: ') . implode(' ', $warnings));
+            } else {
+                Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package installed successfully.'));
+            }
         } else {
             Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Could not install package.'));
         }

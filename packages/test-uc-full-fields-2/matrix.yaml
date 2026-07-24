@@ -1,0 +1,14 @@
+name: 'Test UC Full Fields 2 Matrix'
+blocks:
+    -
+        handle: universalCard
+        name: 'Universal Card'
+        fields:
+            - contentType
+            - selectBlogs
+            - selectCasestudies
+            - selectPortfolios
+            - selectServices
+            - customItems
+            - itemsPerRow
+            - cardStyle

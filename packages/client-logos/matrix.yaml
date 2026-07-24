@@ -1,0 +1,9 @@
+name: 'Client Logos Matrix'
+blocks:
+    -
+        handle: clientLogos
+        name: 'Client Logos'
+        fields:
+            - displayMode
+            - columnPerRow
+            - logoTitleDisplay

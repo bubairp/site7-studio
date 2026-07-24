@@ -140,6 +140,15 @@
                 template: 'New Template',
                 'starter-kit': 'New Kit',
             } %}
+            {% set importButtonLabels = {
+                section: 'Import Existing Section',
+                template: 'Import Existing Page',
+                'starter-kit': 'Import Existing Website',
+            } %}
+            {% set importTypes = {section: 'section', template: 'page', 'starter-kit': 'website'} %}
+            {% if importButtonLabels[currentType] is defined %}
+                <button type="button" class="btn site7-import-trigger" data-import-type="{{ importTypes[currentType] }}" style="margin-left: 8px;">{{ importButtonLabels[currentType]|t('site7-studio') }}</button>
+            {% endif %}
             <a href="{{ url('site7-studio/packages/new', {type: currentType}) }}" class="btn submit" style="margin-left: 8px;">{{ (newButtonLabels[currentType] ?? 'New Entry')|t('site7-studio') }}</a>
         {% endif %}
     </div>

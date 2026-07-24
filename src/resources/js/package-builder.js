@@ -31,6 +31,7 @@
         row.innerHTML =
             '<td><input type="text" name="fields[' + index + '][handle]" class="text code"></td>' +
             '<td><input type="text" name="fields[' + index + '][name]" class="text"></td>' +
+            '<td><code>PlainText</code><input type="hidden" name="fields[' + index + '][type]" value="PlainText"></td>' +
             '<td><input type="text" name="fields[' + index + '][instructions]" class="text fullwidth"></td>' +
             '<td><input type="text" name="fields[' + index + '][demoValue]" class="text fullwidth"></td>' +
             '<td><button type="button" class="btn delete icon site7-remove-field-row" title="Remove"></button></td>';

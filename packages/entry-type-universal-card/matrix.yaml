@@ -1,0 +1,8 @@
+name: 'Entry Type: Universal Card Matrix'
+blocks:
+    -
+        handle: universalCard
+        name: 'Universal Card'
+        fields:
+            - contentType
+            - itemsPerRow

@@ -1,0 +1,29 @@
+{
+    "schemaVersion": "1",
+    "handle": "test-uc-full-fields-2",
+    "name": "Test UC Full Fields 2",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "admin",
+    "description": "Imported from the Craft Entry Type \"Universal Card\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "displayView",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 107,
+        "sourceHandle": "universalCard",
+        "importedAt": "2026-07-24T04:53:26-07:00",
+        "importedBy": "admin"
+    }
+}

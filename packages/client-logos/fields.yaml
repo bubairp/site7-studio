@@ -1,0 +1,17 @@
+name: 'Client Logos Fields'
+fields:
+    -
+        handle: displayMode
+        name: 'Display Mode'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: columnPerRow
+        name: 'Display Item Per Row'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: logoTitleDisplay
+        name: 'Logo Title Display'
+        type: Lightswitch
+        instructions: ''

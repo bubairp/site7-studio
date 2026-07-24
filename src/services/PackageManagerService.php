@@ -26,6 +26,22 @@ class PackageManagerService extends Component
     public PackageDiscovery $discovery;
 
     /**
+     * Non-blocking warnings from the most recent installPackage() call (e.g.
+     * a missing Shared Resource dependency) - surfaced by
+     * PackageActionController as a CP notice alongside the install result.
+     * @var string[]
+     */
+    private array $_lastInstallWarnings = [];
+
+    /**
+     * @return string[]
+     */
+    public function getLastInstallWarnings(): array
+    {
+        return $this->_lastInstallWarnings;
+    }
+
+    /**
      * @inheritdoc
      */
     public function init(): void
@@ -128,9 +144,27 @@ class PackageManagerService extends Component
      */
     public function installPackage(string $handle): bool
     {
+        $this->_lastInstallWarnings = [];
+
         $record = $this->getPackageByHandle($handle);
         if (!$record) {
             return false;
+        }
+
+        // Resolve Shared Resource dependencies (Phase 16's Dependency Engine)
+        // ahead of the existing per-type cascade below - a genuinely new edge
+        // (Section/any package -> Shared Resource) that cascade doesn't cover.
+        // Never blocks install: a missing Shared Resource is warned about and
+        // left for the developer to resolve from the Shared Resources Library
+        // (Import/Create/Skip) - see DependencyResolverService's docblock.
+        $manifest = $record->getManifest();
+        $sharedResourceHandles = (array)($manifest->dependencies['sharedResources'] ?? []);
+        if (!empty($sharedResourceHandles)) {
+            $resolution = (new DependencyResolverService())->resolveSharedResources($sharedResourceHandles);
+            foreach ($resolution['warnings'] as $warning) {
+                $this->_lastInstallWarnings[] = $warning;
+                Craft::warning($warning, __METHOD__);
+            }
         }
 
         // If it is a pattern, verify and install required Sections first

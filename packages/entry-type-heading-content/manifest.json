@@ -1,0 +1,21 @@
+{
+    "schemaVersion": "1",
+    "handle": "entry-type-heading-content",
+    "name": "Entry Type: Heading + Content",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "admin",
+    "description": "Imported from the Craft Entry Type \"Heading + Content\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 20,
+        "sourceHandle": "headingContent",
+        "importedAt": "2026-07-23T22:34:17-07:00",
+        "importedBy": "admin"
+    }
+}

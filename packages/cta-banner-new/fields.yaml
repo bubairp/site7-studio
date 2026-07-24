@@ -1,0 +1,22 @@
+name: 'CTA Banner New Fields'
+fields:
+    -
+        handle: plainTextSub
+        name: 'CTA Subheading'
+        type: PlainText
+        instructions: ''
+    -
+        handle: ctaBoxBackgroundColor
+        name: 'CTA Box Background Color'
+        type: Entries
+        instructions: ''
+        settings:
+            sectionHandles: [colorOptions]
+            maxRelations: 1
+            minRelations: null
+            selectionLabel: 'Add Color'
+    -
+        handle: rounded
+        name: 'Border Rounded'
+        type: Lightswitch
+        instructions: ''

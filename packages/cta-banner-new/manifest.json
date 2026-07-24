@@ -1,0 +1,33 @@
+{
+    "schemaVersion": "1",
+    "handle": "cta-banner-new",
+    "name": "CTA Banner New",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "admin",
+    "description": "Imported from the Craft Entry Type \"CTA Banner\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "plainText",
+            "switchOff",
+            "Description",
+            "imageVideo",
+            "image",
+            "button",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 50,
+        "sourceHandle": "ctaBanner",
+        "importedAt": "2026-07-24T04:53:48-07:00",
+        "importedBy": "admin"
+    }
+}

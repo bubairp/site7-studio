@@ -1,0 +1,40 @@
+{
+    "schemaVersion": "1",
+    "handle": "page-home",
+    "name": "Reconstructed Homepage",
+    "type": "template",
+    "version": "1.0.0",
+    "author": "admin",
+    "description": "Imported from an existing page with no Site7 content.",
+    "category": "",
+    "tags": [],
+    "sourceEntryType": "home",
+    "sourceSection": "home",
+    "requires": [],
+    "demoContent": [],
+    "entryFields": {
+        "h1Title": null,
+        "hideTitleHere": true,
+        "titleAlign": "start",
+        "introduction": null,
+        "bannerLayout": "sliderLayout2"
+    },
+    "dependencies": {
+        "sharedResources": [
+            "matrixContainer"
+        ],
+        "pluginDependencies": [
+            {
+                "handle": "basicSeo",
+                "requiredPlugin": "ether/seo"
+            }
+        ]
+    },
+    "importedFrom": {
+        "sourceType": "entry",
+        "sourceId": 26,
+        "sourceHandle": "home",
+        "importedAt": "2026-07-24T03:31:17-07:00",
+        "importedBy": "admin"
+    }
+}

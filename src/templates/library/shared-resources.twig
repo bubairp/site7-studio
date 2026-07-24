@@ -1,0 +1,84 @@
+{% extends "_layouts/cp" %}
+{% set title = "Shared Resources" %}
+{% set selectedSubnavItem = "library" %}
+
+{% block sidebar %}
+    {% include "site7-studio/_components/sidebar" with { selectedItem: 'sharedResources' } only %}
+{% endblock %}
+
+{% block content %}
+    <p class="light" style="margin-bottom: 16px;">
+        Craft resources intentionally reused across many packages (Matrix fields, shared fields, Volumes, Category/Tag Groups, Global Sets, Navigation fields). These are registered here once and referenced by packages - never duplicated.
+    </p>
+
+    {% if rows|length %}
+        <div class="tableview tablepane">
+            <table class="data fullwidth big" data-name="Shared Resources">
+                <caption class="visually-hidden">Shared Resources</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Version</th>
+                        <th scope="col">Referenced By</th>
+                        <th scope="col">Usage Count</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="thin">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        {% set record = row.record %}
+                        <tr data-id="{{ record.handle }}" data-title="{{ record.name }}">
+                            <th scope="row"><a class="label-link" href="{{ url('site7-studio/library/shared-resource/' ~ record.handle) }}">{{ record.name }}</a></th>
+                            <td>{{ record.type|title }}</td>
+                            <td>v{{ record.version }}</td>
+                            <td class="light">
+                                {% if row.dependentPackages|length %}
+                                    {{ row.dependentPackages|map(p => p.name)|join(', ') }}
+                                {% else %}
+                                    &mdash;
+                                {% endif %}
+                            </td>
+                            <td>{{ row.usageCount }}</td>
+                            <td>
+                                <span class="status-label {{ record.installStatus == 'registered' ? 'green' : 'orange' }}">
+                                    <span class="status {{ record.installStatus == 'registered' ? 'green' : 'orange' }}"></span>
+                                    <span class="status-label-text">{{ record.installStatus|title }}</span>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="flex flex-nowrap flex-gap-xs">
+                                    <a class="btn small" href="{{ url('site7-studio/library/shared-resource/' ~ record.handle) }}">Preview</a>
+                                    <a class="btn small" href="{{ url('site7-studio/shared-resource/export', {handle: record.handle}) }}">Export</a>
+                                    <form method="post" accept-charset="UTF-8" class="site7-inline-action-form">
+                                        {{ csrfInput() }}
+                                        {{ redirectInput(craft.app.request.url) }}
+                                        <input type="hidden" name="action" value="site7-studio/shared-resource/update">
+                                        <input type="hidden" name="handle" value="{{ record.handle }}">
+                                        <button type="submit" class="btn small">Update</button>
+                                    </form>
+                                    <form method="post" accept-charset="UTF-8" class="site7-inline-action-form">
+                                        {{ csrfInput() }}
+                                        {{ redirectInput(craft.app.request.url) }}
+                                        <input type="hidden" name="action" value="site7-studio/shared-resource/delete">
+                                        <input type="hidden" name="handle" value="{{ record.handle }}">
+                                        <button type="button" class="btn small delete icon" title="Delete" aria-label="Delete"
+                                            onclick="if(confirm('Delete this Shared Resource from the registry? The live Craft field itself is not affected. Blocked if anything still references it.')) { this.closest('form').submit(); }"
+                                        ></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        {% include "site7-studio/_components/empty-state" with {
+            message: 'No Shared Resources registered yet.',
+            subtext: 'Shared Resources are registered automatically the first time an import detects a field used across multiple Entry Types (e.g. blockStyle, button), or manually via Import.',
+            icon: '🔗'
+        } only %}
+    {% endif %}
+{% endblock %}

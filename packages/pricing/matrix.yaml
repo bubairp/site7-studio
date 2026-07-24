@@ -1,7 +1,0 @@
-name: 'Pricing Matrix'
-blocks:
-  -
-    handle: pricing
-    name: Pricing
-    fields:
-      - heading

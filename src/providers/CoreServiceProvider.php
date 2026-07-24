@@ -9,6 +9,10 @@ use site7\studio\services\CacheService;
 use site7\studio\services\PackageManagerService;
 use site7\studio\services\CraftResourceService;
 use site7\studio\services\MarketplaceService;
+use site7\studio\services\SharedResourceRegistryService;
+use site7\studio\services\SharedResourceUsageService;
+use site7\studio\services\DependencyResolverService;
+use site7\studio\services\import\ResourceClassifierService;
 
 /**
  * Class CoreServiceProvider
@@ -48,6 +52,22 @@ class CoreServiceProvider implements ServiceProviderInterface
 
         $plugin->set('marketplace', [
             'class' => MarketplaceService::class,
+        ]);
+
+        $plugin->set('sharedResourceRegistry', [
+            'class' => SharedResourceRegistryService::class,
+        ]);
+
+        $plugin->set('sharedResourceUsage', [
+            'class' => SharedResourceUsageService::class,
+        ]);
+
+        $plugin->set('dependencyResolver', [
+            'class' => DependencyResolverService::class,
+        ]);
+
+        $plugin->set('resourceClassifier', [
+            'class' => ResourceClassifierService::class,
         ]);
     }
 }

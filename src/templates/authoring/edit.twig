@@ -101,7 +101,7 @@
     <section class="site7-detail-section">
         <h2>{{ "Package Builder"|t('site7-studio') }}</h2>
         {% if package.type == 'section' %}
-            <p class="light">{{ "Fields are all plain text for now. Each row becomes a real Craft field when this Section is installed."|t('site7-studio') }}</p>
+            <p class="light">{{ "Each row becomes a real Craft field when this Section is installed. Type reflects what was actually detected on the source Entry Type (e.g. via Import Existing Section) and is preserved when you save - editing Handle/Name/Instructions/Demo Value never downgrades a field's type."|t('site7-studio') }}</p>
             <form method="post" accept-charset="UTF-8" id="site7-section-builder-form">
                 {{ csrfInput() }}
                 {{ redirectInput('site7-studio/packages/' ~ package.handle ~ '/edit') }}
@@ -113,6 +113,7 @@
                         <tr>
                             <th>{{ "Handle"|t('site7-studio') }}</th>
                             <th>{{ "Name"|t('site7-studio') }}</th>
+                            <th>{{ "Type"|t('site7-studio') }}</th>
                             <th>{{ "Instructions"|t('site7-studio') }}</th>
                             <th>{{ "Demo Value"|t('site7-studio') }}</th>
                             <th class="thin"></th>
@@ -123,6 +124,10 @@
                             <tr>
                                 <td><input type="text" name="fields[{{ loop.index0 }}][handle]" class="text code" value="{{ field.handle }}"></td>
                                 <td><input type="text" name="fields[{{ loop.index0 }}][name]" class="text" value="{{ field.name }}"></td>
+                                <td>
+                                    <code>{{ field.type }}</code>
+                                    <input type="hidden" name="fields[{{ loop.index0 }}][type]" value="{{ field.type }}">
+                                </td>
                                 <td><input type="text" name="fields[{{ loop.index0 }}][instructions]" class="text fullwidth" value="{{ field.instructions }}"></td>
                                 <td><input type="text" name="fields[{{ loop.index0 }}][demoValue]" class="text fullwidth" value="{{ field.demoValue }}"></td>
                                 <td><button type="button" class="btn delete icon site7-remove-field-row" title="{{ 'Remove'|t('site7-studio') }}"></button></td>
@@ -246,6 +251,86 @@
             <p class="light">{{ "The {type} Builder is coming in a later increment - for now, {type} packages are configured by hand-editing their manifest and package files."|t('site7-studio', {type: package.type|title}) }}</p>
         {% endif %}
     </section>
+
+    {% if packageDependencies.sharedResources|length or packageDependencies.pluginDependencies|length or packageDependencies.importedFrom|length or packageDependencies.excludedFields|length %}
+        <hr>
+
+        <section class="site7-detail-section">
+            <h2>{{ "Dependencies & Provenance"|t('site7-studio') }}</h2>
+
+            {% if packageDependencies.sharedResources|length %}
+                <h3>{{ "Shared Resources"|t('site7-studio') }}</h3>
+                <p class="light">{{ "Referenced by handle, never duplicated into this package - see the Shared Resources Library."|t('site7-studio') }}</p>
+                <table class="data fullwidth" style="margin-bottom: 16px;">
+                    <thead><tr><th>{{ "Name"|t('site7-studio') }}</th><th>{{ "Status"|t('site7-studio') }}</th><th>{{ "Usage Count"|t('site7-studio') }}</th></tr></thead>
+                    <tbody>
+                        {% for shared in packageDependencies.sharedResources %}
+                            <tr>
+                                <td>
+                                    {% if shared.registered %}
+                                        <a href="{{ url('site7-studio/library/shared-resource/' ~ shared.handle) }}">{{ shared.name }}</a>
+                                    {% else %}
+                                        {{ shared.name }} <span class="status-label orange">Not Registered</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ shared.registered ? 'Registered'|t('site7-studio') : 'Missing - resolve from the Shared Resources Library'|t('site7-studio') }}</td>
+                                <td>{{ shared.usageCount }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            {% if packageDependencies.pluginDependencies|length %}
+                <h3>{{ "Plugin Dependencies"|t('site7-studio') }}</h3>
+                <ul>
+                    {% for plugin in packageDependencies.pluginDependencies %}
+                        <li>{{ plugin.handle }} - {{ "requires"|t('site7-studio') }} <code>{{ plugin.requiredPlugin }}</code></li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if packageDependencies.importedFrom|length %}
+                <h3>{{ "Imported From"|t('site7-studio') }}</h3>
+                <div class="meta">
+                    {% if packageDependencies.importedFrom.sourceType %}
+                        <div class="field"><div class="heading"><label>{{ "Source Type"|t('site7-studio') }}</label></div><div class="input">{{ packageDependencies.importedFrom.sourceType }}</div></div>
+                    {% endif %}
+                    {% if packageDependencies.importedFrom.sourceHandle %}
+                        <div class="field"><div class="heading"><label>{{ "Source Handle"|t('site7-studio') }}</label></div><div class="input"><code>{{ packageDependencies.importedFrom.sourceHandle }}</code></div></div>
+                    {% endif %}
+                    {% if packageDependencies.importedFrom.importedAt %}
+                        <div class="field"><div class="heading"><label>{{ "Imported At"|t('site7-studio') }}</label></div><div class="input">{{ packageDependencies.importedFrom.importedAt }}</div></div>
+                    {% endif %}
+                    {% if packageDependencies.importedFrom.importedBy %}
+                        <div class="field"><div class="heading"><label>{{ "Imported By"|t('site7-studio') }}</label></div><div class="input">{{ packageDependencies.importedFrom.importedBy }}</div></div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            {% if packageDependencies.excludedFields|length %}
+                <h3>{{ "Detected Fields Not Imported"|t('site7-studio') }}</h3>
+                <p class="light">{{ "Found on the source but not captured into this package - not a content field, and not a Shared Resource or Plugin Dependency either. Shown here so nothing detected during import goes unaccounted for."|t('site7-studio') }}</p>
+                <table class="data fullwidth" style="margin-bottom: 16px;">
+                    <thead><tr><th>{{ "Field"|t('site7-studio') }}</th><th>{{ "Type"|t('site7-studio') }}</th><th>{{ "Status"|t('site7-studio') }}</th></tr></thead>
+                    <tbody>
+                        {% for field in packageDependencies.excludedFields %}
+                            <tr>
+                                <td><code>{{ field.handle }}</code></td>
+                                <td>{{ field.type }}</td>
+                                <td>
+                                    {% set isReview = field.classification in ['unknown-resource', 'review-required'] %}
+                                    <span class="status-label {{ isReview ? 'red' : 'gray' }}" title="{{ field.detail }}">
+                                        {{ field.statusLabel ?? field.classification }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </section>
+    {% endif %}
 
     <hr>
 

@@ -1,0 +1,70 @@
+name: 'Test UC Full Fields 2 Fields'
+fields:
+    -
+        handle: contentType
+        name: 'Content Type'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: selectBlogs
+        name: 'Select Blogs'
+        type: Entries
+        instructions: 'Leave empty to show all entries, or select entries to show only those.'
+        settings:
+            sectionHandles: [blogs]
+            maxRelations: null
+            minRelations: null
+            selectionLabel: null
+    -
+        handle: selectCasestudies
+        name: 'Select Case Studies'
+        type: Entries
+        instructions: 'Leave empty to show all entries, or select entries to show only those.'
+        settings:
+            sectionHandles: [casestudies]
+            maxRelations: null
+            minRelations: null
+            selectionLabel: null
+    -
+        handle: selectPortfolios
+        name: 'Select Portfolios'
+        type: Entries
+        instructions: 'Leave empty to show all entries, or select entries to show only those.'
+        settings:
+            sectionHandles: [portfolios]
+            maxRelations: null
+            minRelations: null
+            selectionLabel: null
+    -
+        handle: selectServices
+        name: 'Select Services'
+        type: Entries
+        instructions: 'Leave empty to show all entries, or select entries to show only those.'
+        settings:
+            sectionHandles: [services]
+            maxRelations: null
+            minRelations: null
+            selectionLabel: 'Add Service from Library'
+    -
+        handle: customItems
+        name: 'Custom Items'
+        type: Matrix
+        instructions: 'Use this if you want to add an item that is not in the main list.'
+        settings:
+            entryTypeHandles: [customItem]
+            viewMode: blocks
+            maxEntries: null
+    -
+        handle: itemsPerRow
+        name: 'Items Per Row'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: cardStyle
+        name: 'Card Style'
+        type: Matrix
+        instructions: ''
+        settings:
+            entryTypeHandles: [cardStyle]
+            viewMode: cards
+            maxEntries: 1

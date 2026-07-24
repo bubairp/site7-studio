@@ -19,6 +19,15 @@ class PackageManifest extends Model
     public ?string $category = null;
     public array $tags = [];
     public array $compatibility = [];
+
+    /**
+     * Phase 16 - the Shared Resource Registry's manifest-side contract:
+     * {sharedResources: string[], pluginDependencies: [{handle, requiredPlugin}]}.
+     * Never embeds a Shared Resource's own definition - only references it by
+     * handle, resolved against site7_shared_resources at install time
+     * (DependencyResolverService). Distinct from $requires, which is the
+     * existing (frozen) Section/Pattern/Template graph.
+     */
     public array $dependencies = [];
     public array $requires = [];
     public array $demoContent = [];
@@ -74,6 +83,37 @@ class PackageManifest extends Model
     /** @var string[] Search/discovery keywords, distinct from $tags (which drive Library filtering). */
     public array $keywords = [];
 
+    // --- Craft Resource Import metadata (Phase 15) ---
+    // Optional and additive, same rationale as the Phase 14 block above -
+    // absent/empty on any package that wasn't produced by the Resource
+    // Importer, including every package written before this phase existed.
+
+    /**
+     * Set only on packages produced by the Resource Importer:
+     * {sourceType: 'matrix-entry-type'|'craft-section'|'entry'|'website', sourceId,
+     * sourceHandle, importedAt, importedBy}. Never a live, resolvable reference - the
+     * source Craft resource may since have been renamed or removed.
+     */
+    public array $importedFrom = [];
+
+    /**
+     * Starter Kit imports only: captured Global Set field values, one entry per
+     * selected Global Set - {globalSetHandle, name, fields: {handle: value}}.
+     */
+    public array $globals = [];
+
+    /**
+     * Fields the Resource Importer detected on the source but did not
+     * capture into this package - Platform Configuration and Unknown
+     * Resource classified fields (Shared Resource and Plugin Dependency
+     * fields are recorded separately, in $dependencies). Recorded purely so
+     * the Package Editor can show "detected but not imported" instead of
+     * these fields disappearing without a trace once the source's own
+     * Analyze/Preview step is gone. Each entry is {handle, name, type,
+     * classification, detail}.
+     */
+    public array $excludedFields = [];
+
     /**
      * @inheritdoc
      */
@@ -82,7 +122,7 @@ class PackageManifest extends Model
         $rules = parent::defineRules();
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion'], 'required'];
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview', 'sourceEntryType', 'sourceSection'], 'string'];
-        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords'], 'safe'];
+        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords', 'importedFrom', 'globals', 'excludedFields'], 'safe'];
         $rules[] = [['displayName', 'company', 'website', 'supportUrl', 'documentationUrl', 'license', 'pricingType', 'minimumCraftVersion', 'minimumSite7Version'], 'string'];
         return $rules;
     }

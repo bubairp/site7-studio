@@ -230,12 +230,16 @@ class MarketplaceService extends Component
     }
 
     /**
-     * Persists a package's currently-resolved `requires` graph into
+     * Persists a package's currently-resolved `requires` graph, PLUS (Phase
+     * 16) its `dependencies.sharedResources` graph, into
      * site7_package_dependencies (previously written by nothing - the
      * install-time cascade in PackageManagerService::installPackage() reads
      * straight from the manifest instead). Called after import/export so the
      * table reflects reality; replaces any rows already recorded for this
-     * package to avoid duplicates on repeated imports.
+     * package to avoid duplicates on repeated imports. Shared Resource edges
+     * are recorded with dependencyType = 'sharedResource' - this is the only
+     * place "Referenced By"/usage count for a Shared Resource is computed
+     * from (see SharedResourceRegistryService::getDependentPackages()).
      */
     public function syncDependencyRecords(PackageRecord $record): void
     {
@@ -258,6 +262,18 @@ class MarketplaceService extends Component
                 $dependency->optional = false;
                 $dependency->save();
             }
+        }
+
+        foreach ((array)($manifest->dependencies['sharedResources'] ?? []) as $sharedHandle) {
+            if (!is_string($sharedHandle) || $sharedHandle === '') {
+                continue;
+            }
+            $dependency = new PackageDependencyRecord();
+            $dependency->packageId = $record->id;
+            $dependency->dependencyType = 'sharedResource';
+            $dependency->dependencyHandle = $sharedHandle;
+            $dependency->optional = false;
+            $dependency->save();
         }
     }
 

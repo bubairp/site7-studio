@@ -110,6 +110,13 @@ class PackageAuthoringController extends Controller
             ? $authoringService->getSectionFields($handle)
             : [];
 
+        // Shared Resource/Plugin dependencies and import provenance apply to
+        // any package type the Craft Resource Importer can produce (Sections,
+        // and Templates/Starter Kits via PageImportService/WebsiteImportService) -
+        // fetched unconditionally rather than gated to 'section' so none of
+        // them stay invisible in the CP.
+        $packageDependencies = $authoringService->getPackageDependencies($handle);
+
         $availableSections = [];
         $patternComposition = [];
         if ($package->type === 'pattern') {
@@ -149,6 +156,7 @@ class PackageAuthoringController extends Controller
             'title' => 'Edit: ' . $package->name,
             'package' => $package,
             'sectionFields' => $sectionFields,
+            'packageDependencies' => $packageDependencies,
             'availableSections' => $availableSections,
             'patternComposition' => $patternComposition,
             'availableTemplateItems' => $availableTemplateItems,

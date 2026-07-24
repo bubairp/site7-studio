@@ -1,0 +1,9 @@
+name: 'CTA Banner New Matrix'
+blocks:
+    -
+        handle: ctaBanner
+        name: 'CTA Banner'
+        fields:
+            - plainTextSub
+            - ctaBoxBackgroundColor
+            - rounded

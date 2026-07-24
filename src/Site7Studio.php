@@ -15,6 +15,7 @@ use site7\studio\providers\CommerceServiceProvider;
 use site7\studio\providers\CoreServiceProvider;
 use site7\studio\providers\CpServiceProvider;
 use site7\studio\providers\EventServiceProvider;
+use site7\studio\providers\ImportServiceProvider;
 use site7\studio\providers\LibraryServiceProvider;
 use site7\studio\providers\PublishingServiceProvider;
 
@@ -42,12 +43,23 @@ use site7\studio\providers\PublishingServiceProvider;
  * @property-read \site7\studio\services\publishing\PublishHistoryService $publishHistory
  * @property-read \site7\studio\interfaces\PackageSignerInterface $packageSigner
  * @property-read \site7\studio\services\publishing\PackagePublisherService $publisher
+ * @property-read \site7\studio\services\import\ResourceAnalyzerService $resourceAnalyzer
+ * @property-read \site7\studio\services\import\ResourceImportValidator $resourceImportValidator
+ * @property-read \site7\studio\services\import\MatrixEntryTypeImportService $matrixEntryTypeImporter
+ * @property-read \site7\studio\services\import\CraftSectionImportService $craftSectionImporter
+ * @property-read \site7\studio\services\import\PageImportService $pageImporter
+ * @property-read \site7\studio\services\import\WebsiteImportService $websiteImporter
+ * @property-read \site7\studio\services\SharedResourceRegistryService $sharedResourceRegistry
+ * @property-read \site7\studio\services\SharedResourceUsageService $sharedResourceUsage
+ * @property-read \site7\studio\services\DependencyResolverService $dependencyResolver
+ * @property-read \site7\studio\services\import\ResourceClassifierService $resourceClassifier
+ * @property-read \site7\studio\services\import\CraftResourceDiscoveryService $craftResourceDiscovery
  */
 class Site7Studio extends Plugin
 {
     use PluginTrait;
 
-    public string $schemaVersion = '1.0.2';
+    public string $schemaVersion = '1.0.3';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -91,6 +103,7 @@ class Site7Studio extends Plugin
             new EventServiceProvider(),
             new CpServiceProvider(),
             new LibraryServiceProvider(),
+            new ImportServiceProvider(),
             new CommerceServiceProvider(),
             new PublishingServiceProvider(),
         ];
@@ -200,6 +213,8 @@ class Site7Studio extends Plugin
                 $event->rules['site7-studio/setup'] = 'site7-studio/setup/index';
                 $event->rules['site7-studio/setup/complete'] = 'site7-studio/setup/complete';
                 $event->rules['site7-studio/library'] = 'site7-studio/library/index';
+                $event->rules['site7-studio/library/shared-resources'] = 'site7-studio/shared-resource/index';
+                $event->rules['site7-studio/library/shared-resource/<handle:[\w\-]+>'] = 'site7-studio/shared-resource/preview';
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>'] = 'site7-studio/library/package';
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/preview'] = 'site7-studio/library/preview';
                 $event->rules['site7-studio/library/package/<handle:[\w\-]+>/render-preview'] = 'site7-studio/library/render-preview';
