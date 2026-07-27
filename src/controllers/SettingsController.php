@@ -15,7 +15,50 @@ class SettingsController extends Controller
         return $this->renderTemplate('site7-studio/settings', [
             'title' => 'Settings',
             'settings' => Site7Studio::getInstance()->getSettings(),
+            'system' => $this->getSystemInfo(),
+            'links' => $this->getAboutLinks(),
         ]);
+    }
+
+    /**
+     * About tab links, read from composer.json's standard "homepage"/
+     * "support" fields rather than hardcoded - those don't exist yet for
+     * this plugin, so the About tab shows "Not yet available" until they're
+     * added there.
+     */
+    private function getAboutLinks(): array
+    {
+        $composerPath = dirname(Site7Studio::getInstance()->getBasePath()) . '/composer.json';
+        $composer = is_file($composerPath) ? json_decode(file_get_contents($composerPath), true) : [];
+
+        return [
+            'website' => $composer['homepage'] ?? null,
+            'documentation' => $composer['support']['docs'] ?? null,
+            'support' => $composer['support']['issues'] ?? $composer['support']['email'] ?? null,
+            'releaseNotes' => $composer['extra']['changelogUrl'] ?? null,
+        ];
+    }
+
+    /**
+     * Read-only data for the System tab. Everything here comes from Craft's
+     * own config/environment or from services this plugin already exposes -
+     * nothing is stored by this settings module itself, per the "use Craft's
+     * native configuration instead of maintaining our own" requirement.
+     */
+    private function getSystemInfo(): array
+    {
+        $plugin = Site7Studio::getInstance();
+
+        return [
+            'studioVersion' => $plugin->version,
+            'craftVersion' => Craft::$app->getVersion(),
+            'phpVersion' => PHP_VERSION,
+            'environment' => Craft::$app->env,
+            'devMode' => Site7Studio::isDevMode(),
+            'installedPackageCount' => count($plugin->packageManager->getAllPackages()),
+            'marketplaceConnected' => $plugin->commerceClient->isConfigured(),
+            'licenseStatus' => $plugin->license->getLicense()->status,
+        ];
     }
 
     /**

@@ -115,11 +115,12 @@ class CommerceClient extends Component implements CommerceClientInterface
             $this->httpClient = new Client([
                 'base_uri' => rtrim((string)$settings->commerceApiEndpoint, '/') . '/',
                 'timeout' => max(1, (int)$settings->commerceTimeout),
-                'headers' => [
+                'headers' => array_filter([
                     'Authorization' => 'Bearer ' . $this->resolveApiKey(),
                     'X-Site7-Environment' => $settings->commerceEnvironment ?: 'production',
+                    'X-Site7-Store' => $settings->commerceStoreIdentifier ?: null,
                     'Accept' => 'application/json',
-                ],
+                ]),
             ]);
         }
 

@@ -4,9 +4,8 @@
 
 {% set tabs = {
     general: { label: 'General'|t('site7-studio'), url: '#general' },
-    developer: { label: 'Developer Mode'|t('site7-studio'), url: '#developer' },
-    paths: { label: 'Paths'|t('site7-studio'), url: '#paths' },
     commerce: { label: 'Commerce'|t('site7-studio'), url: '#commerce' },
+    theme: { label: 'Theme Settings'|t('site7-studio'), url: '#theme' },
     system: { label: 'System'|t('site7-studio'), url: '#system' },
     about: { label: 'About'|t('site7-studio'), url: '#about' }
 } %}
@@ -14,61 +13,55 @@
 {% block content %}
     <div id="general" class="site7-settings-section">
         <h2>{{ "General"|t('site7-studio') }}</h2>
-        <p class="site7-text-muted">{{ "Configure basic platform settings."|t('site7-studio') }}</p>
-        <hr class="site7-divider">
-        <div class="field">
-            <div class="heading">
-                <label>{{ "Library Name"|t('site7-studio') }}</label>
-            </div>
-            <div class="input ltr">
-                <input class="text fullwidth" type="text" value="Site7 Studio" autocomplete="off">
-            </div>
-        </div>
-    </div>
+        <p class="light">{{ "Defaults applied when authoring a new package. These only pre-fill the New Package wizard - they can always be overridden per package."|t('site7-studio') }}</p>
+        <hr>
 
-    <div id="developer" class="site7-settings-section hidden">
-        <h2>{{ "Developer Mode"|t('site7-studio') }}</h2>
-        <p class="site7-text-muted">{{ "Enable advanced debugging and developer tools."|t('site7-studio') }}</p>
-        <hr class="site7-divider">
-        
-        <div class="field">
-            <div class="heading">
-                <label>{{ "Enable Developer Mode"|t('site7-studio') }}</label>
-                <div class="instructions"><p>{{ "When enabled, verbose logging and debug tools are active."|t('site7-studio') }}</p></div>
-            </div>
-            <div class="input ltr">
-                <div class="lightswitch">
-                    <div class="lightswitch-container">
-                        <div class="label on"></div>
-                        <div class="handle"></div>
-                        <div class="label off"></div>
-                    </div>
-                    <input type="hidden" name="devMode" value="0">
-                </div>
-            </div>
-        </div>
-    </div>
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ redirectInput('site7-studio/settings') }}
+            <input type="hidden" name="action" value="site7-studio/settings/save">
 
-    <div id="paths" class="site7-settings-section hidden">
-        <h2>{{ "Paths"|t('site7-studio') }}</h2>
-        <p class="site7-text-muted">{{ "Configure where Site7 Studio stores its assets."|t('site7-studio') }}</p>
-        <hr class="site7-divider">
-        
-        <div class="field">
-            <div class="heading">
-                <label>{{ "Section Paths"|t('site7-studio') }}</label>
-                <div class="instructions"><p>{{ "Define where Section JSON files are located."|t('site7-studio') }}</p></div>
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7set-pkg-author">{{ "Default Package Author"|t('site7-studio') }}</label></div>
+                <div class="input ltr"><input id="site7set-pkg-author" class="text fullwidth" type="text" name="settings[defaultPackageAuthor]" value="{{ settings.defaultPackageAuthor }}" autocomplete="off"></div>
             </div>
-            <div class="input ltr">
-                <input class="text fullwidth" type="text" value="@templates/_components" autocomplete="off">
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7set-pkg-vendor">{{ "Default Package Vendor"|t('site7-studio') }}</label></div>
+                <div class="input ltr"><input id="site7set-pkg-vendor" class="text fullwidth code" type="text" name="settings[defaultPackageVendor]" value="{{ settings.defaultPackageVendor }}" placeholder="my-company" autocomplete="off"></div>
             </div>
-        </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7set-pkg-namespace">{{ "Default Package Namespace"|t('site7-studio') }}</label></div>
+                <div class="input ltr"><input id="site7set-pkg-namespace" class="text fullwidth code" type="text" name="settings[defaultPackageNamespace]" value="{{ settings.defaultPackageNamespace }}" placeholder="MyCompany\\Packages" autocomplete="off"></div>
+            </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7set-pkg-license">{{ "Default Package License"|t('site7-studio') }}</label></div>
+                <div class="input ltr"><input id="site7set-pkg-license" class="text fullwidth code" type="text" name="settings[defaultPackageLicense]" value="{{ settings.defaultPackageLicense }}" autocomplete="off"></div>
+            </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading"><label for="site7set-pkg-version">{{ "Default Package Version"|t('site7-studio') }}</label></div>
+                <div class="input ltr"><input id="site7set-pkg-version" class="text fullwidth code" type="text" name="settings[defaultPackageVersion]" value="{{ settings.defaultPackageVersion }}" autocomplete="off"></div>
+            </div>
+
+            <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
+        </form>
     </div>
 
     <div id="commerce" class="site7-settings-section hidden">
-        <h2>{{ "Commerce & Licensing"|t('site7-studio') }}</h2>
+        <h2>{{ "Commerce"|t('site7-studio') }}</h2>
         <p class="light">{{ "Connection settings for Commerce24 - the backend for products, plans, licenses, subscriptions, and package entitlements. See the Commerce & Licensing section in the main navigation for license/subscription management."|t('site7-studio') }}</p>
         <hr>
+
+        {% set commerceConfigured = craft.app.plugins.getPlugin('site7-studio').commerceClient.isConfigured() %}
+
+        {% if not commerceConfigured %}
+            <div class="pane" style="border-left: 4px solid var(--gray-400); margin-bottom: 16px;">
+                <p>{{ "Commerce24 is not connected. Set an API Endpoint and API Key below to enable licensing, plans, and package entitlements."|t('site7-studio') }}</p>
+            </div>
+        {% endif %}
 
         <form method="post" accept-charset="UTF-8" id="site7-commerce-settings-form">
             {{ csrfInput() }}
@@ -76,21 +69,13 @@
             <input type="hidden" name="action" value="site7-studio/settings/save">
 
             <div class="field" style="margin-bottom: 16px;">
-                <div class="heading"><label for="site7set-api-endpoint">{{ "API Endpoint"|t('site7-studio') }}</label></div>
+                <div class="heading"><label for="site7set-api-endpoint">{{ "Commerce24 API Endpoint"|t('site7-studio') }}</label></div>
                 <div class="input ltr"><input id="site7set-api-endpoint" class="text fullwidth" type="text" name="settings[commerceApiEndpoint]" value="{{ settings.commerceApiEndpoint }}" placeholder="https://api.commerce24.example.com" autocomplete="off"></div>
             </div>
 
             <div class="field" style="margin-bottom: 16px;">
-                <div class="heading"><label for="site7set-environment">{{ "Environment"|t('site7-studio') }}</label></div>
-                <div class="input ltr">
-                    <div class="select">
-                        <select id="site7set-environment" name="settings[commerceEnvironment]">
-                            {% for env in ['production', 'staging', 'sandbox'] %}
-                                <option value="{{ env }}" {{ settings.commerceEnvironment == env ? 'selected' }}>{{ env|title }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
+                <div class="heading"><label for="site7set-store-id">{{ "Store Identifier"|t('site7-studio') }}</label></div>
+                <div class="input ltr"><input id="site7set-store-id" class="text fullwidth code" type="text" name="settings[commerceStoreIdentifier]" value="{{ settings.commerceStoreIdentifier }}" autocomplete="off"></div>
             </div>
 
             <div class="field" style="margin-bottom: 16px;">
@@ -98,13 +83,13 @@
                     <label for="site7set-api-key">{{ "API Key"|t('site7-studio') }}</label>
                     <div class="instructions"><p>{{ "Supports Craft's $ENV_VAR_NAME syntax to keep the real key out of the database."|t('site7-studio') }}</p></div>
                 </div>
-                <div class="input ltr"><input id="site7set-api-key" class="text fullwidth code" type="text" name="settings[commerceApiKey]" value="{{ settings.commerceApiKey }}" placeholder="$COMMERCE24_API_KEY" autocomplete="off"></div>
+                <div class="input ltr"><input id="site7set-api-key" class="text fullwidth code" type="password" name="settings[commerceApiKey]" value="{{ settings.commerceApiKey }}" placeholder="$COMMERCE24_API_KEY" autocomplete="off"></div>
             </div>
 
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label>{{ "Connection Status"|t('site7-studio') }}</label></div>
                 <div class="input ltr flex flex-nowrap flex-gap-s" style="align-items: center;">
-                    {% if craft.app.plugins.getPlugin('site7-studio').commerceClient.isConfigured() %}
+                    {% if commerceConfigured %}
                         <span class="status-label teal"><span class="status teal"></span><span class="status-label-text">{{ "Configured"|t('site7-studio') }}</span></span>
                     {% else %}
                         <span class="status-label gray"><span class="status gray"></span><span class="status-label-text">{{ "Not Configured"|t('site7-studio') }}</span></span>
@@ -118,79 +103,102 @@
                 </div>
             </div>
 
-            <div class="field" style="margin-bottom: 16px;">
-                <div class="heading">
-                    <label for="site7set-debug-mode">{{ "Debug Mode"|t('site7-studio') }}</label>
-                    <div class="instructions"><p>{{ "Logs every Commerce24 request/response to the Site7 Studio log."|t('site7-studio') }}</p></div>
-                </div>
-                <div class="input ltr">
-                    <label class="lightswitch-label">
-                        <input type="checkbox" name="settings[commerceDebugMode]" value="1" {{ settings.commerceDebugMode ? 'checked' }}>
-                        {{ "Enabled"|t('site7-studio') }}
-                    </label>
-                </div>
-            </div>
-
-            <div class="flex flex-gap-m" style="margin-bottom: 16px;">
-                <div class="field flex-grow">
-                    <div class="heading"><label for="site7set-cache-duration">{{ "Cache Duration"|t('site7-studio') }}</label></div>
-                    <div class="input ltr"><input id="site7set-cache-duration" class="text fullwidth" type="number" min="1" name="settings[commerceCacheDuration]" value="{{ settings.commerceCacheDuration }}"> {{ "seconds"|t('site7-studio') }}</div>
-                </div>
-                <div class="field flex-grow">
-                    <div class="heading"><label for="site7set-timeout">{{ "Timeout"|t('site7-studio') }}</label></div>
-                    <div class="input ltr"><input id="site7set-timeout" class="text fullwidth" type="number" min="1" name="settings[commerceTimeout]" value="{{ settings.commerceTimeout }}"> {{ "seconds"|t('site7-studio') }}</div>
-                </div>
-            </div>
-
-            <div class="field" style="margin-bottom: 16px;">
-                <div class="heading">
-                    <label for="site7set-default-package">{{ "Default Package"|t('site7-studio') }}</label>
-                    <div class="instructions"><p>{{ "The fallback package used when a user has no active subscription."|t('site7-studio') }}</p></div>
-                </div>
-                <div class="input ltr"><input id="site7set-default-package" class="text fullwidth" type="text" name="settings[defaultPackage]" value="{{ settings.defaultPackage }}" autocomplete="off"></div>
-            </div>
-
-            <div class="field" style="margin-bottom: 16px;">
-                <div class="heading">
-                    <label for="site7set-offline-features">{{ "Offline Features"|t('site7-studio') }}</label>
-                    <div class="instructions"><p>{{ "One feature handle per line. These stay allowed even when Commerce24 can't be reached - everything else fails closed."|t('site7-studio') }}</p></div>
-                </div>
-                <div class="input ltr"><textarea id="site7set-offline-features" class="text fullwidth code" name="settings[commerceOfflineFeatures]" rows="3">{{ settings.commerceOfflineFeatures|join("\n") }}</textarea></div>
-            </div>
-
             <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
         </form>
     </div>
 
+    <div id="theme" class="site7-settings-section hidden">
+        <h2>{{ "Theme Settings"|t('site7-studio') }}</h2>
+        <hr>
+        <div class="pane padded">
+            <p>{{ "Global theme configuration will be available in a future release."|t('site7-studio') }}</p>
+        </div>
+    </div>
+
     <div id="system" class="site7-settings-section hidden">
         <h2>{{ "System"|t('site7-studio') }}</h2>
-        <p class="site7-text-muted">{{ "Cache and log management."|t('site7-studio') }}</p>
-        <hr class="site7-divider">
-        
-        <div class="field">
-            <div class="heading">
-                <label>{{ "Clear Cache"|t('site7-studio') }}</label>
-            </div>
-            <div class="input ltr">
-                <button type="button" class="btn">{{ "Clear Cache"|t('site7-studio') }}</button>
+        <p class="light">{{ "Read-only information about this installation."|t('site7-studio') }}</p>
+        <hr>
+
+        <div class="pane padded">
+            <div class="meta">
+                <div class="data">
+                    <dt>{{ "SITE7 Studio Version"|t('site7-studio') }}</dt>
+                    <dd>{{ system.studioVersion }}</dd>
+                </div>
+                <div class="data">
+                    <dt>{{ "Craft CMS Version"|t('site7-studio') }}</dt>
+                    <dd>{{ system.craftVersion }}</dd>
+                </div>
+                <div class="data">
+                    <dt>{{ "PHP Version"|t('site7-studio') }}</dt>
+                    <dd>{{ system.phpVersion }}</dd>
+                </div>
+                <div class="data">
+                    <dt>{{ "Craft Environment"|t('site7-studio') }}</dt>
+                    <dd>{{ system.environment }}</dd>
+                </div>
+                <div class="data">
+                    <dt>{{ "Developer Mode"|t('site7-studio') }}</dt>
+                    <dd>
+                        {% if system.devMode %}
+                            <span class="status-label orange"><span class="status orange"></span><span class="status-label-text">{{ "Enabled"|t('site7-studio') }}</span></span>
+                        {% else %}
+                            <span class="status-label gray"><span class="status gray"></span><span class="status-label-text">{{ "Disabled"|t('site7-studio') }}</span></span>
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="data">
+                    <dt>{{ "Installed Package Count"|t('site7-studio') }}</dt>
+                    <dd>{{ system.installedPackageCount }}</dd>
+                </div>
+                <div class="data">
+                    <dt>{{ "Marketplace Status"|t('site7-studio') }}</dt>
+                    <dd>
+                        {% if system.marketplaceConnected %}
+                            <span class="status-label teal"><span class="status teal"></span><span class="status-label-text">{{ "Connected"|t('site7-studio') }}</span></span>
+                        {% else %}
+                            <span class="status-label gray"><span class="status gray"></span><span class="status-label-text">{{ "Not Connected"|t('site7-studio') }}</span></span>
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="data">
+                    <dt>{{ "License Status"|t('site7-studio') }}</dt>
+                    <dd>{{ system.licenseStatus|title }}</dd>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="about" class="site7-settings-section hidden">
         <h2>{{ "About Site7 Studio"|t('site7-studio') }}</h2>
-        <p class="site7-text-muted">{{ "Version and system information."|t('site7-studio') }}</p>
-        <hr class="site7-divider">
-        
+        <hr>
+
         <div class="pane padded">
+            <div class="flex flex-nowrap flex-gap-m" style="align-items: center; margin-bottom: 16px;">
+                <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--gray-700); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;" aria-hidden="true">S7</div>
+                <div>
+                    <strong>{{ "Site7 Studio"|t('site7-studio') }}</strong>
+                    <div class="light">{{ "Version"|t('site7-studio') }} {{ system.studioVersion }}</div>
+                </div>
+            </div>
+
             <div class="meta">
                 <div class="data">
-                    <dt>{{ "Version"|t('site7-studio') }}</dt>
-                    <dd>1.0.0</dd>
+                    <dt>{{ "Documentation"|t('site7-studio') }}</dt>
+                    <dd>{% if links.documentation is defined and links.documentation %}<a href="{{ links.documentation }}" target="_blank" rel="noopener">{{ links.documentation }}</a>{% else %}<span class="light">{{ "Not yet available"|t('site7-studio') }}</span>{% endif %}</dd>
                 </div>
                 <div class="data">
-                    <dt>{{ "Platform Status"|t('site7-studio') }}</dt>
-                    <dd><span class="status green"></span> Active</dd>
+                    <dt>{{ "Support"|t('site7-studio') }}</dt>
+                    <dd>{% if links.support is defined and links.support %}<a href="{{ links.support }}" target="_blank" rel="noopener">{{ links.support }}</a>{% else %}<span class="light">{{ "Not yet available"|t('site7-studio') }}</span>{% endif %}</dd>
+                </div>
+                <div class="data">
+                    <dt>{{ "Website"|t('site7-studio') }}</dt>
+                    <dd>{% if links.website is defined and links.website %}<a href="{{ links.website }}" target="_blank" rel="noopener">{{ links.website }}</a>{% else %}<span class="light">{{ "Not yet available"|t('site7-studio') }}</span>{% endif %}</dd>
+                </div>
+                <div class="data">
+                    <dt>{{ "Release Notes"|t('site7-studio') }}</dt>
+                    <dd>{% if links.releaseNotes is defined and links.releaseNotes %}<a href="{{ links.releaseNotes }}" target="_blank" rel="noopener">{{ links.releaseNotes }}</a>{% else %}<span class="light">{{ "Not yet available"|t('site7-studio') }}</span>{% endif %}</dd>
                 </div>
             </div>
         </div>

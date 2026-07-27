@@ -19,10 +19,25 @@ class Settings extends Model
      */
     public ?string $defaultPackage = null;
 
+    // --- General (defaults applied to newly-authored packages) ---
+
+    public ?string $defaultPackageAuthor = null;
+
+    public ?string $defaultPackageVendor = null;
+
+    public ?string $defaultPackageNamespace = null;
+
+    public string $defaultPackageLicense = 'MIT';
+
+    public string $defaultPackageVersion = '1.0.0';
+
     // --- Commerce & Licensing (Commerce24 integration) ---
 
     /** Base URL of the Commerce24 API this site talks to. */
     public ?string $commerceApiEndpoint = null;
+
+    /** Identifies which Commerce24 store/tenant this installation belongs to. */
+    public ?string $commerceStoreIdentifier = null;
 
     /** 'production', 'staging', or any environment Commerce24 recognizes. */
     public string $commerceEnvironment = 'production';
@@ -58,7 +73,13 @@ class Settings extends Model
     {
         $rules = parent::defineRules();
         $rules[] = [['matrixFieldId'], 'integer'];
-        $rules[] = [['defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceEnvironment'], 'string'];
+        $rules[] = [['defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment'], 'string'];
+        $rules[] = [
+            ['defaultPackageAuthor', 'defaultPackageVendor', 'defaultPackageNamespace', 'defaultPackageLicense', 'defaultPackageVersion'],
+            'string',
+        ];
+        $rules[] = [['defaultPackageLicense'], 'default', 'value' => 'MIT'];
+        $rules[] = [['defaultPackageVersion'], 'default', 'value' => '1.0.0'];
         $rules[] = [['commerceEnvironment'], 'default', 'value' => 'production'];
         $rules[] = [['commerceDebugMode'], 'boolean'];
         $rules[] = [['commerceCacheDuration', 'commerceTimeout'], 'integer'];
