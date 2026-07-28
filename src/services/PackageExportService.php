@@ -75,6 +75,7 @@ class PackageExportService extends Component
             'craftVersion' => Craft::$app->getVersion(),
             'site7Version' => $this->getPluginVersion(),
             'packages' => $bundleEntries,
+            'requiredSharedResources' => $this->collectSharedResourceHandles($closure),
         ]);
 
         $filename = $handle . '-' . $root->version . '-' . date('YmdHis') . '.s7pkg';
@@ -168,6 +169,34 @@ class PackageExportService extends Component
         }
 
         return $closure;
+    }
+
+    /**
+     * Collects the union of every Shared Resource handle referenced by any
+     * package in $closure, via each package's manifest `dependencies.sharedResources`.
+     * Shared Resources themselves are never bundled (they must already exist
+     * live on the installing site), so this is purely a manifest-level
+     * declaration of what the archive needs.
+     *
+     * @param PackageRecord[] $closure keyed by handle
+     * @return string[] unique, sorted Shared Resource handles
+     */
+    private function collectSharedResourceHandles(array $closure): array
+    {
+        $handles = [];
+        foreach ($closure as $record) {
+            $manifest = $record->getManifest();
+            if (!$manifest) {
+                continue;
+            }
+            foreach ((array)($manifest->dependencies['sharedResources'] ?? []) as $sharedHandle) {
+                $handles[$sharedHandle] = true;
+            }
+        }
+
+        $result = array_keys($handles);
+        sort($result);
+        return $result;
     }
 
     /**

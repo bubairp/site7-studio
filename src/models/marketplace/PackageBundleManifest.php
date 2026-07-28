@@ -44,6 +44,19 @@ class PackageBundleManifest extends Model
     public array $packages = [];
 
     /**
+     * Handles of every Shared Resource referenced (directly or transitively)
+     * by a package in this bundle. Shared Resources are never bundled - they
+     * must already exist live on the installing site (see
+     * DependencyResolverService) - so this is purely informational, letting
+     * the receiving side (and PublishValidatorService, at publish time)
+     * surface "this archive needs Shared Resource X" up front instead of
+     * only discovering it at install time.
+     *
+     * @var string[]
+     */
+    public array $requiredSharedResources = [];
+
+    /**
      * @inheritdoc
      */
     protected function defineRules(): array
@@ -51,7 +64,7 @@ class PackageBundleManifest extends Model
         $rules = parent::defineRules();
         $rules[] = [['schemaVersion', 'rootHandle', 'rootType'], 'required'];
         $rules[] = [['schemaVersion', 'generatedAt', 'rootHandle', 'rootType', 'craftVersion', 'site7Version'], 'string'];
-        $rules[] = [['packages'], 'safe'];
+        $rules[] = [['packages', 'requiredSharedResources'], 'safe'];
         return $rules;
     }
 

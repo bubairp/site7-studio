@@ -49,6 +49,10 @@ class PackageAuthoringService extends Component
         }
 
         $handle = trim((string)($meta['handle'] ?? '')) ?: StringHelper::toKebabCase($name);
+        if (!preg_match('/^[a-z0-9]+(-[a-z0-9]+)*$/', $handle)) {
+            throw new \Exception("The handle '{$handle}' is invalid. Handles may only contain lowercase letters, numbers, and hyphens.");
+        }
+
         $basePath = Craft::getAlias('@packages');
         if (is_dir($basePath . '/' . $handle)) {
             throw new \Exception("A package with the handle '{$handle}' already exists.");

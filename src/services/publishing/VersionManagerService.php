@@ -73,8 +73,11 @@ class VersionManagerService extends Component implements VersionManagerInterface
 
     private function bumpVersion(string $version, string $bumpType): string
     {
-        $parts = array_map('intval', explode('.', $version) + [0, 0, 0]);
-        [$major, $minor, $patch] = [$parts[0] ?? 0, $parts[1] ?? 0, $parts[2] ?? 0];
+        if (!preg_match('/^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/', $version, $matches)) {
+            throw new \Exception("Version '{$version}' is not a valid semantic version (expected major.minor.patch).");
+        }
+
+        [, $major, $minor, $patch] = array_map('intval', $matches);
 
         return match ($bumpType) {
             'major' => ($major + 1) . '.0.0',

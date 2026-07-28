@@ -28,20 +28,12 @@ class PackageValidator extends Component
 
         // Validate basic directory structure
         $path = rtrim($package->path, '/\\');
-        
-        // As per documentation, certain assets should be present.
-        // We will just do a soft check or assume they might be required in the future.
-        // For now, let's enforce that if it's a section package, it should probably have some template or matrix file.
-        // Actually, the Architecture handbook says "Packages missing required assets should fail validation"
-        // Required assets: Preview Image, Icon, Documentation, Version Info, Manifest.
-        // Let's do a basic check for preview and icon, or at least a README.
-        
+
+        // Architecture handbook: "Packages missing required assets should fail validation."
+        // Required assets checked here: Documentation (README.md).
         $readmePath = $path . DIRECTORY_SEPARATOR . 'README.md';
         if (!file_exists($readmePath)) {
-            // Soft warning or error? Spec says "Every package should contain documentation"
-            // For now, let's just log it or add a strict mode later. We will skip failing on README for testing ease,
-            // unless we want to be strict. Let's be strict as requested.
-            // $errors[] = "Missing required documentation (README.md).";
+            $errors[] = "Missing required documentation (README.md).";
         }
 
         // Dependency validation could go here, but full dependency resolution is in Milestone 4.3 or 4.1 says:

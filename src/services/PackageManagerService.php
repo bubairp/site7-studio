@@ -65,25 +65,13 @@ class PackageManagerService extends Component
      */
     public function discoverPackages(): int
     {
-        // Define our primary local library source
-        // Ideally this comes from a LibrarySourceInterface, but for now we'll use the plugins dir or a configurable path.
-        // We can just scan the built-in packages directory or the test fixtures for now if no built-in exists.
-        // Actually, let's scan a 'packages' folder in the craft root or site7-studio root.
         $pluginPath = Craft::getAlias('@site7/studio');
         $packagesPath = dirname($pluginPath) . '/packages'; // /plugins/site7-studio/packages
-        
-        // Let's also check the tests/fixtures/packages path for testing
-        $testPath = $pluginPath . '/tests/fixtures/packages';
-        
-        $pathsToScan = [$packagesPath, $testPath];
-        
+
         $totalDiscovered = 0;
 
-        foreach ($pathsToScan as $path) {
-            if (is_dir($path)) {
-                $count = $this->discovery->discoverFromPath($path);
-                $totalDiscovered += $count;
-            }
+        if (is_dir($packagesPath)) {
+            $totalDiscovered += $this->discovery->discoverFromPath($packagesPath);
         }
 
         // Save everything discovered in the registry into the DB repository
@@ -133,9 +121,6 @@ class PackageManagerService extends Component
         $pluginPath = Craft::getAlias('@site7/studio');
         $basePath = dirname($pluginPath);
         $packagePath = $basePath . '/packages/' . $handle;
-        if (!is_dir($packagePath)) {
-            $packagePath = $basePath . '/tests/fixtures/packages/' . $handle;
-        }
         return is_dir($packagePath) ? $packagePath : null;
     }
 

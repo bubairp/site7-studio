@@ -14,6 +14,31 @@ use craft\helpers\FileHelper;
 class PackageArchiveHelper
 {
     /**
+     * Filenames excluded from both the exported archive and the checksum,
+     * so OS/editor cruft that may sit in a package's source directory never
+     * ships inside a .s7pkg and never affects its checksum.
+     */
+    private const EXCLUDED_FILENAMES = ['.DS_Store', 'Thumbs.db', '.gitignore', '.gitkeep'];
+
+    /**
+     * Filename suffixes excluded on the same basis as EXCLUDED_FILENAMES.
+     */
+    private const EXCLUDED_SUFFIXES = ['.swp', '.tmp', '.bak'];
+
+    private static function isExcluded(string $filename): bool
+    {
+        if (in_array($filename, self::EXCLUDED_FILENAMES, true)) {
+            return true;
+        }
+        foreach (self::EXCLUDED_SUFFIXES as $suffix) {
+            if (str_ends_with($filename, $suffix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Produces a deterministic hash of every file's contents under $path,
      * independent of filesystem mtimes/permissions - two directories with
      * identical file contents always produce the same checksum, on any OS.
@@ -31,7 +56,7 @@ class PackageArchiveHelper
             );
             foreach ($iterator as $file) {
                 /** @var \SplFileInfo $file */
-                if ($file->isFile()) {
+                if ($file->isFile() && !self::isExcluded($file->getFilename())) {
                     $relative = ltrim(str_replace('\\', '/', substr($file->getPathname(), strlen($path))), '/');
                     $fileHashes[$relative] = hash_file('sha256', $file->getPathname());
                 }
@@ -64,6 +89,10 @@ class PackageArchiveHelper
 
         foreach ($iterator as $item) {
             /** @var \SplFileInfo $item */
+            if ($item->isFile() && self::isExcluded($item->getFilename())) {
+                continue;
+            }
+
             $relative = ltrim(str_replace('\\', '/', substr($item->getPathname(), strlen($path))), '/');
             $zipEntry = $zipPrefix . '/' . $relative;
 

@@ -92,6 +92,15 @@ class PackageImportService extends Component
             return $result;
         }
 
+        if (!empty($bundle->requiredSharedResources)) {
+            $sharedResourceRegistry = Site7Studio::getInstance()->sharedResourceRegistry;
+            foreach ($bundle->requiredSharedResources as $sharedHandle) {
+                if (!$sharedResourceRegistry->getByHandle($sharedHandle)) {
+                    $result->warnings[] = "This archive requires the Shared Resource '{$sharedHandle}', which does not exist on this site. Install/register it before enabling the imported package.";
+                }
+            }
+        }
+
         $packageManager = Site7Studio::getInstance()->packageManager;
 
         foreach ($bundle->packages as $entry) {
