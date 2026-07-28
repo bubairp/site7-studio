@@ -133,6 +133,11 @@ class LibraryController extends Controller
         $usage = Site7Studio::getInstance()->packageUsage->getUsage($handle);
         [$hasPreviewImage, $hasPreviewTemplate] = $this->getPreviewFlags($package);
         $publishHistory = Site7Studio::getInstance()->publishHistory->getHistory($handle);
+        // Backed by VersionManagerService/PackageVersionRecord since Package
+        // Publishing was built, but never surfaced anywhere in the CP until
+        // now - see actionCreateVersion()'s own docblock, which already
+        // (incorrectly) claimed this page showed it.
+        $versionHistory = Site7Studio::getInstance()->versionManager->getVersionHistory($handle);
 
         return $this->renderTemplate('site7-studio/library/package', [
             'title' => $package->name,
@@ -142,6 +147,7 @@ class LibraryController extends Controller
             'hasPreviewImage' => $hasPreviewImage,
             'hasPreviewTemplate' => $hasPreviewTemplate,
             'publishHistory' => $publishHistory,
+            'versionHistory' => $versionHistory,
         ]);
     }
 

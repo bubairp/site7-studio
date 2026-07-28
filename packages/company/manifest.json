@@ -3,10 +3,10 @@
     "handle": "company",
     "name": "Company",
     "type": "pattern",
-    "version": "1.0.0",
-    "author": "",
-    "description": "",
-    "category": "",
+    "version": "1.0.1",
+    "author": "Site7",
+    "description": "A company info pattern.",
+    "category": "Business",
     "tags": [],
     "requires": {
         "sections": [
@@ -23,5 +23,15 @@
         }
     },
     "pages": [],
-    "dependencies": []
+    "dependencies": [],
+    "displayName": "",
+    "company": "",
+    "website": "",
+    "supportUrl": "",
+    "documentationUrl": "",
+    "license": "MIT",
+    "pricingType": "free",
+    "minimumCraftVersion": "",
+    "minimumSite7Version": "",
+    "keywords": []
 }

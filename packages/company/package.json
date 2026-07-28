@@ -1,0 +1,17 @@
+{
+    "name": "company",
+    "displayName": "Company",
+    "version": "1.0.0",
+    "description": "A company info pattern.",
+    "author": "Site7",
+    "company": null,
+    "license": "MIT",
+    "homepage": null,
+    "keywords": [],
+    "site7": {
+        "type": "pattern",
+        "pricingType": "free",
+        "minimumCraftVersion": null,
+        "minimumSite7Version": null
+    }
+}
