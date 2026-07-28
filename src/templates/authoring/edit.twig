@@ -49,7 +49,19 @@
             <div class="flex flex-gap-m" style="margin-bottom: 16px;">
                 <div class="field flex-grow">
                     <div class="heading"><label for="site7pe-category">{{ "Category"|t('site7-studio') }}</label></div>
-                    <div class="input"><input type="text" id="site7pe-category" name="category" class="text fullwidth" value="{{ package.category }}"></div>
+                    {% set categoryOptions = package.category and package.category not in settings.packageCategories
+                        ? settings.packageCategories|merge([package.category])
+                        : settings.packageCategories %}
+                    <div class="input">
+                        <div class="select fullwidth">
+                            <select id="site7pe-category" name="category">
+                                <option value="">{{ "None"|t('site7-studio') }}</option>
+                                {% for option in categoryOptions %}
+                                    <option value="{{ option }}" {{ option == package.category ? 'selected' }}>{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div class="field flex-grow">
                     <div class="heading"><label for="site7pe-tags">{{ "Tags"|t('site7-studio') }}</label></div>

@@ -195,15 +195,17 @@
 
     const Site7ResourceImportWizard = Garnish.Modal.extend({
         type: null,
+        categories: null,
         $body: null,
         $footer: null,
         selection: null,
         lastAnalysis: null,
 
-        init: function(type) {
+        init: function(type, categories) {
             ensureStyles();
 
             this.type = type;
+            this.categories = categories || [];
             this.selection = {};
 
             // A fixed height (rather than max-height on $body alone) so the
@@ -542,12 +544,22 @@
                         <div class="input"><textarea id="site7ri-description" class="text fullwidth" rows="2"></textarea></div>
                     </div>
                     <div class="flex flex-gap-m">
-                        <div class="field flex-grow"><div class="heading"><label for="site7ri-category">Category</label></div><div class="input"><input type="text" id="site7ri-category" class="text fullwidth"></div></div>
+                        <div class="field flex-grow"><div class="heading"><label for="site7ri-category">Category</label></div><div class="input"><div class="select fullwidth"><select id="site7ri-category"></select></div></div></div>
                         <div class="field flex-grow"><div class="heading"><label for="site7ri-tags">Tags</label></div><div class="input"><input type="text" id="site7ri-tags" class="text fullwidth" placeholder="Comma-separated"></div></div>
                         <div class="field" style="width:120px;"><div class="heading"><label for="site7ri-version">Version</label></div><div class="input"><input type="text" id="site7ri-version" class="text fullwidth" value="1.0.0"></div></div>
                     </div>
                 </div>
             `).appendTo($container);
+
+            // Options come from Settings::$packageCategories (the same admin-
+            // managed list the New Package wizard/Package Editor/Publish
+            // Metadata step all use) rather than free text, passed in via the
+            // trigger button's data-categories attribute - see bindTriggers().
+            const $categorySelect = $meta.find('#site7ri-category');
+            $categorySelect.append($('<option></option>').attr('value', '').text('None'));
+            this.categories.forEach(function(category) {
+                $categorySelect.append($('<option></option>').attr('value', category).text(category));
+            });
             $meta.find('#site7ri-name').val(analysis.sourceLabel || '');
 
             if (analysis.detectedFields && analysis.detectedFields.length) {
@@ -651,7 +663,13 @@
     function bindTriggers() {
         document.querySelectorAll('.site7-import-trigger').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                new Site7ResourceImportWizard(btn.getAttribute('data-import-type'));
+                let categories = [];
+                try {
+                    categories = JSON.parse(btn.getAttribute('data-categories') || '[]');
+                } catch (e) {
+                    categories = [];
+                }
+                new Site7ResourceImportWizard(btn.getAttribute('data-import-type'), categories);
             });
         });
     }

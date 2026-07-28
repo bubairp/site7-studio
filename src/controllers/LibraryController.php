@@ -101,6 +101,7 @@ class LibraryController extends Controller
             'packages' => $packages,
             'currentType' => $type,
             'isSetupComplete' => $isSetupComplete,
+            'settings' => $settings,
             'q' => $q,
             'status' => $status,
             'categories' => $categories,

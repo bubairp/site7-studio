@@ -171,6 +171,7 @@ class PackageAuthoringController extends Controller
             'eligibleEntryTypes' => $eligibleEntryTypes,
             'starterKitComposition' => $starterKitComposition,
             'previewImageUrl' => $previewImageUrl,
+            'settings' => Site7Studio::getInstance()->getSettings(),
         ]);
     }
 
