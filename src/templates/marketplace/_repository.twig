@@ -1,44 +1,85 @@
 {#
  # Marketplace - Repository tab.
- # Params: repositories (MarketplaceRepositoryInterface[]), catalog (MarketplaceListing[])
+ # Params: repositories (MarketplaceRepositoryInterface[] keyed by handle),
+ #         listingsByRepository (array<string, MarketplaceListing[]> keyed by repository handle -
+ #         fetched once in the controller, not here, since listAvailablePackages() can mean
+ #         real I/O per repository), commerceOwnership (array<string, {label, color, plans}> keyed
+ #         by handle - Commerce24 listings only, see MarketplaceController::buildCommerceOwnership())
  #}
 <p class="light">
     {{ "Every repository registered through MarketplaceRepositoryInterface is listed below with the packages it currently has available to pull. The Local Repository reads .s7pkg files from a folder on this server; Commerce24 reads its catalog live over the network once configured on the Commerce settings tab."|t('site7-studio') }}
 </p>
 
-{% for repository in repositories %}
-    {% set listings = repository.listAvailablePackages() %}
-    <section class="site7-detail-section" style="margin-bottom: 24px;">
+{% set anyListings = listingsByRepository|filter(l => l|length)|length %}
+{% if anyListings %}
+    <div class="search-container texticon" style="max-width: 320px; margin-bottom: 16px;">
+        <span class="texticon-icon search icon" aria-hidden="true"></span>
+        <input type="text" class="clearable text fullwidth" id="site7-repo-search" placeholder="{{ 'Search packages...'|t('site7-studio') }}" aria-label="{{ 'Search'|t('site7-studio') }}">
+    </div>
+{% endif %}
+
+{% for repositoryHandle, repository in repositories %}
+    {% set listings = listingsByRepository[repositoryHandle] ?? [] %}
+    <section class="site7-detail-section site7-repo-section" style="margin-bottom: 24px;">
         <h2>{{ repository.getName() }}</h2>
         {% if listings|length %}
-            <table class="data fullwidth">
+            {# Fixed column widths, identical across every repository's table
+             # (not just within one), so Package/Type/.../Action line up from
+             # section to section instead of each table auto-sizing off its
+             # own content - Local's long timestamped filenames vs.
+             # Commerce24's short ones otherwise push the columns apart. #}
+            <table class="data fullwidth" style="table-layout: fixed;">
+                <colgroup>
+                    <col style="width: 16%;">
+                    <col style="width: 10%;">
+                    <col style="width: 9%;">
+                    <col style="width: 25%;">
+                    <col style="width: 22%;">
+                    <col style="width: 18%;">
+                </colgroup>
                 <thead>
                     <tr>
                         <th scope="col">{{ "Package"|t('site7-studio') }}</th>
                         <th scope="col">{{ "Type"|t('site7-studio') }}</th>
                         <th scope="col">{{ "Version"|t('site7-studio') }}</th>
                         <th scope="col">{{ "File"|t('site7-studio') }}</th>
+                        <th scope="col">{{ "Ownership"|t('site7-studio') }}</th>
                         <th scope="col">{{ "Action"|t('site7-studio') }}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for listing in listings %}
+                        {% set ownership = repositoryHandle == 'commerce24' ? ((commerceOwnership|default({}))[listing.handle] ?? null) : null %}
                         <tr>
-                            <th scope="row">{{ listing.handle }}</th>
+                            <th scope="row" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ listing.handle }}">{{ listing.handle }}</th>
                             <td>{{ listing.type|title }}</td>
                             <td>v{{ listing.version }}</td>
-                            <td class="light">{{ listing.fileName }}</td>
+                            <td class="light" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ listing.fileName }}">{{ listing.fileName }}</td>
                             <td>
-                                <form method="post" accept-charset="UTF-8">
-                                    {{ csrfInput() }}
-                                    <input type="hidden" name="action" value="site7-studio/marketplace/install-from-repository">
-                                    <input type="hidden" name="repositoryHandle" value="{{ repository.getHandle() }}">
-                                    <input type="hidden" name="handle" value="{{ listing.handle }}">
-                                    <button type="submit" class="btn small"
-                                        onclick="return confirm('Install {{ listing.handle|e('js') }} v{{ listing.version|e('js') }} from {{ repository.getName()|e('js') }}? If it already exists locally with different content, this will overwrite it.');">
-                                        {{ "Install"|t('site7-studio') }}
-                                    </button>
-                                </form>
+                                {% if ownership %}
+                                    <span class="status-label {{ ownership.color }}"><span class="status {{ ownership.color }}"></span><span class="status-label-text">{{ ownership.label|t('site7-studio') }}</span></span>
+                                    {% if ownership.label == 'Locked' and ownership.plans|length %}
+                                        <div class="light">{{ ownership.plans|join(', ') }}</div>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="light">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ownership and ownership.label == 'Locked' %}
+                                    <a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}" class="btn small">{{ "View Plans"|t('site7-studio') }}</a>
+                                {% else %}
+                                    <form method="post" accept-charset="UTF-8">
+                                        {{ csrfInput() }}
+                                        <input type="hidden" name="action" value="site7-studio/marketplace/install-from-repository">
+                                        <input type="hidden" name="repositoryHandle" value="{{ repository.getHandle() }}">
+                                        <input type="hidden" name="handle" value="{{ listing.handle }}">
+                                        <button type="submit" class="btn small"
+                                            onclick="return confirm('Install {{ listing.handle|e('js') }} v{{ listing.version|e('js') }} from {{ repository.getName()|e('js') }}? If it already exists locally with different content, this will overwrite it.');">
+                                            {{ "Install"|t('site7-studio') }}
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
@@ -53,3 +94,25 @@
         {% endif %}
     </section>
 {% endfor %}
+
+<script>
+(function() {
+    var input = document.getElementById('site7-repo-search');
+    if (!input) return;
+    var sections = document.querySelectorAll('.site7-repo-section');
+    input.addEventListener('input', function() {
+        var q = input.value.trim().toLowerCase();
+        sections.forEach(function(section) {
+            var table = section.querySelector('table');
+            if (!table) return;
+            var anyVisible = false;
+            table.querySelectorAll('tbody tr').forEach(function(row) {
+                var match = !q || row.textContent.toLowerCase().indexOf(q) !== -1;
+                row.style.display = match ? '' : 'none';
+                if (match) anyVisible = true;
+            });
+            section.style.display = anyVisible ? '' : 'none';
+        });
+    });
+})();
+</script>

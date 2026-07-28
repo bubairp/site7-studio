@@ -152,13 +152,26 @@ class MarketplaceService extends Component
      * own, rather than only reachable via a manual Import upload.
      *
      * @throws \Exception if the repository doesn't exist, doesn't have this
-     *                     package, or the fetched archive fails validation.
+     *                     package, isn't entitled (Commerce24 only - see
+     *                     below), or the fetched archive fails validation.
      */
     public function installFromRepository(string $repositoryHandle, string $handle): array
     {
         $repository = $this->getRepository($repositoryHandle);
         if (!$repository) {
             throw new \Exception("Repository '{$repositoryHandle}' was not found.");
+        }
+
+        // The Local Repository has no entitlement concept - it's just files
+        // this admin already put on this server. Commerce24's catalog is
+        // different: it can list premium packages this account hasn't
+        // purchased or isn't on a plan for, and without this check this
+        // button would happily download and install one anyway, bypassing
+        // the exact same isEntitled() gate PackageService::installEntitled()
+        // enforces for the Commerce & Licensing Packages tab's own Install
+        // button. Both entry points now agree on the same rule.
+        if ($repository instanceof Commerce24MarketplaceRepository && !Site7Studio::getInstance()->commercePackages->isEntitled($handle)) {
+            throw new \Exception("'{$handle}' is not included in your current plan or purchases.");
         }
 
         $path = $repository->fetchPackage($handle);

@@ -1,6 +1,8 @@
 {#
  # Commerce & Licensing - Updates tab.
- # Params: updates {plugin, packages, security, dependencies}
+ # Params: updates {plugin, packages, security, dependencies} - packages is
+ #         entitlement-filtered (see UpdateService::getEntitledPackageUpdates()),
+ #         the other three come straight from Commerce24.
  #}
 {% set hasAny = (updates.plugin|default([])|length) or (updates.packages|default([])|length) or (updates.security|default([])|length) or (updates.dependencies|default([])|length) %}
 
@@ -20,6 +22,7 @@
                 <button type="submit" class="btn">{{ "Update All"|t('site7-studio') }}</button>
             </form>
         {% endif %}
+        <a href="{{ url('site7-studio/marketplace', {tab: 'updates'}) }}" class="btn">{{ "Open in Marketplace"|t('site7-studio') }}</a>
     </div>
 </div>
 
@@ -28,7 +31,8 @@
 {% else %}
     {% if updates.packages|default([])|length %}
         <section class="site7-detail-section" style="margin-bottom: 24px;">
-            <h2>{{ "Package Updates"|t('site7-studio') }}</h2>
+            <h2>{{ "Package Updates"|t('site7-studio') }} ({{ updates.packages|length }})</h2>
+            <p class="light">{{ "Only packages Commerce24 entitles you to - see Marketplace → Updates for every installed package with a newer version, entitled or not."|t('site7-studio') }}</p>
             <form method="post" accept-charset="UTF-8">
                 {{ csrfInput() }}
                 {{ redirectInput('site7-studio/commerce?tab=updates') }}
@@ -39,7 +43,7 @@
                         {% for handle, listing in updates.packages %}
                             <tr>
                                 <td><input type="checkbox" name="handles[]" value="{{ handle }}"></td>
-                                <td>{{ handle }}</td>
+                                <td><a href="{{ url('site7-studio/library/package/' ~ handle) }}">{{ handle }}</a></td>
                                 <td>v{{ listing.version }}</td>
                             </tr>
                         {% endfor %}

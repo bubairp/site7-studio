@@ -77,8 +77,7 @@ class PackageArchiveHelper
 
     /**
      * Extracts a .s7pkg (or any zip) to $destDir. Pass $onlyEntries to
-     * extract just specific entries (e.g. a repository catalog scan that
-     * only needs bundle-manifest.json, not every bundled package's files).
+     * extract just specific entries.
      *
      * @throws \Exception if the archive can't be opened.
      */
@@ -98,5 +97,30 @@ class PackageArchiveHelper
         }
 
         $zip->close();
+    }
+
+    /**
+     * Reads a single entry's contents straight out of a zip, in memory - no
+     * temp directory created or cleaned up. For a repository catalog scan
+     * (LocalMarketplaceRepository::listAvailablePackages(), run on every
+     * page load that touches Repository/Updates) that only needs
+     * bundle-manifest.json out of a potentially large archive, this avoids
+     * the disk I/O extractZip() + a temp dir would otherwise cost per file,
+     * per request.
+     *
+     * @return string|null The entry's contents, or null if the archive can't
+     *   be opened or doesn't contain that entry.
+     */
+    public static function readEntry(string $zipPath, string $entryName): ?string
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath) !== true) {
+            return null;
+        }
+
+        $contents = $zip->getFromName($entryName);
+        $zip->close();
+
+        return $contents === false ? null : $contents;
     }
 }

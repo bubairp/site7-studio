@@ -46,7 +46,11 @@ class CommerceController extends Controller
                 $data['plan'] = $planResult['plan'];
                 $this->flashEntitlementChanges($planResult);
                 $data['installedPackages'] = $plugin->packageManager->getAllPackages();
-                $data['updates'] = $plugin->marketplace->checkForUpdates();
+                // Entitlement-filtered, same as the Updates tab - see
+                // UpdateService::getEntitledPackageUpdates()'s docblock. Kept
+                // consistent so this stat card's count never disagrees with
+                // what Updates itself lists.
+                $data['updates'] = $plugin->updates->getEntitledPackageUpdates();
                 break;
             case 'plans':
                 $data['plans'] = $plugin->plan->getAllPlans();
@@ -308,6 +312,25 @@ class CommerceController extends Controller
         $url = Site7Studio::getInstance()->subscription->getManageUrl();
         if (!$url) {
             Craft::$app->getSession()->setError('The customer portal is not available yet - connect Commerce24 first.');
+            return $this->redirect('site7-studio/commerce?tab=account');
+        }
+        return $this->redirect($url);
+    }
+
+    /**
+     * Redirects to Commerce24's account portal (CustomerInfo::$portalUrl) -
+     * profile/organization-level, distinct from actionOpenCustomerPortal()'s
+     * subscription/billing-specific manageUrl. Both come from Commerce24 and
+     * can legitimately point to different pages there.
+     */
+    public function actionOpenAccountPortal()
+    {
+        $this->requirePostRequest();
+        $this->requirePermission('manageCommerce');
+
+        $url = Site7Studio::getInstance()->subscription->getCustomer()->portalUrl;
+        if (!$url) {
+            Craft::$app->getSession()->setError('The account portal is not available yet - connect Commerce24 first.');
             return $this->redirect('site7-studio/commerce?tab=account');
         }
         return $this->redirect($url);

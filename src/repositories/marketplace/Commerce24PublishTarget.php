@@ -72,6 +72,12 @@ class Commerce24PublishTarget implements PackagePublishTargetInterface
             $response = $this->client->request('POST', '/marketplace/publish', [
                 'json' => [
                     'handle' => $bundle->rootHandle,
+                    // The package's actual kind (section/pattern/template/
+                    // starter-kit) - distinct from $metadata's optional,
+                    // free-text "category" field (e.g. "Marketing"), and the
+                    // only source Commerce24 has for it at all, so it must be
+                    // sent explicitly rather than left for the catalog to guess.
+                    'type' => $bundle->rootType,
                     'version' => $bundle->getRootEntry()['version'] ?? null,
                     'metadata' => $metadata,
                     'contentsBase64' => base64_encode((string)file_get_contents($s7pkgPath)),

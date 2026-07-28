@@ -77,16 +77,15 @@ class LocalMarketplaceRepository implements MarketplaceRepositoryInterface
 
     private function readListing(string $zipPath): MarketplaceListing
     {
-        $tempDir = Craft::getAlias('@storage') . '/runtime/site7-studio/repo-scan/' . uniqid('', true);
-
-        try {
-            PackageArchiveHelper::extractZip($zipPath, $tempDir, ['bundle-manifest.json']);
-            $data = json_decode((string)file_get_contents($tempDir . '/bundle-manifest.json'), true) ?: [];
-        } finally {
-            if (is_dir($tempDir)) {
-                FileHelper::removeDirectory($tempDir);
-            }
+        // Reads bundle-manifest.json's bytes straight out of the zip - no
+        // temp directory to create/clean up - since this runs once per
+        // .s7pkg in the repository folder on every page load that touches
+        // Repository/Updates, not just when a package is actually installed.
+        $contents = PackageArchiveHelper::readEntry($zipPath, 'bundle-manifest.json');
+        if ($contents === null) {
+            throw new \Exception("Could not read bundle-manifest.json from {$zipPath}.");
         }
+        $data = json_decode($contents, true) ?: [];
 
         $rootHandle = $data['rootHandle'] ?? null;
         if (!$rootHandle) {

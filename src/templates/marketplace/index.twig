@@ -21,6 +21,6 @@
     {% elseif activeTab == 'updates' %}
         {% include "site7-studio/marketplace/_updates" with {updates: updates} only %}
     {% elseif activeTab == 'repository' %}
-        {% include "site7-studio/marketplace/_repository" with {repositories: repositories, catalog: catalog} only %}
+        {% include "site7-studio/marketplace/_repository" with {repositories: repositories, listingsByRepository: listingsByRepository, commerceOwnership: commerceOwnership} only %}
     {% endif %}
 {% endblock %}

@@ -5,8 +5,15 @@
 {% set statusColors = {available: 'gray', installed: 'blue', enabled: 'teal', disabled: 'red'} %}
 
 {% if packages|length %}
+    {# .tableview.tablepane below carries Craft core's -22px margin-top (meant to
+     # hug a table directly under a bare heading), which would otherwise pull the
+     # table up into this search box - compensate so there's still a visible gap. #}
+    <div class="search-container texticon" style="max-width: 320px; margin-bottom: 38px;">
+        <span class="texticon-icon search icon" aria-hidden="true"></span>
+        <input type="text" class="clearable text fullwidth" id="site7-installed-search" placeholder="{{ 'Search packages...'|t('site7-studio') }}" aria-label="{{ 'Search'|t('site7-studio') }}">
+    </div>
     <div class="tableview tablepane">
-        <table class="data fullwidth big">
+        <table class="data fullwidth big" id="site7-installed-table">
             <thead>
                 <tr>
                     <th scope="col">{{ "Package"|t('site7-studio') }}</th>
@@ -80,3 +87,18 @@
         icon: '📦'
     } only %}
 {% endif %}
+
+<script>
+(function() {
+    var input = document.getElementById('site7-installed-search');
+    var table = document.getElementById('site7-installed-table');
+    if (!input || !table) return;
+    var rows = table.querySelectorAll('tbody tr');
+    input.addEventListener('input', function() {
+        var q = input.value.trim().toLowerCase();
+        rows.forEach(function(row) {
+            row.style.display = (!q || row.textContent.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+        });
+    });
+})();
+</script>

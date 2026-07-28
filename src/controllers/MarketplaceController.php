@@ -59,7 +59,16 @@ class MarketplaceController extends Controller
                 break;
             case 'repository':
                 $data['repositories'] = $marketplace->getRepositories();
-                $data['catalog'] = $marketplace->getCatalog();
+                // Fetched once here (each repository's listAvailablePackages()
+                // can mean real I/O - a live Commerce24 API call, or extracting
+                // every .s7pkg in the Local Repository) and passed down keyed
+                // by repository handle, so the template never has to call it
+                // again itself.
+                $data['listingsByRepository'] = [];
+                foreach ($data['repositories'] as $handle => $repository) {
+                    $data['listingsByRepository'][$handle] = $repository->listAvailablePackages();
+                }
+                $data['commerceOwnership'] = $this->buildCommerceOwnership($data['listingsByRepository']['commerce24'] ?? []);
                 break;
         }
 
@@ -72,6 +81,7 @@ class MarketplaceController extends Controller
     public function actionExport()
     {
         $this->requirePostRequest();
+        $this->requirePermission('manageMarketplace');
 
         $request = Craft::$app->getRequest();
         $handle = (string)$request->getRequiredBodyParam('handle');
@@ -94,6 +104,7 @@ class MarketplaceController extends Controller
     public function actionImportUpload()
     {
         $this->requirePostRequest();
+        $this->requirePermission('manageMarketplace');
 
         $file = UploadedFile::getInstanceByName('packageFile');
         if (!$file) {
@@ -122,6 +133,7 @@ class MarketplaceController extends Controller
     public function actionImportInstall()
     {
         $this->requirePostRequest();
+        $this->requirePermission('manageMarketplace');
 
         $validation = Craft::$app->getSession()->get(self::SESSION_KEY);
         if (!$validation instanceof PackageValidationResult || !$validation->valid) {
@@ -165,6 +177,7 @@ class MarketplaceController extends Controller
     public function actionImportCancel()
     {
         $this->requirePostRequest();
+        $this->requirePermission('manageMarketplace');
         $this->discardPendingImport();
         return $this->redirect('site7-studio/marketplace?tab=import');
     }
@@ -176,6 +189,7 @@ class MarketplaceController extends Controller
     public function actionUpdatePackage()
     {
         $this->requirePostRequest();
+        $this->requirePermission('manageMarketplace');
         $handle = (string)Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
         try {
@@ -197,6 +211,7 @@ class MarketplaceController extends Controller
     public function actionInstallFromRepository()
     {
         $this->requirePostRequest();
+        $this->requirePermission('manageMarketplace');
 
         $request = Craft::$app->getRequest();
         $repositoryHandle = (string)$request->getRequiredBodyParam('repositoryHandle');
@@ -224,6 +239,7 @@ class MarketplaceController extends Controller
     public function actionReinstallPackage()
     {
         $this->requirePostRequest();
+        $this->requirePermission('manageMarketplace');
         $handle = (string)Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
         $success = Site7Studio::getInstance()->marketplace->reinstallPackage($handle);
@@ -240,6 +256,7 @@ class MarketplaceController extends Controller
     public function actionRepairPackage()
     {
         $this->requirePostRequest();
+        $this->requirePermission('manageMarketplace');
         $handle = (string)Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
         $success = Site7Studio::getInstance()->marketplace->repairPackage($handle);
@@ -258,5 +275,50 @@ class MarketplaceController extends Controller
             FileHelper::removeDirectory($previous->tempDir);
         }
         $session->remove(self::SESSION_KEY);
+    }
+
+    /**
+     * Ownership/entitlement info for the Repository tab's Commerce24 listings
+     * only - the Local Repository has no such concept, so its rows just show
+     * nothing for this. Mirrors the same three-way split Commerce &
+     * Licensing's Packages tab already uses (isEntitled() first, then which
+     * plans would cover it if not), so a listing here reads the same way it
+     * would there - this is what MarketplaceService::installFromRepository()'s
+     * own entitlement gate is checking before it lets Install actually run.
+     *
+     * @param \site7\studio\models\marketplace\MarketplaceListing[] $commerce24Listings
+     * @return array<string, array{label: string, color: string, plans: string[]}>
+     */
+    private function buildCommerceOwnership(array $commerce24Listings): array
+    {
+        if (empty($commerce24Listings)) {
+            return [];
+        }
+
+        $plugin = Site7Studio::getInstance();
+        $purchasedHandles = $plugin->commercePackages->getPurchasedPackages();
+        $freeHandles = $plugin->commercePackages->getFreePackages();
+        $allPlans = $plugin->plan->getAllPlans();
+
+        $ownership = [];
+        foreach ($commerce24Listings as $listing) {
+            $handle = $listing->handle;
+
+            if (in_array($handle, $purchasedHandles, true)) {
+                $ownership[$handle] = ['label' => 'Purchased', 'color' => 'teal', 'plans' => []];
+            } elseif (in_array($handle, $freeHandles, true)) {
+                $ownership[$handle] = ['label' => 'Free', 'color' => 'gray', 'plans' => []];
+            } elseif ($plugin->commercePackages->isEntitled($handle)) {
+                $ownership[$handle] = ['label' => 'Included in Your Plan', 'color' => 'teal', 'plans' => []];
+            } else {
+                $plans = array_values(array_map(
+                    fn($planInfo) => $planInfo->name,
+                    array_filter($allPlans, fn($planInfo) => in_array($handle, $planInfo->includedPackages, true))
+                ));
+                $ownership[$handle] = ['label' => 'Locked', 'color' => 'amber', 'plans' => $plans];
+            }
+        }
+
+        return $ownership;
     }
 }
