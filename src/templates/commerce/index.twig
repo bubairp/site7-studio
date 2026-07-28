@@ -34,7 +34,7 @@
     {% elseif activeTab == 'packages' %}
         {% include "site7-studio/commerce/_packages" with {installedPackages: installedPackages, purchasedHandles: purchasedHandles, freeHandles: freeHandles, premiumHandles: premiumHandles, pendingDeletions: pendingDeletions, availableToInstall: availableToInstall, lockedHandles: lockedHandles, lockedPlanNames: lockedPlanNames} only %}
     {% elseif activeTab == 'downloads' %}
-        {% include "site7-studio/commerce/_downloads" with {purchasedPackages: purchasedPackages, downloadHistory: downloadHistory, importHistory: importHistory, exportHistory: exportHistory} only %}
+        {% include "site7-studio/commerce/_downloads" with {purchasedPackages: purchasedPackages, purchasedAddOns: purchasedAddOns, downloadHistory: downloadHistory, importHistory: importHistory, exportHistory: exportHistory} only %}
     {% elseif activeTab == 'updates' %}
         {% include "site7-studio/commerce/_updates" with {updates: updates} only %}
     {% elseif activeTab == 'team' %}

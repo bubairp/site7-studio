@@ -110,6 +110,7 @@ class CommerceController extends Controller
                 break;
             case 'downloads':
                 $data['purchasedPackages'] = $plugin->downloads->getPurchasedPackages();
+                $data['purchasedAddOns'] = $plugin->downloads->getPurchasedAddOns();
                 $data['downloadHistory'] = $plugin->downloads->getDownloadHistory();
                 $data['importHistory'] = $plugin->downloads->getImportHistory();
                 $data['exportHistory'] = $plugin->downloads->getExportHistory();

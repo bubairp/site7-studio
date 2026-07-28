@@ -29,10 +29,36 @@ class DownloadService extends Component
         }
     }
 
-    /** Purchased packages available to download again from Commerce24. */
+    /**
+     * Purchased packages available to download again from Commerce24 - real
+     * installable SITE7 Studio packages only ('type' => 'package'). See
+     * getPurchasedAddOns() for the other half of the same /downloads/purchased
+     * response: Commerce24 is documented (Phase 24) as the source of truth
+     * for "Purchased Packages" and "Purchased Add-ons" as two distinct
+     * things, but until now this only ever exposed one flattened list with
+     * no way to tell them apart.
+     */
     public function getPurchasedPackages(): array
     {
-        return $this->fetch('/downloads/purchased')['packages'] ?? [];
+        return $this->filterPurchasedByType('package');
+    }
+
+    /**
+     * Purchased add-ons from Commerce24 - not installable SITE7 Studio
+     * packages (no manifest, nothing the Package Engine can install), e.g.
+     * a support tier or a service entitlement. Kept separate from
+     * getPurchasedPackages() rather than merged, since "download and
+     * install" never applies to these the way it does a package.
+     */
+    public function getPurchasedAddOns(): array
+    {
+        return $this->filterPurchasedByType('addon');
+    }
+
+    private function filterPurchasedByType(string $type): array
+    {
+        $items = $this->fetch('/downloads/purchased')['packages'] ?? [];
+        return array_values(array_filter($items, fn($item) => ($item['type'] ?? 'package') === $type));
     }
 
     /** Commerce24's own record of past downloads for this account. */

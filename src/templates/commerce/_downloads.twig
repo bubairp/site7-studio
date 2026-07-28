@@ -1,6 +1,8 @@
 {#
  # Commerce & Licensing - Downloads tab.
- # Params: purchasedPackages, downloadHistory (Commerce24), importHistory, exportHistory (local .s7pkg activity)
+ # Params: purchasedPackages, purchasedAddOns (Commerce24 - two distinct halves of the same
+ #         /downloads/purchased response, see DownloadService::getPurchasedPackages()/getPurchasedAddOns()),
+ #         downloadHistory (Commerce24), importHistory, exportHistory (local .s7pkg activity)
  #}
 <section class="site7-detail-section" style="margin-bottom: 24px;">
     <h2>{{ "Purchased Packages"|t('site7-studio') }}</h2>
@@ -12,6 +14,20 @@
         </ul>
     {% else %}
         <p class="light">{{ "No purchased packages from Commerce24 yet."|t('site7-studio') }}</p>
+    {% endif %}
+</section>
+
+<section class="site7-detail-section" style="margin-bottom: 24px;">
+    <h2>{{ "Purchased Add-ons"|t('site7-studio') }}</h2>
+    <p class="light">{{ "Not installable SITE7 Studio packages - support tiers, services, and other entitlements purchased through Commerce24."|t('site7-studio') }}</p>
+    {% if purchasedAddOns|default([])|length %}
+        <ul class="light">
+            {% for item in purchasedAddOns %}
+                <li>{{ item.name ?? item.handle ?? item }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="light">{{ "No purchased add-ons from Commerce24 yet."|t('site7-studio') }}</p>
     {% endif %}
 </section>
 
