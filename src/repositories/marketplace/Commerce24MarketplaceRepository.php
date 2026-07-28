@@ -11,19 +11,18 @@ use site7\studio\services\commerce\CommerceClient;
 use site7\studio\Site7Studio;
 
 /**
- * Architecture preparation only - see the Marketplace Preparation section of
- * Phase 12: this repository is not yet wired into any UI. It exists to prove
- * out (and reserve) the plug-in point the existing Marketplace Foundation's
- * MarketplaceRepositoryInterface was already built for: alongside
- * LocalMarketplaceRepository (a folder on this server), a Commerce24-backed
- * repository can register itself with MarketplaceService the exact same way,
- * without any change to MarketplaceService, PackageImportService,
- * PackageManagerService, or the Marketplace tabs' templates/controller.
+ * The Commerce24-backed marketplace repository - proves out the plug-in
+ * point MarketplaceRepositoryInterface was built for: alongside
+ * LocalMarketplaceRepository (a folder on this server), this reads
+ * Commerce24's own catalog, without any change to MarketplaceService,
+ * PackageImportService, PackageManagerService, or the Marketplace tabs'
+ * templates/controller.
  *
- * When Commerce24 is configured, register it once - typically alongside the
- * other commerce services' bootstrapping - with:
- *
- *   Site7Studio::getInstance()->marketplace->registerRepository(new Commerce24MarketplaceRepository());
+ * Auto-registered by MarketplaceService::init() alongside
+ * LocalMarketplaceRepository, so it's live (not merely reserved) as soon as
+ * Commerce24 is configured - listAvailablePackages() just returns []
+ * otherwise, the same "degrade instead of gate" pattern every other
+ * commerce service uses (see CommerceClient::isConfigured()).
  *
  * listAvailablePackages() downloads each entitled package on demand into a
  * local cache directory and returns it as an ordinary MarketplaceListing,

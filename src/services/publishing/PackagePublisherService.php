@@ -87,6 +87,18 @@ class PackagePublisherService extends Component implements PackagePublisherInter
         // NullPackageSigner always returns null, so nothing is persisted.
         $plugin->packageSigner->sign($s7pkgPath);
 
+        // A successful publish is the one authoritative signal that this
+        // package's authoring lifecycle (draft/preview/testing/published/
+        // deprecated/archived - see the authoringStatus column's own
+        // migration) has reached "published". Nothing else in the app ever
+        // transitions authoringStatus, so without this a package could be
+        // fully published to a repository (with real publish history) and
+        // still show a "Draft" badge on its own edit page forever.
+        if ($record->authoringStatus !== 'published') {
+            $record->authoringStatus = 'published';
+            $record->save();
+        }
+
         $publication = $plugin->publishHistory->recordPublish(
             $handle,
             $repositoryHandle,

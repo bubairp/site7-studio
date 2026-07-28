@@ -9,12 +9,18 @@ use site7\studio\services\commerce\CommerceClient;
 use site7\studio\Site7Studio;
 
 /**
- * Architecture preparation only, same stance as Commerce24MarketplaceRepository
- * (the install-side equivalent this mirrors) - not wired into any UI by
- * default. When Commerce24 exposes a real publish endpoint, register this
- * with RepositoryManagerService::registerTarget() the same way
- * Commerce24MarketplaceRepository would be registered with
- * MarketplaceService::registerRepository() once configured.
+ * The Commerce24-backed publish target - the publish-side counterpart to
+ * Commerce24MarketplaceRepository (the install-side equivalent this
+ * mirrors). Auto-registered by RepositoryManagerService::init() alongside
+ * LocalPublishTarget, so it's live (not merely reserved) as soon as
+ * Commerce24 is configured: supportsPublish() gates it out of the Publish
+ * wizard's repository picker until CommerceClient::isConfigured() is true,
+ * at which point it appears there as "Commerce24 Repository" and
+ * publishPackage() really does register the package with Commerce24 via
+ * POST /marketplace/publish - verified live during Phase 24 (see
+ * docs/PHASE-24-COMMERCE-LICENSING.md's "Getting a package into a Plan on
+ * Commerce24" section for the full registration flow and its handle-
+ * matching requirement).
  */
 class Commerce24PublishTarget implements PackagePublishTargetInterface
 {

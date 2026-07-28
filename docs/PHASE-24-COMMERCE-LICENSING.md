@@ -59,6 +59,14 @@ Actual install/enable/disable/update/repair/reinstall of anything already instal
 
 Plan changes (`refreshCurrentPlanAndSyncEntitlements()`, run on every visit to Overview/Packages, and again right after an upgrade/downgrade) call `PackageService::syncEntitlements()`, which disables (never deletes) anything no longer covered and starts a 14-day (`PackageService::GRACE_PERIOD_DAYS`) grace period before it becomes removable via `commerce/remove-pending-package`. A plan change that brings a disabled package back into scope auto-re-enables it, but only if this same mechanism was what disabled it in the first place — a package the site owner disabled manually is left alone.
 
+## Getting a package into a Plan on Commerce24
+
+There is no plan-assignment UI anywhere in this plugin, and there shouldn't be one — Commerce24 is the sole source of truth for plan/package mapping, so SITE7 Studio only ever reads it (`GET /plans`, `GET /packages/entitlements`), never writes it.
+
+The only call this plugin makes that registers a package's identity with Commerce24 at all is publishing to the **Commerce24 Repository** target (`Commerce24PublishTarget::publishPackage()` → `POST /marketplace/publish`, sending `handle`, `version`, `metadata`, and the `.s7pkg` bytes). Actually assigning that package to a plan (or marking it free/purchasable) happens entirely in Commerce24's own admin dashboard afterward — a separate system outside this codebase.
+
+**⚠️ The package `handle` is the only link between the two systems, and it must match exactly.** Whoever configures a plan's `includedPackages` on Commerce24 has to type the handle exactly as it exists in SITE7 Studio (visible on Library, Publishing, and each package's own detail page). Nothing validates this — Commerce24 will happily list a plan as including a handle that doesn't correspond to anything installed anywhere, and it fails *silently*: the package just never shows as entitled, with no error surfaced. This isn't hypothetical - it's exactly the bug hit live during Phase 24 testing, where `mock-commerce24`'s plan data used the handle `reconstructed-homepage` while the real installed package's handle was `page-home`; the mismatch made an already-owned, already-installed package show up as both "Purchased" in the installed table *and* "Available to Install" in the not-yet-installed table, until the mock data was corrected to use the real handle. Any time a package looks like it's not being recognized as entitled/plan-included despite Commerce24 supposedly covering it, check for exactly this - a handle typo or drift between what's configured on Commerce24 and what the package is actually called here.
+
 ## Extension points
 
 - `LicenseProviderInterface`, `SubscriptionProviderInterface`, `PlanService`'s public surface, `PackageProviderInterface`, `CommerceClientInterface` — swap any of these for a different backend without touching `CommerceController` or any template.
