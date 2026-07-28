@@ -11,6 +11,7 @@ use site7\studio\interfaces\CommerceClientInterface;
 use site7\studio\interfaces\PackageProviderInterface;
 use site7\studio\models\commerce\CommerceApiException;
 use site7\studio\models\commerce\PlanInfo;
+use site7\studio\records\PackageRecord;
 use site7\studio\Site7Studio;
 
 /**
@@ -25,7 +26,6 @@ use site7\studio\Site7Studio;
 class PackageService extends Component implements PackageProviderInterface
 {
     private const CACHE_KEY = 'site7-studio.commerce24.entitlements';
-    private const PENDING_DELETIONS_CACHE_KEY = 'site7-studio.commerce24.pending-deletions';
 
     /**
      * How long a package stays disabled-but-installed after a plan change
@@ -141,20 +141,19 @@ class PackageService extends Component implements PackageProviderInterface
      * irreversible and this reconciliation runs unattended.
      *
      * Also auto-re-enables the reverse case: a package that's disabled and
-     * back in an allowed plan/purchase, but only if $pending already has an
-     * entry for it - i.e. this exact mechanism was what disabled it. That's
-     * the only reliable signal available; a package disabled by the site
-     * owner for unrelated reasons (before or after a downgrade) was never
-     * added to $pending and is deliberately left alone, since silently
-     * re-enabling content someone chose to turn off would be worse than
-     * requiring a manual Enable click.
+     * back in an allowed plan/purchase, but only if it already has an
+     * entitlementRemovableOn date set - i.e. this exact mechanism was what
+     * disabled it. That's the only reliable signal available; a package
+     * disabled by the site owner for unrelated reasons (before or after a
+     * downgrade) was never given that date and is deliberately left alone,
+     * since silently re-enabling content someone chose to turn off would be
+     * worse than requiring a manual Enable click.
      *
      * @return array{disabled: string[], reEnabled: string[]}
      */
     public function syncEntitlements(PlanInfo $plan): array
     {
         $packageManager = Site7Studio::getInstance()->packageManager;
-        $pending = $this->getPendingDeletions();
         $disabled = [];
         $reEnabled = [];
         $managedHandles = $this->getAllCommerceManagedHandles();
@@ -170,8 +169,8 @@ class PackageService extends Component implements PackageProviderInterface
             }
 
             if ($this->isCurrentlyAllowed($record->handle, $plan)) {
-                if (isset($pending[$record->handle])) {
-                    unset($pending[$record->handle]);
+                if ($record->entitlementRemovableOn !== null) {
+                    PackageRecord::updateAll(['entitlementRemovableOn' => null], ['handle' => $record->handle]);
                     if ($record->status === 'disabled') {
                         $packageManager->enablePackage($record->handle);
                         $reEnabled[] = $record->handle;
@@ -185,11 +184,10 @@ class PackageService extends Component implements PackageProviderInterface
             }
 
             $packageManager->disablePackage($record->handle);
-            $pending[$record->handle] = date('Y-m-d', strtotime('+' . self::GRACE_PERIOD_DAYS . ' days'));
+            $removableOn = date('Y-m-d H:i:s', strtotime('+' . self::GRACE_PERIOD_DAYS . ' days'));
+            PackageRecord::updateAll(['entitlementRemovableOn' => $removableOn], ['handle' => $record->handle]);
             $disabled[] = $record->handle;
         }
-
-        $this->savePendingDeletions($pending);
 
         return ['disabled' => $disabled, 'reEnabled' => $reEnabled];
     }
@@ -210,14 +208,27 @@ class PackageService extends Component implements PackageProviderInterface
 
     /**
      * Packages disabled by a past syncEntitlements() call, keyed by handle,
-     * with the date they become eligible for removal.
+     * with the date they become eligible for removal - read straight off
+     * PackageRecord::$entitlementRemovableOn (see its migration's docblock
+     * for why this isn't a cache entry: it needs to survive an admin
+     * clearing caches for an unrelated reason).
      *
      * @return array<string, string>
      */
     public function getPendingDeletions(): array
     {
-        $data = Craft::$app->getCache()->get(self::PENDING_DELETIONS_CACHE_KEY);
-        return is_array($data) ? $data : [];
+        $rows = PackageRecord::find()
+            ->select(['handle', 'entitlementRemovableOn'])
+            ->where(['not', ['entitlementRemovableOn' => null]])
+            ->asArray()
+            ->all();
+
+        $pending = [];
+        foreach ($rows as $row) {
+            $pending[$row['handle']] = date('Y-m-d', strtotime($row['entitlementRemovableOn']));
+        }
+
+        return $pending;
     }
 
     /**
@@ -225,8 +236,10 @@ class PackageService extends Component implements PackageProviderInterface
      */
     public function isEligibleForRemoval(string $handle): bool
     {
-        $pending = $this->getPendingDeletions();
-        return isset($pending[$handle]) && strtotime($pending[$handle]) <= time();
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        return $record !== null
+            && $record->entitlementRemovableOn !== null
+            && strtotime($record->entitlementRemovableOn) <= time();
     }
 
     /**
@@ -243,19 +256,10 @@ class PackageService extends Component implements PackageProviderInterface
             throw new \Exception("'{$handle}' is not past its grace period yet.");
         }
 
-        $result = Site7Studio::getInstance()->packageManager->deletePackage($handle);
-        if ($result) {
-            $pending = $this->getPendingDeletions();
-            unset($pending[$handle]);
-            $this->savePendingDeletions($pending);
-        }
-
-        return $result;
-    }
-
-    private function savePendingDeletions(array $pending): void
-    {
-        Craft::$app->getCache()->set(self::PENDING_DELETIONS_CACHE_KEY, $pending, 0);
+        // No separate "unset from pending" step needed - the row (and its
+        // entitlementRemovableOn column) is gone along with everything else
+        // deletePackage() removes.
+        return Site7Studio::getInstance()->packageManager->deletePackage($handle);
     }
 
     /**
