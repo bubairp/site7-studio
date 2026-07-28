@@ -2,6 +2,7 @@
 
 namespace site7\studio\interfaces;
 
+use site7\studio\models\commerce\CustomerInfo;
 use site7\studio\models\commerce\SubscriptionInfo;
 
 /**
@@ -28,4 +29,7 @@ interface SubscriptionProviderInterface
 
     /** A URL to Commerce24's own subscription management/customer portal page. */
     public function getManageUrl(): ?string;
+
+    /** Returns the Commerce24 customer/account record tied to this site's license. Never throws - an unreachable Commerce24 yields an empty CustomerInfo. */
+    public function getCustomer(): CustomerInfo;
 }

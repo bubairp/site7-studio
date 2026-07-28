@@ -102,7 +102,7 @@ class LicenseService extends Component implements LicenseProviderInterface
 
         $before = new BeforeLicenseValidationEvent();
         $dispatcher->dispatch($before);
-        if ($before->handled) {
+        if ($before->shortCircuited) {
             return $before->isValid;
         }
 

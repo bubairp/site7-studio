@@ -66,6 +66,43 @@ class CommerceController extends Controller
                 $data['freeHandles'] = $plugin->commercePackages->getFreePackages();
                 $data['premiumHandles'] = $plugin->commercePackages->getPremiumPackages();
                 $data['pendingDeletions'] = $plugin->commercePackages->getPendingDeletions();
+
+                $allPlans = $plugin->plan->getAllPlans();
+
+                $installedHandles = array_map(fn($record) => $record->handle, $data['installedPackages']);
+                // The full Commerce24 catalog, not just what the current plan/
+                // purchases cover - every plan's includedPackages too, so a
+                // package exclusive to a higher plan still shows up (locked),
+                // instead of only appearing once you're already on that plan.
+                $catalogHandles = array_merge($data['purchasedHandles'], $data['freeHandles'], $data['premiumHandles']);
+                foreach ($allPlans as $planInfo) {
+                    $catalogHandles = array_merge($catalogHandles, $planInfo->includedPackages);
+                }
+                $candidateHandles = array_unique($catalogHandles);
+                $notInstalled = array_diff($candidateHandles, $installedHandles);
+
+                // Split by PackageService::isEntitled() - the same check
+                // installEntitled() uses, so anything landing in "Available to
+                // Install" is guaranteed installable, and anything in "Locked"
+                // is guaranteed not.
+                $data['availableToInstall'] = [];
+                $data['lockedHandles'] = [];
+                $data['lockedPlanNames'] = [];
+                foreach ($notInstalled as $handle) {
+                    if ($plugin->commercePackages->isEntitled($handle)) {
+                        $data['availableToInstall'][] = $handle;
+                        continue;
+                    }
+                    $data['lockedHandles'][] = $handle;
+                    // Every plan that would unlock this handle, so the UI can
+                    // say "Available on: X, Y" instead of a generic "upgrade somewhere."
+                    $data['lockedPlanNames'][$handle] = array_values(array_map(
+                        fn($planInfo) => $planInfo->name,
+                        array_filter($allPlans, fn($planInfo) => in_array($handle, $planInfo->includedPackages, true))
+                    ));
+                }
+                sort($data['availableToInstall']);
+                sort($data['lockedHandles']);
                 break;
             case 'downloads':
                 $data['purchasedPackages'] = $plugin->downloads->getPurchasedPackages();
@@ -80,11 +117,46 @@ class CommerceController extends Controller
                 $data['teamAllowed'] = $plugin->featureGate->allows('teamManagement');
                 break;
             case 'account':
+                $data['connected'] = $plugin->commerceClient->isConfigured();
                 $data['subscription'] = $plugin->subscription->getSubscription();
+                $data['customer'] = $plugin->subscription->getCustomer();
                 break;
         }
 
         return $this->renderTemplate('site7-studio/commerce/index', $data);
+    }
+
+    // --- Account ---
+
+    /**
+     * Disconnects this site from Commerce24 by clearing the Commerce tab's
+     * connection settings (API endpoint + key) - the same fields Settings
+     * itself saves via SettingsController::actionSave(), reused here so
+     * "Disconnect" in Account has one, consistent effect no matter where it's
+     * triggered from. Local functionality (Library, Publishing, local
+     * package management) keeps working per the Offline Mode requirement -
+     * every commerce service already degrades gracefully once
+     * CommerceClient::isConfigured() goes false.
+     */
+    public function actionDisconnectAccount()
+    {
+        $this->requirePostRequest();
+        $this->requirePermission('manageCommerce');
+
+        $plugin = Site7Studio::getInstance();
+        $data = array_merge($plugin->getSettings()->getAttributes(), [
+            'commerceApiEndpoint' => null,
+            'commerceApiKey' => null,
+        ]);
+
+        if (!Craft::$app->getPlugins()->savePluginSettings($plugin, $data)) {
+            Craft::$app->getSession()->setError('Could not disconnect from Commerce24.');
+            return $this->redirect('site7-studio/commerce?tab=account');
+        }
+
+        $plugin->cache->invalidateTags(['commerce24']);
+        Craft::$app->getSession()->setNotice('Disconnected from Commerce24.');
+        return $this->redirect('site7-studio/commerce?tab=account');
     }
 
     // --- License ---
@@ -250,8 +322,11 @@ class CommerceController extends Controller
 
         $handle = (string)Craft::$app->getRequest()->getRequiredBodyParam('handle');
         try {
-            Site7Studio::getInstance()->commercePackages->installEntitled($handle);
-            Craft::$app->getSession()->setNotice("'{$handle}' was installed.");
+            if (Site7Studio::getInstance()->commercePackages->installEntitled($handle)) {
+                Craft::$app->getSession()->setNotice("'{$handle}' was installed.");
+            } else {
+                Craft::$app->getSession()->setError("Could not install '{$handle}'.");
+            }
         } catch (\Throwable $e) {
             Craft::$app->getSession()->setError("Could not install '{$handle}': " . $e->getMessage());
         }

@@ -32,7 +32,7 @@
     {% elseif activeTab == 'license' %}
         {% include "site7-studio/commerce/_license" with {license: license} only %}
     {% elseif activeTab == 'packages' %}
-        {% include "site7-studio/commerce/_packages" with {installedPackages: installedPackages, purchasedHandles: purchasedHandles, freeHandles: freeHandles, premiumHandles: premiumHandles, pendingDeletions: pendingDeletions} only %}
+        {% include "site7-studio/commerce/_packages" with {installedPackages: installedPackages, purchasedHandles: purchasedHandles, freeHandles: freeHandles, premiumHandles: premiumHandles, pendingDeletions: pendingDeletions, availableToInstall: availableToInstall, lockedHandles: lockedHandles, lockedPlanNames: lockedPlanNames} only %}
     {% elseif activeTab == 'downloads' %}
         {% include "site7-studio/commerce/_downloads" with {purchasedPackages: purchasedPackages, downloadHistory: downloadHistory, importHistory: importHistory, exportHistory: exportHistory} only %}
     {% elseif activeTab == 'updates' %}
@@ -40,6 +40,6 @@
     {% elseif activeTab == 'team' %}
         {% include "site7-studio/commerce/_team" with {teamAllowed: teamAllowed} only %}
     {% elseif activeTab == 'account' %}
-        {% include "site7-studio/commerce/_account" with {subscription: subscription} only %}
+        {% include "site7-studio/commerce/_account" with {connected: connected, subscription: subscription, customer: customer} only %}
     {% endif %}
 {% endblock %}

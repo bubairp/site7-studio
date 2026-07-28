@@ -73,19 +73,34 @@ class PackageService extends Component implements PackageProviderInterface
 
     /**
      * @inheritdoc
+     *
+     * Checks the current plan's includedPackages too, not just purchased/free
+     * - PackageProviderInterface documents this as "free, included in the
+     * current plan, or purchased," and installEntitled() (the only way the
+     * Commerce & Licensing "Available to Install" UI can actually install
+     * something) relies on this covering plan-included packages, not only
+     * ones bought outright.
      */
     public function isEntitled(string $handle): bool
     {
         $entitlements = $this->getEntitlements();
-        return in_array($handle, $entitlements['purchased'] ?? [], true)
-            || in_array($handle, $entitlements['free'] ?? [], true);
+        if (in_array($handle, $entitlements['purchased'] ?? [], true)
+            || in_array($handle, $entitlements['free'] ?? [], true)) {
+            return true;
+        }
+
+        $plan = Site7Studio::getInstance()->plan->getCurrentPlan();
+        return $plan !== null && in_array($handle, $plan->includedPackages, true);
     }
 
     /**
      * Whether $handle should stay enabled under $plan - entitled outright
-     * (purchased/free), or included in $plan itself. Anything installed and
-     * enabled that fails this check is a leftover from a higher plan the
-     * account no longer has.
+     * (purchased/free/plan-included per isEntitled(), which already checks
+     * the *current* plan), or included in this specific $plan. The two only
+     * ever differ when $plan isn't the current plan; every existing caller
+     * (syncEntitlements(), canInstallOrEnable()) always passes the current
+     * plan, so this is effectively isEntitled() plus a defensive fallback
+     * for that case, not a second independent check.
      */
     public function isCurrentlyAllowed(string $handle, PlanInfo $plan): bool
     {

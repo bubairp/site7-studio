@@ -8,12 +8,14 @@ use site7\studio\events\commerce\SubscriptionChangedEvent;
 use site7\studio\interfaces\CommerceClientInterface;
 use site7\studio\interfaces\SubscriptionProviderInterface;
 use site7\studio\models\commerce\CommerceApiException;
+use site7\studio\models\commerce\CustomerInfo;
 use site7\studio\models\commerce\SubscriptionInfo;
 use site7\studio\Site7Studio;
 
 class SubscriptionService extends Component implements SubscriptionProviderInterface
 {
     private const CACHE_KEY = 'site7-studio.commerce24.subscription';
+    private const CUSTOMER_CACHE_KEY = 'site7-studio.commerce24.customer';
 
     public CommerceClientInterface $client;
 
@@ -89,6 +91,29 @@ class SubscriptionService extends Component implements SubscriptionProviderInter
     public function getManageUrl(): ?string
     {
         return $this->getSubscription()->manageUrl;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getCustomer(): CustomerInfo
+    {
+        if (!$this->client->isConfigured()) {
+            return new CustomerInfo();
+        }
+
+        try {
+            $data = Site7Studio::getInstance()->cache->getOrSet(
+                self::CUSTOMER_CACHE_KEY,
+                fn() => $this->client->request('GET', '/customer'),
+                (int)Site7Studio::getInstance()->getSettings()->commerceCacheDuration,
+                ['commerce24', 'commerce24-customer']
+            );
+            return new CustomerInfo($data);
+        } catch (CommerceApiException $e) {
+            Craft::warning('Could not fetch customer from Commerce24: ' . $e->getMessage(), 'site7-studio');
+            return new CustomerInfo();
+        }
     }
 
     private function changeAndDispatch(string $method, string $endpoint, array $payload): SubscriptionInfo

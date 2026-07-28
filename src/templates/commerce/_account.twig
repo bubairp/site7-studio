@@ -1,23 +1,68 @@
 {#
  # Commerce & Licensing - Account tab.
- # Params: subscription (SubscriptionInfo) - used only for the manage-billing link
+ # Params: connected (bool), subscription (SubscriptionInfo) - used only for the manage-billing link,
+ #         customer (CustomerInfo) - the connected Commerce24 account, empty when not connected
  #}
 <div class="pane">
+    <div class="meta">
+        <div class="field">
+            <div class="heading"><label>{{ "Connection Status"|t('site7-studio') }}</label></div>
+            <div class="input">
+                {% if connected %}
+                    <span class="status-label teal"><span class="status teal"></span><span class="status-label-text">{{ "Connected"|t('site7-studio') }}</span></span>
+                {% else %}
+                    <span class="status-label gray"><span class="status gray"></span><span class="status-label-text">{{ "Not Connected"|t('site7-studio') }}</span></span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="pane">
     <h2>{{ "Customer Information"|t('site7-studio') }}</h2>
-    <p class="light">{{ "Loaded from your Commerce24 account once connected."|t('site7-studio') }}</p>
+    {% if connected %}
+        <div class="meta">
+            <div class="field">
+                <div class="heading"><label>{{ "Name"|t('site7-studio') }}</label></div>
+                <div class="input">{{ customer.name ?: '—' }}</div>
+            </div>
+            <div class="field">
+                <div class="heading"><label>{{ "Email"|t('site7-studio') }}</label></div>
+                <div class="input">{{ customer.email ?: '—' }}</div>
+            </div>
+            <div class="field">
+                <div class="heading"><label>{{ "Company"|t('site7-studio') }}</label></div>
+                <div class="input">{{ customer.company ?: customer.organization ?: '—' }}</div>
+            </div>
+        </div>
+    {% else %}
+        <p class="light">{{ "Loaded from your Commerce24 account once connected."|t('site7-studio') }}</p>
+    {% endif %}
 </div>
 
 <div class="site7-quick-actions">
     <div class="flex">
-        <form method="post" accept-charset="UTF-8">
-            {{ csrfInput() }}
-            <input type="hidden" name="action" value="site7-studio/commerce/open-customer-portal">
-            <button type="submit" class="btn submit">{{ "Manage Billing"|t('site7-studio') }}</button>
-        </form>
-        <form method="post" accept-charset="UTF-8">
-            {{ csrfInput() }}
-            <input type="hidden" name="action" value="site7-studio/commerce/open-customer-portal">
-            <button type="submit" class="btn">{{ "Open Customer Portal"|t('site7-studio') }}</button>
-        </form>
+        {% if connected %}
+            <form method="post" accept-charset="UTF-8">
+                {{ csrfInput() }}
+                <input type="hidden" name="action" value="site7-studio/commerce/open-customer-portal">
+                <button type="submit" class="btn submit">{{ "Manage Billing"|t('site7-studio') }}</button>
+            </form>
+            <form method="post" accept-charset="UTF-8">
+                {{ csrfInput() }}
+                <input type="hidden" name="action" value="site7-studio/commerce/open-customer-portal">
+                <button type="submit" class="btn">{{ "Open Commerce24 Account Portal"|t('site7-studio') }}</button>
+            </form>
+            <form method="post" accept-charset="UTF-8">
+                {{ csrfInput() }}
+                {{ redirectInput('site7-studio/commerce?tab=account') }}
+                <input type="hidden" name="action" value="site7-studio/commerce/disconnect-account">
+                <button type="button" class="btn"
+                    onclick="if(confirm('Disconnect this site from Commerce24? Plan verification, purchases, downloads, and automatic updates will stop working until you reconnect. Library, Publishing, and local package management keep working.')) { this.closest('form').submit(); }"
+                >{{ "Disconnect"|t('site7-studio') }}</button>
+            </form>
+        {% else %}
+            <a href="{{ url('site7-studio/settings') }}#commerce" class="btn submit">{{ "Connect Commerce24"|t('site7-studio') }}</a>
+        {% endif %}
     </div>
 </div>
