@@ -19,17 +19,41 @@ class Settings extends Model
      */
     public ?string $defaultPackage = null;
 
-    // --- General (defaults applied to newly-authored packages) ---
+    // --- General (defaults applied to newly-authored packages, pre-filling
+    // the New Package wizard - see PackageAuthoringService::createPackage()) ---
 
     public ?string $defaultPackageAuthor = null;
-
-    public ?string $defaultPackageVendor = null;
-
-    public ?string $defaultPackageNamespace = null;
 
     public string $defaultPackageLicense = 'MIT';
 
     public string $defaultPackageVersion = '1.0.0';
+
+    /**
+     * The Category dropdown's options on the New Package wizard and the
+     * Publish wizard's Metadata step - an admin-managed list rather than
+     * free text, so Library's Category filter (which matches these values
+     * exactly) doesn't fragment on typos/casing ("media" vs "Media").
+     *
+     * Seeded from the Base Project's actual component set (accordion,
+     * blogET, productET, etc.) grouped by what they represent, not a
+     * generic placeholder list - see docs/PHASE-16-FEATURE-PACKAGE-ARCHITECTURE.md
+     * for that inventory.
+     *
+     * @var string[]
+     */
+    public array $packageCategories = [
+        'Header',
+        'About',
+        'Business',
+        'Marketing',
+        'Media',
+        'Blog',
+        'Portfolio',
+        'Products',
+        'Team',
+        'Forms',
+        'Content',
+    ];
 
     // --- Commerce & Licensing (Commerce24 integration) ---
 
@@ -75,7 +99,7 @@ class Settings extends Model
         $rules[] = [['matrixFieldId'], 'integer'];
         $rules[] = [['defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment'], 'string'];
         $rules[] = [
-            ['defaultPackageAuthor', 'defaultPackageVendor', 'defaultPackageNamespace', 'defaultPackageLicense', 'defaultPackageVersion'],
+            ['defaultPackageAuthor', 'defaultPackageLicense', 'defaultPackageVersion'],
             'string',
         ];
         $rules[] = [['defaultPackageLicense'], 'default', 'value' => 'MIT'];
@@ -86,6 +110,7 @@ class Settings extends Model
         $rules[] = [['commerceCacheDuration'], 'default', 'value' => 300];
         $rules[] = [['commerceTimeout'], 'default', 'value' => 10];
         $rules[] = [['commerceOfflineFeatures'], 'safe'];
+        $rules[] = [['packageCategories'], 'safe'];
         return $rules;
     }
 }

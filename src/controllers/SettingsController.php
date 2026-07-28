@@ -81,6 +81,10 @@ class SettingsController extends Controller
         if (isset($submitted['commerceOfflineFeatures']) && is_string($submitted['commerceOfflineFeatures'])) {
             $submitted['commerceOfflineFeatures'] = array_values(array_filter(array_map('trim', explode("\n", $submitted['commerceOfflineFeatures']))));
         }
+        // Textarea input for the package Category dropdown's options - one per line.
+        if (isset($submitted['packageCategories']) && is_string($submitted['packageCategories'])) {
+            $submitted['packageCategories'] = array_values(array_filter(array_map('trim', explode("\n", $submitted['packageCategories']))));
+        }
 
         // Craft's savePluginSettings() only ever persists the keys present in
         // the array it's handed - internally it does

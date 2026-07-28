@@ -24,7 +24,7 @@
     {% if activeStep == 'validate' %}
         {% include "site7-studio/publishing/_validate" with {package: package, readiness: readiness} only %}
     {% elseif activeStep == 'metadata' %}
-        {% include "site7-studio/publishing/_metadata" with {package: package, manifest: manifest, readiness: readiness} only %}
+        {% include "site7-studio/publishing/_metadata" with {package: package, manifest: manifest, readiness: readiness, settings: settings} only %}
     {% elseif activeStep == 'preview' %}
         {% include "site7-studio/publishing/_preview" with {package: package, readiness: readiness, history: history} only %}
     {% elseif activeStep == 'repository' %}

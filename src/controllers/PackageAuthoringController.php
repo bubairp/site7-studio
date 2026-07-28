@@ -57,6 +57,7 @@ class PackageAuthoringController extends Controller
         return $this->renderTemplate('site7-studio/authoring/new', [
             'title' => 'New Package',
             'preselectedType' => $preselectedType,
+            'settings' => Site7Studio::getInstance()->getSettings(),
         ]);
     }
 
@@ -76,8 +77,13 @@ class PackageAuthoringController extends Controller
             'description' => (string)$request->getBodyParam('description', ''),
             'category' => (string)$request->getBodyParam('category', ''),
             'tags' => (string)$request->getBodyParam('tags', ''),
-            'version' => (string)$request->getBodyParam('version', '1.0.0'),
+            // No hardcoded fallback here - blank falls through to
+            // PackageAuthoringService::createPackage(), which applies the
+            // General settings' defaults (the form itself already pre-fills
+            // from them too, so this only matters for a blank submission).
+            'version' => (string)$request->getBodyParam('version', ''),
             'author' => (string)$request->getBodyParam('author', ''),
+            'license' => (string)$request->getBodyParam('license', ''),
         ];
 
         try {

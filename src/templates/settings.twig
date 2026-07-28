@@ -27,16 +27,6 @@
             </div>
 
             <div class="field" style="margin-bottom: 16px;">
-                <div class="heading"><label for="site7set-pkg-vendor">{{ "Default Package Vendor"|t('site7-studio') }}</label></div>
-                <div class="input ltr"><input id="site7set-pkg-vendor" class="text fullwidth code" type="text" name="settings[defaultPackageVendor]" value="{{ settings.defaultPackageVendor }}" placeholder="my-company" autocomplete="off"></div>
-            </div>
-
-            <div class="field" style="margin-bottom: 16px;">
-                <div class="heading"><label for="site7set-pkg-namespace">{{ "Default Package Namespace"|t('site7-studio') }}</label></div>
-                <div class="input ltr"><input id="site7set-pkg-namespace" class="text fullwidth code" type="text" name="settings[defaultPackageNamespace]" value="{{ settings.defaultPackageNamespace }}" placeholder="MyCompany\\Packages" autocomplete="off"></div>
-            </div>
-
-            <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7set-pkg-license">{{ "Default Package License"|t('site7-studio') }}</label></div>
                 <div class="input ltr"><input id="site7set-pkg-license" class="text fullwidth code" type="text" name="settings[defaultPackageLicense]" value="{{ settings.defaultPackageLicense }}" autocomplete="off"></div>
             </div>
@@ -44,6 +34,14 @@
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7set-pkg-version">{{ "Default Package Version"|t('site7-studio') }}</label></div>
                 <div class="input ltr"><input id="site7set-pkg-version" class="text fullwidth code" type="text" name="settings[defaultPackageVersion]" value="{{ settings.defaultPackageVersion }}" autocomplete="off"></div>
+            </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <div class="heading">
+                    <label for="site7set-pkg-categories">{{ "Package Categories"|t('site7-studio') }}</label>
+                    <div class="instructions"><p>{{ "One per line. Populates the Category dropdown on the New Package wizard and the Publish wizard's Metadata step."|t('site7-studio') }}</p></div>
+                </div>
+                <div class="input ltr"><textarea id="site7set-pkg-categories" class="text fullwidth code" name="settings[packageCategories]" rows="5">{{ settings.packageCategories|join("\n") }}</textarea></div>
             </div>
 
             <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>

@@ -72,6 +72,7 @@ class PackagePublisherController extends Controller
 
         if ($step === 'metadata') {
             $data['manifest'] = $record->getManifest();
+            $data['settings'] = $plugin->getSettings();
         }
 
         if ($step === 'preview') {

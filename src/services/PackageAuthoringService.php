@@ -29,7 +29,11 @@ class PackageAuthoringService extends Component
     public const VALID_TYPES = ['section', 'pattern', 'template', 'starter-kit'];
 
     /**
-     * @param array $meta {type, name, handle?, description?, category?, tags?, version?, author?}
+     * @param array $meta {type, name, handle?, description?, category?, tags?, version?, author?, license?}
+     *   version/author/license fall back to Settings::$defaultPackageVersion/
+     *   $defaultPackageAuthor/$defaultPackageLicense (the General settings tab)
+     *   when blank - the New Package wizard's form already pre-fills from the
+     *   same settings, so this only matters for a blank/omitted submission.
      * @throws \Exception if the type is unsupported or the handle is already taken.
      */
     public function createPackage(array $meta): PackageRecord
@@ -56,15 +60,21 @@ class PackageAuthoringService extends Component
 
         $tags = array_values(array_filter(array_map('trim', explode(',', (string)($meta['tags'] ?? '')))));
 
+        $settings = Site7Studio::getInstance()->getSettings();
+        $version = trim((string)($meta['version'] ?? '')) ?: ($settings->defaultPackageVersion ?: '1.0.0');
+        $author = trim((string)($meta['author'] ?? '')) ?: ($settings->defaultPackageAuthor ?: (Craft::$app->getUser()->getIdentity()?->friendlyName ?? ''));
+        $license = trim((string)($meta['license'] ?? '')) ?: $settings->defaultPackageLicense;
+
         $manifest = [
             'schemaVersion' => '1',
             'handle' => $handle,
             'name' => $name,
             'type' => $type,
-            'version' => $meta['version'] ?? '1.0.0',
-            'author' => $meta['author'] ?? (Craft::$app->getUser()->getIdentity()?->friendlyName ?? ''),
+            'version' => $version,
+            'author' => $author,
             'description' => $meta['description'] ?? '',
             'category' => $meta['category'] ?? null,
+            'license' => $license,
             'tags' => $tags,
             'requires' => [],
             'demoContent' => [],

@@ -1,8 +1,15 @@
 {#
  # Publish wizard - Metadata step.
- # Params: package (PackageRecord), manifest (PackageManifest|null), readiness (PublishReadinessResult)
+ # Params: package (PackageRecord), manifest (PackageManifest|null), readiness (PublishReadinessResult),
+ #         settings (Settings) - for packageCategories, the Category dropdown's options
  #}
 {% set packageTags = package.tags is iterable ? package.tags|join(', ') : package.tags %}
+{# The package's current category might not be in the configured list
+ # (legacy data, or the list changed since) - include it as an option
+ # anyway so saving doesn't silently blank it out. #}
+{% set categoryOptions = package.category and package.category not in settings.packageCategories
+    ? settings.packageCategories|merge([package.category])
+    : settings.packageCategories %}
 {% set keywords = manifest and manifest.keywords is defined ? manifest.keywords|join(', ') : '' %}
 
 <form method="post" accept-charset="UTF-8">
@@ -29,7 +36,16 @@
         <div class="flex flex-gap-m">
             <div class="field flex-grow">
                 <div class="heading"><label for="pub-category">{{ "Category"|t('site7-studio') }}</label></div>
-                <div class="input"><input id="pub-category" class="text fullwidth" type="text" name="category" value="{{ package.category }}"></div>
+                <div class="input">
+                    <div class="select fullwidth">
+                        <select id="pub-category" name="category">
+                            <option value="">{{ "None"|t('site7-studio') }}</option>
+                            {% for option in categoryOptions %}
+                                <option value="{{ option }}" {{ option == package.category ? 'selected' }}>{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="field flex-grow">
                 <div class="heading"><label for="pub-tags">{{ "Tags"|t('site7-studio') }}</label></div>
