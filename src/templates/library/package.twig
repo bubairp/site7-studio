@@ -294,24 +294,7 @@
     <hr>
     <section class="site7-detail-section">
         <h2>{{ "Version History"|t('site7-studio') }}</h2>
-
-        {% if currentUser.can('manageVersions') %}
-            <form method="post" accept-charset="UTF-8" class="flex flex-nowrap flex-gap-s" style="align-items: flex-start; margin-bottom: 16px;">
-                {{ csrfInput() }}
-                {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
-                <input type="hidden" name="action" value="site7-studio/package-publisher/create-version">
-                <input type="hidden" name="handle" value="{{ package.handle }}">
-                <div class="select">
-                    <select name="bumpType" aria-label="{{ 'Bump type'|t('site7-studio') }}">
-                        <option value="patch">{{ "Patch"|t('site7-studio') }}</option>
-                        <option value="minor">{{ "Minor"|t('site7-studio') }}</option>
-                        <option value="major">{{ "Major"|t('site7-studio') }}</option>
-                    </select>
-                </div>
-                <input type="text" name="releaseNotes" class="text" placeholder="{{ 'Release notes (optional)'|t('site7-studio') }}" style="min-width: 260px;">
-                <button type="submit" class="btn submit">{{ "Create Version"|t('site7-studio') }}</button>
-            </form>
-        {% endif %}
+        <p class="light">{{ "New versions are created from the Publish wizard's Repository & Publish step."|t('site7-studio') }}</p>
 
         {% if versionHistory is defined and versionHistory|length %}
             <table class="data fullwidth">

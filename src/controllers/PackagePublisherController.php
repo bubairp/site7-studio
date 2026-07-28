@@ -152,8 +152,13 @@ class PackagePublisherController extends Controller
     }
 
     /**
-     * Standalone "Create New Version" action, reachable from Package Details
-     * independently of a full publish (see VersionManagerService).
+     * Bumps a package's version independently of a full publish (see
+     * VersionManagerService) - not currently wired into any UI (a
+     * package-detail form for it was added, then removed as a duplicate of
+     * the Publish wizard's own Bump Version step, which already covers the
+     * only path that actually matters: a version bump that goes somewhere).
+     * Kept as a standalone action for anything that wants to bump a version
+     * without publishing - a future automation, or a UI that isn't this one.
      */
     public function actionCreateVersion()
     {
