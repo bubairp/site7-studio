@@ -41,7 +41,7 @@ Extend the import services to actually capture Asset Volumes, Category/Tag Group
 ### Phase 3 — Navigation & Platform Configuration — **Implemented**, see `PHASE-3-NAVIGATION-PLATFORM-CONFIG-REGISTRY.md`
 Replace the structure-nesting approximation with a real Navigation capture (compatible with common nav plugins where present, degrading gracefully where absent), and build the real `PlatformConfigService` that `ResourceClassifierService` has been waiting on, replacing its keyword-heuristic placeholder. Preceded by a `CraftResourceRegistry` refactor (session-scoped resource graph sitting between `CraftResourceScanner` and every higher-level service) so this and every later phase share one relationship-resolution/dependency-graph data model instead of each re-deriving it.
 
-### Phase 4 — Frontend & environment capture
+### Phase 4 — Frontend & environment capture — **Implemented**, see `PHASE-4-FRONTEND-ENVIRONMENT-CAPTURE.md`
 Capture `composer.json`/`package.json` dependency lists, detect and record frontend build tooling (Vite/Tailwind/SCSS/plain JS) config files, and decide + implement how their actual file contents get bundled into a `.s7pkg` (likely reusing the existing archive/exclude-list machinery from the recent stabilization pass, scoped to an allow-list of config paths rather than a whole-project dump).
 
 ### Phase 5 — Project Builder / Dependency Analyzer / Blueprint Builder / Starter Kit Builder

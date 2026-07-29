@@ -28,19 +28,33 @@ class PackageManifest extends Model
      * (DependencyResolverService). Distinct from $requires, which is the
      * existing (frozen) Section/Pattern/Template graph.
      *
-     * Website Starter Kit System Phase 1 additions (schema only - no
-     * capture/install logic reads these yet):
-     * - plugins: [{handle, package, versionConstraint}] - installable plugin
-     *   dependencies, distinct from the reporting-only pluginDependencies
-     *   above (which only flags a missing plugin against a captured field;
-     *   it is never installed). A future install phase will use this list to
-     *   actually require/enable plugins on the target site.
+     * Website Starter Kit System schema additions, reserved empty by Phase 1
+     * and populated by Phase 4's environment capture (ComposerDependencyScanner/
+     * FrontendToolingScanner, wired into WebsiteImportService) - no install
+     * logic reads these yet:
+     * - plugins: [{handle, package, versionConstraint}] - every installed
+     *   Craft plugin project-wide (not scoped to captured content - this is
+     *   a whole-environment snapshot), distinct from the reporting-only
+     *   pluginDependencies above (which only flags a missing plugin against
+     *   one captured field; it is never installed). A future install phase
+     *   will use this list to actually require/enable plugins on the target
+     *   site. versionConstraint comes from the project's own composer.json
+     *   `require`/`require-dev`, not the plugin's own declared version.
      * - npmPackages: [{name, version, dev}] - captured package.json
-     *   dependency entries, dev distinguishing devDependencies.
-     * - frontendTooling: {system: string|null, configFiles: string[]} - the
-     *   detected build system identifier (e.g. 'vite', 'tailwind', 'scss',
-     *   'plain') plus the config file paths that describe it. Empty/absent
-     *   on any package that hasn't gone through frontend tooling capture.
+     *   dependency entries (dependencies + devDependencies, dev
+     *   distinguishing them), from whichever directory FrontendToolingScanner
+     *   found a package.json in (project root, or a conventional
+     *   subdirectory like frontend/).
+     * - frontendTooling: {system: string, configFiles: string[]} - the
+     *   detected build system identifier ('vite'/'webpack'/'gulp'/'tailwind'/
+     *   'plain') plus the config file paths captured (relative to the
+     *   frontend root) - config content only, never node_modules/build
+     *   output. The actual file contents are copied into this package's own
+     *   directory (see WebsiteImportService::copyFrontendConfigFiles()) so
+     *   the existing package archive machinery (PackageArchiveHelper) ships
+     *   them inside the .s7pkg automatically, with no changes needed there.
+     *   Empty/absent on any package that hasn't gone through Phase 4
+     *   capture, or where no package.json was found at all.
      */
     public array $dependencies = [];
     public array $requires = [];

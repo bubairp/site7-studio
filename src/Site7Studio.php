@@ -57,6 +57,8 @@ use site7\studio\providers\PublishingServiceProvider;
  * @property-read \site7\studio\services\CraftResourceScanner $craftResourceScanner
  * @property-read \site7\studio\services\CraftResourceRegistry $craftResourceRegistry
  * @property-read \site7\studio\services\PlatformConfigService $platformConfig
+ * @property-read \site7\studio\services\FrontendToolingScanner $frontendToolingScanner
+ * @property-read \site7\studio\services\ComposerDependencyScanner $composerDependencyScanner
  */
 class Site7Studio extends Plugin
 {

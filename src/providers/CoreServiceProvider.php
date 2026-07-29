@@ -11,6 +11,8 @@ use site7\studio\services\CraftResourceService;
 use site7\studio\services\CraftResourceScanner;
 use site7\studio\services\CraftResourceRegistry;
 use site7\studio\services\PlatformConfigService;
+use site7\studio\services\FrontendToolingScanner;
+use site7\studio\services\ComposerDependencyScanner;
 use site7\studio\services\MarketplaceService;
 use site7\studio\services\SharedResourceRegistryService;
 use site7\studio\services\SharedResourceUsageService;
@@ -83,6 +85,14 @@ class CoreServiceProvider implements ServiceProviderInterface
 
         $plugin->set('platformConfig', [
             'class' => PlatformConfigService::class,
+        ]);
+
+        $plugin->set('frontendToolingScanner', [
+            'class' => FrontendToolingScanner::class,
+        ]);
+
+        $plugin->set('composerDependencyScanner', [
+            'class' => ComposerDependencyScanner::class,
         ]);
     }
 }

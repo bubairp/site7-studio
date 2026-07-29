@@ -17,7 +17,9 @@ use craft\models\Volume;
 use site7\studio\events\ResourceImportedEvent;
 use site7\studio\models\registry\ResourceNode;
 use site7\studio\records\PackageRecord;
+use site7\studio\services\ComposerDependencyScanner;
 use site7\studio\services\CraftResourceRegistry;
+use site7\studio\services\FrontendToolingScanner;
 use site7\studio\services\scanning\NavigationScanner;
 use site7\studio\Site7Studio;
 
@@ -50,16 +52,29 @@ use site7\studio\Site7Studio;
  *    when available; pages[].parentSlug is still always recorded (cheap,
  *    harmless, and the only signal at all on a project without a nav
  *    plugin) but $notes says so explicitly when a real nav menu was
- *    captured instead.
+ *    captured instead;
+ *  - captures the whole-environment snapshot (Phase 4): every installed
+ *    Craft plugin (handle/package/composer.json version constraint),
+ *    package.json npm dependencies, and detected frontend build tooling
+ *    (Vite/webpack/gulp/Tailwind/plain) - not scoped to the selected
+ *    pages/Global Sets, since "what does this site run" is a project-wide
+ *    question. The frontend tooling's actual config file contents are
+ *    copied into this package's own directory so the existing package
+ *    archive machinery (PackageArchiveHelper) ships them inside the
+ *    .s7pkg with no changes needed there.
  */
 class WebsiteImportService extends Component
 {
     public ?CraftResourceRegistry $registry = null;
+    public ?FrontendToolingScanner $frontendToolingScanner = null;
+    public ?ComposerDependencyScanner $composerDependencyScanner = null;
 
     public function init(): void
     {
         parent::init();
         $this->registry ??= new CraftResourceRegistry();
+        $this->frontendToolingScanner ??= new FrontendToolingScanner();
+        $this->composerDependencyScanner ??= new ComposerDependencyScanner();
     }
 
     /**
@@ -153,6 +168,13 @@ class WebsiteImportService extends Component
         $categoryGroups = $this->describeCategoryGroups($referencedCategoryGroupNodes);
         $tagGroups = $this->describeTagGroups($referencedTagGroupNodes);
 
+        // Phase 4: whole-environment capture, not scoped to the selected
+        // pages/Global Sets - "what plugins/npm packages/build tooling does
+        // this site run" is a project-wide question.
+        $frontendDetection = $this->frontendToolingScanner->detect();
+        $npmPackages = $frontendDetection ? $this->frontendToolingScanner->captureNpmDependencies($frontendDetection['root']) : [];
+        $pluginDependencies = $this->composerDependencyScanner->captureComposerPluginDependencies();
+
         $name = trim((string)($meta['name'] ?? ''));
         if ($name === '') {
             throw new \Exception('A Starter Kit name is required.');
@@ -197,6 +219,12 @@ class WebsiteImportService extends Component
             'dependencies' => [
                 'sharedResources' => array_values(array_unique($sharedResourceHandles)),
                 'pluginDependencies' => [],
+                'plugins' => $pluginDependencies,
+                'npmPackages' => $npmPackages,
+                'frontendTooling' => [
+                    'system' => $frontendDetection['system'] ?? null,
+                    'configFiles' => $frontendDetection['configFiles'] ?? [],
+                ],
             ],
             'importedFrom' => [
                 'sourceType' => 'website',
@@ -209,6 +237,10 @@ class WebsiteImportService extends Component
 
         file_put_contents($packagePath . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         file_put_contents($packagePath . '/README.md', $this->buildReadme($name, $pages, $globals));
+
+        if ($frontendDetection) {
+            $this->copyFrontendConfigFiles($frontendDetection['root'], $frontendDetection['configFiles'], $packagePath);
+        }
 
         FileHelper::createDirectory($packagePath . '/preview');
 
@@ -473,6 +505,32 @@ class WebsiteImportService extends Component
             ];
         }
         return $result;
+    }
+
+    /**
+     * Copies the allow-listed frontend config files FrontendToolingScanner
+     * detected into this package's own `frontend/` subdirectory - never the
+     * whole frontend project (no node_modules/build output/source), just
+     * the config files manifest->dependencies.frontendTooling.configFiles
+     * already lists. Once copied, these are ordinary files inside the
+     * package directory like any other (template.twig, fields.yaml, ...),
+     * so the existing package archive machinery (PackageArchiveHelper,
+     * used whenever this package is later zipped into a .s7pkg) ships them
+     * automatically - nothing there needed to change for this phase.
+     *
+     * @param string[] $configFiles filenames relative to $frontendRoot
+     */
+    private function copyFrontendConfigFiles(string $frontendRoot, array $configFiles, string $packagePath): void
+    {
+        $destDir = $packagePath . '/frontend';
+        foreach ($configFiles as $filename) {
+            $source = $frontendRoot . '/' . $filename;
+            if (!is_file($source)) {
+                continue;
+            }
+            FileHelper::createDirectory($destDir);
+            copy($source, $destDir . '/' . $filename);
+        }
     }
 
     private function buildReadme(string $name, array $pages, array $globals): string
