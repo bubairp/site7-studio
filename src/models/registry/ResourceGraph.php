@@ -102,11 +102,53 @@ final class ResourceGraph
      * unresolved once the acyclic part is exhausted are appended afterward
      * in their original insertion order rather than throwing, since a
      * best-effort order is more useful to a future installer than a hard
-     * failure over something Craft itself allows.
+     * failure over something Craft itself allows. See analyzeCycles() to
+     * find out which specific nodes those were, rather than just that some
+     * exist.
      *
      * @return ResourceNode[]
      */
     public function topologicalOrder(): array
+    {
+        return $this->computeTopologicalOrder()['ordered'];
+    }
+
+    /**
+     * Same computation as topologicalOrder(), but reports precisely which
+     * nodes could not be resolved via pure dependency ordering (i.e.
+     * participate in a cycle) instead of silently folding them into the
+     * tail of the ordered list - Phase 5's DependencyAnalyzer uses this to
+     * report circular dependencies rather than fail unexpectedly.
+     *
+     * @return array{ordered: ResourceNode[], cyclic: ResourceNode[]}
+     */
+    public function analyzeCycles(): array
+    {
+        return $this->computeTopologicalOrder();
+    }
+
+    /**
+     * Every edge in the graph, resolved to node pairs - the raw material
+     * for a "dependency relationships" report (Phase 5's Blueprint). Order
+     * matches $this->nodes' insertion order, then each node's own edges.
+     *
+     * @return array<int, array{from: ResourceNode, to: ResourceNode}>
+     */
+    public function allEdges(): array
+    {
+        $result = [];
+        foreach ($this->nodes as $fromKey => $fromNode) {
+            foreach (array_keys($this->edges[$fromKey] ?? []) as $toKey) {
+                if (isset($this->nodes[$toKey])) {
+                    $result[] = ['from' => $fromNode, 'to' => $this->nodes[$toKey]];
+                }
+            }
+        }
+        return $result;
+    }
+
+    /** @return array{ordered: ResourceNode[], cyclic: ResourceNode[]} */
+    private function computeTopologicalOrder(): array
     {
         $remainingDependencyCount = [];
         foreach ($this->nodes as $nodeKey => $node) {
@@ -136,13 +178,15 @@ final class ResourceGraph
             }
         }
 
+        $cyclic = [];
         foreach ($this->nodes as $nodeKey => $node) {
             if (!isset($visited[$nodeKey])) {
                 $ordered[] = $node;
+                $cyclic[] = $node;
             }
         }
 
-        return $ordered;
+        return ['ordered' => $ordered, 'cyclic' => $cyclic];
     }
 
     /** @param array<string, true> $edgeSet @return ResourceNode[] */

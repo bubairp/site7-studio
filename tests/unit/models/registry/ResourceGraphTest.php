@@ -124,4 +124,66 @@ class ResourceGraphTest extends Unit
         sort($handles);
         $this->assertSame(['a', 'b'], $handles);
     }
+
+    public function testAnalyzeCyclesReportsExactlyTheUnresolvedNodes()
+    {
+        $graph = new ResourceGraph();
+        $volume = $this->node('assetVolume', 'uid-1', 'images');
+        $a = $this->node('entryType', 'uid-a', 'a');
+        $b = $this->node('entryType', 'uid-b', 'b');
+        $graph->addNode($volume, 'uid-1');
+        $graph->addNode($a, 'uid-a');
+        $graph->addNode($b, 'uid-b');
+
+        // volume has no dependencies (acyclic); a and b depend on each other (cyclic).
+        $graph->addEdge('entryType', 'uid-a', 'entryType', 'uid-b');
+        $graph->addEdge('entryType', 'uid-b', 'entryType', 'uid-a');
+
+        $result = $graph->analyzeCycles();
+
+        $this->assertCount(3, $result['ordered']);
+        $cyclicHandles = array_map(fn($n) => $n->handle, $result['cyclic']);
+        sort($cyclicHandles);
+        $this->assertSame(['a', 'b'], $cyclicHandles);
+    }
+
+    public function testAnalyzeCyclesReportsNoCyclicNodesOnAnAcyclicGraph()
+    {
+        $graph = new ResourceGraph();
+        $volume = $this->node('assetVolume', 'uid-1', 'images');
+        $field = $this->node('field', 'uid-2', 'heroImage');
+        $graph->addNode($volume, 'uid-1');
+        $graph->addNode($field, 'uid-2');
+        $graph->addEdge('field', 'uid-2', 'assetVolume', 'uid-1');
+
+        $result = $graph->analyzeCycles();
+
+        $this->assertSame([], $result['cyclic']);
+    }
+
+    public function testAllEdgesReturnsEveryEdgeAsResolvedNodePairs()
+    {
+        $graph = new ResourceGraph();
+        $volume = $this->node('assetVolume', 'uid-1', 'images');
+        $field = $this->node('field', 'uid-2', 'heroImage');
+        $graph->addNode($volume, 'uid-1');
+        $graph->addNode($field, 'uid-2');
+        $graph->addEdge('field', 'uid-2', 'assetVolume', 'uid-1');
+
+        $edges = $graph->allEdges();
+
+        $this->assertCount(1, $edges);
+        $this->assertSame($field, $edges[0]['from']);
+        $this->assertSame($volume, $edges[0]['to']);
+    }
+
+    public function testAllEdgesExcludesEdgesToUnknownNodes()
+    {
+        $graph = new ResourceGraph();
+        $section = $this->node('section', 'uid-1', 'blog');
+        $graph->addNode($section, 'uid-1');
+        $graph->addEdge('section', 'uid-1', 'entryType', 'missing');
+
+        $this->assertSame([], $graph->allEdges());
+    }
 }

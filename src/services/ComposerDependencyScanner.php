@@ -55,10 +55,28 @@ class ComposerDependencyScanner extends Component
         return $result;
     }
 
+    /**
+     * Whether $package (a Composer package name, e.g. 'ether/seo') is
+     * already listed in the target project's own composer.json - Phase 6's
+     * InstallationPlanner uses this to decide whether a plugin needs a
+     * `composer` step at all, rather than assuming every captured
+     * dependency is missing.
+     */
+    public function isPackageRequired(string $package): bool
+    {
+        return isset($this->readComposerRequire()[$package]);
+    }
+
+    /** The Craft project's root directory (where composer.json lives). */
+    public function projectRoot(): string
+    {
+        return rtrim(dirname(Craft::$app->getPath()->getVendorPath()), '/\\');
+    }
+
     /** @return array<string, string> composer package name => version constraint, from the project's own require + require-dev */
     private function readComposerRequire(): array
     {
-        $projectRoot = rtrim(dirname(Craft::$app->getPath()->getVendorPath()), '/\\');
+        $projectRoot = $this->projectRoot();
         $composerJsonPath = $projectRoot . '/composer.json';
         if (!is_file($composerJsonPath)) {
             return [];

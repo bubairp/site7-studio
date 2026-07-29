@@ -113,4 +113,23 @@ class CraftResourceRegistry extends Component
     {
         return $this->getGraph()->topologicalOrder();
     }
+
+    /**
+     * Same ordering as installOrder(), plus which specific nodes couldn't be
+     * resolved via pure dependency order (i.e. participate in a cycle) -
+     * Phase 5's DependencyAnalyzer uses this to report circular
+     * dependencies explicitly rather than silently degrade.
+     *
+     * @return array{ordered: ResourceNode[], cyclic: ResourceNode[]}
+     */
+    public function analyzeCycles(): array
+    {
+        return $this->getGraph()->analyzeCycles();
+    }
+
+    /** @return array<int, array{from: ResourceNode, to: ResourceNode}> every edge in the graph */
+    public function allEdges(): array
+    {
+        return $this->getGraph()->allEdges();
+    }
 }

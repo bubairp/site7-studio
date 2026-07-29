@@ -13,6 +13,13 @@ use site7\studio\services\CraftResourceRegistry;
 use site7\studio\services\PlatformConfigService;
 use site7\studio\services\FrontendToolingScanner;
 use site7\studio\services\ComposerDependencyScanner;
+use site7\studio\services\ProjectBuilder;
+use site7\studio\services\DependencyAnalyzer;
+use site7\studio\services\BlueprintBuilder;
+use site7\studio\services\StarterKitBuilder;
+use site7\studio\services\installation\InstallationPlanner;
+use site7\studio\services\installation\InstallationValidator;
+use site7\studio\services\installation\InstallationExecutor;
 use site7\studio\services\MarketplaceService;
 use site7\studio\services\SharedResourceRegistryService;
 use site7\studio\services\SharedResourceUsageService;
@@ -93,6 +100,34 @@ class CoreServiceProvider implements ServiceProviderInterface
 
         $plugin->set('composerDependencyScanner', [
             'class' => ComposerDependencyScanner::class,
+        ]);
+
+        $plugin->set('projectBuilder', [
+            'class' => ProjectBuilder::class,
+        ]);
+
+        $plugin->set('dependencyAnalyzer', [
+            'class' => DependencyAnalyzer::class,
+        ]);
+
+        $plugin->set('blueprintBuilder', [
+            'class' => BlueprintBuilder::class,
+        ]);
+
+        $plugin->set('starterKitBuilder', [
+            'class' => StarterKitBuilder::class,
+        ]);
+
+        $plugin->set('installationPlanner', [
+            'class' => InstallationPlanner::class,
+        ]);
+
+        $plugin->set('installationValidator', [
+            'class' => InstallationValidator::class,
+        ]);
+
+        $plugin->set('installationExecutor', [
+            'class' => InstallationExecutor::class,
         ]);
     }
 }

@@ -59,6 +59,13 @@ use site7\studio\providers\PublishingServiceProvider;
  * @property-read \site7\studio\services\PlatformConfigService $platformConfig
  * @property-read \site7\studio\services\FrontendToolingScanner $frontendToolingScanner
  * @property-read \site7\studio\services\ComposerDependencyScanner $composerDependencyScanner
+ * @property-read \site7\studio\services\ProjectBuilder $projectBuilder
+ * @property-read \site7\studio\services\DependencyAnalyzer $dependencyAnalyzer
+ * @property-read \site7\studio\services\BlueprintBuilder $blueprintBuilder
+ * @property-read \site7\studio\services\StarterKitBuilder $starterKitBuilder
+ * @property-read \site7\studio\services\installation\InstallationPlanner $installationPlanner
+ * @property-read \site7\studio\services\installation\InstallationValidator $installationValidator
+ * @property-read \site7\studio\services\installation\InstallationExecutor $installationExecutor
  */
 class Site7Studio extends Plugin
 {
