@@ -27,6 +27,20 @@ class PackageManifest extends Model
      * handle, resolved against site7_shared_resources at install time
      * (DependencyResolverService). Distinct from $requires, which is the
      * existing (frozen) Section/Pattern/Template graph.
+     *
+     * Website Starter Kit System Phase 1 additions (schema only - no
+     * capture/install logic reads these yet):
+     * - plugins: [{handle, package, versionConstraint}] - installable plugin
+     *   dependencies, distinct from the reporting-only pluginDependencies
+     *   above (which only flags a missing plugin against a captured field;
+     *   it is never installed). A future install phase will use this list to
+     *   actually require/enable plugins on the target site.
+     * - npmPackages: [{name, version, dev}] - captured package.json
+     *   dependency entries, dev distinguishing devDependencies.
+     * - frontendTooling: {system: string|null, configFiles: string[]} - the
+     *   detected build system identifier (e.g. 'vite', 'tailwind', 'scss',
+     *   'plain') plus the config file paths that describe it. Empty/absent
+     *   on any package that hasn't gone through frontend tooling capture.
      */
     public array $dependencies = [];
     public array $requires = [];
@@ -114,6 +128,43 @@ class PackageManifest extends Model
      */
     public array $excludedFields = [];
 
+    // --- Website Starter Kit System schema foundations (Phase 1) ---
+    // Schema-only for now: no import/capture or install-side code reads or
+    // writes these yet. They exist so later phases (2-8) have a stable
+    // manifest surface to build capture/install logic against without
+    // another round of schema churn. All optional and additive, same
+    // rationale as the Phase 14/15 blocks above.
+
+    /**
+     * Craft Asset Volume settings captured from the source site. Each entry
+     * is {handle, name, handle-scoped fs/transform settings TBD by Phase 2's
+     * capture implementation} - Phase 1 only reserves the slot.
+     */
+    public array $assetVolumes = [];
+
+    /** Craft Category Group settings captured from the source site: {handle, name, ...}. */
+    public array $categoryGroups = [];
+
+    /** Craft Tag Group settings captured from the source site: {handle, name, ...}. */
+    public array $tagGroups = [];
+
+    /**
+     * Captured site navigation, intended to replace the current
+     * structure-entry-nesting approximation (Phase 3). Shape is
+     * intentionally unspecified until Phase 3 defines the real Navigation
+     * model - reserved here only so Phase 1's consumers have a stable key
+     * to read an empty array from.
+     */
+    public array $navigation = [];
+
+    /**
+     * Allow-listed Project Config paths (e.g. 'sections.*', 'fields.*')
+     * relevant to this package, for the future diff/apply mechanism
+     * (Phase 6). Not a full Project Config dump - see Phase 4/6 for the
+     * bundling and apply strategy.
+     */
+    public array $projectConfigPaths = [];
+
     /**
      * @inheritdoc
      */
@@ -122,7 +173,7 @@ class PackageManifest extends Model
         $rules = parent::defineRules();
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion'], 'required'];
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview', 'sourceEntryType', 'sourceSection'], 'string'];
-        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords', 'importedFrom', 'globals', 'excludedFields'], 'safe'];
+        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords', 'importedFrom', 'globals', 'excludedFields', 'assetVolumes', 'categoryGroups', 'tagGroups', 'navigation', 'projectConfigPaths'], 'safe'];
         $rules[] = [['displayName', 'company', 'website', 'supportUrl', 'documentationUrl', 'license', 'pricingType', 'minimumCraftVersion', 'minimumSite7Version'], 'string'];
         return $rules;
     }

@@ -124,6 +124,7 @@ class StarterKitGeneratorController extends Controller
             'createdCount' => count($summary['createdEntries']),
             'skipped' => $summary['skipped'],
             'installedTemplates' => $summary['installedTemplates'],
+            'installedGlobals' => $summary['installedGlobals'],
         ]);
     }
 }

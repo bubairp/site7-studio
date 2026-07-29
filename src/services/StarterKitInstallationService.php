@@ -5,19 +5,22 @@ namespace site7\studio\services;
 use Craft;
 use craft\base\Component;
 use craft\elements\Entry;
+use craft\elements\GlobalSet;
 use site7\studio\Site7Studio;
 
 /**
  * Installs a Starter Kit package ("Install Starter Kit"), recreating its
  * captured pages via the existing Create-from-Template mechanism. Phase 10
- * scope: Pages + Templates only - Navigation/Globals/Categories/Assets/SEO
- * are deferred to later increments, so the installation summary only ever
- * reports on pages/templates.
+ * scope: Pages + Templates only - Navigation/Categories/Assets/SEO are
+ * deferred to later increments. Global Set values captured by
+ * WebsiteImportService (manifest->globals) are restored on a best-effort
+ * basis: a Global Set missing on the target site, or a field no longer on
+ * its layout, is skipped and reported rather than failing the install.
  */
 class StarterKitInstallationService extends Component
 {
     /**
-     * @return array{createdEntries: Entry[], skipped: string[], installedTemplates: string[]}
+     * @return array{createdEntries: Entry[], skipped: string[], installedTemplates: string[], installedGlobals: string[]}
      * @throws \Exception if the Starter Kit package or its manifest can't be resolved.
      */
     public function installStarterKit(string $handle): array
@@ -92,10 +95,59 @@ class StarterKitInstallationService extends Component
             }
         }
 
+        $installedGlobals = $this->installGlobals($manifest->globals, $skipped);
+
         return [
             'createdEntries' => $createdEntries,
             'skipped' => $skipped,
             'installedTemplates' => array_values(array_unique($installedTemplates)),
+            'installedGlobals' => $installedGlobals,
         ];
+    }
+
+    /**
+     * Restores captured Global Set field values (manifest->globals: [{globalSetHandle,
+     * name, fields: {handle: value}}]) onto the matching Global Set on the target
+     * site, if one exists. Missing Global Sets or fields no longer on the target's
+     * field layout are appended to $skipped rather than failing the install.
+     *
+     * @param array $globals
+     * @param string[] $skipped
+     * @return string[] handles of the Global Sets actually updated
+     */
+    private function installGlobals(array $globals, array &$skipped): array
+    {
+        $installed = [];
+        $globalsService = Craft::$app->getGlobals();
+
+        foreach ($globals as $global) {
+            $handle = $global['globalSetHandle'] ?? null;
+            $name = $global['name'] ?? $handle ?? 'Untitled global';
+            if (!$handle) {
+                continue;
+            }
+
+            $globalSet = $globalsService->getSetByHandle($handle);
+            if (!$globalSet instanceof GlobalSet) {
+                $skipped[] = "{$name}: Global Set '{$handle}' is not installed in this project.";
+                continue;
+            }
+
+            $fieldLayout = $globalSet->getFieldLayout();
+            foreach ($global['fields'] ?? [] as $fieldHandle => $fieldValue) {
+                if ($fieldLayout?->getFieldByHandle($fieldHandle)) {
+                    $globalSet->setFieldValue($fieldHandle, $fieldValue);
+                }
+            }
+
+            if (!Craft::$app->getElements()->saveElement($globalSet)) {
+                $skipped[] = "{$name}: " . implode(' ', $globalSet->getFirstErrors());
+                continue;
+            }
+
+            $installed[] = $handle;
+        }
+
+        return $installed;
     }
 }
