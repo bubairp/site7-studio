@@ -30,6 +30,7 @@ class PackageManifestTest extends Unit
         $this->assertSame([], $manifest->assetVolumes);
         $this->assertSame([], $manifest->categoryGroups);
         $this->assertSame([], $manifest->tagGroups);
+        $this->assertSame([], $manifest->craftSections);
         $this->assertSame([], $manifest->navigation);
         $this->assertSame([], $manifest->projectConfigPaths);
     }
@@ -72,6 +73,20 @@ class PackageManifestTest extends Unit
             'tagGroups' => [
                 ['handle' => 'topics', 'name' => 'Topics'],
             ],
+            'craftSections' => [
+                [
+                    'handle' => 'blog',
+                    'name' => 'Blog',
+                    'type' => 'channel',
+                    'propagationMethod' => 'all',
+                    'enableVersioning' => true,
+                    'maxLevels' => null,
+                    'defaultPlacement' => 'end',
+                    'siteSettings' => [
+                        ['siteHandle' => 'default', 'enabledByDefault' => true, 'hasUrls' => true, 'uriFormat' => 'blog/{slug}', 'template' => 'blog/_entry'],
+                    ],
+                ],
+            ],
             'navigation' => [
                 ['label' => 'Home', 'url' => '/'],
             ],
@@ -88,6 +103,7 @@ class PackageManifestTest extends Unit
         $this->assertSame($data['assetVolumes'], $manifest->assetVolumes);
         $this->assertSame($data['categoryGroups'], $manifest->categoryGroups);
         $this->assertSame($data['tagGroups'], $manifest->tagGroups);
+        $this->assertSame($data['craftSections'], $manifest->craftSections);
         $this->assertSame($data['navigation'], $manifest->navigation);
         $this->assertSame($data['projectConfigPaths'], $manifest->projectConfigPaths);
     }

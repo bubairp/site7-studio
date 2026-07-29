@@ -6,11 +6,17 @@ use Craft;
 use craft\base\Component;
 use craft\elements\Entry;
 use craft\elements\GlobalSet;
+use craft\fields\Assets;
 use craft\fields\Categories;
 use craft\fields\Tags;
 use craft\helpers\FileHelper;
+use craft\models\CategoryGroup;
+use craft\models\Section;
+use craft\models\TagGroup;
+use craft\models\Volume;
 use site7\studio\events\ResourceImportedEvent;
 use site7\studio\records\PackageRecord;
+use site7\studio\services\CraftResourceScanner;
 use site7\studio\Site7Studio;
 
 /**
@@ -27,12 +33,26 @@ use site7\studio\Site7Studio;
  *    existing schema) plus whichever Global Sets the user selects - there is
  *    nothing structurally different about a "nav" Global Set versus any
  *    other one, so all selected Global Sets are serialized the same way;
- *  - records any referenced Category/Tag field as a dependency note rather
- *    than creating Category/Tag Groups, matching the "Assets import is
- *    future/out of scope" boundary extended to Categories/Tags creation.
+ *  - captures the settings (not the linked values) of any Asset Volume,
+ *    Category Group, or Tag Group actually referenced by a selected page's
+ *    or Global Set's field layout, plus the Section-level settings of every
+ *    Section a selected page belongs to (Website Starter Kit System Phase
+ *    2) - via CraftResourceScanner, the single discovery layer for native
+ *    Craft resources. A Category/Tag field's own linked values are still
+ *    not captured (recorded as a dependency note, same as before); only the
+ *    Group definition itself is now captured, so the target site at least
+ *    has somewhere to assign values into after install.
  */
 class WebsiteImportService extends Component
 {
+    public ?CraftResourceScanner $scanner = null;
+
+    public function init(): void
+    {
+        parent::init();
+        $this->scanner ??= new CraftResourceScanner();
+    }
+
     /**
      * @param int[] $entryIds
      * @param int[] $globalSetIds
@@ -49,6 +69,11 @@ class WebsiteImportService extends Component
         $requiresTemplates = [];
         $skipped = [];
         $notes = [];
+
+        $referencedSectionHandles = [];
+        $referencedVolumeUids = [];
+        $referencedCategoryGroupUids = [];
+        $referencedTagGroupUids = [];
 
         foreach ($entries as $entry) {
             /** @var Entry $entry */
@@ -70,21 +95,29 @@ class WebsiteImportService extends Component
                 $parentSlug = $parent->slug;
             }
 
+            $section = $entry->getSection();
             $pages[] = [
                 'title' => $entry->title,
                 'slug' => $entry->slug,
-                'sectionHandle' => $entry->getSection()?->handle,
+                'sectionHandle' => $section?->handle,
                 'entryTypeHandle' => $entry->getType()->handle,
                 'templateHandle' => $templateRecord->handle,
                 'parentSlug' => $parentSlug,
             ];
             $requiresTemplates[] = $templateRecord->handle;
+            if ($section) {
+                $referencedSectionHandles[$section->handle] = true;
+            }
 
             foreach ($entry->getFieldLayout()?->getCustomFields() ?? [] as $field) {
                 if ($field instanceof Categories) {
                     $notes[] = "\"{$entry->title}\" references Category field '{$field->handle}' - categories are not imported, links will be empty on install.";
+                    self::collectRelationSourceUids($field->sources, 'group:', $referencedCategoryGroupUids, fn() => $this->scanner->scanCategoryGroups());
                 } elseif ($field instanceof Tags) {
                     $notes[] = "\"{$entry->title}\" references Tag field '{$field->handle}' - tags are not imported, links will be empty on install.";
+                    self::collectRelationSourceUids($field->sources, 'taggroup:', $referencedTagGroupUids, fn() => $this->scanner->scanTagGroups());
+                } elseif ($field instanceof Assets) {
+                    self::collectRelationSourceUids($field->sources, 'volume:', $referencedVolumeUids, fn() => $this->scanner->scanAssetVolumes());
                 }
             }
         }
@@ -93,7 +126,21 @@ class WebsiteImportService extends Component
             throw new \Exception('None of the selected pages could be captured: ' . implode('; ', $skipped));
         }
 
-        [$globals, $sharedResourceHandles] = $this->describeGlobalSets($globalSetIds);
+        [$globals, $sharedResourceHandles, $globalResourceRefs] = $this->describeGlobalSets($globalSetIds);
+        foreach ($globalResourceRefs['volumeUids'] as $uid) {
+            $referencedVolumeUids[$uid] = true;
+        }
+        foreach ($globalResourceRefs['categoryGroupUids'] as $uid) {
+            $referencedCategoryGroupUids[$uid] = true;
+        }
+        foreach ($globalResourceRefs['tagGroupUids'] as $uid) {
+            $referencedTagGroupUids[$uid] = true;
+        }
+
+        $craftSections = $this->describeCraftSections(array_keys($referencedSectionHandles));
+        $assetVolumes = $this->describeAssetVolumes(array_keys($referencedVolumeUids));
+        $categoryGroups = $this->describeCategoryGroups(array_keys($referencedCategoryGroupUids));
+        $tagGroups = $this->describeTagGroups(array_keys($referencedTagGroupUids));
 
         $name = trim((string)($meta['name'] ?? ''));
         if ($name === '') {
@@ -131,6 +178,10 @@ class WebsiteImportService extends Component
             'requires' => array_filter(['templates' => array_values(array_unique($requiresTemplates))]),
             'pages' => $pages,
             'globals' => $globals,
+            'craftSections' => $craftSections,
+            'assetVolumes' => $assetVolumes,
+            'categoryGroups' => $categoryGroups,
+            'tagGroups' => $tagGroups,
             'dependencies' => [
                 'sharedResources' => array_values(array_unique($sharedResourceHandles)),
                 'pluginDependencies' => [],
@@ -173,12 +224,13 @@ class WebsiteImportService extends Component
 
     /**
      * @param int[] $globalSetIds
-     * @return array{0: array<int, array{globalSetHandle: string, name: string, fields: array}>, 1: string[]} [globals, shared resource handles referenced]
+     * @return array{0: array<int, array{globalSetHandle: string, name: string, fields: array}>, 1: string[], 2: array{volumeUids: string[], categoryGroupUids: string[], tagGroupUids: string[]}} [globals, shared resource handles referenced, referenced Volume/Category Group/Tag Group uids]
      */
     private function describeGlobalSets(array $globalSetIds): array
     {
+        $emptyRefs = ['volumeUids' => [], 'categoryGroupUids' => [], 'tagGroupUids' => []];
         if (empty($globalSetIds)) {
-            return [[], []];
+            return [[], [], $emptyRefs];
         }
 
         $craftResourceService = Site7Studio::getInstance()->craftResourceGenerator;
@@ -186,6 +238,9 @@ class WebsiteImportService extends Component
         $registry = Site7Studio::getInstance()->sharedResourceRegistry;
         $globals = [];
         $sharedResourceHandles = [];
+        $referencedVolumeUids = [];
+        $referencedCategoryGroupUids = [];
+        $referencedTagGroupUids = [];
 
         foreach ($globalSetIds as $globalSetId) {
             $globalSet = Craft::$app->getGlobals()->getSetById((int)$globalSetId);
@@ -200,6 +255,13 @@ class WebsiteImportService extends Component
             $liveFieldsByHandle = [];
             foreach ($layout?->getCustomFields() ?? [] as $liveField) {
                 $liveFieldsByHandle[$liveField->handle] = $liveField;
+                if ($liveField instanceof Assets) {
+                    self::collectRelationSourceUids($liveField->sources, 'volume:', $referencedVolumeUids, fn() => $this->scanner->scanAssetVolumes());
+                } elseif ($liveField instanceof Categories) {
+                    self::collectRelationSourceUids($liveField->sources, 'group:', $referencedCategoryGroupUids, fn() => $this->scanner->scanCategoryGroups());
+                } elseif ($liveField instanceof Tags) {
+                    self::collectRelationSourceUids($liveField->sources, 'taggroup:', $referencedTagGroupUids, fn() => $this->scanner->scanTagGroups());
+                }
             }
 
             // Only Feature Resource fields get their value captured - see
@@ -231,7 +293,151 @@ class WebsiteImportService extends Component
             ];
         }
 
-        return [$globals, $sharedResourceHandles];
+        return [$globals, $sharedResourceHandles, [
+            'volumeUids' => array_keys($referencedVolumeUids),
+            'categoryGroupUids' => array_keys($referencedCategoryGroupUids),
+            'tagGroupUids' => array_keys($referencedTagGroupUids),
+        ]];
+    }
+
+    /**
+     * Resolves a relation field's `sources` setting (a Categories/Tags/Assets
+     * field's "which groups/volumes can be selected" setting) into the set of
+     * referenced uids, using the same 'group:{uid}'/'taggroup:{uid}'/
+     * 'volume:{uid}' source-string convention Craft core itself uses
+     * (mirrors CraftResourceDiscoveryService::resolveEntriesFieldSections'
+     * 'section:{uid}' handling for Entries fields). A field configured to
+     * allow "all sources" (`sources === '*'`) resolves to every uid of that
+     * kind project-wide, via $allWhenWildcard - matching how Craft treats
+     * that field at query time (no restriction).
+     *
+     * Static (no instance state used) so it's directly unit-testable without
+     * a live Craft app - see WebsiteImportServiceTest.
+     *
+     * @param string|array|null $sources
+     * @param array<string, true> $uids uid => true, merged into by reference
+     * @param callable(): array $allWhenWildcard returns every live resource of this kind, for the '*' case
+     */
+    private static function collectRelationSourceUids(string|array|null $sources, string $prefix, array &$uids, callable $allWhenWildcard): void
+    {
+        if ($sources === '*') {
+            foreach ($allWhenWildcard() as $resource) {
+                if (isset($resource->uid)) {
+                    $uids[$resource->uid] = true;
+                }
+            }
+            return;
+        }
+
+        foreach ((array)$sources as $source) {
+            if (is_string($source) && str_starts_with($source, $prefix)) {
+                $uids[substr($source, strlen($prefix))] = true;
+            }
+        }
+    }
+
+    /**
+     * @param string[] $sectionHandles
+     * @return array<int, array{handle: string, name: string, type: string, propagationMethod: string, enableVersioning: bool, maxLevels: ?int, defaultPlacement: string, siteSettings: array}>
+     */
+    private function describeCraftSections(array $sectionHandles): array
+    {
+        $result = [];
+        foreach ($sectionHandles as $handle) {
+            $section = $this->scanner->sectionScanner->findByHandle($handle);
+            if (!$section instanceof Section) {
+                continue;
+            }
+            $result[] = [
+                'handle' => $section->handle,
+                'name' => $section->name,
+                'type' => $section->type,
+                'propagationMethod' => $section->propagationMethod->value,
+                'enableVersioning' => $section->enableVersioning,
+                'maxLevels' => $section->maxLevels,
+                'defaultPlacement' => $section->defaultPlacement,
+                'siteSettings' => array_map(fn($siteSettings) => [
+                    'siteHandle' => Craft::$app->getSites()->getSiteById($siteSettings->siteId)?->handle,
+                    'enabledByDefault' => $siteSettings->enabledByDefault,
+                    'hasUrls' => $siteSettings->hasUrls,
+                    'uriFormat' => $siteSettings->uriFormat,
+                    'template' => $siteSettings->template,
+                ], array_values($this->scanner->sectionScanner->siteSettingsFor($section))),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * @param string[] $volumeUids
+     * @return array<int, array{handle: string, name: string, fsHandle: ?string, transformFsHandle: ?string, transformSubpath: string, titleTranslationMethod: string}>
+     */
+    private function describeAssetVolumes(array $volumeUids): array
+    {
+        $result = [];
+        foreach ($volumeUids as $uid) {
+            $volume = $this->scanner->assetVolumeScanner->findByUid($uid);
+            if (!$volume instanceof Volume) {
+                continue;
+            }
+            $result[] = [
+                'handle' => $volume->handle,
+                'name' => $volume->name,
+                'fsHandle' => $volume->fsHandle,
+                'transformFsHandle' => $volume->transformFsHandle,
+                'transformSubpath' => $volume->transformSubpath,
+                'titleTranslationMethod' => $volume->titleTranslationMethod,
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * @param string[] $categoryGroupUids
+     * @return array<int, array{handle: string, name: string, maxLevels: ?int, defaultPlacement: string, siteSettings: array}>
+     */
+    private function describeCategoryGroups(array $categoryGroupUids): array
+    {
+        $result = [];
+        foreach ($categoryGroupUids as $uid) {
+            $group = $this->scanner->categoryGroupScanner->findByUid($uid);
+            if (!$group instanceof CategoryGroup) {
+                continue;
+            }
+            $result[] = [
+                'handle' => $group->handle,
+                'name' => $group->name,
+                'maxLevels' => $group->maxLevels,
+                'defaultPlacement' => $group->defaultPlacement,
+                'siteSettings' => array_map(fn($siteSettings) => [
+                    'siteHandle' => Craft::$app->getSites()->getSiteById($siteSettings->siteId)?->handle,
+                    'hasUrls' => $siteSettings->hasUrls,
+                    'uriFormat' => $siteSettings->uriFormat,
+                    'template' => $siteSettings->template,
+                ], array_values($this->scanner->categoryGroupScanner->siteSettingsFor($group))),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * @param string[] $tagGroupUids
+     * @return array<int, array{handle: string, name: string}>
+     */
+    private function describeTagGroups(array $tagGroupUids): array
+    {
+        $result = [];
+        foreach ($tagGroupUids as $uid) {
+            $tagGroup = $this->scanner->tagGroupScanner->findByUid($uid);
+            if (!$tagGroup instanceof TagGroup) {
+                continue;
+            }
+            $result[] = [
+                'handle' => $tagGroup->handle,
+                'name' => $tagGroup->name,
+            ];
+        }
+        return $result;
     }
 
     private function buildReadme(string $name, array $pages, array $globals): string

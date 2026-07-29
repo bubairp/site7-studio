@@ -11,6 +11,7 @@ use site7\studio\services\import\MatrixEntryTypeImportService;
 use site7\studio\services\import\PageImportService;
 use site7\studio\services\import\ResourceAnalyzerService;
 use site7\studio\services\import\WebsiteImportService;
+use site7\studio\services\CraftResourceScanner;
 use site7\studio\Site7Studio;
 use yii\web\ForbiddenHttpException;
 
@@ -90,7 +91,7 @@ class ResourceImportController extends Controller
         $this->requireImportAccess();
 
         $sections = [];
-        foreach (Craft::$app->getEntries()->getAllSections() as $section) {
+        foreach ((new CraftResourceScanner())->scanSections() as $section) {
             $sections[] = [
                 'id' => $section->id,
                 'handle' => $section->handle,
@@ -280,15 +281,17 @@ class ResourceImportController extends Controller
             $entriesBySectionType[$section->type][] = $row;
         }
 
+        $scanner = new CraftResourceScanner();
+
         $globalSets = array_map(fn($gs) => [
             'id' => $gs->id,
             'handle' => $gs->handle,
             'name' => $gs->name,
             'likelyNav' => (bool)preg_match('/nav/i', $gs->handle . ' ' . $gs->name),
-        ], Craft::$app->getGlobals()->getAllSets());
+        ], $scanner->scanGlobalSets());
 
-        $categoryGroups = array_map(fn($g) => ['id' => $g->id, 'handle' => $g->handle, 'name' => $g->name], Craft::$app->getCategories()->getAllGroups());
-        $tagGroups = array_map(fn($g) => ['id' => $g->id, 'handle' => $g->handle, 'name' => $g->name], Craft::$app->getTags()->getAllTagGroups());
+        $categoryGroups = array_map(fn($g) => ['id' => $g->id, 'handle' => $g->handle, 'name' => $g->name], $scanner->scanCategoryGroups());
+        $tagGroups = array_map(fn($g) => ['id' => $g->id, 'handle' => $g->handle, 'name' => $g->name], $scanner->scanTagGroups());
 
         return $this->asJson([
             'success' => true,

@@ -8,6 +8,7 @@ use site7\studio\services\LogService;
 use site7\studio\services\CacheService;
 use site7\studio\services\PackageManagerService;
 use site7\studio\services\CraftResourceService;
+use site7\studio\services\CraftResourceScanner;
 use site7\studio\services\MarketplaceService;
 use site7\studio\services\SharedResourceRegistryService;
 use site7\studio\services\SharedResourceUsageService;
@@ -68,6 +69,10 @@ class CoreServiceProvider implements ServiceProviderInterface
 
         $plugin->set('resourceClassifier', [
             'class' => ResourceClassifierService::class,
+        ]);
+
+        $plugin->set('craftResourceScanner', [
+            'class' => CraftResourceScanner::class,
         ]);
     }
 }

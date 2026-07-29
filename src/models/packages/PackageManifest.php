@@ -136,17 +136,50 @@ class PackageManifest extends Model
     // rationale as the Phase 14/15 blocks above.
 
     /**
-     * Craft Asset Volume settings captured from the source site. Each entry
-     * is {handle, name, handle-scoped fs/transform settings TBD by Phase 2's
-     * capture implementation} - Phase 1 only reserves the slot.
+     * Craft Asset Volume settings captured from the source site (Phase 2:
+     * only Volumes actually referenced by a captured Assets field are
+     * recorded - never a blanket dump of every Volume on the project,
+     * matching the existing "capture what's referenced" pattern already
+     * used for Shared Resource fields). Each entry is {handle, name,
+     * fsHandle, transformFsHandle, transformSubpath, titleTranslationMethod}.
+     * The Volume's own filesystem definition (config/project/fs/*) and its
+     * Assets are never captured - installing a Starter Kit that references a
+     * Volume handle missing on the target site is a capture-time note today
+     * (WebsiteImportService), not an auto-created Volume; that remains out
+     * of scope until an install phase says otherwise. Volumes have no
+     * per-site settings (unlike Sections/Category Groups), so there is no
+     * siteSettings sub-array here.
      */
     public array $assetVolumes = [];
 
-    /** Craft Category Group settings captured from the source site: {handle, name, ...}. */
+    /**
+     * Craft Category Group settings captured from the source site (Phase 2:
+     * referenced-only, same rationale as $assetVolumes). Each entry is
+     * {handle, name, maxLevels, defaultPlacement, siteSettings:
+     * [{siteHandle, hasUrls, uriFormat, template}]}.
+     */
     public array $categoryGroups = [];
 
-    /** Craft Tag Group settings captured from the source site: {handle, name, ...}. */
+    /**
+     * Craft Tag Group settings captured from the source site (Phase 2:
+     * referenced-only, same rationale as $assetVolumes). Each entry is
+     * {handle, name}. Tag Groups have no per-site settings or field layout
+     * distinct from an ordinary Craft field layout capture, so this is
+     * intentionally thinner than $categoryGroups/$craftSections.
+     */
     public array $tagGroups = [];
+
+    /**
+     * Craft Section-level settings captured from the source site for every
+     * Section referenced by a captured page (Phase 2). Each entry is
+     * {handle, name, type, propagationMethod, enableVersioning, maxLevels,
+     * defaultPlacement, siteSettings: [{siteHandle, enabledByDefault,
+     * hasUrls, uriFormat, template}]}. This is Section-level configuration
+     * only - the Section's own Entry Types/field layouts are still captured
+     * exactly as before, via $entryFields/$requires; nothing here duplicates
+     * that.
+     */
+    public array $craftSections = [];
 
     /**
      * Captured site navigation, intended to replace the current
@@ -173,7 +206,7 @@ class PackageManifest extends Model
         $rules = parent::defineRules();
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion'], 'required'];
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview', 'sourceEntryType', 'sourceSection'], 'string'];
-        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords', 'importedFrom', 'globals', 'excludedFields', 'assetVolumes', 'categoryGroups', 'tagGroups', 'navigation', 'projectConfigPaths'], 'safe'];
+        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords', 'importedFrom', 'globals', 'excludedFields', 'assetVolumes', 'categoryGroups', 'tagGroups', 'craftSections', 'navigation', 'projectConfigPaths'], 'safe'];
         $rules[] = [['displayName', 'company', 'website', 'supportUrl', 'documentationUrl', 'license', 'pricingType', 'minimumCraftVersion', 'minimumSite7Version'], 'string'];
         return $rules;
     }
