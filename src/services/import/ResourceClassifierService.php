@@ -4,6 +4,7 @@ namespace site7\studio\services\import;
 
 use Craft;
 use craft\base\Component;
+use site7\studio\services\PlatformConfigService;
 use site7\studio\Site7Studio;
 
 /**
@@ -76,15 +77,6 @@ class ResourceClassifierService extends Component
         \craft\fields\Categories::class,
         \craft\fields\Tags::class,
     ];
-
-    /**
-     * Placeholder heuristic pending a full PlatformConfigService (future
-     * phase) - a field whose own handle/name contains one of these signal
-     * words is treated as site-wide configuration rather than feature
-     * content. Approximate by design; documented as a placeholder in the
-     * Phase 16 architecture doc.
-     */
-    private const PLATFORM_SIGNAL_WORDS = ['theme', 'colorpalette', 'colorlibrary', 'typography', 'spacing', 'codecss', 'codejs', 'containerwidth', 'animationpreset'];
 
     /** Best-effort namespace-prefix -> Composer package map for Plugin Dependency messaging. */
     private const PLUGIN_PACKAGE_MAP = [
@@ -171,8 +163,9 @@ class ResourceClassifierService extends Component
             return $this->classified($field, self::SHARED_RESOURCE, 'reference', 'Shared Resource', "Used across {$count} Entry Types - shared, referencing the existing field instead of duplicating it.");
         }
 
-        if ($this->matchesPlatformSignal($field['handle'] ?? '')) {
-            return $this->classified($field, self::PLATFORM_CONFIGURATION, 'reference', 'Platform Configuration', 'Site-wide configuration value - excluded from the package, referenced informationally only.');
+        $platformCategory = PlatformConfigService::categoryFor($field['handle'] ?? '');
+        if ($platformCategory !== null) {
+            return $this->classified($field, self::PLATFORM_CONFIGURATION, 'reference', 'Platform Configuration', "Site-wide {$platformCategory} configuration value - excluded from the package, referenced informationally only.");
         }
 
         // A relationship field's own Craft type never explains what it's
@@ -308,17 +301,6 @@ class ResourceClassifierService extends Component
             'statusLabel' => $label,
             'detail' => $detail,
         ]);
-    }
-
-    private function matchesPlatformSignal(string $handle): bool
-    {
-        $lower = strtolower($handle);
-        foreach (self::PLATFORM_SIGNAL_WORDS as $word) {
-            if (str_contains($lower, $word)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private function guessPluginPackage(string $fieldClass): string

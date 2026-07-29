@@ -9,6 +9,8 @@ use site7\studio\services\CacheService;
 use site7\studio\services\PackageManagerService;
 use site7\studio\services\CraftResourceService;
 use site7\studio\services\CraftResourceScanner;
+use site7\studio\services\CraftResourceRegistry;
+use site7\studio\services\PlatformConfigService;
 use site7\studio\services\MarketplaceService;
 use site7\studio\services\SharedResourceRegistryService;
 use site7\studio\services\SharedResourceUsageService;
@@ -73,6 +75,14 @@ class CoreServiceProvider implements ServiceProviderInterface
 
         $plugin->set('craftResourceScanner', [
             'class' => CraftResourceScanner::class,
+        ]);
+
+        $plugin->set('craftResourceRegistry', [
+            'class' => CraftResourceRegistry::class,
+        ]);
+
+        $plugin->set('platformConfig', [
+            'class' => PlatformConfigService::class,
         ]);
     }
 }

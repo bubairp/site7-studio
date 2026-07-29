@@ -11,7 +11,7 @@ use craft\fields\Matrix;
 use craft\fields\Tags;
 use craft\models\EntryType;
 use site7\studio\models\import\EntryTypeDiscoveryResult;
-use site7\studio\services\CraftResourceScanner;
+use site7\studio\services\CraftResourceRegistry;
 use site7\studio\Site7Studio;
 
 /**
@@ -35,12 +35,15 @@ use site7\studio\Site7Studio;
 class CraftResourceDiscoveryService extends Component
 {
     /**
-     * Single discovery layer for the raw Craft enumeration this service
-     * classifies - see CraftResourceScanner's docblock for why every
-     * import/analysis service is migrating off direct Craft::$app->get*()
-     * calls onto this facade.
+     * Discovery + relationship lookups this service classifies go through
+     * the Registry (Website Starter Kit System architecture) rather than
+     * calling Craft::$app->get*() or even CraftResourceScanner directly -
+     * see CraftResourceRegistry's docblock. $registry->scanner remains
+     * available for the one lookup kind the Registry's uid/handle-keyed
+     * graph doesn't index (Entry Type by numeric id - getEntryTypeDetail()'s
+     * request parameter).
      */
-    public ?CraftResourceScanner $scanner = null;
+    public ?CraftResourceRegistry $registry = null;
 
     public const PRESENTATION_SECTION = 'presentation-section';
     public const FEATURE_COMPONENT = 'feature-component';
@@ -72,7 +75,7 @@ class CraftResourceDiscoveryService extends Component
     public function init(): void
     {
         parent::init();
-        $this->scanner ??= new CraftResourceScanner();
+        $this->registry ??= new CraftResourceRegistry();
     }
 
     /**
@@ -92,8 +95,8 @@ class CraftResourceDiscoveryService extends Component
             'unknown' => [],
         ];
 
-        foreach ($this->scanner->scanEntryTypes() as $entryType) {
-            $result = $this->analyzeEntryType($entryType, $matrixFieldsByEntryType, $site7MatrixHandle, false);
+        foreach ($this->registry->all(CraftResourceRegistry::KIND_ENTRY_TYPE) as $entryTypeNode) {
+            $result = $this->analyzeEntryType($entryTypeNode->resource, $matrixFieldsByEntryType, $site7MatrixHandle, false);
 
             $groups[match ($result->classification) {
                 self::PRESENTATION_SECTION => 'presentationSections',
@@ -110,7 +113,7 @@ class CraftResourceDiscoveryService extends Component
 
     public function getEntryTypeDetail(int $entryTypeId): EntryTypeDiscoveryResult
     {
-        $entryType = $this->scanner->entryTypeScanner->findById($entryTypeId);
+        $entryType = $this->registry->scanner->entryTypeScanner->findById($entryTypeId);
         if (!$entryType) {
             throw new \Exception('Entry Type not found.');
         }
@@ -131,10 +134,8 @@ class CraftResourceDiscoveryService extends Component
      */
     public function getMatrixFields(): array
     {
-        return array_map(
-            fn(Matrix $field) => ['handle' => $field->handle, 'name' => $field->name],
-            $this->scanner->scanMatrixFields()
-        );
+        $matrixFields = array_filter($this->registry->all(CraftResourceRegistry::KIND_FIELD), fn($node) => $node->resource instanceof Matrix);
+        return array_values(array_map(fn($node) => ['handle' => $node->handle, 'name' => $node->name], $matrixFields));
     }
 
     /**
@@ -163,8 +164,8 @@ class CraftResourceDiscoveryService extends Component
         $usageCount = count($matrixFieldHandles);
         $result->usageCount = $usageCount;
         $result->referencedBy = array_map(function ($h) {
-            $field = $this->scanner->fieldScanner->findByHandle($h);
-            return ['handle' => $h, 'name' => $field?->name ?? $h];
+            $fieldNode = $this->registry->findByHandle(CraftResourceRegistry::KIND_FIELD, $h);
+            return ['handle' => $h, 'name' => $fieldNode?->name ?? $h];
         }, $matrixFieldHandles);
 
         $isRegisteredShared = Site7Studio::getInstance()->sharedResourceRegistry->getByHandle($entryType->handle) !== null;
@@ -317,16 +318,27 @@ class CraftResourceDiscoveryService extends Component
     }
 
     /**
-     * One pass over every Matrix field in the project, recording which
-     * Entry Types each one allows - the "used as a block on N Matrix
-     * fields" fan-out signal, and the "is this entry type one of the Site7
-     * Matrix field's own allowed types" presentation signal.
+     * Which Entry Types each Matrix field allows as block types - the "used
+     * as a block on N Matrix fields" fan-out signal, and the "is this entry
+     * type one of the Site7 Matrix field's own allowed types" presentation
+     * signal. Reads straight off CraftResourceRegistry's already-built graph
+     * (a Matrix field's "depends on Entry Type" edges, inverted via
+     * dependentsOf()) rather than a second dedicated scan - the exact
+     * "future systems reuse the same data model" the Registry exists for.
      *
      * @return array<string, string[]> entryTypeHandle => [Matrix field handles]
      */
     private function buildMatrixFieldsByEntryTypeMap(): array
     {
-        return $this->scanner->matrixFieldScanner->entryTypeUsageMap();
+        $map = [];
+        foreach ($this->registry->all(CraftResourceRegistry::KIND_ENTRY_TYPE) as $entryTypeNode) {
+            foreach ($this->registry->dependentsOf($entryTypeNode) as $dependent) {
+                if ($dependent->kind === CraftResourceRegistry::KIND_FIELD && $dependent->resource instanceof Matrix) {
+                    $map[$entryTypeNode->handle][] = $dependent->handle;
+                }
+            }
+        }
+        return $map;
     }
 
     private function getSite7MatrixFieldHandle(): ?string
@@ -335,7 +347,7 @@ class CraftResourceDiscoveryService extends Component
         if (!$settings->matrixFieldId) {
             return null;
         }
-        return $this->scanner->fieldScanner->findById($settings->matrixFieldId)?->handle;
+        return $this->registry->scanner->fieldScanner->findById($settings->matrixFieldId)?->handle;
     }
 
     /**
@@ -354,7 +366,7 @@ class CraftResourceDiscoveryService extends Component
                 continue;
             }
             $uid = substr($source, strlen('section:'));
-            $section = $this->scanner->sectionScanner->findByUid($uid);
+            $section = $this->registry->findByUid(CraftResourceRegistry::KIND_SECTION, $uid)?->resource;
             if ($section) {
                 $names[] = $section->name;
             }
@@ -364,7 +376,7 @@ class CraftResourceDiscoveryService extends Component
 
     private function isNavigationField(Field $field): bool
     {
-        return $this->scanner->navigationScanner->isNavigationField($field);
+        return $this->registry->scanner->navigationScanner->isNavigationField($field);
     }
 
     private function matchesUtilityNaming(string $value): bool

@@ -55,6 +55,8 @@ use site7\studio\providers\PublishingServiceProvider;
  * @property-read \site7\studio\services\import\ResourceClassifierService $resourceClassifier
  * @property-read \site7\studio\services\import\CraftResourceDiscoveryService $craftResourceDiscovery
  * @property-read \site7\studio\services\CraftResourceScanner $craftResourceScanner
+ * @property-read \site7\studio\services\CraftResourceRegistry $craftResourceRegistry
+ * @property-read \site7\studio\services\PlatformConfigService $platformConfig
  */
 class Site7Studio extends Plugin
 {

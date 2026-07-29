@@ -11,7 +11,7 @@ use site7\studio\services\import\MatrixEntryTypeImportService;
 use site7\studio\services\import\PageImportService;
 use site7\studio\services\import\ResourceAnalyzerService;
 use site7\studio\services\import\WebsiteImportService;
-use site7\studio\services\CraftResourceScanner;
+use site7\studio\services\CraftResourceRegistry;
 use site7\studio\Site7Studio;
 use yii\web\ForbiddenHttpException;
 
@@ -91,7 +91,7 @@ class ResourceImportController extends Controller
         $this->requireImportAccess();
 
         $sections = [];
-        foreach ((new CraftResourceScanner())->scanSections() as $section) {
+        foreach (array_map(fn($node) => $node->resource, (new CraftResourceRegistry())->all(CraftResourceRegistry::KIND_SECTION)) as $section) {
             $sections[] = [
                 'id' => $section->id,
                 'handle' => $section->handle,
@@ -281,17 +281,17 @@ class ResourceImportController extends Controller
             $entriesBySectionType[$section->type][] = $row;
         }
 
-        $scanner = new CraftResourceScanner();
+        $registry = new CraftResourceRegistry();
 
-        $globalSets = array_map(fn($gs) => [
-            'id' => $gs->id,
-            'handle' => $gs->handle,
-            'name' => $gs->name,
-            'likelyNav' => (bool)preg_match('/nav/i', $gs->handle . ' ' . $gs->name),
-        ], $scanner->scanGlobalSets());
+        $globalSets = array_map(fn($node) => [
+            'id' => $node->resource->id,
+            'handle' => $node->handle,
+            'name' => $node->name,
+            'likelyNav' => (bool)preg_match('/nav/i', $node->handle . ' ' . $node->name),
+        ], $registry->all(CraftResourceRegistry::KIND_GLOBAL_SET));
 
-        $categoryGroups = array_map(fn($g) => ['id' => $g->id, 'handle' => $g->handle, 'name' => $g->name], $scanner->scanCategoryGroups());
-        $tagGroups = array_map(fn($g) => ['id' => $g->id, 'handle' => $g->handle, 'name' => $g->name], $scanner->scanTagGroups());
+        $categoryGroups = array_map(fn($node) => ['id' => $node->resource->id, 'handle' => $node->handle, 'name' => $node->name], $registry->all(CraftResourceRegistry::KIND_CATEGORY_GROUP));
+        $tagGroups = array_map(fn($node) => ['id' => $node->resource->id, 'handle' => $node->handle, 'name' => $node->name], $registry->all(CraftResourceRegistry::KIND_TAG_GROUP));
 
         return $this->asJson([
             'success' => true,

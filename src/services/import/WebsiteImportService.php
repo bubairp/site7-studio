@@ -4,9 +4,9 @@ namespace site7\studio\services\import;
 
 use Craft;
 use craft\base\Component;
+use craft\base\FieldInterface;
 use craft\elements\Entry;
 use craft\elements\GlobalSet;
-use craft\fields\Assets;
 use craft\fields\Categories;
 use craft\fields\Tags;
 use craft\helpers\FileHelper;
@@ -15,8 +15,10 @@ use craft\models\Section;
 use craft\models\TagGroup;
 use craft\models\Volume;
 use site7\studio\events\ResourceImportedEvent;
+use site7\studio\models\registry\ResourceNode;
 use site7\studio\records\PackageRecord;
-use site7\studio\services\CraftResourceScanner;
+use site7\studio\services\CraftResourceRegistry;
+use site7\studio\services\scanning\NavigationScanner;
 use site7\studio\Site7Studio;
 
 /**
@@ -27,30 +29,37 @@ use site7\studio\Site7Studio;
  * page), but:
  *  - captures pages via PageImportService instead of TemplateGeneratorService
  *    directly, so both Site7-content and native-content pages are handled;
- *  - approximates "Navigation" (which has no native Craft 5 concept and no
- *    nav plugin is installed in this project) as Structure-section
- *    parent/child nesting (recorded as pages[].parentSlug, additive to the
- *    existing schema) plus whichever Global Sets the user selects - there is
+ *  - always records Structure-section parent/child nesting (pages[].parentSlug)
+ *    as a baseline Navigation signal, and whichever Global Sets the user
+ *    selects are serialized the same way regardless of name (there is
  *    nothing structurally different about a "nav" Global Set versus any
- *    other one, so all selected Global Sets are serialized the same way;
+ *    other one) - see the real Navigation capture bullet below for what
+ *    supersedes this when a nav plugin is present;
  *  - captures the settings (not the linked values) of any Asset Volume,
  *    Category Group, or Tag Group actually referenced by a selected page's
  *    or Global Set's field layout, plus the Section-level settings of every
  *    Section a selected page belongs to (Website Starter Kit System Phase
- *    2) - via CraftResourceScanner, the single discovery layer for native
- *    Craft resources. A Category/Tag field's own linked values are still
- *    not captured (recorded as a dependency note, same as before); only the
- *    Group definition itself is now captured, so the target site at least
- *    has somewhere to assign values into after install.
+ *    2) - resolved via CraftResourceRegistry's dependency graph (Phase 3)
+ *    rather than re-deriving field source-string parsing itself: an Entry
+ *    Type's/Global Set's Field dependencies, and each of those Fields'
+ *    Asset Volume/Category Group/Tag Group dependencies, are already edges
+ *    the Registry computed once when it scanned the project;
+ *  - captures real Navigation (Phase 3) when a recognized nav plugin field
+ *    (see NavigationScanner) is present on a selected page or Global Set,
+ *    replacing the Structure-nesting approximation as the primary source
+ *    when available; pages[].parentSlug is still always recorded (cheap,
+ *    harmless, and the only signal at all on a project without a nav
+ *    plugin) but $notes says so explicitly when a real nav menu was
+ *    captured instead.
  */
 class WebsiteImportService extends Component
 {
-    public ?CraftResourceScanner $scanner = null;
+    public ?CraftResourceRegistry $registry = null;
 
     public function init(): void
     {
         parent::init();
-        $this->scanner ??= new CraftResourceScanner();
+        $this->registry ??= new CraftResourceRegistry();
     }
 
     /**
@@ -71,9 +80,12 @@ class WebsiteImportService extends Component
         $notes = [];
 
         $referencedSectionHandles = [];
-        $referencedVolumeUids = [];
-        $referencedCategoryGroupUids = [];
-        $referencedTagGroupUids = [];
+        /** @var array<string, ResourceNode> uid => node, deduplicated across every page/Global Set */
+        $referencedVolumeNodes = [];
+        $referencedCategoryGroupNodes = [];
+        $referencedTagGroupNodes = [];
+        $navigation = [];
+        $navigationScanner = new NavigationScanner();
 
         foreach ($entries as $entry) {
             /** @var Entry $entry */
@@ -109,15 +121,22 @@ class WebsiteImportService extends Component
                 $referencedSectionHandles[$section->handle] = true;
             }
 
+            $entryTypeNode = $this->registry->findByHandle(CraftResourceRegistry::KIND_ENTRY_TYPE, $entry->getType()->handle);
+            if ($entryTypeNode) {
+                $this->collectResourceDependencies($entryTypeNode, $referencedVolumeNodes, $referencedCategoryGroupNodes, $referencedTagGroupNodes);
+            }
+
             foreach ($entry->getFieldLayout()?->getCustomFields() ?? [] as $field) {
                 if ($field instanceof Categories) {
                     $notes[] = "\"{$entry->title}\" references Category field '{$field->handle}' - categories are not imported, links will be empty on install.";
-                    self::collectRelationSourceUids($field->sources, 'group:', $referencedCategoryGroupUids, fn() => $this->scanner->scanCategoryGroups());
                 } elseif ($field instanceof Tags) {
                     $notes[] = "\"{$entry->title}\" references Tag field '{$field->handle}' - tags are not imported, links will be empty on install.";
-                    self::collectRelationSourceUids($field->sources, 'taggroup:', $referencedTagGroupUids, fn() => $this->scanner->scanTagGroups());
-                } elseif ($field instanceof Assets) {
-                    self::collectRelationSourceUids($field->sources, 'volume:', $referencedVolumeUids, fn() => $this->scanner->scanAssetVolumes());
+                } elseif ($navigationScanner->isNavigationField($field)) {
+                    $menu = $this->captureNavigation($navigationScanner, $field, $entry->getFieldValue($field->handle), 'page', $entry->title);
+                    if ($menu) {
+                        $navigation[] = $menu;
+                        $notes[] = "\"{$entry->title}\" references Navigation field '{$field->handle}' - captured the real menu structure, not just the Structure-nesting approximation.";
+                    }
                 }
             }
         }
@@ -126,21 +145,13 @@ class WebsiteImportService extends Component
             throw new \Exception('None of the selected pages could be captured: ' . implode('; ', $skipped));
         }
 
-        [$globals, $sharedResourceHandles, $globalResourceRefs] = $this->describeGlobalSets($globalSetIds);
-        foreach ($globalResourceRefs['volumeUids'] as $uid) {
-            $referencedVolumeUids[$uid] = true;
-        }
-        foreach ($globalResourceRefs['categoryGroupUids'] as $uid) {
-            $referencedCategoryGroupUids[$uid] = true;
-        }
-        foreach ($globalResourceRefs['tagGroupUids'] as $uid) {
-            $referencedTagGroupUids[$uid] = true;
-        }
+        [$globals, $sharedResourceHandles, $globalNavigation] = $this->describeGlobalSets($globalSetIds, $navigationScanner, $referencedVolumeNodes, $referencedCategoryGroupNodes, $referencedTagGroupNodes);
+        $navigation = array_merge($navigation, $globalNavigation);
 
         $craftSections = $this->describeCraftSections(array_keys($referencedSectionHandles));
-        $assetVolumes = $this->describeAssetVolumes(array_keys($referencedVolumeUids));
-        $categoryGroups = $this->describeCategoryGroups(array_keys($referencedCategoryGroupUids));
-        $tagGroups = $this->describeTagGroups(array_keys($referencedTagGroupUids));
+        $assetVolumes = $this->describeAssetVolumes($referencedVolumeNodes);
+        $categoryGroups = $this->describeCategoryGroups($referencedCategoryGroupNodes);
+        $tagGroups = $this->describeTagGroups($referencedTagGroupNodes);
 
         $name = trim((string)($meta['name'] ?? ''));
         if ($name === '') {
@@ -182,6 +193,7 @@ class WebsiteImportService extends Component
             'assetVolumes' => $assetVolumes,
             'categoryGroups' => $categoryGroups,
             'tagGroups' => $tagGroups,
+            'navigation' => $navigation,
             'dependencies' => [
                 'sharedResources' => array_values(array_unique($sharedResourceHandles)),
                 'pluginDependencies' => [],
@@ -216,7 +228,7 @@ class WebsiteImportService extends Component
             'sourceType' => 'website',
             'sourceId' => null,
             'packageHandles' => array_merge([$handle], $requiresTemplates),
-            'summary' => ['pageCount' => count($pages), 'globalCount' => count($globals)],
+            'summary' => ['pageCount' => count($pages), 'globalCount' => count($globals), 'navigationCount' => count($navigation)],
         ]));
 
         return [$record, $skipped, $notes];
@@ -224,28 +236,33 @@ class WebsiteImportService extends Component
 
     /**
      * @param int[] $globalSetIds
-     * @return array{0: array<int, array{globalSetHandle: string, name: string, fields: array}>, 1: string[], 2: array{volumeUids: string[], categoryGroupUids: string[], tagGroupUids: string[]}} [globals, shared resource handles referenced, referenced Volume/Category Group/Tag Group uids]
+     * @param array<string, ResourceNode> $referencedVolumeNodes uid => node, merged into by reference
+     * @param array<string, ResourceNode> $referencedCategoryGroupNodes uid => node, merged into by reference
+     * @param array<string, ResourceNode> $referencedTagGroupNodes uid => node, merged into by reference
+     * @return array{0: array<int, array{globalSetHandle: string, name: string, fields: array}>, 1: string[], 2: array} [globals, shared resource handles referenced, captured Navigation entries]
      */
-    private function describeGlobalSets(array $globalSetIds): array
+    private function describeGlobalSets(array $globalSetIds, NavigationScanner $navigationScanner, array &$referencedVolumeNodes, array &$referencedCategoryGroupNodes, array &$referencedTagGroupNodes): array
     {
-        $emptyRefs = ['volumeUids' => [], 'categoryGroupUids' => [], 'tagGroupUids' => []];
         if (empty($globalSetIds)) {
-            return [[], [], $emptyRefs];
+            return [[], [], []];
         }
 
         $craftResourceService = Site7Studio::getInstance()->craftResourceGenerator;
         $classifier = new ResourceClassifierService();
-        $registry = Site7Studio::getInstance()->sharedResourceRegistry;
+        $sharedResourceRegistry = Site7Studio::getInstance()->sharedResourceRegistry;
         $globals = [];
         $sharedResourceHandles = [];
-        $referencedVolumeUids = [];
-        $referencedCategoryGroupUids = [];
-        $referencedTagGroupUids = [];
+        $navigation = [];
 
         foreach ($globalSetIds as $globalSetId) {
             $globalSet = Craft::$app->getGlobals()->getSetById((int)$globalSetId);
             if (!$globalSet instanceof GlobalSet) {
                 continue;
+            }
+
+            $globalSetNode = $this->registry->findByUid(CraftResourceRegistry::KIND_GLOBAL_SET, $globalSet->uid);
+            if ($globalSetNode) {
+                $this->collectResourceDependencies($globalSetNode, $referencedVolumeNodes, $referencedCategoryGroupNodes, $referencedTagGroupNodes);
             }
 
             $layout = $globalSet->getFieldLayout();
@@ -255,12 +272,11 @@ class WebsiteImportService extends Component
             $liveFieldsByHandle = [];
             foreach ($layout?->getCustomFields() ?? [] as $liveField) {
                 $liveFieldsByHandle[$liveField->handle] = $liveField;
-                if ($liveField instanceof Assets) {
-                    self::collectRelationSourceUids($liveField->sources, 'volume:', $referencedVolumeUids, fn() => $this->scanner->scanAssetVolumes());
-                } elseif ($liveField instanceof Categories) {
-                    self::collectRelationSourceUids($liveField->sources, 'group:', $referencedCategoryGroupUids, fn() => $this->scanner->scanCategoryGroups());
-                } elseif ($liveField instanceof Tags) {
-                    self::collectRelationSourceUids($liveField->sources, 'taggroup:', $referencedTagGroupUids, fn() => $this->scanner->scanTagGroups());
+                if ($navigationScanner->isNavigationField($liveField)) {
+                    $menu = $this->captureNavigation($navigationScanner, $liveField, $globalSet->getFieldValue($liveField->handle), 'globalSet', $globalSet->handle);
+                    if ($menu) {
+                        $navigation[] = $menu;
+                    }
                 }
             }
 
@@ -270,7 +286,7 @@ class WebsiteImportService extends Component
             foreach ($detectedFields as $field) {
                 if ($field['classification'] === ResourceClassifierService::SHARED_RESOURCE) {
                     if (isset($liveFieldsByHandle[$field['handle']])) {
-                        $registry->registerField($liveFieldsByHandle[$field['handle']], $field);
+                        $sharedResourceRegistry->registerField($liveFieldsByHandle[$field['handle']], $field);
                     }
                     $sharedResourceHandles[] = $field['handle'];
                     continue;
@@ -293,47 +309,65 @@ class WebsiteImportService extends Component
             ];
         }
 
-        return [$globals, $sharedResourceHandles, [
-            'volumeUids' => array_keys($referencedVolumeUids),
-            'categoryGroupUids' => array_keys($referencedCategoryGroupUids),
-            'tagGroupUids' => array_keys($referencedTagGroupUids),
-        ]];
+        return [$globals, $sharedResourceHandles, $navigation];
     }
 
     /**
-     * Resolves a relation field's `sources` setting (a Categories/Tags/Assets
-     * field's "which groups/volumes can be selected" setting) into the set of
-     * referenced uids, using the same 'group:{uid}'/'taggroup:{uid}'/
-     * 'volume:{uid}' source-string convention Craft core itself uses
-     * (mirrors CraftResourceDiscoveryService::resolveEntriesFieldSections'
-     * 'section:{uid}' handling for Entries fields). A field configured to
-     * allow "all sources" (`sources === '*'`) resolves to every uid of that
-     * kind project-wide, via $allWhenWildcard - matching how Craft treats
-     * that field at query time (no restriction).
+     * Walks $ownerNode's Field dependencies (an Entry Type's or Global Set's
+     * own field layout, already an edge CraftResourceRegistry's graph
+     * computed) one hop further to each Field's own Asset Volume/Category
+     * Group/Tag Group dependencies, merging every match into the
+     * corresponding by-reference map (keyed by uid, so the same Volume/Group
+     * referenced by five different pages is only recorded once). Replaces
+     * this service's former per-field-type `instanceof`
+     * Assets/Categories/Tags branching + manual `sources` parsing entirely -
+     * the Registry already resolved those references when it built the
+     * graph (via RelationFieldSourceResolver), so this is pure traversal.
      *
-     * Static (no instance state used) so it's directly unit-testable without
-     * a live Craft app - see WebsiteImportServiceTest.
-     *
-     * @param string|array|null $sources
-     * @param array<string, true> $uids uid => true, merged into by reference
-     * @param callable(): array $allWhenWildcard returns every live resource of this kind, for the '*' case
+     * @param array<string, ResourceNode> $volumeNodes
+     * @param array<string, ResourceNode> $categoryGroupNodes
+     * @param array<string, ResourceNode> $tagGroupNodes
      */
-    private static function collectRelationSourceUids(string|array|null $sources, string $prefix, array &$uids, callable $allWhenWildcard): void
+    private function collectResourceDependencies(ResourceNode $ownerNode, array &$volumeNodes, array &$categoryGroupNodes, array &$tagGroupNodes): void
     {
-        if ($sources === '*') {
-            foreach ($allWhenWildcard() as $resource) {
-                if (isset($resource->uid)) {
-                    $uids[$resource->uid] = true;
-                }
+        foreach ($this->registry->dependenciesOf($ownerNode) as $fieldDependency) {
+            if ($fieldDependency->kind !== CraftResourceRegistry::KIND_FIELD) {
+                continue;
             }
-            return;
+            foreach ($this->registry->dependenciesOf($fieldDependency) as $resourceDependency) {
+                match ($resourceDependency->kind) {
+                    CraftResourceRegistry::KIND_ASSET_VOLUME => $volumeNodes[$resourceDependency->key] = $resourceDependency,
+                    CraftResourceRegistry::KIND_CATEGORY_GROUP => $categoryGroupNodes[$resourceDependency->key] = $resourceDependency,
+                    CraftResourceRegistry::KIND_TAG_GROUP => $tagGroupNodes[$resourceDependency->key] = $resourceDependency,
+                    default => null,
+                };
+            }
         }
+    }
 
-        foreach ((array)$sources as $source) {
-            if (is_string($source) && str_starts_with($source, $prefix)) {
-                $uids[substr($source, strlen($prefix))] = true;
-            }
+    /**
+     * Captures a real navigation menu (Website Starter Kit System Phase 3)
+     * when $field's currently selected value resolves to one via
+     * NavigationScanner::describeMenu() - null (no menu selected, or no
+     * recognized nav plugin installed) means nothing to capture, not an
+     * error.
+     */
+    private function captureNavigation(NavigationScanner $navigationScanner, FieldInterface $field, mixed $value, string $ownerType, string $ownerHandle): ?array
+    {
+        if (!is_string($value) || $value === '') {
+            return null;
         }
+        $menu = $navigationScanner->describeMenu($value);
+        if (!$menu) {
+            return null;
+        }
+        return [
+            'fieldHandle' => $field->handle,
+            'ownerType' => $ownerType,
+            'ownerHandle' => $ownerHandle,
+            'source' => 'simple-rp-menu',
+            'menu' => $menu,
+        ];
     }
 
     /**
@@ -344,7 +378,8 @@ class WebsiteImportService extends Component
     {
         $result = [];
         foreach ($sectionHandles as $handle) {
-            $section = $this->scanner->sectionScanner->findByHandle($handle);
+            $sectionNode = $this->registry->findByHandle(CraftResourceRegistry::KIND_SECTION, $handle);
+            $section = $sectionNode?->resource;
             if (!$section instanceof Section) {
                 continue;
             }
@@ -362,21 +397,21 @@ class WebsiteImportService extends Component
                     'hasUrls' => $siteSettings->hasUrls,
                     'uriFormat' => $siteSettings->uriFormat,
                     'template' => $siteSettings->template,
-                ], array_values($this->scanner->sectionScanner->siteSettingsFor($section))),
+                ], array_values($section->getSiteSettings())),
             ];
         }
         return $result;
     }
 
     /**
-     * @param string[] $volumeUids
+     * @param array<string, ResourceNode> $volumeNodes
      * @return array<int, array{handle: string, name: string, fsHandle: ?string, transformFsHandle: ?string, transformSubpath: string, titleTranslationMethod: string}>
      */
-    private function describeAssetVolumes(array $volumeUids): array
+    private function describeAssetVolumes(array $volumeNodes): array
     {
         $result = [];
-        foreach ($volumeUids as $uid) {
-            $volume = $this->scanner->assetVolumeScanner->findByUid($uid);
+        foreach ($volumeNodes as $node) {
+            $volume = $node->resource;
             if (!$volume instanceof Volume) {
                 continue;
             }
@@ -393,14 +428,14 @@ class WebsiteImportService extends Component
     }
 
     /**
-     * @param string[] $categoryGroupUids
+     * @param array<string, ResourceNode> $categoryGroupNodes
      * @return array<int, array{handle: string, name: string, maxLevels: ?int, defaultPlacement: string, siteSettings: array}>
      */
-    private function describeCategoryGroups(array $categoryGroupUids): array
+    private function describeCategoryGroups(array $categoryGroupNodes): array
     {
         $result = [];
-        foreach ($categoryGroupUids as $uid) {
-            $group = $this->scanner->categoryGroupScanner->findByUid($uid);
+        foreach ($categoryGroupNodes as $node) {
+            $group = $node->resource;
             if (!$group instanceof CategoryGroup) {
                 continue;
             }
@@ -414,21 +449,21 @@ class WebsiteImportService extends Component
                     'hasUrls' => $siteSettings->hasUrls,
                     'uriFormat' => $siteSettings->uriFormat,
                     'template' => $siteSettings->template,
-                ], array_values($this->scanner->categoryGroupScanner->siteSettingsFor($group))),
+                ], array_values($group->getSiteSettings())),
             ];
         }
         return $result;
     }
 
     /**
-     * @param string[] $tagGroupUids
+     * @param array<string, ResourceNode> $tagGroupNodes
      * @return array<int, array{handle: string, name: string}>
      */
-    private function describeTagGroups(array $tagGroupUids): array
+    private function describeTagGroups(array $tagGroupNodes): array
     {
         $result = [];
-        foreach ($tagGroupUids as $uid) {
-            $tagGroup = $this->scanner->tagGroupScanner->findByUid($uid);
+        foreach ($tagGroupNodes as $node) {
+            $tagGroup = $node->resource;
             if (!$tagGroup instanceof TagGroup) {
                 continue;
             }
