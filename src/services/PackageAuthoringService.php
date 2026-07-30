@@ -9,6 +9,7 @@ use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use site7\studio\Site7Studio;
 use site7\studio\records\PackageRecord;
+use site7\studio\services\support\PackageBackupService;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -103,6 +104,12 @@ class PackageAuthoringService extends Component
         // own DB default and its migration).
         $record->authoringStatus = 'draft';
         $record->save();
+
+        // Backed up into the Local Repository immediately, even though a
+        // freshly-authored package is still an empty shell - see
+        // PackageBackupService's own docblock for why this happens on
+        // create too, not just import.
+        (new PackageBackupService())->backupToLocalRepository($handle);
 
         return $record;
     }

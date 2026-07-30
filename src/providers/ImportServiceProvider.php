@@ -3,6 +3,7 @@
 namespace site7\studio\providers;
 
 use site7\studio\Site7Studio;
+use site7\studio\events\subscribers\PackageBackupSubscriber;
 use site7\studio\services\import\CraftResourceDiscoveryService;
 use site7\studio\services\import\CraftSectionImportService;
 use site7\studio\services\import\MatrixEntryTypeImportService;
@@ -35,5 +36,10 @@ class ImportServiceProvider implements ServiceProviderInterface
         $plugin->set('pageImporter', PageImportService::class);
         $plugin->set('websiteImporter', WebsiteImportService::class);
         $plugin->set('craftResourceDiscovery', CraftResourceDiscoveryService::class);
+
+        // Automatically backs every successful import up into the Local
+        // Repository (storage/site7-studio/marketplace-repo/) - see
+        // PackageBackupSubscriber's own docblock.
+        $plugin->getService('eventDispatcher')->addSubscriber(new PackageBackupSubscriber());
     }
 }
