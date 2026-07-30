@@ -1,0 +1,69 @@
+{% extends "_layouts/cp" %}
+{% set title = "Update a Starter Kit" %}
+
+{% do view.registerAssetBundle("site7\\studio\\assetbundles\\InstallWizardBundle") %}
+{% do view.registerAssetBundle("site7\\studio\\assetbundles\\UpdateWizardBundle") %}
+
+{% set content %}
+<div id="s7-update-wizard" data-summary-url-template="{{ url('site7-studio/update/summary/__UID__') }}">
+
+    <ol class="s7-wizard-steps">
+        <li data-step="select" class="s7-wizard-step-indicator is-active">1. Select Update</li>
+        <li data-step="checks" class="s7-wizard-step-indicator">2. Compatibility Checks</li>
+        <li data-step="preview" class="s7-wizard-step-indicator">3. Preview Changes</li>
+        <li data-step="execute" class="s7-wizard-step-indicator">4. Execute</li>
+        <li data-step="summary" class="s7-wizard-step-indicator">5. Summary</li>
+    </ol>
+
+    <section class="s7-wizard-panel" data-panel="select">
+        <div class="pane">
+            {% if updates is empty %}
+                <p>No updates are available. This checks every Starter Kit tracked as installed against the version currently in this site's <code>packages/</code> directory.</p>
+            {% else %}
+                <p>An update is available for the following Starter Kits.</p>
+                <div class="s7-kit-list">
+                    {% for update in updates %}
+                        <div class="s7-kit-card" data-handle="{{ update.handle }}">
+                            <h2>{{ update.name }}</h2>
+                            <p>{{ update.installedVersion }} &rarr; <strong>{{ update.availableVersion }}</strong></p>
+                            <button type="button" class="btn s7-select-update">Review Update</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="s7-wizard-panel" data-panel="checks" hidden>
+        <div class="pane">
+            <h2>Compatibility Checks - <span data-bind="selectedKitName"></span></h2>
+            <label class="s7-dry-run-toggle">
+                <input type="checkbox" id="s7-sync-dry-run" checked>
+                Dry Run - check and preview only, do not modify this Craft installation
+            </label>
+            <button type="button" class="btn submit" id="s7-run-plan">Run Compatibility Checks</button>
+            <div id="s7-sync-checks-results"></div>
+        </div>
+    </section>
+
+    <section class="s7-wizard-panel" data-panel="preview" hidden>
+        <div class="pane">
+            <h2>Preview Changes</h2>
+            <div id="s7-sync-plan-preview"></div>
+            <div class="buttons">
+                <button type="button" class="btn" data-back-to="select">Back</button>
+                <button type="button" class="btn submit" id="s7-start-sync">Continue</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="s7-wizard-panel" data-panel="execute" hidden>
+        <div class="pane">
+            <h2>Synchronizing...</h2>
+            <div class="s7-progress-bar"><div class="s7-progress-bar-fill" id="s7-sync-progress-fill"></div></div>
+            <ul id="s7-sync-progress-log" class="s7-progress-log"></ul>
+        </div>
+    </section>
+
+</div>
+{% endset %}

@@ -1,0 +1,96 @@
+{% extends "_layouts/cp" %}
+{% set title = "Synchronization Summary" %}
+
+{% do view.registerAssetBundle("site7\\studio\\assetbundles\\InstallWizardBundle") %}
+
+{% set report = session.report ?? {} %}
+
+{% set content %}
+<div class="pane">
+    <h1>
+        {% if session.status == 'completed' %}
+            <span class="s7-result-badge s7-result-badge--success">Success</span>
+        {% else %}
+            <span class="s7-result-badge s7-result-badge--failure">Failed</span>
+        {% endif %}
+        {{ session.packageHandle }} - {{ session.fromVersion }} &rarr; {{ session.toVersion }}
+    </h1>
+
+    {% if session.dryRun %}
+        <p><em>This was a Dry Run - nothing on this Craft installation was actually modified.</em></p>
+    {% endif %}
+
+    {% if session.fatalError %}
+        <div class="s7-error-box">{{ session.fatalError }}</div>
+    {% endif %}
+
+    <h2>Completed ({{ (report.completedSteps ?? [])|length }})</h2>
+    <ul class="bullets">
+        {% for entry in report.completedSteps ?? [] %}
+            <li>{{ entry.step.label }}{% if entry.message %} - {{ entry.message }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Skipped ({{ (report.skippedSteps ?? [])|length }})</h2>
+    <ul class="bullets">
+        {% for entry in report.skippedSteps ?? [] %}
+            <li>{{ entry.step.label }}{% if entry.message %} - {{ entry.message }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Failed ({{ (report.failedSteps ?? [])|length }})</h2>
+    <ul class="bullets">
+        {% for entry in report.failedSteps ?? [] %}
+            <li>{{ entry.step.label }}{% if entry.message %} - {{ entry.message }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Removed ({{ (report.appliedRemovals ?? [])|length }})</h2>
+    <ul class="bullets">
+        {% for entry in report.appliedRemovals ?? [] %}
+            <li>{{ entry.step.label }}{% if entry.message %} - {{ entry.message }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+
+    {% if (report.unresolvedConflicts ?? []) is not empty %}
+        <h2>Unresolved Conflicts</h2>
+        <ul class="bullets">
+            {% for conflict in report.unresolvedConflicts %}
+                <li>{{ conflict.resourceKey }}: {{ conflict.description }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% set warnings = session.validationResult.warnings ?? [] %}
+    {% if warnings is not empty %}
+        <h2>Warnings</h2>
+        <ul class="bullets">
+            {% for warning in warnings %}<li>{{ warning }}</li>{% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if (report.unresolvedConflicts ?? []) is not empty or (report.failedSteps ?? []) is not empty %}
+        <div class="s7-next-actions">
+            <h3>Next Steps</h3>
+            <p>Some changes require manual review - see the conflicts/failed steps above. Nothing there was overwritten automatically. Once resolved, run the update again; it is safe to re-run.</p>
+        </div>
+    {% endif %}
+
+    <h2>Update History for "{{ session.packageHandle }}"</h2>
+    <table class="data fullwidth">
+        <thead><tr><th>Date</th><th>From</th><th>To</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for entry in history %}
+                <tr>
+                    <td>{{ entry.dateCreated }}</td>
+                    <td>{{ entry.fromVersion }}</td>
+                    <td>{{ entry.toVersion }}</td>
+                    <td>{{ entry.status }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ url('site7-studio/update') }}" class="btn">Back to Updates</a>
+</div>
+{% endset %}

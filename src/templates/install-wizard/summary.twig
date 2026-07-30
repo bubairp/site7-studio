@@ -1,0 +1,70 @@
+{% extends "_layouts/cp" %}
+{% set title = "Installation Summary" %}
+
+{% do view.registerAssetBundle("site7\\studio\\assetbundles\\InstallWizardBundle") %}
+
+{% set content %}
+<div class="pane">
+    <h1>
+        {% if session.status == 'completed' %}
+            <span class="s7-result-badge s7-result-badge--success">Success</span>
+        {% else %}
+            <span class="s7-result-badge s7-result-badge--failure">Failed</span>
+        {% endif %}
+        {{ session.starterKitHandle }}
+    </h1>
+
+    {% if session.dryRun %}
+        <p><em>This was a Dry Run - nothing on this Craft installation was actually modified.</em></p>
+    {% endif %}
+
+    {% if session.fatalError %}
+        <div class="s7-error-box">{{ session.fatalError }}</div>
+    {% endif %}
+
+    <h2>Completed ({{ report.completedSteps|length }})</h2>
+    <ul class="bullets">
+        {% for entry in report.completedSteps %}
+            <li>{{ entry.step.label }}{% if entry.message %} - {{ entry.message }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Skipped ({{ report.skippedSteps|length }})</h2>
+    <ul class="bullets">
+        {% for entry in report.skippedSteps %}
+            <li>{{ entry.step.label }}{% if entry.message %} - {{ entry.message }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Failed ({{ report.failedSteps|length }})</h2>
+    <ul class="bullets">
+        {% for entry in report.failedSteps %}
+            <li>{{ entry.step.label }}{% if entry.message %} - {{ entry.message }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+
+    {% set warnings = session.validationResult.warnings ?? [] %}
+    {% if warnings is not empty %}
+        <h2>Warnings</h2>
+        <ul class="bullets">
+            {% for warning in warnings %}<li>{{ warning }}</li>{% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if report.errors is not empty %}
+        <h2>Errors</h2>
+        <ul class="bullets">
+            {% for error in report.errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if report.failedSteps is not empty or report.errors is not empty %}
+        <div class="s7-next-actions">
+            <h3>Next Steps</h3>
+            <p>Some steps did not complete. Review the failed steps above, resolve the underlying issue (e.g. install a missing Filesystem, or transfer a missing Template package), then run the install again - it is safe to re-run against a partially-installed site.</p>
+        </div>
+    {% endif %}
+
+    <a href="{{ url('site7-studio/install') }}" class="btn">Install Another Starter Kit</a>
+</div>
+{% endset %}

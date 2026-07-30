@@ -66,6 +66,17 @@ use site7\studio\providers\PublishingServiceProvider;
  * @property-read \site7\studio\services\installation\InstallationPlanner $installationPlanner
  * @property-read \site7\studio\services\installation\InstallationValidator $installationValidator
  * @property-read \site7\studio\services\installation\InstallationExecutor $installationExecutor
+ * @property-read \site7\studio\services\installation\InstallationSessionService $installationSessions
+ * @property-read \site7\studio\services\installation\InstallationStageRunner $installationStageRunner
+ * @property-read \site7\studio\services\installation\InstallationOrchestratorService $installationOrchestrator
+ * @property-read \site7\studio\services\installation\StarterKitCatalogService $starterKitCatalog
+ * @property-read \site7\studio\services\synchronization\InstalledStarterKitTrackingService $installedStarterKits
+ * @property-read \site7\studio\services\synchronization\SynchronizationHistoryService $synchronizationHistory
+ * @property-read \site7\studio\services\synchronization\SynchronizationPlanner $synchronizationPlanner
+ * @property-read \site7\studio\services\synchronization\SynchronizationValidator $synchronizationValidator
+ * @property-read \site7\studio\services\synchronization\SynchronizationOrchestratorService $synchronizationOrchestrator
+ * @property-read \site7\studio\services\synchronization\SynchronizationSessionService $synchronizationSessions
+ * @property-read \site7\studio\services\synchronization\UpdateCatalogService $updateCatalog
  */
 class Site7Studio extends Plugin
 {
@@ -242,6 +253,17 @@ class Site7Studio extends Plugin
                 // resolves independently of these URL rules.
                 $event->rules['site7-studio/marketplace'] = 'site7-studio/marketplace/index';
                 $event->rules['site7-studio/commerce'] = 'site7-studio/commerce/index';
+                // Fresh-Install Setup Wizard (Phase 7) - only Step 1's own
+                // navigational GET route needs an explicit rule; every other
+                // wizard action is POST/AJAX reached via the "action" hidden
+                // form field or fetch() body param, same convention as
+                // PackageActionController.
+                $event->rules['site7-studio/install'] = 'site7-studio/install-wizard/index';
+                $event->rules['site7-studio/install/preview/<sessionUid:[\w-]+>'] = 'site7-studio/install-wizard/preview';
+                $event->rules['site7-studio/install/summary/<sessionUid:[\w-]+>'] = 'site7-studio/install-wizard/summary';
+                // Synchronization & Update Engine (Phase 8) - same convention as Phase 7's wizard above.
+                $event->rules['site7-studio/update'] = 'site7-studio/update-wizard/index';
+                $event->rules['site7-studio/update/summary/<sessionUid:[\w-]+>'] = 'site7-studio/update-wizard/summary';
             }
         );
     }

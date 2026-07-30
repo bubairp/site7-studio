@@ -20,8 +20,13 @@ use site7\studio\services\ComposerDependencyScanner;
  */
 class InstallationValidator extends Component
 {
-    /** Minimum PHP version this plugin's own installation code relies on (typed properties, readonly, first-class callable syntax). */
-    private const MIN_PHP_VERSION = '8.1.0';
+    /**
+     * Minimum PHP version this plugin's own installation code relies on
+     * (typed properties, readonly, first-class callable syntax). Public so
+     * Phase 7's StarterKitCatalogService can display it in the wizard's
+     * Step 1 Starter Kit list without duplicating the version string.
+     */
+    public const MIN_PHP_VERSION = '8.1.0';
 
     public ?ComposerDependencyScanner $composerScanner = null;
 

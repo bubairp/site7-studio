@@ -1,0 +1,30 @@
+{% extends "_layouts/cp" %}
+{% set title = "Installation Preview" %}
+
+{% set content %}
+<div class="pane">
+    <h1>{{ session.starterKitHandle }}</h1>
+    <p>Status: {{ session.status }} - Step: {{ session.currentStep }}</p>
+
+    {% if session.plan %}
+        <h2>Planned Steps ({{ session.plan.steps|length }})</h2>
+        <table class="data fullwidth">
+            <thead><tr><th>Type</th><th>Label</th></tr></thead>
+            <tbody>
+                {% for step in session.plan.steps %}
+                    <tr><td>{{ step.type }}</td><td>{{ step.label }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    {% if session.validationResult and not session.validationResult.valid %}
+        <h2>Validation Errors</h2>
+        <ul class="bullets">
+            {% for error in session.validationResult.errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+    {% endif %}
+
+    <a href="{{ url('site7-studio/install') }}" class="btn">Back to Starter Kit list</a>
+</div>
+{% endset %}

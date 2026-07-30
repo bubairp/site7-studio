@@ -1,0 +1,80 @@
+{% extends "_layouts/cp" %}
+{% set title = "Install a Starter Kit" %}
+
+{% do view.registerAssetBundle("site7\\studio\\assetbundles\\InstallWizardBundle") %}
+
+{% set content %}
+<div id="s7-install-wizard" data-summary-url-template="{{ url('site7-studio/install/summary/__UID__') }}">
+
+    <ol class="s7-wizard-steps">
+        <li data-step="select" class="s7-wizard-step-indicator is-active">1. Select Starter Kit</li>
+        <li data-step="validate" class="s7-wizard-step-indicator">2. Environment Validation</li>
+        <li data-step="preview" class="s7-wizard-step-indicator">3. Installation Preview</li>
+        <li data-step="execute" class="s7-wizard-step-indicator">4. Execute Installation</li>
+        <li data-step="summary" class="s7-wizard-step-indicator">5. Summary</li>
+    </ol>
+
+    <section class="s7-wizard-panel" data-panel="select">
+        <div class="pane">
+            {% if kits is empty %}
+                <p>No Starter Kit packages were found in this installation's <code>packages/</code> directory.</p>
+            {% else %}
+                <p>Select a Starter Kit to install on this Craft installation.</p>
+                <div class="s7-kit-list">
+                    {% for kit in kits %}
+                        <div class="s7-kit-card{% if not kit.installable %} is-disabled{% endif %}" data-handle="{{ kit.handle }}">
+                            <h2>{{ kit.name }} <span class="light">v{{ kit.version }}</span></h2>
+                            <p>{{ kit.description }}</p>
+                            <ul class="s7-kit-meta">
+                                <li><strong>Craft:</strong> {{ kit.minimumCraftVersion ?: 'Not specified' }}</li>
+                                <li><strong>PHP:</strong> {{ kit.minimumPhpVersion }}+</li>
+                                <li><strong>Plugins:</strong> {{ kit.requiredPlugins|length }} required</li>
+                            </ul>
+                            {% if kit.notes is not empty %}
+                                <ul class="s7-kit-notes">
+                                    {% for note in kit.notes %}<li>{{ note }}</li>{% endfor %}
+                                </ul>
+                            {% endif %}
+                            {% if kit.installable %}
+                                <button type="button" class="btn s7-select-kit">Select</button>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="s7-wizard-panel" data-panel="validate" hidden>
+        <div class="pane">
+            <h2>Environment Validation - <span data-bind="selectedKitName"></span></h2>
+            <label class="s7-dry-run-toggle">
+                <input type="checkbox" id="s7-dry-run" checked>
+                Dry Run - validate and preview only, do not modify this Craft installation
+            </label>
+            <button type="button" class="btn submit" id="s7-run-validation">Validate Environment</button>
+            <div id="s7-validation-results"></div>
+        </div>
+    </section>
+
+    <section class="s7-wizard-panel" data-panel="preview" hidden>
+        <div class="pane">
+            <h2>Installation Preview</h2>
+            <div id="s7-plan-preview"></div>
+            <div class="buttons">
+                <button type="button" class="btn" data-back-to="select">Back</button>
+                <button type="button" class="btn submit" id="s7-start-install">Continue</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="s7-wizard-panel" data-panel="execute" hidden>
+        <div class="pane">
+            <h2>Installing...</h2>
+            <div class="s7-progress-bar"><div class="s7-progress-bar-fill" id="s7-progress-fill"></div></div>
+            <ul id="s7-progress-log" class="s7-progress-log"></ul>
+        </div>
+    </section>
+
+</div>
+{% endset %}

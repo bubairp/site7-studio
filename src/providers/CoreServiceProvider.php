@@ -20,6 +20,17 @@ use site7\studio\services\StarterKitBuilder;
 use site7\studio\services\installation\InstallationPlanner;
 use site7\studio\services\installation\InstallationValidator;
 use site7\studio\services\installation\InstallationExecutor;
+use site7\studio\services\installation\InstallationSessionService;
+use site7\studio\services\installation\InstallationStageRunner;
+use site7\studio\services\installation\InstallationOrchestratorService;
+use site7\studio\services\installation\StarterKitCatalogService;
+use site7\studio\services\synchronization\InstalledStarterKitTrackingService;
+use site7\studio\services\synchronization\SynchronizationHistoryService;
+use site7\studio\services\synchronization\SynchronizationPlanner;
+use site7\studio\services\synchronization\SynchronizationValidator;
+use site7\studio\services\synchronization\SynchronizationOrchestratorService;
+use site7\studio\services\synchronization\SynchronizationSessionService;
+use site7\studio\services\synchronization\UpdateCatalogService;
 use site7\studio\services\MarketplaceService;
 use site7\studio\services\SharedResourceRegistryService;
 use site7\studio\services\SharedResourceUsageService;
@@ -128,6 +139,50 @@ class CoreServiceProvider implements ServiceProviderInterface
 
         $plugin->set('installationExecutor', [
             'class' => InstallationExecutor::class,
+        ]);
+
+        $plugin->set('installationSessions', [
+            'class' => InstallationSessionService::class,
+        ]);
+
+        $plugin->set('installationStageRunner', [
+            'class' => InstallationStageRunner::class,
+        ]);
+
+        $plugin->set('installationOrchestrator', [
+            'class' => InstallationOrchestratorService::class,
+        ]);
+
+        $plugin->set('starterKitCatalog', [
+            'class' => StarterKitCatalogService::class,
+        ]);
+
+        $plugin->set('installedStarterKits', [
+            'class' => InstalledStarterKitTrackingService::class,
+        ]);
+
+        $plugin->set('synchronizationHistory', [
+            'class' => SynchronizationHistoryService::class,
+        ]);
+
+        $plugin->set('synchronizationPlanner', [
+            'class' => SynchronizationPlanner::class,
+        ]);
+
+        $plugin->set('synchronizationValidator', [
+            'class' => SynchronizationValidator::class,
+        ]);
+
+        $plugin->set('synchronizationOrchestrator', [
+            'class' => SynchronizationOrchestratorService::class,
+        ]);
+
+        $plugin->set('synchronizationSessions', [
+            'class' => SynchronizationSessionService::class,
+        ]);
+
+        $plugin->set('updateCatalog', [
+            'class' => UpdateCatalogService::class,
         ]);
     }
 }
