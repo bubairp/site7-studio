@@ -390,10 +390,27 @@ class CraftResourceService extends Component
 
     /**
      * Parses the package yaml files and deletes the corresponding Craft resources.
+     *
+     * Both steps below check for real, live usage before deleting anything -
+     * a field or Entry Type listed in this package's own fields.yaml/matrix.yaml
+     * is not necessarily *exclusive* to this package: a Matrix field in
+     * particular is routinely reused across many other Entry Types/blocks
+     * (e.g. a shared "Block Style" selector), and deleting it out from under
+     * them silently breaks every page that still uses it - discovered live
+     * when deleting an unrelated demo package deleted a field still used by
+     * 16+ real pages elsewhere on the site. An Entry Type is checked the same
+     * way: if real Entry elements of that type still exist, deleting the type
+     * would orphan that content, package-tracked or not.
      */
-    public function removePackageResources(string $packagePath): void
+    public function removePackageResources(string $packagePath): array
     {
-        // 1. Remove Entry Types from matrix.yaml
+        $skipped = [];
+
+        // 1. Remove Entry Types from matrix.yaml - but only ones with no
+        // existing entries. An Entry Type still has real content if any
+        // Entry element (in any Section, in any other package's Matrix
+        // field, anywhere) currently uses it - deleting it would silently
+        // orphan that content.
         $matrixYamlPath = $packagePath . '/matrix.yaml';
         if (file_exists($matrixYamlPath)) {
             $matrixData = \Symfony\Component\Yaml\Yaml::parseFile($matrixYamlPath);
@@ -401,14 +418,26 @@ class CraftResourceService extends Component
                 $entriesService = Craft::$app->getEntries();
                 foreach ($matrixData['blocks'] as $blockDef) {
                     $entryType = $entriesService->getEntryTypeByHandle($blockDef['handle']);
-                    if ($entryType) {
-                        $entriesService->deleteEntryType($entryType);
+                    if (!$entryType) {
+                        continue;
                     }
+
+                    $entryCount = \craft\elements\Entry::find()->typeId($entryType->id)->status(null)->count();
+                    if ($entryCount > 0) {
+                        $skipped[] = "Entry Type '{$entryType->handle}' - still has {$entryCount} existing entr(y/ies).";
+                        continue;
+                    }
+
+                    $entriesService->deleteEntryType($entryType);
                 }
             }
         }
 
-        // 2. Remove Fields from fields.yaml
+        // 2. Remove Fields from fields.yaml - but only ones no longer used by
+        // any field layout. Craft's own findFieldUsages() is the official,
+        // authoritative answer to "is this field still attached to anything"
+        // - deliberately checked *after* step 1 above, so an Entry Type this
+        // same package just deleted no longer counts as a usage.
         $fieldsYamlPath = $packagePath . '/fields.yaml';
         if (file_exists($fieldsYamlPath)) {
             $fieldsData = \Symfony\Component\Yaml\Yaml::parseFile($fieldsYamlPath);
@@ -416,9 +445,17 @@ class CraftResourceService extends Component
                 $fieldsService = Craft::$app->getFields();
                 foreach ($fieldsData['fields'] as $fieldDef) {
                     $field = $fieldsService->getFieldByHandle($fieldDef['handle']);
-                    if ($field) {
-                        $fieldsService->deleteField($field);
+                    if (!$field) {
+                        continue;
                     }
+
+                    $usages = $fieldsService->findFieldUsages($field);
+                    if (!empty($usages)) {
+                        $skipped[] = "Field '{$field->handle}' - still used by " . count($usages) . " other field layout(s).";
+                        continue;
+                    }
+
+                    $fieldsService->deleteField($field);
                 }
             }
         }
@@ -433,5 +470,7 @@ class CraftResourceService extends Component
                 }
             }
         }
+
+        return $skipped;
     }
 }

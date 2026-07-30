@@ -58,15 +58,22 @@
                                         <input type="hidden" name="handle" value="{{ record.handle }}">
                                         <button type="submit" class="btn small">Update</button>
                                     </form>
-                                    <form method="post" accept-charset="UTF-8" class="site7-inline-action-form">
-                                        {{ csrfInput() }}
-                                        {{ redirectInput(craft.app.request.url) }}
-                                        <input type="hidden" name="action" value="site7-studio/shared-resource/delete">
-                                        <input type="hidden" name="handle" value="{{ record.handle }}">
-                                        <button type="button" class="btn small delete icon" title="Delete" aria-label="Delete"
-                                            onclick="if(confirm('Delete this Shared Resource from the registry? The live Craft field itself is not affected. Blocked if anything still references it.')) { this.closest('form').submit(); }"
+                                    {% if row.usageCount == 0 %}
+                                        <form method="post" accept-charset="UTF-8" class="site7-inline-action-form">
+                                            {{ csrfInput() }}
+                                            {{ redirectInput(craft.app.request.url) }}
+                                            <input type="hidden" name="action" value="site7-studio/shared-resource/delete">
+                                            <input type="hidden" name="handle" value="{{ record.handle }}">
+                                            <button type="button" class="btn small delete icon" title="Delete" aria-label="Delete"
+                                                onclick="if(confirm('Delete this Shared Resource from the registry? The live Craft field itself is not affected.')) { this.closest('form').submit(); }"
+                                            ></button>
+                                        </form>
+                                    {% else %}
+                                        <button type="button" class="btn small delete icon disabled" disabled
+                                            title="Cannot delete - still referenced by {{ row.usageCount }} package(s)/Shared Resource(s)."
+                                            aria-label="Delete (disabled - still in use)"
                                         ></button>
-                                    </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>

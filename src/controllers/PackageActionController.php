@@ -162,7 +162,12 @@ class PackageActionController extends Controller
         $success = Site7Studio::getInstance()->packageManager->deletePackage($handle);
 
         if ($success) {
-            Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package deleted successfully.'));
+            $warnings = Site7Studio::getInstance()->packageManager->getLastDeleteWarnings();
+            if (!empty($warnings)) {
+                Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package deleted. Some of its Craft resources were left in place because they are still used elsewhere: ') . implode(' ', $warnings));
+            } else {
+                Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package deleted successfully.'));
+            }
             return $this->redirect('site7-studio/library?type=' . $type);
         }
 

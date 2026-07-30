@@ -42,6 +42,23 @@ class PackageManagerService extends Component
     }
 
     /**
+     * Fields/Entry Types the most recent deletePackage() call deliberately
+     * left in place because they're still used elsewhere (by real content or
+     * another Section/field layout) - surfaced by PackageActionController as
+     * a CP notice, so "deleted" doesn't silently mean "some of it wasn't."
+     * @var string[]
+     */
+    private array $_lastDeleteWarnings = [];
+
+    /**
+     * @return string[]
+     */
+    public function getLastDeleteWarnings(): array
+    {
+        return $this->_lastDeleteWarnings;
+    }
+
+    /**
      * @inheritdoc
      */
     public function init(): void
@@ -340,6 +357,8 @@ class PackageManagerService extends Component
      */
     public function deletePackage(string $handle): bool
     {
+        $this->_lastDeleteWarnings = [];
+
         $record = $this->getPackageByHandle($handle);
         if (!$record) {
             return false;
@@ -351,7 +370,7 @@ class PackageManagerService extends Component
 
         $packagePath = $this->getPackagePath($handle);
         if ($packagePath && is_dir($packagePath)) {
-            \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->removePackageResources($packagePath);
+            $this->_lastDeleteWarnings = \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->removePackageResources($packagePath);
         }
 
         $record->delete();
