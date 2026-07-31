@@ -19,6 +19,7 @@ class LibraryBundle extends AssetBundle
 
         $this->js = [
             'js/library.js',
+            'js/section-update.js',
         ];
 
         parent::init();

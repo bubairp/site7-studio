@@ -11,6 +11,8 @@ use craft\fields\Matrix;
 use craft\fields\Tags;
 use craft\models\EntryType;
 use site7\studio\models\import\EntryTypeDiscoveryResult;
+use site7\studio\records\PackageRecord;
+use site7\studio\repositories\SectionImportSourceRepository;
 use site7\studio\services\CraftResourceRegistry;
 use site7\studio\Site7Studio;
 
@@ -143,7 +145,8 @@ class CraftResourceDiscoveryService extends Component
      */
     private function analyzeEntryType(EntryType $entryType, array $matrixFieldsByEntryType, ?string $site7MatrixHandle, bool $includeFieldDetail): EntryTypeDiscoveryResult
     {
-        $result = new EntryTypeDiscoveryResult(['id' => $entryType->id, 'handle' => $entryType->handle, 'name' => $entryType->name]);
+        $result = new EntryTypeDiscoveryResult(['id' => $entryType->id, 'handle' => $entryType->handle, 'name' => $entryType->name, 'uid' => $entryType->uid]);
+        $this->applyImportStatus($result, $entryType);
 
         $craftResourceService = Site7Studio::getInstance()->craftResourceGenerator;
         $classifier = new ResourceClassifierService();
@@ -339,6 +342,28 @@ class CraftResourceDiscoveryService extends Component
             }
         }
         return $map;
+    }
+
+    /**
+     * Phase 9.1: sets $result->importStatus/existingPackageHandle/
+     * existingPackageId by looking up SectionImportSourceRepository against
+     * the Entry Type's own uid (never its numeric id). Read-only - never
+     * writes, never touches the Analyze/Preview/Save pipeline.
+     */
+    private function applyImportStatus(EntryTypeDiscoveryResult $result, EntryType $entryType): void
+    {
+        $sourceRecord = (new SectionImportSourceRepository())->findBySourceUid($entryType->uid);
+        if (!$sourceRecord) {
+            $result->importStatus = 'not-imported';
+            return;
+        }
+
+        $package = PackageRecord::findOne($sourceRecord->packageId);
+        $result->existingPackageHandle = $package?->handle;
+        $result->existingPackageId = $sourceRecord->packageId;
+
+        $currentHash = (new EntryTypeSourceHasher())->computeHash($entryType);
+        $result->importStatus = $currentHash === $sourceRecord->sourceHash ? 'imported' : 'update-available';
     }
 
     private function getSite7MatrixFieldHandle(): ?string

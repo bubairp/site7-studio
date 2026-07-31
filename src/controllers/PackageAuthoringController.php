@@ -116,6 +116,13 @@ class PackageAuthoringController extends Controller
             ? $authoringService->getSectionFields($handle)
             : [];
 
+        // Phase 9.1: drives the Package Editor's read-only lock + "Update
+        // Available" UI for a Section package produced by Import Existing
+        // Section - null (never checked in edit.twig) for every other type.
+        $sectionImportStatus = $package->type === 'section'
+            ? $authoringService->getSectionImportStatus($handle)
+            : null;
+
         // Shared Resource/Plugin dependencies and import provenance apply to
         // any package type the Craft Resource Importer can produce (Sections,
         // and Templates/Starter Kits via PageImportService/WebsiteImportService) -
@@ -162,6 +169,7 @@ class PackageAuthoringController extends Controller
             'title' => 'Edit: ' . $package->name,
             'package' => $package,
             'sectionFields' => $sectionFields,
+            'sectionImportStatus' => $sectionImportStatus,
             'packageDependencies' => $packageDependencies,
             'availableSections' => $availableSections,
             'patternComposition' => $patternComposition,

@@ -9,6 +9,8 @@ use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use site7\studio\Site7Studio;
 use site7\studio\records\PackageRecord;
+use site7\studio\repositories\SectionImportSourceRepository;
+use site7\studio\services\import\EntryTypeSourceHasher;
 use site7\studio\services\support\PackageBackupService;
 use Symfony\Component\Yaml\Yaml;
 
@@ -134,6 +136,16 @@ class PackageAuthoringService extends Component
         $record = $packageManager->getPackageByHandle($handle);
         if (!$record) {
             throw new \Exception('Package not found.');
+        }
+
+        // Phase 9.1: an imported Section package is a read-only mirror of a
+        // live Craft Entry Type - only its SITE7-specific metadata (these
+        // three keys) may be edited; Name/Author/Version come from the
+        // source and are locked. Silently dropped rather than erroring,
+        // since the Package Editor already renders them disabled - this is
+        // the defensive server-side half of that same rule.
+        if ($this->isLockedImportedSection($record)) {
+            $fields = array_intersect_key($fields, array_flip(['description', 'category', 'tags']));
         }
 
         $packagePath = $packageManager->getPackagePath($handle);
@@ -273,6 +285,54 @@ class PackageAuthoringService extends Component
     }
 
     /**
+     * Phase 9.1: true only for a Section package produced by Import Existing
+     * Section (i.e. SectionImportSourceRepository has a row for it) - the
+     * "read-only mirror" rule applies exclusively to these; a hand-authored
+     * Section (even one that happens to reuse an existing Entry Type handle)
+     * is never locked.
+     */
+    private function isLockedImportedSection(PackageRecord $record): bool
+    {
+        return $record->type === 'section' && (new SectionImportSourceRepository())->findByPackageId($record->id) !== null;
+    }
+
+    /**
+     * Read-only status for the Package Editor's lock/Update Available UI.
+     * Compares the stored sourceHash against the live Entry Type's current
+     * structure the same way CraftResourceDiscoveryService::applyImportStatus()
+     * does for the Select step, so both surfaces always agree.
+     *
+     * @return array{isImported: bool, sourceHandle: ?string, sourceUid: ?string, sourceHash: ?string, importedAt: ?string, updateAvailable: bool}
+     */
+    public function getSectionImportStatus(string $handle): array
+    {
+        $default = ['isImported' => false, 'sourceHandle' => null, 'sourceUid' => null, 'sourceHash' => null, 'importedAt' => null, 'updateAvailable' => false];
+
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        if (!$record) {
+            return $default;
+        }
+
+        $sourceRecord = (new SectionImportSourceRepository())->findByPackageId($record->id);
+        if (!$sourceRecord) {
+            return $default;
+        }
+
+        $entryType = (new \site7\studio\services\CraftResourceRegistry())->findByUid(\site7\studio\services\CraftResourceRegistry::KIND_ENTRY_TYPE, $sourceRecord->sourceUid)?->resource;
+        $updateAvailable = $entryType instanceof \craft\models\EntryType
+            && (new EntryTypeSourceHasher())->computeHash($entryType) !== $sourceRecord->sourceHash;
+
+        return [
+            'isImported' => true,
+            'sourceHandle' => $sourceRecord->sourceHandle,
+            'sourceUid' => $sourceRecord->sourceUid,
+            'sourceHash' => $sourceRecord->sourceHash,
+            'importedAt' => $sourceRecord->importedAt,
+            'updateAvailable' => $updateAvailable,
+        ];
+    }
+
+    /**
      * The Section Builder's read side: merges fields.yaml's field definitions
      * with preview/preview-data.yaml's demo values into one editable list.
      * Includes each field's real `type` (Dropdown, Lightswitch, Ckeditor,
@@ -347,6 +407,9 @@ class PackageAuthoringService extends Component
         }
         if ($record->type !== 'section') {
             throw new \Exception('This package is not a Section.');
+        }
+        if ($this->isLockedImportedSection($record)) {
+            throw new \Exception('This Section is an imported mirror of a live Craft Entry Type - its fields are locked. Use Update Package to sync changes instead.');
         }
 
         $cleanFields = [];

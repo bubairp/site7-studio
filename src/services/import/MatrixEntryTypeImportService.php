@@ -8,6 +8,7 @@ use craft\helpers\FileHelper;
 use craft\models\EntryType;
 use site7\studio\events\ResourceImportedEvent;
 use site7\studio\records\PackageRecord;
+use site7\studio\repositories\SectionImportSourceRepository;
 use site7\studio\Site7Studio;
 use Symfony\Component\Yaml\Yaml;
 
@@ -39,6 +40,126 @@ class MatrixEntryTypeImportService extends Component
             throw new \Exception('Entry Type not found.');
         }
 
+        // Phase 9.1: a Section Package may only be imported once per source
+        // Entry Type, keyed by the Entry Type's own uid (never its numeric
+        // id). Guarded here rather than only in ResourceImportController so
+        // CraftSectionImportService's per-entry-type delegation to this same
+        // method is covered for free too.
+        $existingSource = (new SectionImportSourceRepository())->findBySourceUid($entryType->uid);
+        if ($existingSource) {
+            $existingPackage = PackageRecord::findOne($existingSource->packageId);
+            $existingHandle = $existingPackage?->handle ?? $existingSource->sourceHandle;
+            throw new \Exception("This Entry Type has already been imported as the Section package '{$existingHandle}'.");
+        }
+
+        [$detectedFields, $importableFields, $sharedResourceHandles, $pluginDependencies, $excludedFields] = $this->detectFields($entryType);
+        $sourceHash = (new EntryTypeSourceHasher())->computeHash($entryType);
+
+        $name = trim((string)($meta['name'] ?? $entryType->name));
+        if ($name === '') {
+            throw new \Exception('A Section name is required.');
+        }
+        $version = (string)($meta['version'] ?? '1.0.0');
+
+        $validator = new ResourceImportValidator();
+        $proposedHandle = $validator->generateUniqueHandle($name);
+        $validation = $validator->validateImport('matrix-entry-type', [
+            'detectedFields' => $detectedFields,
+            'hasCapturableContent' => !empty($importableFields),
+            'proposedHandle' => $proposedHandle,
+            'version' => $version,
+        ]);
+        if (!empty($validation['errors'])) {
+            throw new \Exception(implode(' ', $validation['errors']));
+        }
+
+        $handle = $proposedHandle;
+        $packagePath = rtrim(Craft::getAlias('@packages'), '/') . '/' . $handle;
+        FileHelper::createDirectory($packagePath);
+
+        $tags = array_values(array_filter(array_map('trim', explode(',', (string)($meta['tags'] ?? '')))));
+
+        $manifest = [
+            'schemaVersion' => '1',
+            'handle' => $handle,
+            'name' => $name,
+            'type' => 'section',
+            'version' => $version,
+            'author' => !empty($meta['author']) ? $meta['author'] : (Craft::$app->getUser()->getIdentity()?->friendlyName ?? 'Site7'),
+            'description' => !empty($meta['description']) ? $meta['description'] : "Imported from the Craft Entry Type \"{$entryType->name}\".",
+            'category' => $meta['category'] ?: null,
+            'tags' => $tags,
+            'requires' => [],
+            'demoContent' => [],
+            'dependencies' => [
+                'sharedResources' => array_values(array_unique($sharedResourceHandles)),
+                'pluginDependencies' => $pluginDependencies,
+            ],
+            'excludedFields' => $excludedFields,
+            'importedFrom' => [
+                'sourceType' => 'matrix-entry-type',
+                'sourceId' => $entryType->id,
+                'sourceUid' => $entryType->uid,
+                'sourceHandle' => $entryType->handle,
+                'sourceHash' => $sourceHash,
+                'importedAt' => date('c'),
+                'importedBy' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? null,
+            ],
+        ];
+
+        file_put_contents($packagePath . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        file_put_contents($packagePath . '/README.md', $this->buildReadme($name, $entryType, $importableFields));
+
+        $this->writeFieldsYaml($packagePath, $name, $importableFields);
+        $this->writeMatrixYaml($packagePath, $name, $entryType, $importableFields);
+        $this->writeTemplateTwig($packagePath, $handle, $importableFields);
+
+        FileHelper::createDirectory($packagePath . '/preview');
+        file_put_contents($packagePath . '/preview/preview-data.yaml', Yaml::dump([
+            'block' => array_combine(
+                array_map(fn($f) => $f['handle'], $importableFields),
+                array_fill(0, count($importableFields), ''),
+            ),
+        ], 4));
+
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $packageManager->discoverPackages();
+        $packageManager->installPackage($handle);
+        $packageManager->enablePackage($handle);
+
+        $record = $packageManager->getPackageByHandle($handle);
+        if (!$record) {
+            throw new \Exception('Section was imported but could not be registered.');
+        }
+        $record->creatorId = Craft::$app->getUser()->getId();
+        $record->save();
+
+        (new SectionImportSourceRepository())->record($record->id, $entryType->uid, 'matrix-entry-type', $entryType->handle, $sourceHash);
+
+        Site7Studio::getInstance()->marketplace->syncDependencyRecords($record);
+
+        Site7Studio::getInstance()->getService('eventDispatcher')->dispatch(new ResourceImportedEvent([
+            'sourceType' => 'matrix-entry-type',
+            'sourceId' => $entryType->id,
+            'packageHandles' => [$handle],
+            'summary' => ['fieldCount' => count($importableFields)],
+        ]));
+
+        return $record;
+    }
+
+    /**
+     * The field-detection block shared by importFromEntryType() and (Phase
+     * 9.1) SectionUpdateService::updateInPlace() - classifies every field on
+     * a live Entry Type's field layout, registering Shared Resources along
+     * the way, exactly as importFromEntryType() always has. Extracted
+     * unchanged so the Update Package workflow recomputes fields identically
+     * to a fresh import rather than duplicating this logic.
+     *
+     * @return array{0: array, 1: array, 2: string[], 3: array, 4: array} [detectedFields, importableFields, sharedResourceHandles, pluginDependencies, excludedFields]
+     */
+    public function detectFields(EntryType $entryType): array
+    {
         $craftResourceService = Site7Studio::getInstance()->craftResourceGenerator;
         $layout = $entryType->getFieldLayout();
         $describedFields = $layout ? $craftResourceService->describeFieldLayout($layout) : [];
@@ -87,96 +208,14 @@ class MatrixEntryTypeImportService extends Component
             }
         }
 
-        $name = trim((string)($meta['name'] ?? $entryType->name));
-        if ($name === '') {
-            throw new \Exception('A Section name is required.');
-        }
-        $version = (string)($meta['version'] ?? '1.0.0');
-
-        $validator = new ResourceImportValidator();
-        $proposedHandle = $validator->generateUniqueHandle($name);
-        $validation = $validator->validateImport('matrix-entry-type', [
-            'detectedFields' => $detectedFields,
-            'hasCapturableContent' => !empty($importableFields),
-            'proposedHandle' => $proposedHandle,
-            'version' => $version,
-        ]);
-        if (!empty($validation['errors'])) {
-            throw new \Exception(implode(' ', $validation['errors']));
-        }
-
-        $handle = $proposedHandle;
-        $packagePath = rtrim(Craft::getAlias('@packages'), '/') . '/' . $handle;
-        FileHelper::createDirectory($packagePath);
-
-        $tags = array_values(array_filter(array_map('trim', explode(',', (string)($meta['tags'] ?? '')))));
-
-        $manifest = [
-            'schemaVersion' => '1',
-            'handle' => $handle,
-            'name' => $name,
-            'type' => 'section',
-            'version' => $version,
-            'author' => !empty($meta['author']) ? $meta['author'] : (Craft::$app->getUser()->getIdentity()?->friendlyName ?? 'Site7'),
-            'description' => !empty($meta['description']) ? $meta['description'] : "Imported from the Craft Entry Type \"{$entryType->name}\".",
-            'category' => $meta['category'] ?: null,
-            'tags' => $tags,
-            'requires' => [],
-            'demoContent' => [],
-            'dependencies' => [
-                'sharedResources' => array_values(array_unique($sharedResourceHandles)),
-                'pluginDependencies' => $pluginDependencies,
-            ],
-            'excludedFields' => $excludedFields,
-            'importedFrom' => [
-                'sourceType' => 'matrix-entry-type',
-                'sourceId' => $entryType->id,
-                'sourceHandle' => $entryType->handle,
-                'importedAt' => date('c'),
-                'importedBy' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? null,
-            ],
-        ];
-
-        file_put_contents($packagePath . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        file_put_contents($packagePath . '/README.md', $this->buildReadme($name, $entryType, $importableFields));
-
-        $this->writeFieldsYaml($packagePath, $name, $importableFields);
-        $this->writeMatrixYaml($packagePath, $name, $entryType, $importableFields);
-        $this->writeTemplateTwig($packagePath, $handle, $importableFields);
-
-        FileHelper::createDirectory($packagePath . '/preview');
-        file_put_contents($packagePath . '/preview/preview-data.yaml', Yaml::dump([
-            'block' => array_combine(
-                array_map(fn($f) => $f['handle'], $importableFields),
-                array_fill(0, count($importableFields), ''),
-            ),
-        ], 4));
-
-        $packageManager = Site7Studio::getInstance()->packageManager;
-        $packageManager->discoverPackages();
-        $packageManager->installPackage($handle);
-        $packageManager->enablePackage($handle);
-
-        $record = $packageManager->getPackageByHandle($handle);
-        if (!$record) {
-            throw new \Exception('Section was imported but could not be registered.');
-        }
-        $record->creatorId = Craft::$app->getUser()->getId();
-        $record->save();
-
-        Site7Studio::getInstance()->marketplace->syncDependencyRecords($record);
-
-        Site7Studio::getInstance()->getService('eventDispatcher')->dispatch(new ResourceImportedEvent([
-            'sourceType' => 'matrix-entry-type',
-            'sourceId' => $entryType->id,
-            'packageHandles' => [$handle],
-            'summary' => ['fieldCount' => count($importableFields)],
-        ]));
-
-        return $record;
+        return [$detectedFields, $importableFields, $sharedResourceHandles, $pluginDependencies, $excludedFields];
     }
 
-    private function writeFieldsYaml(string $packagePath, string $name, array $fields): void
+    /**
+     * @internal Public so SectionUpdateService can regenerate fields.yaml
+     * in-place with the exact same output shape a fresh import writes.
+     */
+    public function writeFieldsYaml(string $packagePath, string $name, array $fields): void
     {
         $fieldsYaml = [
             'name' => $name . ' Fields',
@@ -194,7 +233,10 @@ class MatrixEntryTypeImportService extends Component
         file_put_contents($packagePath . '/fields.yaml', Yaml::dump($fieldsYaml, 4));
     }
 
-    private function writeMatrixYaml(string $packagePath, string $name, EntryType $entryType, array $fields): void
+    /**
+     * @internal Public so SectionUpdateService can regenerate matrix.yaml in-place.
+     */
+    public function writeMatrixYaml(string $packagePath, string $name, EntryType $entryType, array $fields): void
     {
         $matrixYaml = [
             'name' => $name . ' Matrix',

@@ -17,6 +17,23 @@ class EntryTypeDiscoveryResult extends Model
     public string $handle = '';
     public string $name = '';
 
+    /** The Entry Type's own Craft project-config uid - the permanent identity Phase 9.1's import-status tracking keys on, never $id. */
+    public string $uid = '';
+
+    /**
+     * Phase 9.1: one of 'not-imported', 'imported', 'update-available' -
+     * whether this Entry Type already has a Section package tracked against
+     * its uid (SectionImportSourceRepository), and whether that package's
+     * stored sourceHash still matches the Entry Type's current structure.
+     */
+    public string $importStatus = 'not-imported';
+
+    /** Set when importStatus is 'imported'/'update-available' - the existing Section package's handle, for an "Open Package"/"Review Update" link. */
+    public ?string $existingPackageHandle = null;
+
+    /** Set alongside $existingPackageHandle. */
+    public ?int $existingPackageId = null;
+
     /** Always 'Entry Type' today - kept as a field for forward compatibility with other Craft resource kinds. */
     public string $craftResourceType = 'Entry Type';
 
@@ -77,8 +94,10 @@ class EntryTypeDiscoveryResult extends Model
     {
         $rules = parent::defineRules();
         $rules[] = [['id', 'confidence', 'usageCount', 'estimatedPackageSize'], 'integer'];
+        $rules[] = [['existingPackageId'], 'safe'];
         $rules[] = [['reviewRequired'], 'boolean'];
-        $rules[] = [['handle', 'name', 'craftResourceType', 'classification', 'recommendation'], 'string'];
+        $rules[] = [['handle', 'name', 'craftResourceType', 'classification', 'recommendation', 'uid', 'importStatus'], 'string'];
+        $rules[] = [['existingPackageHandle'], 'safe'];
         $rules[] = [['referencedBy', 'dependencies', 'warnings', 'pluginRequirements', 'sharedResources', 'fields'], 'safe'];
         return $rules;
     }

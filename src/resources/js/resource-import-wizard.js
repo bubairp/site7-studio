@@ -355,15 +355,42 @@
                     items.forEach($.proxy(function(item) {
                         const reviewBadge = item.reviewRequired ? ' <span class="status-label orange" style="flex-shrink:0;">Review Required</span>' : '';
                         const warningBadge = item.warnings && item.warnings.length ? ' <span class="light" style="flex-shrink:0;">' + item.warnings.length + ' note' + (item.warnings.length === 1 ? '' : 's') + '</span>' : '';
+
+                        // Phase 9.1: an Entry Type already tracked against a
+                        // Section package (by its uid) can never be selected
+                        // for import again - re-importing isn't allowed, and
+                        // an Update Package workflow (in the Package Editor)
+                        // is the only way to sync a changed source.
+                        const importStatus = item.importStatus || 'not-imported';
+                        const isLocked = importStatus === 'imported' || importStatus === 'update-available';
+                        let importBadge = '';
+                        let openLink = '';
+                        if (importStatus === 'imported') {
+                            importBadge = ' <span class="status-label gray" style="flex-shrink:0;">Imported</span>';
+                        } else if (importStatus === 'update-available') {
+                            importBadge = ' <span class="status-label amber" style="flex-shrink:0;">Update Available</span>';
+                        }
+                        if (isLocked && item.existingPackageHandle) {
+                            const editUrl = Craft.getCpUrl('site7-studio/packages/' + item.existingPackageHandle + '/edit');
+                            const linkLabel = importStatus === 'update-available' ? 'Review Update' : 'Open Package';
+                            openLink = ' <a href="' + Craft.escapeHtml(editUrl) + '" target="_blank" rel="noopener" style="flex-shrink:0;">' + linkLabel + ' &rarr;</a>';
+                        }
+
                         const $row = $(
-                            '<label class="site7-discovery-row">' +
-                            '<input type="radio" name="site7ri-entrytype-radio" value="' + item.id + '">' +
+                            '<label class="site7-discovery-row' + (isLocked ? ' is-locked' : '') + '">' +
+                            '<input type="radio" name="site7ri-entrytype-radio" value="' + item.id + '"' + (isLocked ? ' disabled' : '') + '>' +
                             '<span class="status-label ' + group.color + '" style="flex-shrink:0;">' + Craft.escapeHtml(group.label) + '</span>' +
                             '<span class="site7-row-name">' + Craft.escapeHtml(item.name) + '</span>' +
                             '<span class="light" style="flex-shrink:0;">used in ' + item.usageCount + '</span>' +
-                            warningBadge + reviewBadge +
+                            warningBadge + reviewBadge + importBadge + openLink +
                             '</label>'
                         ).appendTo($groupsContainer);
+                        if (isLocked) {
+                            // Selectable rows only - a locked row still shows
+                            // its detail on demand via the disabled radio's
+                            // label click would otherwise do nothing useful.
+                            return;
+                        }
                         if (item.id === selectedEntryTypeId) {
                             $row.find('input').prop('checked', true);
                             $row.addClass('is-selected');

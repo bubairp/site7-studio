@@ -10,6 +10,7 @@ use site7\studio\services\import\CraftSectionImportService;
 use site7\studio\services\import\MatrixEntryTypeImportService;
 use site7\studio\services\import\PageImportService;
 use site7\studio\services\import\ResourceAnalyzerService;
+use site7\studio\services\import\SectionUpdateService;
 use site7\studio\services\import\WebsiteImportService;
 use site7\studio\services\CraftResourceRegistry;
 use site7\studio\Site7Studio;
@@ -162,6 +163,53 @@ class ResourceImportController extends Controller
         }
 
         return $this->asJson(['success' => true, 'handles' => $handles, 'skipped' => $skipped]);
+    }
+
+    // --- Section Package: Update-in-place workflow (Phase 9.1) ---
+    // An already-imported Section package can never be imported again (see
+    // MatrixEntryTypeImportService's sourceUid guard above) - these two
+    // actions are the only way its content can change once imported.
+
+    public function actionDiffSectionUpdate()
+    {
+        $this->requireAcceptsJson();
+        $this->requireImportAccess();
+
+        $handle = (string)Craft::$app->getRequest()->getRequiredQueryParam('handle');
+
+        try {
+            $diff = (new SectionUpdateService())->diff($handle);
+        } catch (\Throwable $e) {
+            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
+        }
+
+        return $this->asJson(['success' => true, 'diff' => $diff]);
+    }
+
+    public function actionUpdateSectionPackage()
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+        $this->requireImportAccess();
+
+        $request = Craft::$app->getRequest();
+        $handle = (string)$request->getRequiredBodyParam('handle');
+
+        // Defensive server-side confirmation, mirroring the Package
+        // Editor's "Review & Update" -> confirm client-side step - never
+        // trust a bare POST here as implicit confirmation.
+        if (!$request->getBodyParam('confirmed')) {
+            return $this->asJson(['success' => false, 'error' => 'Update not confirmed.']);
+        }
+
+        try {
+            $record = (new SectionUpdateService())->updateInPlace($handle);
+        } catch (\Throwable $e) {
+            Craft::error('Update Section Package failed: ' . $e->getMessage(), __METHOD__);
+            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
+        }
+
+        return $this->asJson(['success' => true, 'handle' => $record->handle]);
     }
 
     // --- Pages (-> Template package) ---

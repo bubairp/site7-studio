@@ -28,6 +28,7 @@
 {% endblock %}
 
 {% set packageTags = package.tags is iterable ? package.tags|join(', ') : package.tags %}
+{% set sectionLocked = sectionImportStatus is not null and sectionImportStatus.isImported %}
 
 {% block content %}
     <form method="post" accept-charset="UTF-8">
@@ -38,9 +39,12 @@
 
         <section class="site7-detail-section">
             <h2>{{ "General"|t('site7-studio') }}</h2>
+            {% if sectionLocked %}
+                <p class="light">{{ "Name, Version, and Author are locked - this Section is an imported mirror of a live Craft Entry Type. Description, Category, and Tags are SITE7 metadata and remain editable."|t('site7-studio') }}</p>
+            {% endif %}
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7pe-name">{{ "Name"|t('site7-studio') }}</label></div>
-                <div class="input"><input type="text" id="site7pe-name" name="name" class="text fullwidth" value="{{ package.name }}" required></div>
+                <div class="input"><input type="text" id="site7pe-name" name="name" class="text fullwidth" value="{{ package.name }}" required {{ sectionLocked ? 'readonly' }}></div>
             </div>
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7pe-description">{{ "Description"|t('site7-studio') }}</label></div>
@@ -71,11 +75,11 @@
             <div class="flex flex-gap-m">
                 <div class="field flex-grow">
                     <div class="heading"><label for="site7pe-version">{{ "Version"|t('site7-studio') }}</label></div>
-                    <div class="input"><input type="text" id="site7pe-version" name="version" class="text fullwidth" value="{{ package.version }}"></div>
+                    <div class="input"><input type="text" id="site7pe-version" name="version" class="text fullwidth" value="{{ package.version }}" {{ sectionLocked ? 'readonly' }}></div>
                 </div>
                 <div class="field flex-grow">
                     <div class="heading"><label for="site7pe-author">{{ "Author"|t('site7-studio') }}</label></div>
-                    <div class="input"><input type="text" id="site7pe-author" name="author" class="text fullwidth" value="{{ package.author }}"></div>
+                    <div class="input"><input type="text" id="site7pe-author" name="author" class="text fullwidth" value="{{ package.author }}" {{ sectionLocked ? 'readonly' }}></div>
                 </div>
             </div>
             <div style="margin-top: 16px;">
@@ -112,7 +116,43 @@
 
     <section class="site7-detail-section">
         <h2>{{ "Package Builder"|t('site7-studio') }}</h2>
-        {% if package.type == 'section' %}
+        {% if package.type == 'section' and sectionLocked %}
+            <div class="flex flex-nowrap flex-gap-s" style="align-items: center; margin-bottom: 10px;">
+                <span class="status-label gray"><span class="status gray"></span><span class="status-label-text">{{ "Read-only"|t('site7-studio') }}</span></span>
+                {% if sectionImportStatus.updateAvailable %}
+                    <span class="status-label amber"><span class="status amber"></span><span class="status-label-text">{{ "Update Available"|t('site7-studio') }}</span></span>
+                {% endif %}
+            </div>
+            <p class="light">{{ "This Section mirrors the live Craft Entry Type \"{handle}\" - its fields, structure, and layout are locked. Re-importing it isn't possible; use Update Package below to sync any changes made to the source."|t('site7-studio', {handle: sectionImportStatus.sourceHandle}) }}</p>
+
+            <table class="data fullwidth">
+                <thead>
+                    <tr>
+                        <th>{{ "Handle"|t('site7-studio') }}</th>
+                        <th>{{ "Name"|t('site7-studio') }}</th>
+                        <th>{{ "Type"|t('site7-studio') }}</th>
+                        <th>{{ "Instructions"|t('site7-studio') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for field in sectionFields %}
+                        <tr>
+                            <td><code>{{ field.handle }}</code></td>
+                            <td>{{ field.name }}</td>
+                            <td><code>{{ field.type }}</code></td>
+                            <td>{{ field.instructions }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if sectionImportStatus.updateAvailable %}
+                <div style="margin-top: 16px;">
+                    <button type="button" class="btn" id="site7-review-update-btn" data-handle="{{ package.handle }}">{{ "Review & Update"|t('site7-studio') }}</button>
+                </div>
+                <div id="site7-update-diff-panel" style="margin-top: 12px; display: none;"></div>
+            {% endif %}
+        {% elseif package.type == 'section' %}
             <p class="light">{{ "Each row becomes a real Craft field when this Section is installed. Type reflects what was actually detected on the source Entry Type (e.g. via Import Existing Section) and is preserved when you save - editing Handle/Name/Instructions/Demo Value never downgrades a field's type."|t('site7-studio') }}</p>
             <form method="post" accept-charset="UTF-8" id="site7-section-builder-form">
                 {{ csrfInput() }}
@@ -310,6 +350,12 @@
                     {% endif %}
                     {% if packageDependencies.importedFrom.sourceHandle %}
                         <div class="field"><div class="heading"><label>{{ "Source Handle"|t('site7-studio') }}</label></div><div class="input"><code>{{ packageDependencies.importedFrom.sourceHandle }}</code></div></div>
+                    {% endif %}
+                    {% if packageDependencies.importedFrom.sourceUid %}
+                        <div class="field"><div class="heading"><label>{{ "Source UID"|t('site7-studio') }}</label></div><div class="input"><code>{{ packageDependencies.importedFrom.sourceUid }}</code></div></div>
+                    {% endif %}
+                    {% if packageDependencies.importedFrom.sourceHash %}
+                        <div class="field"><div class="heading"><label>{{ "Source Hash"|t('site7-studio') }}</label></div><div class="input"><code>{{ packageDependencies.importedFrom.sourceHash }}</code></div></div>
                     {% endif %}
                     {% if packageDependencies.importedFrom.importedAt %}
                         <div class="field"><div class="heading"><label>{{ "Imported At"|t('site7-studio') }}</label></div><div class="input">{{ packageDependencies.importedFrom.importedAt }}</div></div>
