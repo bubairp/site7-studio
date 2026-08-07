@@ -46,8 +46,13 @@ class SetupController extends Controller
                     'name' => 'Site7 Components',
                 ]);
                 
-                // Craft 5 removed field groups, so we can just save the field
-                if ($fieldsService->saveField($matrixField)) {
+                // Craft 5 removed field groups, so we can just save the field.
+                // A brand new Matrix field legitimately has zero Entry Types
+                // at this point - they arrive later as Section packages are
+                // enabled - but Craft 5's default validation rejects a Matrix
+                // field with none, so skip validation for this one
+                // intentionally-transient save.
+                if ($fieldsService->saveField($matrixField, false)) {
                     $fieldId = $matrixField->id;
                 } else {
                     Craft::$app->getSession()->setError('Failed to create Matrix field.');
