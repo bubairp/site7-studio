@@ -384,6 +384,42 @@ class PackageManagerService extends Component
     }
 
     /**
+     * Permanently removes a package from the Library WITHOUT ever touching
+     * the live Craft resources it's linked to - the safe undo for "imported
+     * the wrong Section/Entry Type by mistake." Unlike deletePackage(), this
+     * never calls craftResourceGenerator->removePackageResources(), so the
+     * real Entry Type/Fields it was imported from (or generated) are left
+     * completely alone, exactly as if the package had never been imported.
+     *
+     * The site7_section_import_sources linkage row (if any) is deleted
+     * automatically via its ON DELETE CASCADE FK on packageId, which also
+     * means the same live Entry Type can be cleanly re-imported afterward
+     * without tripping the "already imported" duplicate guard.
+     */
+    public function detachPackage(string $handle): bool
+    {
+        $record = $this->getPackageByHandle($handle);
+        if (!$record) {
+            return false;
+        }
+
+        if ($record->type === 'section') {
+            $this->unlinkFromMatrix($handle);
+        }
+
+        $packagePath = $this->getPackagePath($handle);
+
+        $record->delete();
+
+        if ($packagePath && is_dir($packagePath)) {
+            \craft\helpers\FileHelper::removeDirectory($packagePath);
+        }
+
+        $this->invalidateCraftCaches();
+        return true;
+    }
+
+    /**
      * Invalidates all relevant Craft CMS internal caches after modifying
      * package resources or Matrix field configurations.
      *

@@ -120,6 +120,19 @@
                 >{{ "Delete"|t('site7-studio') }}</button>
             </form>
         {% endif %}
+
+        {% if isDevMode and package.type == 'section' %}
+            <form method="post" accept-charset="UTF-8" id="detachForm">
+                {{ csrfInput() }}
+                {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
+                <input type="hidden" name="action" value="site7-studio/package-action/detach">
+                <input type="hidden" name="handle" value="{{ package.handle }}">
+                <button type="button" class="btn"
+                    title="{{ 'Removes this package from the Library only. Its live Section/Entry Type/Fields on the site are never touched - use this to undo an accidental import.'|t('site7-studio') }}"
+                    onclick="if(confirm('Detach this package? It will be removed from the Library, but its live Section/Entry Type/Fields on the site are never touched - use this to undo an accidental import.')) { this.closest('form').submit(); }"
+                >{{ "Detach"|t('site7-studio') }}</button>
+            </form>
+        {% endif %}
     </div>
 {% endblock %}
 

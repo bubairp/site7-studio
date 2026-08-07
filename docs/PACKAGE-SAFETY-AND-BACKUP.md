@@ -98,6 +98,49 @@ server/DDEV container. A "Remove from Repository" button for the Marketplace →
 Repository tab has been proposed but not yet built — pending a decision on whether
 it's worth adding.
 
+## 4. Detach — undo an accidental import without touching live resources
+
+Everything above protects **shared** resources (used by something *else*). It does
+nothing for a package's own **primary** resources when nothing else references them
+yet — which is exactly the state right after importing the wrong Section/Entry Type
+by mistake: 0 entries, 0 other consumers, so the usage guards in §1 don't trigger, and
+"Delete" really does delete the live Entry Type and its fields.
+
+**Detach** (`PackageManagerService::detachPackage()`, `src/services/PackageManagerService.php`)
+is the safe undo for that specific moment. A Dev-Mode-only button next to Delete,
+visible only for `type: section` packages (`src/templates/library/package.twig`,
+`src/controllers/PackageActionController.php::actionDetach()`).
+
+**What it does**, structurally identical to `deletePackage()` except for the one
+step that matters:
+1. Unlinks the package's Entry Type from the Matrix field's allowed-types list
+   (`unlinkFromMatrix()` — same safe, reversible step Remove/Delete already do).
+2. Deletes the package's own `site7_packages` DB row (which cascades the
+   `site7_section_import_sources` linkage row via its `ON DELETE CASCADE` FK — so
+   the same live Entry Type can be re-imported cleanly afterward, no false
+   "already imported" error).
+3. Deletes the package's folder from disk.
+4. **Never calls `craftResourceGenerator->removePackageResources()`** — the one
+   step that can delete the live Entry Type/Fields. This is the entire difference
+   from `deletePackage()`.
+
+Net effect: the package disappears from the Library completely, but the real Craft
+Entry Type/Fields it was imported from (or generated) are left exactly as they were,
+as if the package had never existed. No usage guard, no confirmation beyond the
+client-side dialog — always allowed, since it's structurally incapable of destroying
+anything live.
+
+**Verified live** (2026-08-07): scaffolded a throwaway Section package
+(`detach-verify-test`), installed + enabled it (creating a real Entry Type + Field
+Layout in Craft), clicked Detach, then confirmed directly in the DB: package row and
+folder gone, Entry Type and Field Layout still present, Entry Type UID no longer in
+the Matrix field's `entryTypes` list.
+
+**Known gap, not fixed here:** the leftover Entry Type/fields from a detach have no
+UI path to clean up afterward (no "delete this orphaned Entry Type" button anywhere)
+— if you actually do want it gone, that's a manual Craft Settings → Entry Types
+deletion, same as any native Craft cleanup.
+
 ## Status
 
 - Files 1 and 2 above (the safety checks + button) are **committed**.
@@ -105,3 +148,4 @@ it's worth adding.
   and the two call sites in `ImportServiceProvider.php` /
   `PackageAuthoringService.php`) is implemented and live-tested, but **not yet
   committed**, pending confirmation.
+- Detach (§4) is implemented and live-tested, **not yet committed**.

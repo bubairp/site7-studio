@@ -176,6 +176,37 @@ class PackageActionController extends Controller
     }
 
     /**
+     * Removes a package from the Library without ever touching the live
+     * Craft resources it's linked to - the safe undo for "imported the
+     * wrong Section/Entry Type by mistake." Dev-Mode-only, no Template
+     * carve-out (unlike actionDelete()) since Templates aren't imported
+     * from live Craft resources in the first place.
+     */
+    public function actionDetach()
+    {
+        $this->requirePostRequest();
+
+        if (!Site7Studio::isDevMode()) {
+            throw new \yii\web\ForbiddenHttpException('You are not permitted to detach this package.');
+        }
+
+        $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
+
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        $type = $record->type ?? 'section';
+
+        $success = Site7Studio::getInstance()->packageManager->detachPackage($handle);
+
+        if ($success) {
+            Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package detached. Its live Craft Section/Entry Type/Fields were left untouched.'));
+            return $this->redirect('site7-studio/library?type=' . $type);
+        }
+
+        Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Could not detach package.'));
+        return $this->redirectToPostedUrl();
+    }
+
+    /**
      * Gets the serialized block structures for a pattern to inject into Matrix.
      */
     public function actionGetPatternBlocks()
