@@ -296,7 +296,7 @@ class MarketplaceService extends Component
      * exported or imported for a package; safe to call repeatedly for the
      * same version.
      */
-    public function recordVersion(PackageRecord $record, ?string $checksum): void
+    public function recordVersion(PackageRecord $record, ?string $checksum, ?string $archivePath = null): void
     {
         $existing = PackageVersionRecord::find()
             ->where(['packageId' => $record->id, 'version' => $record->version])
@@ -310,6 +310,7 @@ class MarketplaceService extends Component
         $version->version = $record->version;
         $version->releaseDate = (new \DateTime())->format('Y-m-d H:i:s');
         $version->checksum = $checksum;
+        $version->archivePath = $archivePath;
         $version->save();
     }
 }

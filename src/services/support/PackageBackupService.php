@@ -4,6 +4,7 @@ namespace site7\studio\services\support;
 
 use Craft;
 use craft\helpers\FileHelper;
+use site7\studio\records\PackageVersionRecord;
 use site7\studio\services\PackageExportService;
 
 /**
@@ -52,6 +53,17 @@ class PackageBackupService
 
         $destPath = $repoPath . '/' . basename($exportedPath);
         rename($exportedPath, $destPath);
+
+        // exportPackage() just recorded a site7_package_versions row
+        // pointing at $exportedPath (its own archivePath field, added
+        // alongside this) - now stale since the file above just moved.
+        // Repoint it at the file's real, final location so the version
+        // history stays accurate rather than referencing a path that no
+        // longer exists.
+        PackageVersionRecord::updateAll(
+            ['archivePath' => $destPath],
+            ['archivePath' => $exportedPath],
+        );
     }
 
     private function rootHandleOf(string $zipPath): ?string

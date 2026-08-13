@@ -97,7 +97,7 @@ class PackageExportService extends Component
 
         $zip->close();
 
-        $this->recordExportedVersions($closure, $bundleEntries);
+        $this->recordExportedVersions($closure, $bundleEntries, $zipPath);
 
         Site7Studio::getInstance()->getService('eventDispatcher')->dispatch(new PackageExportedEvent([
             'handle' => $handle,
@@ -203,7 +203,7 @@ class PackageExportService extends Component
      * @param PackageRecord[] $closure keyed by handle
      * @param array $bundleEntries [{handle, type, version, checksum}]
      */
-    private function recordExportedVersions(array $closure, array $bundleEntries): void
+    private function recordExportedVersions(array $closure, array $bundleEntries, string $zipPath): void
     {
         $marketplace = Site7Studio::getInstance()->marketplace;
         $checksumsByHandle = [];
@@ -212,7 +212,7 @@ class PackageExportService extends Component
         }
 
         foreach ($closure as $handle => $record) {
-            $marketplace->recordVersion($record, $checksumsByHandle[$handle] ?? null);
+            $marketplace->recordVersion($record, $checksumsByHandle[$handle] ?? null, $zipPath);
             $marketplace->syncDependencyRecords($record);
         }
     }
