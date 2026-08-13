@@ -10,8 +10,12 @@ use site7\studio\services\import\CraftSectionImportService;
 use site7\studio\services\import\MatrixEntryTypeImportService;
 use site7\studio\services\import\PageImportService;
 use site7\studio\services\import\ResourceAnalyzerService;
+use site7\studio\services\import\PageUpdateService;
 use site7\studio\services\import\SectionUpdateService;
+use site7\studio\services\import\StarterKitReferenceResolverService;
+use site7\studio\services\import\StarterKitSyncService;
 use site7\studio\services\import\WebsiteImportService;
+use site7\studio\services\import\WebsiteTreeService;
 use site7\studio\services\CraftResourceRegistry;
 use site7\studio\Site7Studio;
 use yii\web\ForbiddenHttpException;
@@ -259,6 +263,68 @@ class ResourceImportController extends Controller
         return $this->asJson(['success' => true, 'pagesBySectionType' => $pagesBySectionType]);
     }
 
+    /**
+     * Phase 9.2: the reusable Website Tree's data source - mirrors Craft's
+     * native hierarchy (Singles/Channels/Structures/Categories) instead of
+     * actionGetPages()'s flat, ungrouped-by-section list above (kept in
+     * place, unused by the new Select step, in case anything else still
+     * references it).
+     */
+    public function actionGetWebsiteTree()
+    {
+        $this->requireAcceptsJson();
+        $this->requireImportAccess();
+
+        $tree = (new WebsiteTreeService())->buildTree();
+
+        return $this->asJson(['success' => true] + $tree);
+    }
+
+    // --- Page Package: Update-in-place workflow (Phase 9.2) ---
+    // An already-imported Page package can never be imported again (see
+    // PageImportService's sourceUid guard) - these two actions are the only
+    // way its content can change once imported. Mirrors the Section pair
+    // above exactly.
+
+    public function actionDiffPageUpdate()
+    {
+        $this->requireAcceptsJson();
+        $this->requireImportAccess();
+
+        $handle = (string)Craft::$app->getRequest()->getRequiredQueryParam('handle');
+
+        try {
+            $diff = (new PageUpdateService())->diff($handle);
+        } catch (\Throwable $e) {
+            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
+        }
+
+        return $this->asJson(['success' => true, 'diff' => $diff]);
+    }
+
+    public function actionUpdatePagePackage()
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+        $this->requireImportAccess();
+
+        $request = Craft::$app->getRequest();
+        $handle = (string)$request->getRequiredBodyParam('handle');
+
+        if (!$request->getBodyParam('confirmed')) {
+            return $this->asJson(['success' => false, 'error' => 'Update not confirmed.']);
+        }
+
+        try {
+            $record = (new PageUpdateService())->updateInPlace($handle);
+        } catch (\Throwable $e) {
+            Craft::error('Update Page Package failed: ' . $e->getMessage(), __METHOD__);
+            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
+        }
+
+        return $this->asJson(['success' => true, 'handle' => $record->handle]);
+    }
+
     public function actionAnalyzePage()
     {
         $this->requirePostRequest();
@@ -392,6 +458,50 @@ class ResourceImportController extends Controller
         }
 
         return $this->asJson(['success' => true, 'handle' => $record->handle, 'skipped' => $skipped, 'notes' => $notes]);
+    }
+
+    // --- Starter Kit: Relationships / Synchronize workflow (Phase 9.3) ---
+    // An already-imported Starter Kit can never be imported again (see
+    // WebsiteImportService's selectionKey guard) - these two actions are
+    // the only way its references are inspected/synced once imported.
+
+    public function actionGetStarterKitReferences()
+    {
+        $this->requireAcceptsJson();
+        $this->requireImportAccess();
+
+        $handle = (string)Craft::$app->getRequest()->getRequiredQueryParam('handle');
+
+        try {
+            $result = (new StarterKitReferenceResolverService())->resolve($handle);
+        } catch (\Throwable $e) {
+            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
+        }
+
+        return $this->asJson(['success' => true] + $result);
+    }
+
+    public function actionSyncStarterKit()
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+        $this->requireImportAccess();
+
+        $request = Craft::$app->getRequest();
+        $handle = (string)$request->getRequiredBodyParam('handle');
+
+        if (!$request->getBodyParam('confirmed')) {
+            return $this->asJson(['success' => false, 'error' => 'Synchronization not confirmed.']);
+        }
+
+        try {
+            $result = (new StarterKitSyncService())->synchronize($handle);
+        } catch (\Throwable $e) {
+            Craft::error('Synchronize Starter Kit failed: ' . $e->getMessage(), __METHOD__);
+            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
+        }
+
+        return $this->asJson(['success' => true] + $result);
     }
 
     private function readMeta(\craft\web\Request $request): array

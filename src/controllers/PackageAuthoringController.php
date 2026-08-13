@@ -4,6 +4,9 @@ namespace site7\studio\controllers;
 
 use Craft;
 use craft\web\Controller;
+use site7\studio\repositories\WebsiteImportSourceRepository;
+use site7\studio\services\import\StarterKitReferenceResolverService;
+use site7\studio\services\import\WebsiteTreeService;
 use site7\studio\Site7Studio;
 use site7\studio\services\PackageAuthoringService;
 
@@ -123,6 +126,32 @@ class PackageAuthoringController extends Controller
             ? $authoringService->getSectionImportStatus($handle)
             : null;
 
+        // Phase 9.2: same idea as $sectionImportStatus, for a Page (Template-
+        // type) package produced by Import Existing Page.
+        $pageImportStatus = $package->type === 'template'
+            ? $authoringService->getPageImportStatus($handle)
+            : null;
+
+        // Phase 9.3: same idea, for a Starter Kit produced by Import
+        // Existing Website. $starterKitReferences is fetched for any
+        // Starter Kit (imported or hand-authored) - it's just a read-only
+        // view of manifest.requires, harmless either way; $starterKitTree
+        // (the read-only Website Tree, Package Details requirement) only
+        // makes sense once there's a tracked source selection to mark.
+        $websiteImportStatus = $package->type === 'starter-kit'
+            ? $authoringService->getWebsiteImportStatus($handle)
+            : null;
+        $starterKitReferences = $package->type === 'starter-kit'
+            ? (new StarterKitReferenceResolverService())->resolve($handle)
+            : null;
+        $starterKitTree = null;
+        if ($websiteImportStatus && $websiteImportStatus['isImported']) {
+            $sourceRecord = (new WebsiteImportSourceRepository())->findByPackageId($package->id);
+            $entryUids = $sourceRecord ? (array)json_decode($sourceRecord->sourceEntryUids, true) : [];
+            $treeService = new WebsiteTreeService();
+            $starterKitTree = $treeService->markIncluded($treeService->buildTree(), $entryUids);
+        }
+
         // Shared Resource/Plugin dependencies and import provenance apply to
         // any package type the Craft Resource Importer can produce (Sections,
         // and Templates/Starter Kits via PageImportService/WebsiteImportService) -
@@ -170,6 +199,10 @@ class PackageAuthoringController extends Controller
             'package' => $package,
             'sectionFields' => $sectionFields,
             'sectionImportStatus' => $sectionImportStatus,
+            'pageImportStatus' => $pageImportStatus,
+            'websiteImportStatus' => $websiteImportStatus,
+            'starterKitReferences' => $starterKitReferences,
+            'starterKitTree' => $starterKitTree,
             'packageDependencies' => $packageDependencies,
             'availableSections' => $availableSections,
             'patternComposition' => $patternComposition,

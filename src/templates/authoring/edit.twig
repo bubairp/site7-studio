@@ -29,6 +29,9 @@
 
 {% set packageTags = package.tags is iterable ? package.tags|join(', ') : package.tags %}
 {% set sectionLocked = sectionImportStatus is not null and sectionImportStatus.isImported %}
+{% set pageLocked = pageImportStatus is not null and pageImportStatus.isImported %}
+{% set websiteLocked = websiteImportStatus is not null and websiteImportStatus.isImported %}
+{% set anyLocked = sectionLocked or pageLocked or websiteLocked %}
 
 {% block content %}
     <form method="post" accept-charset="UTF-8">
@@ -41,10 +44,14 @@
             <h2>{{ "General"|t('site7-studio') }}</h2>
             {% if sectionLocked %}
                 <p class="light">{{ "Name, Version, and Author are locked - this Section is an imported mirror of a live Craft Entry Type. Description, Category, and Tags are SITE7 metadata and remain editable."|t('site7-studio') }}</p>
+            {% elseif pageLocked %}
+                <p class="light">{{ "Name, Version, and Author are locked - this Page is an imported mirror of a live Craft page. Description, Category, and Tags are SITE7 metadata and remain editable."|t('site7-studio') }}</p>
+            {% elseif websiteLocked %}
+                <p class="light">{{ "Name, Version, and Author are locked - this Starter Kit is an imported mirror of a live Craft website. Description, Category, and Tags are SITE7 metadata and remain editable."|t('site7-studio') }}</p>
             {% endif %}
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7pe-name">{{ "Name"|t('site7-studio') }}</label></div>
-                <div class="input"><input type="text" id="site7pe-name" name="name" class="text fullwidth" value="{{ package.name }}" required {{ sectionLocked ? 'readonly' }}></div>
+                <div class="input"><input type="text" id="site7pe-name" name="name" class="text fullwidth" value="{{ package.name }}" required {{ anyLocked ? 'readonly' }}></div>
             </div>
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7pe-description">{{ "Description"|t('site7-studio') }}</label></div>
@@ -75,11 +82,11 @@
             <div class="flex flex-gap-m">
                 <div class="field flex-grow">
                     <div class="heading"><label for="site7pe-version">{{ "Version"|t('site7-studio') }}</label></div>
-                    <div class="input"><input type="text" id="site7pe-version" name="version" class="text fullwidth" value="{{ package.version }}" {{ sectionLocked ? 'readonly' }}></div>
+                    <div class="input"><input type="text" id="site7pe-version" name="version" class="text fullwidth" value="{{ package.version }}" {{ anyLocked ? 'readonly' }}></div>
                 </div>
                 <div class="field flex-grow">
                     <div class="heading"><label for="site7pe-author">{{ "Author"|t('site7-studio') }}</label></div>
-                    <div class="input"><input type="text" id="site7pe-author" name="author" class="text fullwidth" value="{{ package.author }}" {{ sectionLocked ? 'readonly' }}></div>
+                    <div class="input"><input type="text" id="site7pe-author" name="author" class="text fullwidth" value="{{ package.author }}" {{ anyLocked ? 'readonly' }}></div>
                 </div>
             </div>
             <div style="margin-top: 16px;">
@@ -148,7 +155,7 @@
 
             {% if sectionImportStatus.updateAvailable %}
                 <div style="margin-top: 16px;">
-                    <button type="button" class="btn" id="site7-review-update-btn" data-handle="{{ package.handle }}">{{ "Review & Update"|t('site7-studio') }}</button>
+                    <button type="button" class="btn" id="site7-review-update-btn" data-handle="{{ package.handle }}" data-package-kind="section">{{ "Review & Update"|t('site7-studio') }}</button>
                 </div>
                 <div id="site7-update-diff-panel" style="margin-top: 12px; display: none;"></div>
             {% endif %}
@@ -226,6 +233,21 @@
                     <button type="submit" class="btn submit">{{ "Save Pattern"|t('site7-studio') }}</button>
                 </div>
             </form>
+        {% elseif package.type == 'template' and pageLocked %}
+            <div class="flex flex-nowrap flex-gap-s" style="align-items: center; margin-bottom: 10px;">
+                <span class="status-label gray"><span class="status gray"></span><span class="status-label-text">{{ "Read-only"|t('site7-studio') }}</span></span>
+                {% if pageImportStatus.updateAvailable %}
+                    <span class="status-label amber"><span class="status amber"></span><span class="status-label-text">{{ "Update Available"|t('site7-studio') }}</span></span>
+                {% endif %}
+            </div>
+            <p class="light">{{ "This Page mirrors a live Craft page - its title, slug, content, matrix content, relationships, assets, and templates are locked. Re-importing it isn't possible; use Update Package below to sync any changes made to the source."|t('site7-studio') }}</p>
+
+            {% if pageImportStatus.updateAvailable %}
+                <div style="margin-top: 16px;">
+                    <button type="button" class="btn" id="site7-review-update-btn" data-handle="{{ package.handle }}" data-package-kind="page">{{ "Review & Update"|t('site7-studio') }}</button>
+                </div>
+                <div id="site7-update-diff-panel" style="margin-top: 12px; display: none;"></div>
+            {% endif %}
         {% elseif package.type == 'template' %}
             <p class="light">{{ "Drag Sections and Patterns from the library on the left into the canvas, reorder them, then select a Section to set its Default Values (a Pattern's own content is configured in the Pattern's own editor - a Template only references it)."|t('site7-studio') }}</p>
             <p class="light"><em>{{ "Install order is always Patterns, then Sections, regardless of how they're arranged here."|t('site7-studio') }}</em></p>
@@ -265,6 +287,52 @@
                     <button type="submit" class="btn submit">{{ "Save Template"|t('site7-studio') }}</button>
                 </div>
             </form>
+        {% elseif package.type == 'starter-kit' and websiteLocked %}
+            <div class="flex flex-nowrap flex-gap-s" style="align-items: center; margin-bottom: 10px;">
+                <span class="status-label gray"><span class="status gray"></span><span class="status-label-text">{{ "Read-only"|t('site7-studio') }}</span></span>
+                {% if websiteImportStatus.updateAvailable %}
+                    <span class="status-label amber"><span class="status amber"></span><span class="status-label-text">{{ "Update Available"|t('site7-studio') }}</span></span>
+                {% endif %}
+            </div>
+            <p class="light">{{ "This Starter Kit mirrors a live Craft website - its page list is locked. Re-importing it isn't possible; use Synchronize Starter Kit below to sync any changes made to a referenced package or the source website."|t('site7-studio') }}</p>
+
+            {% if websiteImportStatus.updateAvailable %}
+                <div style="margin-top: 16px;">
+                    <button type="button" class="btn" id="site7-review-update-btn" data-handle="{{ package.handle }}" data-package-kind="website">{{ "Review & Synchronize"|t('site7-studio') }}</button>
+                </div>
+                <div id="site7-update-diff-panel" style="margin-top: 12px; display: none;"></div>
+            {% endif %}
+
+            {% if starterKitReferences.references|length %}
+                <h3 style="margin-top: 16px;">{{ "References"|t('site7-studio') }}</h3>
+                <table class="data fullwidth" style="margin-bottom: 16px;">
+                    <thead><tr><th>{{ "Type"|t('site7-studio') }}</th><th>{{ "Name"|t('site7-studio') }}</th><th>{{ "Status"|t('site7-studio') }}</th></tr></thead>
+                    <tbody>
+                        {% for ref in starterKitReferences.references %}
+                            <tr>
+                                <td>{{ ref.type|title }}</td>
+                                <td>
+                                    {% if ref.isImported %}<a href="{{ url('site7-studio/packages/' ~ ref.handle ~ '/edit') }}">{{ ref.name }}</a>
+                                    {% else %}{{ ref.name }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ref.updateAvailable %}<span class="status-label amber">{{ "Update Available"|t('site7-studio') }}</span>
+                                    {% elseif ref.isImported %}<span class="status-label gray">{{ "Imported"|t('site7-studio') }}</span>
+                                    {% else %}<span class="light">&mdash;</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            {% if starterKitTree %}
+                <h3>{{ "Website Structure"|t('site7-studio') }}</h3>
+                <p class="light">{{ "The pages this Starter Kit was captured from, shown in the live project's own structure - included pages are checked."|t('site7-studio') }}</p>
+                <div id="site7-sk-tree" data-tree="{{ starterKitTree|json_encode|escape('html_attr') }}"></div>
+            {% endif %}
         {% elseif package.type == 'starter-kit' %}
             <p class="light">{{ "Drag Templates from the library on the left into the canvas to add Pages, reorder them, then select a Page to set its Title, Slug, and Entry Type (a Template's own content is never changed - a Starter Kit only references it)."|t('site7-studio') }}</p>
             <form method="post" accept-charset="UTF-8" id="site7-starter-kit-builder-form">
@@ -304,7 +372,7 @@
         {% endif %}
     </section>
 
-    {% if packageDependencies.sharedResources|length or packageDependencies.pluginDependencies|length or packageDependencies.importedFrom|length or packageDependencies.excludedFields|length %}
+    {% if packageDependencies.sharedResources|length or packageDependencies.pluginDependencies|length or packageDependencies.importedFrom|length or packageDependencies.excludedFields|length or packageDependencies.entryFields|length %}
         <hr>
 
         <section class="site7-detail-section">
@@ -364,6 +432,28 @@
                         <div class="field"><div class="heading"><label>{{ "Imported By"|t('site7-studio') }}</label></div><div class="input">{{ packageDependencies.importedFrom.importedBy }}</div></div>
                     {% endif %}
                 </div>
+            {% endif %}
+
+            {% if packageDependencies.entryFields|length %}
+                <h3>{{ "Entry Fields"|t('site7-studio') }}</h3>
+                <p class="light">{{ "This page's own native content, captured at import time - applied automatically whenever this Template is used to create a new page."|t('site7-studio') }}</p>
+                <table class="data fullwidth" style="margin-bottom: 16px;">
+                    <thead><tr><th>{{ "Field"|t('site7-studio') }}</th><th>{{ "Value"|t('site7-studio') }}</th></tr></thead>
+                    <tbody>
+                        {% for handle, value in packageDependencies.entryFields %}
+                            <tr>
+                                <td><code>{{ handle }}</code></td>
+                                <td>
+                                    {% if value is same as(true) %}{{ "Yes"|t('site7-studio') }}
+                                    {% elseif value is same as(false) %}{{ "No"|t('site7-studio') }}
+                                    {% elseif value is null or value == '' %}<span class="light">&mdash;</span>
+                                    {% else %}{{ value }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             {% endif %}
 
             {% if packageDependencies.excludedFields|length %}

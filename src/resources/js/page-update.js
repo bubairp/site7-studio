@@ -1,21 +1,18 @@
 /**
- * Site7 Studio – Section Package Update Workflow (Phase 9.1)
+ * Site7 Studio – Page Package Update Workflow (Phase 9.2)
  *
- * Backs the Package Editor's "Review & Update" button for an imported
- * Section package that has drifted from its live Craft source
- * (sectionImportStatus.updateAvailable, set by PackageAuthoringService::
- * getSectionImportStatus()). Fetches the diff, renders it, and on
- * confirmation POSTs the update - a small, page-local script (like
- * library.js) rather than growing the wizard-only resource-import-wizard.js,
- * since this belongs to the Package Editor, not the Import wizard.
- *
- * Safe to load alongside page-update.js (Phase 9.2) on every Package Editor
- * page load - both guard on a `data-package-kind` attribute, and a package
- * is only ever one type, so only one of the two ever proceeds.
+ * Backs the Package Editor's "Review & Update" button for an imported Page
+ * package that has drifted from its live Craft source
+ * (pageImportStatus.updateAvailable, set by PackageAuthoringService::
+ * getPageImportStatus()). Mirrors section-update.js (Phase 9.1) exactly,
+ * against the Page-update endpoints/diff shape instead of the Section ones.
+ * Safe to load alongside section-update.js on every Package Editor page load -
+ * both guard on their own DOM ids, and a package is only ever one type, so
+ * only one of the two ever finds its button and proceeds.
  */
 (function() {
     var reviewBtn = document.getElementById('site7-review-update-btn');
-    if (!reviewBtn || reviewBtn.getAttribute('data-package-kind') !== 'section') {
+    if (!reviewBtn || reviewBtn.getAttribute('data-package-kind') !== 'page') {
         return;
     }
 
@@ -26,22 +23,12 @@
         return Craft.escapeHtml(String(value));
     }
 
-    function renderFieldList(fields) {
-        if (!fields.length) {
+    function renderKeyList(keys) {
+        if (!keys.length) {
             return '<span class="light">&mdash;</span>';
         }
-        return '<ul>' + fields.map(function(f) {
-            return '<li><code>' + escapeHtml(f.handle) + '</code> (' + escapeHtml(f.type) + ')</li>';
-        }).join('') + '</ul>';
-    }
-
-    function renderChangedList(changed) {
-        if (!changed.length) {
-            return '<span class="light">&mdash;</span>';
-        }
-        return '<ul>' + changed.map(function(c) {
-            return '<li><code>' + escapeHtml(c.handle) + '</code>: ' +
-                escapeHtml(c.from.type) + ' &rarr; ' + escapeHtml(c.to.type) + '</li>';
+        return '<ul>' + keys.map(function(k) {
+            return '<li><code>' + escapeHtml(k) + '</code></li>';
         }).join('') + '</ul>';
     }
 
@@ -49,7 +36,7 @@
         panel.style.display = 'block';
         panel.innerHTML = '<div class="spinner"></div>';
 
-        fetch(Craft.getActionUrl('site7-studio/resource-import/diff-section-update', { handle: handle }), {
+        fetch(Craft.getActionUrl('site7-studio/resource-import/diff-page-update', { handle: handle }), {
             credentials: 'same-origin',
             headers: { 'Accept': 'application/json' },
         }).then(function(res) { return res.json(); }).then(function(res) {
@@ -60,9 +47,9 @@
 
             var d = res.diff;
             panel.innerHTML =
-                '<h3>' + Craft.t('site7-studio', 'Added Fields') + '</h3>' + renderFieldList(d.added) +
-                '<h3>' + Craft.t('site7-studio', 'Removed Fields') + '</h3>' + renderFieldList(d.removed) +
-                '<h3>' + Craft.t('site7-studio', 'Changed Fields') + '</h3>' + renderChangedList(d.changed) +
+                '<h3>' + Craft.t('site7-studio', 'Added') + '</h3>' + renderKeyList(d.addedKeys) +
+                '<h3>' + Craft.t('site7-studio', 'Removed') + '</h3>' + renderKeyList(d.removedKeys) +
+                '<h3>' + Craft.t('site7-studio', 'Changed') + '</h3>' + renderKeyList(d.changedKeys) +
                 '<div style="margin-top:12px;"><button type="button" class="btn submit" id="site7-confirm-update-btn">' +
                 Craft.t('site7-studio', 'Confirm Update') + '</button></div>';
 
@@ -73,7 +60,7 @@
     }
 
     function confirmUpdate() {
-        if (!confirm(Craft.t('site7-studio', 'Update this Section package to match its live Craft source? This cannot be undone.'))) {
+        if (!confirm(Craft.t('site7-studio', 'Update this Page package to match its live Craft source? This cannot be undone.'))) {
             return;
         }
 
@@ -81,7 +68,7 @@
         body.set('handle', handle);
         body.set('confirmed', '1');
 
-        fetch(Craft.getActionUrl('site7-studio/resource-import/update-section-package'), {
+        fetch(Craft.getActionUrl('site7-studio/resource-import/update-page-package'), {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
@@ -95,7 +82,7 @@
                 Craft.cp.displayError(res.error || 'Update failed.');
                 return;
             }
-            Craft.cp.displayNotice(Craft.t('site7-studio', 'Section package updated.'));
+            Craft.cp.displayNotice(Craft.t('site7-studio', 'Page package updated.'));
             window.location.reload();
         }).catch(function() {
             Craft.cp.displayError('Update failed.');

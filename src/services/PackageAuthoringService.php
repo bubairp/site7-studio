@@ -9,8 +9,12 @@ use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use site7\studio\Site7Studio;
 use site7\studio\records\PackageRecord;
+use site7\studio\repositories\PageImportSourceRepository;
 use site7\studio\repositories\SectionImportSourceRepository;
+use site7\studio\repositories\WebsiteImportSourceRepository;
+use site7\studio\services\import\EntrySourceHasher;
 use site7\studio\services\import\EntryTypeSourceHasher;
+use site7\studio\services\import\StarterKitSyncService;
 use site7\studio\services\support\PackageBackupService;
 use Symfony\Component\Yaml\Yaml;
 
@@ -138,13 +142,13 @@ class PackageAuthoringService extends Component
             throw new \Exception('Package not found.');
         }
 
-        // Phase 9.1: an imported Section package is a read-only mirror of a
-        // live Craft Entry Type - only its SITE7-specific metadata (these
-        // three keys) may be edited; Name/Author/Version come from the
-        // source and are locked. Silently dropped rather than erroring,
+        // Phase 9.1/9.2: an imported Section or Page package is a read-only
+        // mirror of live Craft content - only its SITE7-specific metadata
+        // (these three keys) may be edited; Name/Author/Version come from
+        // the source and are locked. Silently dropped rather than erroring,
         // since the Package Editor already renders them disabled - this is
         // the defensive server-side half of that same rule.
-        if ($this->isLockedImportedSection($record)) {
+        if ($this->isLockedImportedSection($record) || $this->isLockedImportedPage($record) || $this->isLockedImportedWebsite($record)) {
             $fields = array_intersect_key($fields, array_flip(['description', 'category', 'tags']));
         }
 
@@ -281,6 +285,13 @@ class PackageAuthoringService extends Component
             'pluginDependencies' => (array)($manifest->dependencies['pluginDependencies'] ?? []),
             'importedFrom' => (array)$manifest->importedFrom,
             'excludedFields' => (array)$manifest->excludedFields,
+            // A Template package's own captured page content (Import
+            // Existing Page/Save as Template) - written by PageImportService/
+            // TemplateGeneratorService and applied on "Create Page from
+            // Template" (TemplateInsertionService), but never surfaced
+            // anywhere in the CP until now. Read-only here, same as the
+            // other keys in this method.
+            'entryFields' => (array)$manifest->entryFields,
         ];
     }
 
@@ -330,6 +341,80 @@ class PackageAuthoringService extends Component
             'importedAt' => $sourceRecord->importedAt,
             'updateAvailable' => $updateAvailable,
         ];
+    }
+
+    /**
+     * Phase 9.2: true only for a Page (Template-type) package produced by
+     * Import Existing Page (i.e. PageImportSourceRepository has a row for
+     * it) - a hand-authored/composed Template (Patterns+Sections via the
+     * Template Builder) is never locked.
+     */
+    private function isLockedImportedPage(PackageRecord $record): bool
+    {
+        return $record->type === 'template' && (new PageImportSourceRepository())->findByPackageId($record->id) !== null;
+    }
+
+    /**
+     * Read-only status for the Package Editor's lock/Update Available UI -
+     * the Page-package analog of getSectionImportStatus(). The live source
+     * is resolved directly via Entry::find()->uid() rather than through
+     * CraftResourceRegistry - individual Entries aren't graph nodes there
+     * (only schema-level resources are).
+     *
+     * @return array{isImported: bool, sourceHandle: ?string, sourceUid: ?string, sourceHash: ?string, importedAt: ?string, updateAvailable: bool}
+     */
+    public function getPageImportStatus(string $handle): array
+    {
+        $default = ['isImported' => false, 'sourceHandle' => null, 'sourceUid' => null, 'sourceHash' => null, 'importedAt' => null, 'updateAvailable' => false];
+
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        if (!$record) {
+            return $default;
+        }
+
+        $sourceRecord = (new PageImportSourceRepository())->findByPackageId($record->id);
+        if (!$sourceRecord) {
+            return $default;
+        }
+
+        $entry = \craft\elements\Entry::find()->uid($sourceRecord->sourceUid)->status(null)->one();
+        $updateAvailable = $entry instanceof \craft\elements\Entry
+            && (new EntrySourceHasher())->computeHash($entry) !== $sourceRecord->sourceHash;
+
+        return [
+            'isImported' => true,
+            'sourceHandle' => $sourceRecord->sourceHandle,
+            'sourceUid' => $sourceRecord->sourceUid,
+            'sourceHash' => $sourceRecord->sourceHash,
+            'importedAt' => $sourceRecord->importedAt,
+            'updateAvailable' => $updateAvailable,
+        ];
+    }
+
+    /**
+     * Phase 9.3: true only for a Starter Kit package produced by Import
+     * Existing Website (i.e. WebsiteImportSourceRepository has a row for
+     * it) - a hand-authored Starter Kit (Builder canvas) or one produced by
+     * "Save Current Site as Starter Kit" is never locked.
+     */
+    private function isLockedImportedWebsite(PackageRecord $record): bool
+    {
+        return $record->type === 'starter-kit' && (new WebsiteImportSourceRepository())->findByPackageId($record->id) !== null;
+    }
+
+    /**
+     * Read-only status for the Package Editor's lock/Update Available UI -
+     * the Starter Kit analog of getSectionImportStatus()/getPageImportStatus().
+     * Drift detection is delegated entirely to StarterKitSyncService (which
+     * itself reuses the Section/Page status methods for each reference) -
+     * no independent hashing here, a website has no single sourceUid to hash
+     * against.
+     *
+     * @return array{isImported: bool, sourceHash: ?string, importedAt: ?string, updateAvailable: bool}
+     */
+    public function getWebsiteImportStatus(string $handle): array
+    {
+        return (new StarterKitSyncService())->getStatus($handle);
     }
 
     /**
@@ -744,6 +829,9 @@ class PackageAuthoringService extends Component
         if ($record->type !== 'template') {
             throw new \Exception('This package is not a Template.');
         }
+        if ($this->isLockedImportedPage($record)) {
+            throw new \Exception('This Page is an imported mirror of a live Craft page - its content is locked. Use Update Package to sync changes instead.');
+        }
 
         $patternHandles = [];
         $sectionHandles = [];
@@ -876,6 +964,9 @@ class PackageAuthoringService extends Component
         }
         if ($record->type !== 'starter-kit') {
             throw new \Exception('This package is not a Starter Kit.');
+        }
+        if ($this->isLockedImportedWebsite($record)) {
+            throw new \Exception('This Starter Kit is an imported mirror of a live Craft website - its page list is locked. Use Synchronize Starter Kit to sync changes instead.');
         }
 
         $entryTypesByHandle = [];

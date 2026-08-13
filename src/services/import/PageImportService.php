@@ -8,6 +8,7 @@ use craft\elements\Entry;
 use craft\helpers\FileHelper;
 use site7\studio\events\ResourceImportedEvent;
 use site7\studio\records\PackageRecord;
+use site7\studio\repositories\PageImportSourceRepository;
 use site7\studio\services\TemplateGeneratorService;
 use site7\studio\Site7Studio;
 use Symfony\Component\Yaml\Yaml;
@@ -27,10 +28,23 @@ class PageImportService extends Component
 {
     /**
      * @param array $meta {name?, description?, category?, tags?, version?}
-     * @throws \Exception if the entry has no Site7 content AND no capturable native fields.
+     * @throws \Exception if the entry has already been imported, has no Site7 content AND no capturable native fields.
      */
     public function importFromEntry(Entry $entry, array $meta): PackageRecord
     {
+        // Phase 9.2: a Page Package may only be imported once per source
+        // Entry, keyed by the Entry's own uid (never its numeric id). Guarded
+        // here - the single choke point for both sub-paths below - rather
+        // than only in ResourceImportController, so WebsiteImportService's
+        // per-entry delegation to this same method is covered for free too.
+        $sourceRepo = new PageImportSourceRepository();
+        $existingSource = $sourceRepo->findBySourceUid($entry->uid);
+        if ($existingSource) {
+            $existingPackage = PackageRecord::findOne($existingSource->packageId);
+            $existingHandle = $existingPackage?->handle ?? $existingSource->sourceHandle;
+            throw new \Exception("This page has already been imported as the Page package '{$existingHandle}'.");
+        }
+
         $matrixHandle = $this->getMatrixFieldHandle();
 
         if ($matrixHandle && $entry->getFieldLayout()?->getFieldByHandle($matrixHandle)) {
@@ -40,19 +54,52 @@ class PageImportService extends Component
                 // Already has Site7 content - delegate to the existing, unmodified
                 // "Save as Template" path rather than duplicating its logic.
                 $meta['name'] = $meta['name'] ?? $entry->title;
-                return (new TemplateGeneratorService())->generateFromEntry($entry, $meta);
+                $record = (new TemplateGeneratorService())->generateFromEntry($entry, $meta);
+                $this->recordSource($record, $entry, $sourceRepo);
+                return $record;
             }
         }
 
-        return $this->importNativeContent($entry, $meta, $matrixHandle);
+        $record = $this->importNativeContent($entry, $meta, $matrixHandle);
+        $this->recordSource($record, $entry, $sourceRepo);
+        return $record;
     }
 
     /**
-     * Captures a page's native (non-Site7) field layout into a Template
-     * package whose demoContent/requires stay empty - there is no Site7
-     * Section content to reference, only the page's own custom field values.
+     * Patches the generated package's manifest.json with Phase 9.2's
+     * sourceUid/sourceHash (additive keys - importedFrom already carries
+     * sourceType/sourceId/sourceHandle/importedAt/importedBy, written by
+     * whichever sub-path produced $record) and persists the tracking row.
+     * Same "patch after generation, never touch the generator" technique
+     * CraftSectionImportService already uses (Phase 9.1) for
+     * MatrixEntryTypeImportService's output - here applied to both
+     * TemplateGeneratorService's and this class's own output.
      */
-    private function importNativeContent(Entry $entry, array $meta, ?string $matrixHandle): PackageRecord
+    private function recordSource(PackageRecord $record, Entry $entry, PageImportSourceRepository $sourceRepo): void
+    {
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($record->handle);
+        $sourceHash = (new EntrySourceHasher())->computeHash($entry);
+
+        if ($packagePath && file_exists($packagePath . '/manifest.json')) {
+            $manifestData = json_decode(file_get_contents($packagePath . '/manifest.json'), true) ?: [];
+            $manifestData['importedFrom']['sourceUid'] = $entry->uid;
+            $manifestData['importedFrom']['sourceHash'] = $sourceHash;
+            file_put_contents($packagePath . '/manifest.json', json_encode($manifestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        }
+
+        $sourceRepo->record($record->id, $entry->uid, (string)$entry->slug, $sourceHash);
+    }
+
+    /**
+     * The native-content field-detection block, extracted so Phase 9.2's
+     * PageUpdateService can recapture a page's fields identically on Update
+     * Package, without duplicating this logic (mirrors
+     * MatrixEntryTypeImportService::detectFields()'s extraction in Phase
+     * 9.1).
+     *
+     * @return array{0: array, 1: array, 2: string[], 3: array, 4: array} [detectedFields, entryFields, sharedResourceHandles, pluginDependencies, excludedFields]
+     */
+    public function captureNativeFields(Entry $entry, ?string $matrixHandle): array
     {
         $craftResourceService = Site7Studio::getInstance()->craftResourceGenerator;
         $layout = $entry->getFieldLayout();
@@ -123,6 +170,17 @@ class PageImportService extends Component
             }
         }
 
+        return [$detectedFields, $entryFields, $sharedResourceHandles, $pluginDependencies, $excludedFields];
+    }
+
+    /**
+     * Captures a page's native (non-Site7) field layout into a Template
+     * package whose demoContent/requires stay empty - there is no Site7
+     * Section content to reference, only the page's own custom field values.
+     */
+    private function importNativeContent(Entry $entry, array $meta, ?string $matrixHandle): PackageRecord
+    {
+        [$detectedFields, $entryFields, $sharedResourceHandles, $pluginDependencies, $excludedFields] = $this->captureNativeFields($entry, $matrixHandle);
         $hasCapturableContent = !empty($entryFields);
 
         $name = trim((string)($meta['name'] ?? $entry->title));

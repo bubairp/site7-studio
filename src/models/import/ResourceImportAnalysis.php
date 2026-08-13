@@ -42,6 +42,21 @@ class ResourceImportAnalysis extends Model
     /** @var array<int, array{kind: string, handle: string, status: string}> status: installed|missing|not-packaged */
     public array $detectedDependencies = [];
 
+    /**
+     * Phase 9.2: PageDependencyResolverService::resolve()->toArray() - only
+     * populated for kind === 'page'. The Dependency Preview's data source
+     * (matrix blocks/categories/assets/globals/navigation + totals).
+     */
+    public array $pageDependencies = [];
+
+    /**
+     * Phase 9.3: StarterKitDependencyResolverService::resolve() - only
+     * populated for kind === 'website'. The Starter Kit Summary's data
+     * source (sections/pages/categories/assets/components/patterns/globals/
+     * navigation/templates/composerPackages/npmPackages/plugins counts).
+     */
+    public array $starterKitSummary = [];
+
     /** The full manifest.json this import would write, for display only - never written from here. */
     public array $proposedManifest = [];
 
@@ -69,7 +84,7 @@ class ResourceImportAnalysis extends Model
         $rules[] = [['kind', 'sourceLabel', 'proposedHandle'], 'string'];
         $rules[] = [['packageSizeEstimate'], 'integer', 'min' => 0];
         $rules[] = [[
-            'detectedFields', 'detectedEntryTypes', 'detectedDependencies',
+            'detectedFields', 'detectedEntryTypes', 'detectedDependencies', 'pageDependencies', 'starterKitSummary',
             'proposedManifest', 'previewImageUrls', 'errors', 'warnings',
         ], 'safe'];
         return $rules;

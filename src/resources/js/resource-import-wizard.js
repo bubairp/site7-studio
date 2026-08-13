@@ -17,12 +17,17 @@
             save: 'site7-studio/resource-import/import-section',
         },
         page: {
-            list: 'site7-studio/resource-import/get-pages',
+            // Phase 9.2: the reusable Website Tree's data source, replacing
+            // the old flat get-pages list.
+            list: 'site7-studio/resource-import/get-website-tree',
             analyze: 'site7-studio/resource-import/analyze-page',
             save: 'site7-studio/resource-import/import-page',
         },
         website: {
-            list: 'site7-studio/resource-import/get-website-resources',
+            // Phase 9.3: the same reusable Website Tree data source Pages
+            // uses (get-website-tree), replacing the old flat
+            // get-website-resources accordion.
+            list: 'site7-studio/resource-import/get-website-tree',
             analyze: 'site7-studio/resource-import/analyze-website',
             save: 'site7-studio/resource-import/import-website',
         },
@@ -52,106 +57,11 @@
         }).then(res => res.json());
     }
 
-    // A Section and its own Entry Type are frequently named identically
-    // (e.g. "Standard Pages / Standard Pages") - showing both back to back
-    // reads as a duplicated label rather than useful context, so the second
-    // part is only appended when it actually adds information.
-    function formatPageMeta(section, entryType) {
-        const parts = [];
-        if (section) {
-            parts.push(section);
-        }
-        if (entryType && entryType !== section) {
-            parts.push(entryType);
-        }
-        return parts.join(' &middot; ');
-    }
-
     function getJson(action) {
         return fetch(Craft.getActionUrl(action), {
             credentials: 'same-origin',
             headers: { 'Accept': 'application/json' },
         }).then(res => res.json());
-    }
-
-    // Shared by the Page and Website pickers - both group their entries by
-    // Section type (Single/Channel/Structure), the grouping a user actually
-    // browses a real Craft site by, instead of one long flat list.
-    const SECTION_TYPE_GROUPS = [
-        { key: 'single', label: 'Singles' },
-        { key: 'channel', label: 'Channels' },
-        { key: 'structure', label: 'Structures' },
-    ];
-
-    // Builds a searchable accordion (grouped by Section type) inside
-    // $container. `itemsByType` is {single/channel/structure: [...]}.
-    // `renderRow(item)` returns the row's HTML (must include a
-    // `data-search="..."` attribute on its root element for the search box
-    // to filter against). Returns {$accordion, $search} - the caller reads
-    // selections back out of $accordion directly (radio vs checkbox is the
-    // caller's concern, not the accordion's).
-    function buildSectionTypeAccordion($container, itemsByType, renderRow) {
-        $container.append('<div class="input" style="margin-bottom:8px;"><input type="text" class="text fullwidth site7-accordion-search" placeholder="Search by title or section…"></div>');
-        const $search = $container.find('.site7-accordion-search');
-
-        // No max-height/overflow here - the wizard's $body is already the
-        // one scroll container (see init()); a second scrolling region
-        // nested inside it just produces a scrollbar-inside-a-scrollbar.
-        const $accordion = $('<div class="site7-website-accordion" style="margin-bottom:8px; border:1px solid var(--hairline-color,#e1e5ea); border-radius:6px;"></div>').appendTo($container);
-
-        const groupEls = SECTION_TYPE_GROUPS.map(function(group) {
-            const items = itemsByType[group.key] || [];
-            const $section = $('<div class="site7-accordion-section"></div>').appendTo($accordion);
-            const $toggle = $(
-                '<button type="button" class="site7-accordion-toggle" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--gray-050,#f5f6f8); border:none; border-bottom:1px solid var(--hairline-color,#e1e5ea); cursor:pointer; font-weight:600;">' +
-                '<span>' + Craft.escapeHtml(group.label) + ' &middot; ' + items.length + '</span>' +
-                '<span class="site7-accordion-caret">&#9656;</span>' +
-                '</button>'
-            ).appendTo($section);
-            const $body = $('<div class="site7-accordion-body" style="display:none; padding:4px 12px;"></div>').appendTo($section);
-
-            items.forEach(function(item) {
-                $body.append(renderRow(item));
-            });
-            if (!items.length) {
-                $body.append('<p class="light" style="padding:4px 0;">No ' + Craft.escapeHtml(group.label).toLowerCase() + ' found.</p>');
-            }
-
-            $toggle.on('click', function() {
-                const isOpen = $body.is(':visible');
-                $body.slideToggle(120);
-                $toggle.find('.site7-accordion-caret').html(isOpen ? '&#9656;' : '&#9662;');
-            });
-
-            return { group, $section, $toggle, $body };
-        });
-
-        // Open the first non-empty group by default so the picker isn't
-        // fully collapsed on first render.
-        const firstNonEmpty = groupEls.find(g => (itemsByType[g.group.key] || []).length);
-        if (firstNonEmpty) {
-            firstNonEmpty.$body.show();
-            firstNonEmpty.$toggle.find('.site7-accordion-caret').html('&#9662;');
-        }
-
-        $search.on('input', function() {
-            const term = $(this).val().trim().toLowerCase();
-            groupEls.forEach(function(g) {
-                let visibleCount = 0;
-                g.$body.find('[data-search]').each(function() {
-                    const match = !term || $(this).data('search').indexOf(term) !== -1;
-                    $(this).toggle(match);
-                    if (match) visibleCount++;
-                });
-                if (term) {
-                    g.$body.show();
-                    g.$toggle.find('.site7-accordion-caret').html('&#9662;');
-                }
-                g.$section.toggle(!term || visibleCount > 0);
-            });
-        });
-
-        return { $accordion, $search };
     }
 
     // Injected once - keeps the wizard's markup free of one-off inline styles
@@ -283,11 +193,11 @@
                 }, this));
             } else if (this.type === 'page') {
                 getJson(ENDPOINTS.page.list).then($.proxy(function(res) {
-                    this.renderPageSelect(res.pagesBySectionType || { single: [], channel: [], structure: [] });
+                    this.renderPageSelect(res);
                 }, this));
             } else if (this.type === 'website') {
                 getJson(ENDPOINTS.website.list).then($.proxy(function(res) {
-                    this.renderWebsiteSelect(res.entriesBySectionType || { single: [], channel: [], structure: [] }, res.globalSets || []);
+                    this.renderWebsiteSelect(res, res.globalSets || []);
                 }, this));
             }
         },
@@ -473,51 +383,61 @@
             });
         },
 
-        renderPageSelect: function(pagesBySectionType) {
+        // Phase 9.2: the reusable Website Tree, in single-select mode with
+        // import-status badges - replaces the old flat accordion-by-
+        // section-type list. `res` is get-website-tree's full response
+        // ({singles, channels, structures, categories}).
+        renderPageSelect: function(res) {
             const $container = this.$body.empty();
-            $container.append('<div class="heading" style="margin-bottom:4px;"><label>Pages</label></div>');
+            $container.append('<div class="heading" style="margin-bottom:4px;"><label>Pages</label> <span class="light">mirrors the live Craft project&#39;s own structure</span></div>');
 
-            const { $accordion } = buildSectionTypeAccordion($container, pagesBySectionType, function(p) {
-                const badge = p.hasSite7Content ? ' <span class="chip small" style="background:var(--teal-050);">Site7 content</span>' : '';
-                const meta = formatPageMeta(Craft.escapeHtml(p.section || ''), Craft.escapeHtml(p.entryType || ''));
-                return (
-                    '<label data-search="' + Craft.escapeHtml((p.title + ' ' + (p.section || '') + ' ' + (p.entryType || '')).toLowerCase()) + '" style="display:flex; align-items:center; gap:10px; padding:4px 0;">' +
-                    '<input type="radio" name="site7ri-page" value="' + p.id + '">' +
-                    '<span style="flex-grow:1;">' + Craft.escapeHtml(p.title) + '</span>' +
-                    (meta ? '<span class="light" style="flex-shrink:0;">' + meta + '</span>' : '') +
-                    badge + '</label>'
-                );
+            const $treeContainer = $('<div id="site7ri-website-tree"></div>').appendTo($container);
+            let selectedEntryId = null;
+
+            Site7WebsiteTree.render($treeContainer, res, {
+                selectionMode: 'single',
+                showImportStatus: true,
+                name: 'site7ri-page-tree',
+                onChange: function(selectedIds) {
+                    selectedEntryId = selectedIds[0] || null;
+                },
             });
 
             const $analyzeBtn = $('<button type="button" class="btn submit">Analyze</button>');
             this.setFooter(null, $analyzeBtn);
             $analyzeBtn.on('click', $.proxy(function() {
-                const entryId = $accordion.find('input[name="site7ri-page"]:checked').val();
-                if (!entryId) {
+                if (!selectedEntryId) {
                     Craft.cp.displayError('Select a page.');
                     return;
                 }
-                this.selection = { entryId };
+                this.selection = { entryId: selectedEntryId };
                 this.analyze(ENDPOINTS.page.analyze, this.selection);
             }, this));
         },
 
-        renderWebsiteSelect: function(entriesBySectionType, globalSets) {
+        // Phase 9.3: the reusable Website Tree in grouped-multiple mode -
+        // "select Website (all) or a subset" via group-level checkboxes
+        // (Singles/each Channel/each Structure), replacing the old flat
+        // accordion + separate Global Set checkbox list. `treeData` is
+        // get-website-tree's full response ({singles, channels, structures,
+        // categories, globalSets}).
+        renderWebsiteSelect: function(treeData, globalSets) {
             const $container = this.$body.empty();
-            $container.append('<div class="heading" style="margin-bottom:4px;"><label>Pages</label></div>');
+            $container.append('<div class="heading" style="margin-bottom:4px;"><label>Website</label> <span class="light">mirrors the live Craft project&#39;s own structure - check Website for everything, or pick a subset</span></div>');
 
-            const { $accordion } = buildSectionTypeAccordion($container, entriesBySectionType, function(e) {
-                const meta = e.section ? Craft.escapeHtml(e.section) : '';
-                return (
-                    '<label class="site7-website-row" data-search="' + Craft.escapeHtml((e.title + ' ' + (e.section || '')).toLowerCase()) + '" style="display:flex; align-items:center; gap:10px; padding:4px 0;">' +
-                    '<input type="checkbox" name="site7ri-entry" value="' + e.id + '">' +
-                    '<span style="flex-grow:1;">' + Craft.escapeHtml(e.title) + '</span>' +
-                    (meta ? '<span class="light" style="flex-shrink:0;">' + meta + '</span>' : '') +
-                    '</label>'
-                );
+            const $treeContainer = $('<div id="site7ri-website-tree"></div>').appendTo($container);
+            let selectedEntryIds = [];
+
+            Site7WebsiteTree.render($treeContainer, treeData, {
+                selectionMode: 'grouped-multiple',
+                showImportStatus: true,
+                name: 'site7ri-website-tree',
+                onChange: function(selectedIds) {
+                    selectedEntryIds = selectedIds;
+                },
             });
 
-            $container.append('<div class="heading" style="margin-bottom:4px;">Global Sets (used to approximate Navigation)</div>');
+            $container.append('<div class="heading" style="margin-bottom:4px; margin-top:12px;">Global Sets (used to approximate Navigation)</div>');
             const $globalList = $('<div class="site7-import-list"></div>').appendTo($container);
             globalSets.forEach(function(g) {
                 const navHint = g.likelyNav ? ' <span class="light">(looks like Navigation)</span>' : '';
@@ -527,13 +447,12 @@
             const $analyzeBtn = $('<button type="button" class="btn submit">Analyze</button>');
             this.setFooter(null, $analyzeBtn);
             $analyzeBtn.on('click', $.proxy(function() {
-                const entryIds = $accordion.find('input[name="site7ri-entry"]:checked').map(function() { return this.value; }).get();
                 const globalSetIds = $globalList.find('input[name="site7ri-global"]:checked').map(function() { return this.value; }).get();
-                if (!entryIds.length) {
+                if (!selectedEntryIds.length) {
                     Craft.cp.displayError('Select at least one page.');
                     return;
                 }
-                this.selection = { entryIds, globalSetIds };
+                this.selection = { entryIds: selectedEntryIds, globalSetIds };
                 this.analyze(ENDPOINTS.website.analyze, this.selection);
             }, this));
         },
@@ -555,6 +474,80 @@
                 Craft.cp.displayError('Error analyzing this resource.');
                 this.renderSelectStep();
             }, this));
+        },
+
+        // Phase 9.2: renders PageDependencyResolverService's output
+        // (matrix blocks/categories/assets/navigation + totals) as a
+        // non-interactive checklist - "SITE7 Studio computes dependencies
+        // automatically", never a user choice.
+        renderDependencyPreview: function($container, deps) {
+            const $box = $('<div class="site7-notice" style="margin-bottom:16px; border:1px solid var(--hairline-color,#e1e5ea); border-radius:6px; padding:12px;"></div>').appendTo($container);
+            $box.append('<div style="font-weight:600; margin-bottom:6px;">Dependencies</div>');
+
+            const $list = $('<div></div>').appendTo($box);
+            const line = function(label) {
+                $list.append('<div>&#10003; ' + Craft.escapeHtml(label) + '</div>');
+            };
+
+            if (deps.sectionName) {
+                line(deps.sectionName + ' Section');
+            }
+            if (deps.entryTypeName) {
+                line(deps.entryTypeName + ' Entry Type');
+            }
+            (deps.matrixBlocks || []).forEach(function(b) {
+                const status = b.packageStatus === 'available'
+                    ? ''
+                    : ' <span class="status-label orange">Not yet imported - use Import Existing Section first</span>';
+                line(b.name + ' Component');
+                if (status) {
+                    $list.append('<div style="margin-left:18px;">' + status + '</div>');
+                }
+            });
+            (deps.categories || []).forEach(function(c) {
+                line(c.title + ' (' + c.groupName + ')');
+            });
+            (deps.assets || []).forEach(function(a) {
+                line(a.filename);
+            });
+            (deps.navigation || []).forEach(function(n) {
+                line(n.menuName + ' Navigation');
+            });
+
+            const total = (deps.matrixBlocks || []).length + (deps.categories || []).length
+                + (deps.assets || []).length + (deps.globals || []).length + (deps.navigation || []).length;
+            $box.append('<div class="light" style="margin-top:8px;">' + (deps.pageCount || 1) + ' Page, ' + total + ' Dependencies</div>');
+        },
+
+        // Phase 9.3: renders StarterKitDependencyResolverService's counts as
+        // the "Starter Kit Summary" grid from the phase brief.
+        renderStarterKitSummary: function($container, summary) {
+            const LABELS = {
+                sections: 'Sections',
+                pages: 'Pages',
+                categories: 'Categories',
+                assets: 'Assets',
+                components: 'Components',
+                patterns: 'Patterns',
+                globals: 'Globals',
+                navigation: 'Navigation',
+                templates: 'Templates',
+                composerPackages: 'Composer Packages',
+                npmPackages: 'npm Packages',
+                plugins: 'Plugins',
+            };
+            const $box = $('<div class="site7-notice" style="margin-bottom:16px; border:1px solid var(--hairline-color,#e1e5ea); border-radius:6px; padding:12px;"></div>').appendTo($container);
+            $box.append('<div style="font-weight:600; margin-bottom:8px;">Starter Kit Summary</div>');
+            const $grid = $('<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px;"></div>').appendTo($box);
+            Object.keys(LABELS).forEach(function(key) {
+                const value = summary[key] || 0;
+                $grid.append(
+                    '<div style="padding:6px 8px; border:1px solid var(--hairline-color,#e1e5ea); border-radius:4px;">' +
+                    '<div class="light">' + LABELS[key] + '</div>' +
+                    '<div style="font-weight:600;">&#10003; ' + value + '</div>' +
+                    '</div>'
+                );
+            });
         },
 
         renderPreviewStep: function(analysis) {
@@ -588,6 +581,19 @@
                 $categorySelect.append($('<option></option>').attr('value', category).text(category));
             });
             $meta.find('#site7ri-name').val(analysis.sourceLabel || '');
+
+            // Phase 9.2: the Dependency Preview - informational only, never
+            // interactive (SITE7 computes dependencies automatically, per
+            // the "Smart Dependency Import" requirement).
+            if (this.type === 'page' && analysis.pageDependencies) {
+                this.renderDependencyPreview($container, analysis.pageDependencies);
+            }
+
+            // Phase 9.3: the Starter Kit Summary - a count grid, same
+            // informational-only rationale as the Page Dependency Preview.
+            if (this.type === 'website' && analysis.starterKitSummary) {
+                this.renderStarterKitSummary($container, analysis.starterKitSummary);
+            }
 
             if (analysis.detectedFields && analysis.detectedFields.length) {
                 const CLASSIFICATION_COLORS = {

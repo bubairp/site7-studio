@@ -156,6 +156,10 @@ class ResourceAnalyzerService extends Component
 
         $analysis->sourceLabel = "Page: {$entry->title}";
 
+        // Phase 9.2: informational only, computed for both the Site7-content
+        // and native-content branches below - never affects $analysis->valid/errors.
+        $analysis->pageDependencies = (new PageDependencyResolverService())->resolve($entry)->toArray();
+
         $settings = Site7Studio::getInstance()->getSettings();
         $matrixHandle = null;
         if ($settings->matrixFieldId) {
@@ -234,6 +238,10 @@ class ResourceAnalyzerService extends Component
         }
 
         $analysis->sourceLabel = count($entries) . ' page(s), ' . count($globalSetIds) . ' Global Set(s)';
+
+        // Phase 9.3: the Starter Kit Summary - informational only, never
+        // affects $analysis->valid/errors.
+        $analysis->starterKitSummary = (new StarterKitDependencyResolverService())->resolve($entryIds, $globalSetIds);
 
         $entryTypesSeen = [];
         $dependencies = [];

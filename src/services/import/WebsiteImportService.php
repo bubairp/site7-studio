@@ -17,6 +17,8 @@ use craft\models\Volume;
 use site7\studio\events\ResourceImportedEvent;
 use site7\studio\models\registry\ResourceNode;
 use site7\studio\records\PackageRecord;
+use site7\studio\repositories\PageImportSourceRepository;
+use site7\studio\repositories\WebsiteImportSourceRepository;
 use site7\studio\services\ComposerDependencyScanner;
 use site7\studio\services\CraftResourceRegistry;
 use site7\studio\services\FrontendToolingScanner;
@@ -87,10 +89,31 @@ class WebsiteImportService extends Component
     public function importWebsite(array $entryIds, array $globalSetIds, array $meta): array
     {
         $entries = Entry::find()->id($entryIds)->status(null)->all();
+
+        // Phase 9.3: a website has no single source uid, so identity is a
+        // `selectionKey` over the sorted set of captured Entry uids - the
+        // exact same page selection re-run is rejected as already imported;
+        // a different selection (even one page more/fewer) is a
+        // legitimately different Starter Kit. Guarded up front, mirroring
+        // Phases 9.1/9.2's single-resource duplicate guards.
+        $sourceRepo = new WebsiteImportSourceRepository();
+        $entryUids = array_map(fn(Entry $e) => $e->uid, $entries);
+        $selectionKey = $sourceRepo->computeSelectionKey($entryUids);
+        $existingSource = $sourceRepo->findBySelectionKey($selectionKey);
+        if ($existingSource) {
+            $existingPackage = PackageRecord::findOne($existingSource->packageId);
+            $existingHandle = $existingPackage?->handle ?? 'unknown';
+            throw new \Exception("This exact page selection has already been imported as the Starter Kit '{$existingHandle}'.");
+        }
+
         $pageImporter = new PageImportService();
+        $pageSourceRepo = new PageImportSourceRepository();
 
         $pages = [];
         $requiresTemplates = [];
+        $requiresSections = [];
+        $requiresPatterns = [];
+        $pageHashes = [];
         $skipped = [];
         $notes = [];
 
@@ -104,17 +127,34 @@ class WebsiteImportService extends Component
 
         foreach ($entries as $entry) {
             /** @var Entry $entry */
-            try {
-                $templateRecord = $pageImporter->importFromEntry($entry, [
-                    'name' => $entry->title,
-                    'description' => 'Captured from "' . $entry->title . '" as part of the "' . $meta['name'] . '" import.',
-                    'category' => $meta['category'] ?? '',
-                    'tags' => '',
-                ]);
-            } catch (\Throwable $e) {
-                $skipped[] = $entry->title . ': ' . $e->getMessage();
-                continue;
+            // Reuse Existing Packages: if this Entry was already imported
+            // (individually via "Import Existing Page", or as part of an
+            // earlier Website import), reference its existing Template
+            // package instead of letting PageImportService's own duplicate
+            // guard turn this into a false "skipped" entry - this is the
+            // concrete "link existing packages, never duplicate" behavior
+            // the phase requires.
+            $existingPageSource = $pageSourceRepo->findBySourceUid($entry->uid);
+            $templateRecord = $existingPageSource ? PackageRecord::findOne($existingPageSource->packageId) : null;
+
+            if (!$templateRecord) {
+                try {
+                    $templateRecord = $pageImporter->importFromEntry($entry, [
+                        'name' => $entry->title,
+                        'description' => 'Captured from "' . $entry->title . '" as part of the "' . $meta['name'] . '" import.',
+                        'category' => $meta['category'] ?? '',
+                        'tags' => '',
+                    ]);
+                } catch (\Throwable $e) {
+                    $skipped[] = $entry->title . ': ' . $e->getMessage();
+                    continue;
+                }
             }
+
+            $pageHashes[] = (new EntrySourceHasher())->computeHash($entry);
+            $templateManifest = $templateRecord->getManifest();
+            $requiresSections = array_merge($requiresSections, (array)($templateManifest?->requires['sections'] ?? []));
+            $requiresPatterns = array_merge($requiresPatterns, (array)($templateManifest?->requires['patterns'] ?? []));
 
             $parentSlug = null;
             $parent = $entry->getParent();
@@ -208,7 +248,18 @@ class WebsiteImportService extends Component
             'description' => $meta['description'] ?? '',
             'category' => $meta['category'] ?: null,
             'tags' => $tags,
-            'requires' => array_filter(['templates' => array_values(array_unique($requiresTemplates))]),
+            // Phase 9.3: aggregated from every captured page's own Template
+            // manifest (already resolved by the frozen TemplateGenerator/
+            // ResourceClassifier pipeline) - purely additive metadata for
+            // the Starter Kit's Preview/Relationships display.
+            // PackageManagerService::installPackage()'s starter-kit branch
+            // only ever reads requires.templates, so this doesn't change
+            // install behavior at all.
+            'requires' => array_filter([
+                'templates' => array_values(array_unique($requiresTemplates)),
+                'sections' => array_values(array_unique($requiresSections)),
+                'patterns' => array_values(array_unique($requiresPatterns)),
+            ]),
             'pages' => $pages,
             'globals' => $globals,
             'craftSections' => $craftSections,
@@ -230,6 +281,14 @@ class WebsiteImportService extends Component
                 'sourceType' => 'website',
                 'sourceId' => null,
                 'sourceHandle' => null,
+                // A website has no single uid/hash (see
+                // WebsiteImportSourceRepository's selectionKey instead) -
+                // explicit null keys, not omitted, so the Package Editor's
+                // shared "Imported From" block (edit.twig, Phase 9.1) can
+                // safely check them the same way it does for Section/Page
+                // packages without Twig's strict array-key access erroring.
+                'sourceUid' => null,
+                'sourceHash' => null,
                 'importedAt' => date('c'),
                 'importedBy' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? null,
             ],
@@ -255,6 +314,19 @@ class WebsiteImportService extends Component
         }
 
         Site7Studio::getInstance()->marketplace->syncDependencyRecords($record);
+
+        // Phase 9.3: the aggregate hash rolls up every captured page's own
+        // content hash plus the referenced-package set, so either a page's
+        // content changing or the reference list changing is detectable as
+        // drift (see StarterKitSyncService).
+        sort($pageHashes);
+        $aggregateHash = hash('sha256', json_encode([
+            'pageHashes' => $pageHashes,
+            'templates' => array_values(array_unique($requiresTemplates)),
+            'sections' => array_values(array_unique($requiresSections)),
+            'patterns' => array_values(array_unique($requiresPatterns)),
+        ], JSON_UNESCAPED_SLASHES));
+        $sourceRepo->record($record->id, $entryUids, $aggregateHash);
 
         Site7Studio::getInstance()->getService('eventDispatcher')->dispatch(new ResourceImportedEvent([
             'sourceType' => 'website',
