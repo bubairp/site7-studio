@@ -112,7 +112,7 @@ class MatrixEntryTypeImportService extends Component
 
         $this->writeFieldsYaml($packagePath, $name, $importableFields);
         $this->writeMatrixYaml($packagePath, $name, $entryType, $importableFields);
-        $this->writeTemplateTwig($packagePath, $handle, $importableFields);
+        $this->writeTemplateTwig($packagePath, $handle, $entryType->handle, $importableFields);
 
         FileHelper::createDirectory($packagePath . '/preview');
         file_put_contents($packagePath . '/preview/preview-data.yaml', Yaml::dump([
@@ -249,8 +249,24 @@ class MatrixEntryTypeImportService extends Component
         file_put_contents($packagePath . '/matrix.yaml', Yaml::dump($matrixYaml, 4));
     }
 
-    private function writeTemplateTwig(string $packagePath, string $handle, array $fields): void
+    /**
+     * Captures the package's template.twig from the real, already-styled
+     * implementation at templates/_blocks/{sourceHandle}.twig when one
+     * exists on disk - read-only, the source file is never modified - so an
+     * imported Section package reflects what's actually live instead of a
+     * field-name stub. $sourceHandle is the Entry Type's own handle (what
+     * _blocks/*.twig is named after), which may differ from $handle (the
+     * new package's handle, only used for the stub fallback's wrapper
+     * class) when the proposed package handle collided and got suffixed.
+     */
+    private function writeTemplateTwig(string $packagePath, string $handle, string $sourceHandle, array $fields): void
     {
+        $realTemplatePath = rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/') . '/_blocks/' . $sourceHandle . '.twig';
+        if (is_file($realTemplatePath)) {
+            copy($realTemplatePath, $packagePath . '/template.twig');
+            return;
+        }
+
         $rows = implode("\n", array_map(fn($f) => "    <p>{{ block.{$f['handle']} }}</p>", $fields));
         file_put_contents($packagePath . '/template.twig', "<div class=\"site7-component {$handle}\">\n{$rows}\n</div>\n");
     }
