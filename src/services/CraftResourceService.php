@@ -52,7 +52,8 @@ class CraftResourceService extends Component
     {
         $createdResources = [
             'fields' => [],
-            'entryTypes' => []
+            'entryTypes' => [],
+            'templateWarnings' => [],
         ];
 
         // 1. Parse fields.yaml
@@ -83,17 +84,33 @@ class CraftResourceService extends Component
             }
         }
 
-        // 3. Register Templates (Copy template.twig to @templates/site7-components/...)
+        // 3. Register Templates (Copy template.twig to @templates/_blocks/...)
+        // - the site's real production template directory (see
+        // templates/_includes/matrix-container.twig's dispatch), not the
+        // old site7-components sandbox. Unlike that sandbox, _blocks/ can
+        // already contain a real, hand-maintained file for this handle -
+        // if its content doesn't match the package's own template.twig, it
+        // was modified after this package last touched it (or was never
+        // installed by this package to begin with), so skip the copy
+        // rather than silently overwriting a production template. This is
+        // a narrow stopgap, not full local-modification tracking (that's a
+        // separate, later piece of work) - it only prevents this specific
+        // change from being able to destroy a file it doesn't recognize.
         $templatePath = $packagePath . '/template.twig';
         if (file_exists($templatePath)) {
-            $destDir = Craft::getAlias('@templates/site7-components');
+            $destDir = Craft::getAlias('@templates/_blocks');
             if (!is_dir($destDir)) {
                 \yii\helpers\FileHelper::createDirectory($destDir);
             }
             // For MVP, assume it maps to the first block handle
             if (isset($matrixData['blocks'][0]['handle'])) {
                 $blockHandle = $matrixData['blocks'][0]['handle'];
-                copy($templatePath, $destDir . '/' . $blockHandle . '.twig');
+                $destFile = $destDir . '/' . $blockHandle . '.twig';
+                if (!file_exists($destFile) || file_get_contents($destFile) === file_get_contents($templatePath)) {
+                    copy($templatePath, $destFile);
+                } else {
+                    $createdResources['templateWarnings'][] = "Template '{$blockHandle}.twig' already exists at _blocks/ with different content - skipped to avoid overwriting it.";
+                }
             }
         }
 
@@ -460,13 +477,22 @@ class CraftResourceService extends Component
             }
         }
 
-        // 3. Remove Template from @templates/site7-components
+        // 3. Remove Template from @templates/_blocks - but only if its
+        // content still matches this package's own template.twig. If it's
+        // been hand-edited since install, deleting it would silently
+        // destroy real work; skip and report instead, same pattern as the
+        // field/Entry Type usage checks above.
         if (file_exists($matrixYamlPath)) {
             if (isset($matrixData['blocks'][0]['handle'])) {
                 $blockHandle = $matrixData['blocks'][0]['handle'];
-                $destFile = Craft::getAlias('@templates/site7-components') . '/' . $blockHandle . '.twig';
+                $destFile = Craft::getAlias('@templates/_blocks') . '/' . $blockHandle . '.twig';
+                $packageTemplatePath = $packagePath . '/template.twig';
                 if (file_exists($destFile)) {
-                    unlink($destFile);
+                    if (file_exists($packageTemplatePath) && file_get_contents($destFile) !== file_get_contents($packageTemplatePath)) {
+                        $skipped[] = "Template '{$blockHandle}.twig' - locally modified since install, left in place.";
+                    } else {
+                        unlink($destFile);
+                    }
                 }
             }
         }
