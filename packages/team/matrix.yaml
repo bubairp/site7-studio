@@ -1,7 +1,0 @@
-name: 'Team Matrix'
-blocks:
-  -
-    handle: team
-    name: Team
-    fields:
-      - heading

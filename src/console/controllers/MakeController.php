@@ -188,6 +188,7 @@ class MakeController extends Controller
             'dependencies' => []
         ];
         file_put_contents($packageDir . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        file_put_contents($packageDir . '/README.md', "# {$name}\n\n" . ($description ?: 'Created via the site7-studio/make/package console command.') . "\n");
 
         // 3. fields.yaml
         $fieldsYaml = [
