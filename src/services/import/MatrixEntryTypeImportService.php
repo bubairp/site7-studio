@@ -261,14 +261,32 @@ class MatrixEntryTypeImportService extends Component
      */
     private function writeTemplateTwig(string $packagePath, string $handle, string $sourceHandle, array $fields): void
     {
-        $realTemplatePath = rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/') . '/_blocks/' . $sourceHandle . '.twig';
-        if (is_file($realTemplatePath)) {
-            copy($realTemplatePath, $packagePath . '/template.twig');
+        if ($this->copyTemplateTwigFromLiveSource($packagePath, $sourceHandle)) {
             return;
         }
 
         $rows = implode("\n", array_map(fn($f) => "    <p>{{ block.{$f['handle']} }}</p>", $fields));
         file_put_contents($packagePath . '/template.twig', "<div class=\"site7-component {$handle}\">\n{$rows}\n</div>\n");
+    }
+
+    /**
+     * The real-file half of writeTemplateTwig() above, extracted so
+     * SectionUpdateService's Sync From Source (Phase 9.1) can reuse the
+     * exact same "copy the real, live templates/_blocks/{sourceHandle}.twig"
+     * logic a fresh import uses, rather than a second implementation of it -
+     * read-only against the live file, never touches anything else.
+     *
+     * @return bool true if a real live template was found (and copied); false
+     *   if no matching _blocks/ file exists on disk.
+     */
+    public function copyTemplateTwigFromLiveSource(string $packagePath, string $sourceHandle): bool
+    {
+        $realTemplatePath = rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/') . '/_blocks/' . $sourceHandle . '.twig';
+        if (is_file($realTemplatePath)) {
+            copy($realTemplatePath, $packagePath . '/template.twig');
+            return true;
+        }
+        return false;
     }
 
     private function buildReadme(string $name, EntryType $entryType, array $fields): string

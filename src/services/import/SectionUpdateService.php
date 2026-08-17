@@ -2,14 +2,15 @@
 
 namespace site7\studio\services\import;
 
+use Craft;
 use craft\base\Component;
 use craft\helpers\FileHelper;
 use craft\models\EntryType;
 use site7\studio\records\PackageRecord;
-use site7\studio\records\PackageVersionRecord;
 use site7\studio\records\SectionImportSourceRecord;
 use site7\studio\repositories\SectionImportSourceRepository;
 use site7\studio\services\CraftResourceRegistry;
+use site7\studio\services\support\PackageArchiveHelper;
 use site7\studio\Site7Studio;
 use Symfony\Component\Yaml\Yaml;
 
@@ -26,16 +27,32 @@ use Symfony\Component\Yaml\Yaml;
 class SectionUpdateService extends Component
 {
     /**
-     * @return array{added: array, removed: array, changed: array, unchanged: array}
+     * @return array{added: array, removed: array, changed: array, unchanged: array,
+     *   twig: array{changed: bool, liveChecksum: ?string, packageChecksum: ?string}}
      * @throws \Exception if the package isn't an imported Section, or its source Entry Type no longer exists.
      */
     public function diff(string $packageHandle): array
     {
         [, $entryType, $importableFields] = $this->resolve($packageHandle);
 
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($packageHandle);
         $existingFieldsByHandle = $this->readExistingFields($packageHandle);
+
+        return array_merge(
+            $this->compareFields($existingFieldsByHandle, $importableFields),
+            ['twig' => $packagePath ? $this->diffTwig($packagePath, $entryType->handle) : ['changed' => false, 'liveChecksum' => null, 'packageChecksum' => null]],
+        );
+    }
+
+    /**
+     * @param array<string, array{handle: string, name: string, type: string, instructions: string}> $existingFieldsByHandle
+     * @param array $liveFields the package type's currently-capturable fields, as detectFields() returns them
+     * @return array{added: array, removed: array, changed: array, unchanged: array}
+     */
+    private function compareFields(array $existingFieldsByHandle, array $liveFields): array
+    {
         $liveFieldsByHandle = [];
-        foreach ($importableFields as $field) {
+        foreach ($liveFields as $field) {
             $liveFieldsByHandle[$field['handle']] = $field;
         }
 
@@ -67,11 +84,43 @@ class SectionUpdateService extends Component
     }
 
     /**
-     * Rewrites fields.yaml/matrix.yaml/preview-data.yaml from the live Entry
-     * Type's current structure, in place - never touches handle/name/type,
-     * and never touches template.twig (same "don't clobber hand-authored
-     * markup" rule PackageAuthoringService::saveSectionFields() already
-     * follows). Preserves the package's DB id and every existing reference.
+     * Compares the live templates/_blocks/{sourceHandle}.twig (the real
+     * production runtime - see PHASE-6 doc's "no site7-components sandbox"
+     * rule) against this package's own stored template.twig, using Step 3's
+     * PackageArchiveHelper::computeFileChecksum() convention rather than a
+     * second hashing routine. A missing live file is never treated as a
+     * change to sync - there is nothing to sync from in that case, and
+     * silently blanking an existing template.twig because the live file
+     * vanished is a conflict-handling concern (later step), not this one's.
+     *
+     * @return array{changed: bool, liveChecksum: ?string, packageChecksum: ?string}
+     */
+    private function diffTwig(string $packagePath, string $sourceHandle): array
+    {
+        $liveTemplatePath = rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/') . '/_blocks/' . $sourceHandle . '.twig';
+        $liveChecksum = PackageArchiveHelper::computeFileChecksum($liveTemplatePath);
+        $packageChecksum = PackageArchiveHelper::computeFileChecksum($packagePath . '/template.twig');
+
+        return [
+            'changed' => $liveChecksum !== null && $liveChecksum !== $packageChecksum,
+            'liveChecksum' => $liveChecksum,
+            'packageChecksum' => $packageChecksum,
+        ];
+    }
+
+    /**
+     * Sync From Source (Phase 9.1, extended for version integrity): re-reads
+     * the live Entry Type's field layout AND the live
+     * templates/_blocks/{sourceHandle}.twig content, and does nothing at all
+     * - no file writes, no re-install, no version - unless at least one of
+     * them actually differs from what this package currently has. When
+     * something did change, package files are updated in place (never
+     * handle/name/type - same "don't clobber hand-authored markup" rule
+     * PackageAuthoringService::saveSectionFields() follows) and exactly one
+     * new immutable version is created through VersionManagerService::
+     * createVersion() (Step 4) - which already produces a real .s7pkg
+     * archive and checksum via the existing export/recordVersion path, so
+     * this method never builds a second one.
      *
      * @throws \Exception if the package isn't an imported Section, or its source Entry Type no longer exists.
      */
@@ -85,9 +134,24 @@ class SectionUpdateService extends Component
             throw new \Exception('Package not found on disk.');
         }
 
+        $existingFieldsByHandle = $this->readExistingFields($packageHandle);
+        $fieldsDiff = $this->compareFields($existingFieldsByHandle, $importableFields);
+        $twigDiff = $this->diffTwig($packagePath, $entryType->handle);
+
+        $fieldsChanged = !empty($fieldsDiff['added']) || !empty($fieldsDiff['removed']) || !empty($fieldsDiff['changed']);
+        if (!$fieldsChanged && !$twigDiff['changed']) {
+            // Nothing meaningful changed since the last sync - not even the
+            // source-hash bookkeeping is touched, so calling this repeatedly
+            // with no intervening source change is a true no-op.
+            return $record;
+        }
+
         $importer = new MatrixEntryTypeImportService();
         $importer->writeFieldsYaml($packagePath, $record->name, $importableFields);
         $importer->writeMatrixYaml($packagePath, $record->name, $entryType, $importableFields);
+        if ($twigDiff['changed']) {
+            $importer->copyTemplateTwigFromLiveSource($packagePath, $entryType->handle);
+        }
 
         // Merge rather than blank out - existing hand-entered demo values
         // survive for every field that's still present after the sync.
@@ -125,15 +189,41 @@ class SectionUpdateService extends Component
 
         (new SectionImportSourceRepository())->record($record->id, $sourceRecord->sourceUid, $sourceRecord->sourceType, $entryType->handle, $sourceHash);
 
-        $version = new PackageVersionRecord();
-        $version->packageId = $record->id;
-        $version->version = $record->version;
-        $version->releaseDate = date('Y-m-d H:i:s');
-        $version->releaseNotes = "Synced from the live Craft Entry Type '{$entryType->handle}'.";
-        $version->checksum = $sourceHash;
-        $version->save();
+        // A field addition/removal is a shape change (minor); a field-type/
+        // instructions change or a Twig-only change is a patch - the same
+        // "don't guess at a major/breaking bump automatically" stance
+        // VersionManagerService::bumpVersion() already implies by only
+        // offering patch/minor/major, never inferring one from content.
+        $bumpType = (!empty($fieldsDiff['added']) || !empty($fieldsDiff['removed'])) ? 'minor' : 'patch';
+        Site7Studio::getInstance()->versionManager->createVersion(
+            $packageHandle,
+            $bumpType,
+            $this->summarizeSyncChanges($fieldsDiff, $twigDiff, $entryType->handle),
+        );
+
+        $record->refresh();
 
         return $record;
+    }
+
+    private function summarizeSyncChanges(array $fieldsDiff, array $twigDiff, string $sourceHandle): string
+    {
+        $parts = [];
+        if (!empty($fieldsDiff['added'])) {
+            $parts[] = count($fieldsDiff['added']) . ' field(s) added';
+        }
+        if (!empty($fieldsDiff['removed'])) {
+            $parts[] = count($fieldsDiff['removed']) . ' field(s) removed';
+        }
+        if (!empty($fieldsDiff['changed'])) {
+            $parts[] = count($fieldsDiff['changed']) . ' field(s) changed';
+        }
+        if ($twigDiff['changed']) {
+            $parts[] = 'template.twig updated';
+        }
+
+        $summary = $parts === [] ? 'no detected changes' : implode(', ', $parts);
+        return "Synced from the live Craft Entry Type '{$sourceHandle}': {$summary}.";
     }
 
     /**
