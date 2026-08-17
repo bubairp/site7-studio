@@ -5,6 +5,7 @@ namespace site7\studio\providers;
 use site7\studio\services\publishing\NullPackageSigner;
 use site7\studio\services\publishing\PackageBuilderService;
 use site7\studio\services\publishing\PackagePublisherService;
+use site7\studio\services\publishing\PackageRollbackService;
 use site7\studio\services\publishing\PublishHistoryService;
 use site7\studio\services\publishing\PublishValidatorService;
 use site7\studio\services\publishing\RepositoryManagerService;
@@ -29,5 +30,6 @@ class PublishingServiceProvider implements ServiceProviderInterface
         $plugin->set('publishHistory', ['class' => PublishHistoryService::class]);
         $plugin->set('packageSigner', ['class' => NullPackageSigner::class]);
         $plugin->set('publisher', ['class' => PackagePublisherService::class]);
+        $plugin->set('packageRollback', ['class' => PackageRollbackService::class]);
     }
 }

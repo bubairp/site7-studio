@@ -5,6 +5,7 @@ namespace site7\studio\services\publishing;
 use craft\base\Component;
 use site7\studio\events\publishing\VersionCreatedEvent;
 use site7\studio\interfaces\VersionManagerInterface;
+use site7\studio\records\PackageRecord;
 use site7\studio\records\PackageVersionRecord;
 use site7\studio\services\PackageAuthoringService;
 use site7\studio\services\PackageExportService;
@@ -34,7 +35,16 @@ class VersionManagerService extends Component implements VersionManagerInterface
             throw new \Exception("Package '{$handle}' was not found.");
         }
 
-        $newVersion = $this->bumpVersion($record->version, $bumpType);
+        // Bumps off the HIGHEST version ever recorded for this package, not
+        // just the manifest's current value - after a rollback (Step 7)
+        // restores an older manifest.json, the manifest alone would bump
+        // straight back into a version number that already exists in
+        // history (e.g. rolled back to 1.0.0, next patch bump would try
+        // 1.0.1, which v2 already used), which recordVersion()'s dedup
+        // guard would then silently treat as "nothing to do" rather than
+        // actually recording a new version. Exactly the gap the original
+        // Step 7 plan flagged for this method.
+        $newVersion = $this->bumpVersion($this->resolveBumpBaseVersion($record), $bumpType);
 
         // Writes through the exact same manifest.json + PackageRecord path
         // every other metadata edit already uses - no separate write path
@@ -92,6 +102,25 @@ class VersionManagerService extends Component implements VersionManagerInterface
             ->where(['packageId' => $record->id])
             ->orderBy(['dateCreated' => SORT_DESC])
             ->all();
+    }
+
+    /**
+     * The manifest's current version, or the highest version ever recorded
+     * in site7_package_versions for this package - whichever is greater.
+     * Equal to the manifest's version in every normal (forward-only) case;
+     * only diverges right after a rollback, where the manifest has just
+     * been restored to an older snapshot but this package's version
+     * history still remembers every version that came after it.
+     */
+    private function resolveBumpBaseVersion(PackageRecord $record): string
+    {
+        $highest = $record->version;
+        foreach (PackageVersionRecord::find()->where(['packageId' => $record->id])->all() as $existing) {
+            if (preg_match('/^\d+\.\d+\.\d+(?:[-+].*)?$/', $existing->version) && version_compare($existing->version, $highest, '>')) {
+                $highest = $existing->version;
+            }
+        }
+        return $highest;
     }
 
     private function bumpVersion(string $version, string $bumpType): string

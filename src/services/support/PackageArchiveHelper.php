@@ -146,6 +146,21 @@ class PackageArchiveHelper
     }
 
     /**
+     * Replaces $target's entire contents with $source's - the "lay an
+     * extracted package directory onto disk" idiom PackageImportService's
+     * install step and PackageRollbackService's package-source restore both
+     * need, extracted here so there is exactly one implementation of it
+     * rather than two independently-written directory-replace routines.
+     */
+    public static function replaceDirectory(string $source, string $target): void
+    {
+        if (is_dir($target)) {
+            FileHelper::removeDirectory($target);
+        }
+        FileHelper::copyDirectory($source, $target);
+    }
+
+    /**
      * Reads a single entry's contents straight out of a zip, in memory - no
      * temp directory created or cleaned up. For a repository catalog scan
      * (LocalMarketplaceRepository::listAvailablePackages(), run on every

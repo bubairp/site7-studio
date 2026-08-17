@@ -187,10 +187,7 @@ class PackageImportService extends Component
             $target = rtrim($basePath, '/') . '/' . $handle;
 
             try {
-                if (is_dir($target)) {
-                    FileHelper::removeDirectory($target);
-                }
-                FileHelper::copyDirectory($source, $target);
+                PackageArchiveHelper::replaceDirectory($source, $target);
             } catch (\Throwable $e) {
                 $summary['errors'][] = "{$handle}: " . $e->getMessage();
             }

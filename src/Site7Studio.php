@@ -43,6 +43,7 @@ use site7\studio\providers\PublishingServiceProvider;
  * @property-read \site7\studio\services\publishing\PublishHistoryService $publishHistory
  * @property-read \site7\studio\interfaces\PackageSignerInterface $packageSigner
  * @property-read \site7\studio\services\publishing\PackagePublisherService $publisher
+ * @property-read \site7\studio\services\publishing\PackageRollbackService $packageRollback
  * @property-read \site7\studio\services\import\ResourceAnalyzerService $resourceAnalyzer
  * @property-read \site7\studio\services\import\ResourceImportValidator $resourceImportValidator
  * @property-read \site7\studio\services\import\MatrixEntryTypeImportService $matrixEntryTypeImporter
