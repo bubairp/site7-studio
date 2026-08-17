@@ -7,6 +7,7 @@ use site7\studio\repositories\PackageRepository;
 use site7\studio\services\engine\PackageDiscovery;
 use site7\studio\registries\MemoryPackageRegistry;
 use site7\studio\records\PackageRecord;
+use site7\studio\services\support\PackageArchiveHelper;
 use Craft;
 
 /**
@@ -273,8 +274,27 @@ class PackageManagerService extends Component
             // 1. Generate Craft Resources
             if ($record->type === 'section' && is_dir($packagePath)) {
                 $generatedResources = \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->generateResources($packagePath);
-                
+
                 // Save generated resource UIDs somewhere? For MVP, we will rely on handle conventions
+
+                // Step 5: record this install's baseline checksum for the
+                // template it just wrote to @templates/_blocks/ - only when
+                // generateResources() actually copied it (never for a
+                // skipped-due-to-conflict template.twig, which isn't this
+                // package's content as installed).
+                $installedTemplate = $generatedResources['installedTemplate'] ?? null;
+                if ($installedTemplate) {
+                    $checksum = PackageArchiveHelper::computeFileChecksum($installedTemplate['absolutePath']);
+                    if ($checksum !== null) {
+                        \site7\studio\Site7Studio::getInstance()->installedFileBaseline->record(
+                            $record->id,
+                            $installedTemplate['blockHandle'],
+                            $installedTemplate['targetPath'],
+                            $record->version,
+                            $checksum,
+                        );
+                    }
+                }
             }
 
             // NOTE: Install does NOT link to Matrix. User must click "Enable" to do that.

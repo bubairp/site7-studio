@@ -54,6 +54,13 @@ class CraftResourceService extends Component
             'fields' => [],
             'entryTypes' => [],
             'templateWarnings' => [],
+            // Populated only when a template was actually copied to
+            // @templates/_blocks/ below - the caller (PackageManagerService::
+            // installPackage()) uses this to record an installed-file
+            // baseline (Step 5). Never set when the copy was skipped due to
+            // a pre-existing content mismatch - a baseline must describe
+            // what THIS package actually wrote, not content it left alone.
+            'installedTemplate' => null,
         ];
 
         // 1. Parse fields.yaml
@@ -108,6 +115,11 @@ class CraftResourceService extends Component
                 $destFile = $destDir . '/' . $blockHandle . '.twig';
                 if (!file_exists($destFile) || file_get_contents($destFile) === file_get_contents($templatePath)) {
                     copy($templatePath, $destFile);
+                    $createdResources['installedTemplate'] = [
+                        'blockHandle' => $blockHandle,
+                        'targetPath' => 'templates/_blocks/' . $blockHandle . '.twig',
+                        'absolutePath' => $destFile,
+                    ];
                 } else {
                     $createdResources['templateWarnings'][] = "Template '{$blockHandle}.twig' already exists at _blocks/ with different content - skipped to avoid overwriting it.";
                 }

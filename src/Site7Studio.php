@@ -71,6 +71,7 @@ use site7\studio\providers\PublishingServiceProvider;
  * @property-read \site7\studio\services\installation\InstallationOrchestratorService $installationOrchestrator
  * @property-read \site7\studio\services\installation\StarterKitCatalogService $starterKitCatalog
  * @property-read \site7\studio\services\synchronization\InstalledStarterKitTrackingService $installedStarterKits
+ * @property-read \site7\studio\services\synchronization\InstalledFileBaselineService $installedFileBaseline
  * @property-read \site7\studio\services\synchronization\SynchronizationHistoryService $synchronizationHistory
  * @property-read \site7\studio\services\synchronization\SynchronizationPlanner $synchronizationPlanner
  * @property-read \site7\studio\services\synchronization\SynchronizationValidator $synchronizationValidator
