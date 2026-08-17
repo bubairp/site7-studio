@@ -154,13 +154,6 @@ class PackageUpdatePlanner extends Component
      * extracting the matching file from $archivePath (a real .s7pkg
      * produced by PackageExportService/VersionManagerService - see
      * PackageArchiveHelper, reused here, never a second archive reader).
-     * Currently only understands the one real installed-file mapping this
-     * codebase has - templates/_blocks/{handle}.twig corresponds to
-     * packages/{packageHandle}/template.twig inside the archive, matching
-     * CraftResourceService's own "MVP: assume first block handle" scope
-     * (a Section package installs exactly one template file today). A
-     * targetPath outside that shape resolves to null (treated as "the
-     * incoming version doesn't have it").
      *
      * @param string[] $baselineTargetPaths
      * @return array<string, string|null> targetPath => checksum|null
@@ -172,12 +165,12 @@ class PackageUpdatePlanner extends Component
 
         try {
             foreach ($baselineTargetPaths as $targetPath) {
-                if (!preg_match('#^templates/_blocks/[^/]+\.twig$#', $targetPath)) {
+                $entryName = $this->resolveArchiveEntryName($packageHandle, $archivePath, $targetPath);
+                if ($entryName === null) {
                     $incoming[$targetPath] = null;
                     continue;
                 }
 
-                $entryName = 'packages/' . $packageHandle . '/template.twig';
                 PackageArchiveHelper::extractZip($archivePath, $tempDir, [$entryName]);
                 $extractedPath = $tempDir . '/' . $entryName;
                 $incoming[$targetPath] = PackageArchiveHelper::computeFileChecksum($extractedPath);
@@ -189,6 +182,65 @@ class PackageUpdatePlanner extends Component
         }
 
         return $incoming;
+    }
+
+    /**
+     * Resolves $targetPath to its entry name inside $archivePath - the one
+     * place this mapping is computed, shared by resolveIncomingChecksums()
+     * above and PackageManagerService::applySafeFileUpdate() (which
+     * previously each hardcoded their own copy of the same fact). Two
+     * sources, checked in order:
+     *
+     * 1. The built-in Section-package template mapping - any
+     *    templates/_blocks/*.twig targetPath always corresponds to
+     *    packages/{packageHandle}/template.twig, exactly the mapping that
+     *    was hardcoded here before Step 8.2 (same regex, same entry name -
+     *    zero behavior change for any package that predates ownedFiles).
+     * 2. Step 8.1's ownedFiles, read from *this specific archive's own*
+     *    packages/{packageHandle}/manifest.json - not the current on-disk
+     *    manifest, which can legitimately differ from what an older/newer
+     *    version actually declared (e.g. rolling back to a version that
+     *    didn't have a given owned file yet). Self-describing, so no
+     *    separate "what did version N own" bookkeeping is needed anywhere.
+     *
+     * @return string|null null if $targetPath matches neither source (the
+     *   archived version genuinely doesn't have this file).
+     */
+    public function resolveArchiveEntryName(string $packageHandle, string $archivePath, string $targetPath): ?string
+    {
+        if (preg_match('#^templates/_blocks/[^/]+\.twig$#', $targetPath)) {
+            return 'packages/' . $packageHandle . '/template.twig';
+        }
+
+        $ownedFilesMap = $this->readArchiveOwnedFilesMap($packageHandle, $archivePath);
+        if (isset($ownedFilesMap[$targetPath])) {
+            return 'packages/' . $packageHandle . '/' . $ownedFilesMap[$targetPath];
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, string> targetPath => sourcePath, as declared by
+     *   $archivePath's own bundled manifest.json (Step 8.1's ownedFiles).
+     *   Empty if the archive has no manifest.json or no ownedFiles entries.
+     */
+    private function readArchiveOwnedFilesMap(string $packageHandle, string $archivePath): array
+    {
+        $manifestJson = PackageArchiveHelper::readEntry($archivePath, 'packages/' . $packageHandle . '/manifest.json');
+        if ($manifestJson === null) {
+            return [];
+        }
+
+        $data = json_decode($manifestJson, true) ?: [];
+        $map = [];
+        foreach ((array)($data['ownedFiles'] ?? []) as $owned) {
+            if (!empty($owned['targetPath']) && !empty($owned['sourcePath'])) {
+                $map[$owned['targetPath']] = $owned['sourcePath'];
+            }
+        }
+
+        return $map;
     }
 
     /**

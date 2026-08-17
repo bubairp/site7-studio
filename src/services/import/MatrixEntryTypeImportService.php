@@ -9,6 +9,7 @@ use craft\models\EntryType;
 use site7\studio\events\ResourceImportedEvent;
 use site7\studio\records\PackageRecord;
 use site7\studio\repositories\SectionImportSourceRepository;
+use site7\studio\services\support\PackageArchiveHelper;
 use site7\studio\Site7Studio;
 use Symfony\Component\Yaml\Yaml;
 
@@ -346,6 +347,55 @@ class MatrixEntryTypeImportService extends Component
         }
 
         return $owned;
+    }
+
+    /**
+     * Sync From Source's owned-files half (Step 8.2) - the same "compare
+     * live vs. the package's own stored copy, re-copy only what changed"
+     * pattern copyTemplateTwigFromLiveSource() already follows for
+     * template.twig, generalized over whatever ownedFiles the package's
+     * CURRENT manifest declares. Never adds/removes an owned-file
+     * declaration itself - Sync From Source only re-syncs the CONTENT of
+     * files already explicitly selected at import time (Step 8.1);
+     * discovering new candidate files remains an explicit, separate
+     * selection step, never automatic.
+     *
+     * @param array<int, array{sourcePath: string, targetPath: string, type: string}> $ownedFiles
+     * @return array<int, array{targetPath: string, changed: bool}>
+     */
+    public function syncOwnedFilesFromLiveSource(string $packagePath, array $ownedFiles): array
+    {
+        $root = dirname(rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/'));
+        $results = [];
+
+        foreach ($ownedFiles as $owned) {
+            $sourcePath = (string)($owned['sourcePath'] ?? '');
+            $targetPath = (string)($owned['targetPath'] ?? '');
+            if ($sourcePath === '' || $targetPath === '') {
+                continue;
+            }
+
+            $liveAbsolute = $root . '/' . $targetPath;
+            $packageAbsolute = $packagePath . '/' . $sourcePath;
+
+            $liveChecksum = PackageArchiveHelper::computeFileChecksum($liveAbsolute);
+            $packageChecksum = PackageArchiveHelper::computeFileChecksum($packageAbsolute);
+
+            // A live source that's gone missing isn't "no change" - but
+            // syncing isn't the place to silently drop the package's own
+            // copy either (same "never destroy on a mere absence" stance
+            // diffTwig() already takes for a missing _blocks/ file). Only
+            // an actual, present, differing live file triggers a re-copy.
+            $changed = $liveChecksum !== null && $liveChecksum !== $packageChecksum;
+            if ($changed) {
+                FileHelper::createDirectory(dirname($packageAbsolute));
+                copy($liveAbsolute, $packageAbsolute);
+            }
+
+            $results[] = ['targetPath' => $targetPath, 'changed' => $changed];
+        }
+
+        return $results;
     }
 
     private function buildReadme(string $name, EntryType $entryType, array $fields): string

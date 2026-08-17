@@ -299,6 +299,16 @@ class PackageManagerService extends Component
                 }
             }
 
+            // Step 8.2: install every explicitly package-owned file (Step
+            // 8.1's ownedFiles) - never automatic, only whatever the
+            // manifest actually declares. Empty on every package that
+            // predates ownedFiles, or whose author selected none - the
+            // common case - so this is a no-op loop for those, unchanged
+            // from Step 8.1 install behavior.
+            if (is_dir($packagePath)) {
+                $this->installOwnedFiles($record, $packagePath);
+            }
+
             // NOTE: Install does NOT link to Matrix. User must click "Enable" to do that.
 
             // 2. Update status
@@ -411,10 +421,16 @@ class PackageManagerService extends Component
     {
         $tempDir = Craft::getAlias('@storage') . '/runtime/site7-studio/update-apply/' . uniqid('', true);
         try {
-            // Matches PackageUpdatePlanner::resolveIncomingChecksums()'s own
-            // targetPath<->archive-entry mapping exactly - the one real
-            // installed-file shape this codebase has today.
-            $entryName = 'packages/' . $handle . '/template.twig';
+            // Step 8.2: same shared resolver resolveIncomingChecksums() used
+            // to compute $item['incomingChecksum'] in the first place - a
+            // single source of truth for "what archive entry does this
+            // targetPath mean," covering both the built-in template.twig
+            // mapping and Step 8.1's ownedFiles.
+            $entryName = \site7\studio\Site7Studio::getInstance()->packageUpdatePlanner
+                ->resolveArchiveEntryName($handle, $versionRecord->archivePath, $item['targetPath']);
+            if ($entryName === null) {
+                return false;
+            }
             PackageArchiveHelper::extractZip($versionRecord->archivePath, $tempDir, [$entryName]);
             $extractedPath = $tempDir . '/' . $entryName;
             if (!is_file($extractedPath)) {
@@ -461,6 +477,62 @@ class PackageManagerService extends Component
         }
         $baselineService->remove($record->id, $item['targetPath']);
         return true;
+    }
+
+    /**
+     * Step 8.2 - copies each of $record's explicitly package-owned files
+     * (Step 8.1's manifest ownedFiles, never auto-discovered) from the
+     * package's own directory to its real Craft-root-relative target path,
+     * and registers a Step 5 baseline for each one actually copied. Plain
+     * file I/O - no Craft resource/field/entry-type API needed, so this
+     * lives here rather than in CraftResourceService, which owns Craft
+     * resource generation specifically. A no-op loop for the common case
+     * (ownedFiles empty), unchanged behavior for every existing package.
+     *
+     * Applies the same "don't silently overwrite a file this package
+     * doesn't recognize" guard CraftResourceService's own template copy
+     * already uses: only copies if the target is missing or already
+     * byte-identical to the source - a pre-existing, unrelated file
+     * sitting at the same target path is left alone and reported, not
+     * clobbered.
+     */
+    private function installOwnedFiles(PackageRecord $record, string $packagePath): void
+    {
+        $manifest = $record->getManifest();
+        if (!$manifest || empty($manifest->ownedFiles)) {
+            return;
+        }
+
+        $root = dirname(rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/'));
+        $baselineService = \site7\studio\Site7Studio::getInstance()->installedFileBaseline;
+
+        foreach ($manifest->ownedFiles as $owned) {
+            $sourcePath = (string)($owned['sourcePath'] ?? '');
+            $targetPath = (string)($owned['targetPath'] ?? '');
+            if ($sourcePath === '' || $targetPath === '') {
+                continue;
+            }
+
+            $absoluteSource = $packagePath . '/' . $sourcePath;
+            if (!is_file($absoluteSource)) {
+                Craft::warning("Owned file '{$sourcePath}' declared by package '{$record->handle}' was not found in its package directory - skipped.", __METHOD__);
+                continue;
+            }
+
+            $absoluteTarget = $root . '/' . $targetPath;
+            if (is_file($absoluteTarget) && file_get_contents($absoluteTarget) !== file_get_contents($absoluteSource)) {
+                $this->_lastInstallWarnings[] = "Owned file '{$targetPath}' already exists with different content - skipped to avoid overwriting it.";
+                continue;
+            }
+
+            \craft\helpers\FileHelper::createDirectory(dirname($absoluteTarget));
+            copy($absoluteSource, $absoluteTarget);
+
+            $checksum = PackageArchiveHelper::computeFileChecksum($absoluteTarget);
+            if ($checksum !== null) {
+                $baselineService->record($record->id, $record->handle, $targetPath, $record->version, $checksum);
+            }
+        }
     }
 
     /**

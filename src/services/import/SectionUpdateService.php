@@ -28,19 +28,24 @@ class SectionUpdateService extends Component
 {
     /**
      * @return array{added: array, removed: array, changed: array, unchanged: array,
-     *   twig: array{changed: bool, liveChecksum: ?string, packageChecksum: ?string}}
+     *   twig: array{changed: bool, liveChecksum: ?string, packageChecksum: ?string},
+     *   ownedFiles: array<int, array{targetPath: string, changed: bool, liveChecksum: ?string, packageChecksum: ?string}>}
      * @throws \Exception if the package isn't an imported Section, or its source Entry Type no longer exists.
      */
     public function diff(string $packageHandle): array
     {
-        [, $entryType, $importableFields] = $this->resolve($packageHandle);
+        [$record, $entryType, $importableFields] = $this->resolve($packageHandle);
 
         $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($packageHandle);
         $existingFieldsByHandle = $this->readExistingFields($packageHandle);
+        $manifest = $record->getManifest();
 
         return array_merge(
             $this->compareFields($existingFieldsByHandle, $importableFields),
-            ['twig' => $packagePath ? $this->diffTwig($packagePath, $entryType->handle) : ['changed' => false, 'liveChecksum' => null, 'packageChecksum' => null]],
+            [
+                'twig' => $packagePath ? $this->diffTwig($packagePath, $entryType->handle) : ['changed' => false, 'liveChecksum' => null, 'packageChecksum' => null],
+                'ownedFiles' => ($packagePath && $manifest) ? $this->diffOwnedFiles($packagePath, $manifest->ownedFiles) : [],
+            ],
         );
     }
 
@@ -109,6 +114,44 @@ class SectionUpdateService extends Component
     }
 
     /**
+     * The owned-files half of Sync From Source's detection (Step 8.2) -
+     * compares each of the package's currently-declared ownedFiles (Step
+     * 8.1) between its live site copy and its stored package copy, using
+     * the same PackageArchiveHelper::computeFileChecksum() convention
+     * diffTwig() already uses. Never adds/removes an owned-file
+     * declaration - only reports whether an already-selected file's
+     * content changed.
+     *
+     * @param array<int, array{sourcePath: string, targetPath: string, type: string}> $ownedFiles
+     * @return array<int, array{targetPath: string, changed: bool, liveChecksum: ?string, packageChecksum: ?string}>
+     */
+    private function diffOwnedFiles(string $packagePath, array $ownedFiles): array
+    {
+        $root = dirname(rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/'));
+        $results = [];
+
+        foreach ($ownedFiles as $owned) {
+            $sourcePath = (string)($owned['sourcePath'] ?? '');
+            $targetPath = (string)($owned['targetPath'] ?? '');
+            if ($sourcePath === '' || $targetPath === '') {
+                continue;
+            }
+
+            $liveChecksum = PackageArchiveHelper::computeFileChecksum($root . '/' . $targetPath);
+            $packageChecksum = PackageArchiveHelper::computeFileChecksum($packagePath . '/' . $sourcePath);
+
+            $results[] = [
+                'targetPath' => $targetPath,
+                'changed' => $liveChecksum !== null && $liveChecksum !== $packageChecksum,
+                'liveChecksum' => $liveChecksum,
+                'packageChecksum' => $packageChecksum,
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
      * Sync From Source (Phase 9.1, extended for version integrity): re-reads
      * the live Entry Type's field layout AND the live
      * templates/_blocks/{sourceHandle}.twig content, and does nothing at all
@@ -137,9 +180,12 @@ class SectionUpdateService extends Component
         $existingFieldsByHandle = $this->readExistingFields($packageHandle);
         $fieldsDiff = $this->compareFields($existingFieldsByHandle, $importableFields);
         $twigDiff = $this->diffTwig($packagePath, $entryType->handle);
+        $manifest = $record->getManifest();
+        $ownedFilesDiff = $manifest ? $this->diffOwnedFiles($packagePath, $manifest->ownedFiles) : [];
+        $changedOwnedFiles = array_values(array_filter($ownedFilesDiff, fn(array $f) => $f['changed']));
 
         $fieldsChanged = !empty($fieldsDiff['added']) || !empty($fieldsDiff['removed']) || !empty($fieldsDiff['changed']);
-        if (!$fieldsChanged && !$twigDiff['changed']) {
+        if (!$fieldsChanged && !$twigDiff['changed'] && empty($changedOwnedFiles)) {
             // Nothing meaningful changed since the last sync - not even the
             // source-hash bookkeeping is touched, so calling this repeatedly
             // with no intervening source change is a true no-op.
@@ -151,6 +197,14 @@ class SectionUpdateService extends Component
         $importer->writeMatrixYaml($packagePath, $record->name, $entryType, $importableFields);
         if ($twigDiff['changed']) {
             $importer->copyTemplateTwigFromLiveSource($packagePath, $entryType->handle);
+        }
+        if (!empty($changedOwnedFiles) && $manifest) {
+            // Re-copies only the files diffOwnedFiles() actually flagged as
+            // changed (syncOwnedFilesFromLiveSource() re-derives the same
+            // changed/unchanged verdict itself before writing, so an
+            // unchanged owned file is never rewritten even though it's
+            // passed through here for simplicity).
+            $importer->syncOwnedFilesFromLiveSource($packagePath, $manifest->ownedFiles);
         }
 
         // Merge rather than blank out - existing hand-entered demo values
@@ -198,7 +252,7 @@ class SectionUpdateService extends Component
         Site7Studio::getInstance()->versionManager->createVersion(
             $packageHandle,
             $bumpType,
-            $this->summarizeSyncChanges($fieldsDiff, $twigDiff, $entryType->handle),
+            $this->summarizeSyncChanges($fieldsDiff, $twigDiff, $changedOwnedFiles, $entryType->handle),
         );
 
         $record->refresh();
@@ -206,7 +260,7 @@ class SectionUpdateService extends Component
         return $record;
     }
 
-    private function summarizeSyncChanges(array $fieldsDiff, array $twigDiff, string $sourceHandle): string
+    private function summarizeSyncChanges(array $fieldsDiff, array $twigDiff, array $changedOwnedFiles, string $sourceHandle): string
     {
         $parts = [];
         if (!empty($fieldsDiff['added'])) {
@@ -220,6 +274,9 @@ class SectionUpdateService extends Component
         }
         if ($twigDiff['changed']) {
             $parts[] = 'template.twig updated';
+        }
+        if (!empty($changedOwnedFiles)) {
+            $parts[] = count($changedOwnedFiles) . ' owned file(s) updated';
         }
 
         $summary = $parts === [] ? 'no detected changes' : implode(', ', $parts);

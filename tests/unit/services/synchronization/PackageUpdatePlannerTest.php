@@ -104,4 +104,76 @@ class PackageUpdatePlannerTest extends Unit
         $this->assertSame('ctaBanner', $result['resourceHandle']);
         $this->assertNotEmpty($result['message']);
     }
+
+    // --- Step 8.2: resolveArchiveEntryName() - the shared targetPath ->
+    // archive-entry resolver, generalized to cover Step 8.1's ownedFiles.
+    // No live Craft app needed - pure regex + zip read.
+
+    private string $tempZipPath;
+
+    protected function _after()
+    {
+        if (isset($this->tempZipPath) && file_exists($this->tempZipPath)) {
+            unlink($this->tempZipPath);
+        }
+    }
+
+    private function buildFixtureArchive(array $manifestData): string
+    {
+        $this->tempZipPath = sys_get_temp_dir() . '/site7_planner_test_' . uniqid('', true) . '.s7pkg';
+        $zip = new \ZipArchive();
+        $zip->open($this->tempZipPath, \ZipArchive::CREATE);
+        $zip->addFromString('packages/cta-banner/manifest.json', json_encode($manifestData));
+        $zip->addFromString('packages/cta-banner/template.twig', '<div>twig content</div>');
+        $zip->addFromString('packages/cta-banner/frontend/src/css/components/ctaBanner.css', '.cta { color: red; }');
+        $zip->close();
+        return $this->tempZipPath;
+    }
+
+    public function testResolveArchiveEntryNameStillResolvesTheBuiltInTemplateMappingUnchanged()
+    {
+        $archivePath = $this->buildFixtureArchive(['ownedFiles' => []]);
+        $planner = new PackageUpdatePlanner();
+
+        $entry = $planner->resolveArchiveEntryName('cta-banner', $archivePath, 'templates/_blocks/ctaBanner.twig');
+
+        $this->assertSame('packages/cta-banner/template.twig', $entry);
+    }
+
+    public function testResolveArchiveEntryNameResolvesAnOwnedFileFromTheArchivesOwnManifest()
+    {
+        $archivePath = $this->buildFixtureArchive([
+            'ownedFiles' => [
+                ['sourcePath' => 'frontend/src/css/components/ctaBanner.css', 'targetPath' => 'frontend/src/css/components/ctaBanner.css', 'type' => 'frontend-css'],
+            ],
+        ]);
+        $planner = new PackageUpdatePlanner();
+
+        $entry = $planner->resolveArchiveEntryName('cta-banner', $archivePath, 'frontend/src/css/components/ctaBanner.css');
+
+        $this->assertSame('packages/cta-banner/frontend/src/css/components/ctaBanner.css', $entry);
+    }
+
+    public function testResolveArchiveEntryNameReturnsNullForAPathNeitherTemplateNorOwned()
+    {
+        $archivePath = $this->buildFixtureArchive(['ownedFiles' => []]);
+        $planner = new PackageUpdatePlanner();
+
+        $entry = $planner->resolveArchiveEntryName('cta-banner', $archivePath, 'frontend/src/css/components/unrelated.css');
+
+        $this->assertNull($entry);
+    }
+
+    public function testResolveArchiveEntryNameUsesThisArchivesOwnOwnedFilesNotSomeOtherVersions()
+    {
+        // A version that never declared this owned file (e.g. rolling back
+        // to an older version predating it) must not resolve it, even if a
+        // *different*, later version's on-disk manifest currently does.
+        $archivePath = $this->buildFixtureArchive(['ownedFiles' => []]);
+        $planner = new PackageUpdatePlanner();
+
+        $entry = $planner->resolveArchiveEntryName('cta-banner', $archivePath, 'frontend/src/css/components/ctaBanner.css');
+
+        $this->assertNull($entry);
+    }
 }
