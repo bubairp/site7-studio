@@ -30,7 +30,12 @@ use Symfony\Component\Yaml\Yaml;
 class MatrixEntryTypeImportService extends Component
 {
     /**
-     * @param array $meta {name, description?, category?, tags?, version?}
+     * @param array $meta {name, description?, category?, tags?, version?,
+     *   ownedFiles?: string[] - Craft-root-relative paths (e.g.
+     *   'frontend/src/css/components/ctaBanner.css') the caller explicitly
+     *   selected as package-owned (Step 8.1) - see captureOwnedFiles(). Never
+     *   inferred; omitted/empty means this package owns no additional files
+     *   beyond its template.twig, which is the common case in this project.}
      * @throws \Exception if the Entry Type can't be found, or nothing capturable was found.
      */
     public function importFromEntryType(int $entryTypeId, array $meta): PackageRecord
@@ -78,6 +83,7 @@ class MatrixEntryTypeImportService extends Component
         FileHelper::createDirectory($packagePath);
 
         $tags = array_values(array_filter(array_map('trim', explode(',', (string)($meta['tags'] ?? '')))));
+        $ownedFiles = $this->captureOwnedFiles($packagePath, (array)($meta['ownedFiles'] ?? []));
 
         $manifest = [
             'schemaVersion' => '1',
@@ -96,6 +102,7 @@ class MatrixEntryTypeImportService extends Component
                 'pluginDependencies' => $pluginDependencies,
             ],
             'excludedFields' => $excludedFields,
+            'ownedFiles' => $ownedFiles,
             'importedFrom' => [
                 'sourceType' => 'matrix-entry-type',
                 'sourceId' => $entryType->id,
@@ -287,6 +294,58 @@ class MatrixEntryTypeImportService extends Component
             return true;
         }
         return false;
+    }
+
+    /**
+     * Copies each explicitly-selected Craft-root-relative path (e.g.
+     * 'frontend/src/css/components/ctaBanner.css', as listed by
+     * FrontendToolingScanner::listCandidateFrontendFiles() - discovery is a
+     * separate step from this, which only ever acts on what the caller
+     * explicitly passed) into this package's own directory at the
+     * identical relative path - preserving the real relative runtime path,
+     * the same rule copyTemplateTwigFromLiveSource() already follows for
+     * template.twig. Never inferred from a filename/handle match. A path
+     * that's missing on disk, or isn't a plain relative path (no '..'
+     * traversal, no leading '/'), is skipped with a logged warning rather
+     * than failing the whole import - same "never fatal, degrade
+     * gracefully" pattern this service already uses for e.g. an
+     * unresolvable Entries field Section reference.
+     *
+     * @param string[] $selectedPaths
+     * @return array<int, array{sourcePath: string, targetPath: string, type: string}>
+     */
+    public function captureOwnedFiles(string $packagePath, array $selectedPaths): array
+    {
+        $craftRoot = dirname(rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/'));
+        $owned = [];
+
+        foreach ($selectedPaths as $relativePath) {
+            $relativePath = str_replace('\\', '/', trim((string)$relativePath));
+            if ($relativePath === '' || str_starts_with($relativePath, '/') || str_contains($relativePath, '..')) {
+                Craft::warning("Skipped invalid owned-file path '{$relativePath}' during import.", __METHOD__);
+                continue;
+            }
+
+            $absoluteSource = $craftRoot . '/' . $relativePath;
+            if (!is_file($absoluteSource)) {
+                Craft::warning("Skipped owned-file path '{$relativePath}' - not found on disk.", __METHOD__);
+                continue;
+            }
+
+            $destination = $packagePath . '/' . $relativePath;
+            FileHelper::createDirectory(dirname($destination));
+            copy($absoluteSource, $destination);
+
+            $type = match (strtolower(pathinfo($relativePath, PATHINFO_EXTENSION))) {
+                'css' => 'frontend-css',
+                'js' => 'frontend-js',
+                default => 'asset',
+            };
+
+            $owned[] = ['sourcePath' => $relativePath, 'targetPath' => $relativePath, 'type' => $type];
+        }
+
+        return $owned;
     }
 
     private function buildReadme(string $name, EntryType $entryType, array $fields): string

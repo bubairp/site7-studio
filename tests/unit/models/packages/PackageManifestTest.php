@@ -107,4 +107,48 @@ class PackageManifestTest extends Unit
         $this->assertSame($data['navigation'], $manifest->navigation);
         $this->assertSame($data['projectConfigPaths'], $manifest->projectConfigPaths);
     }
+
+    /**
+     * Step 8.1 - a manifest written before ownedFiles existed must still
+     * load with it simply defaulting to empty. Deliberately does not call
+     * ->validate() (unlike the two tests above) - that requires a live
+     * Yii/Craft app this test suite doesn't have (a pre-existing,
+     * unrelated gap - see Step 3's regression notes), and isn't needed to
+     * verify the property itself defaults/parses correctly.
+     */
+    public function testOwnedFilesDefaultsToEmptyArrayOnALegacyManifest()
+    {
+        $manifest = new PackageManifest([
+            'schemaVersion' => '1',
+            'type' => 'section',
+            'handle' => 'test-hero',
+            'name' => 'Test Hero',
+            'version' => '1.0.0',
+        ]);
+
+        $this->assertSame([], $manifest->ownedFiles);
+    }
+
+    /**
+     * Round-trips explicit ownedFiles entries through json_encode/decode,
+     * mirroring how PackageReader loads manifest.json off disk.
+     */
+    public function testOwnedFilesRoundTripsThroughJson()
+    {
+        $data = [
+            'schemaVersion' => '1',
+            'type' => 'section',
+            'handle' => 'cta-banner',
+            'name' => 'CTA Banner',
+            'version' => '1.0.0',
+            'ownedFiles' => [
+                ['sourcePath' => 'frontend/src/css/components/ctaBanner.css', 'targetPath' => 'frontend/src/css/components/ctaBanner.css', 'type' => 'frontend-css'],
+                ['sourcePath' => 'frontend/src/js/components/ctaBanner.js', 'targetPath' => 'frontend/src/js/components/ctaBanner.js', 'type' => 'frontend-js'],
+            ],
+        ];
+
+        $manifest = new PackageManifest(json_decode(json_encode($data), true));
+
+        $this->assertSame($data['ownedFiles'], $manifest->ownedFiles);
+    }
 }

@@ -127,6 +127,45 @@ class FrontendToolingScanner extends Component
         return $result;
     }
 
+    /**
+     * Lists candidate CSS/JS source files under $frontendRoot/src - Step
+     * 8.1's Import Existing Section file-selection step reads this to show
+     * a human what's available to explicitly opt in as package-owned.
+     * DISCOVERY ONLY: nothing about being returned here makes a file
+     * package-owned - that only happens when a caller explicitly includes
+     * one of these paths in $meta['ownedFiles'] at import time (see
+     * MatrixEntryTypeImportService::captureOwnedFiles()). No filename-to-
+     * handle matching or other guessing happens here or anywhere else.
+     *
+     * @return string[] sorted, relative to the Craft project root (not to
+     *   $frontendRoot) - the same convention PackageManifest::$ownedFiles'
+     *   targetPath already uses, so a caller can use a returned path
+     *   directly without re-deriving anything.
+     */
+    public function listCandidateFrontendFiles(string $frontendRoot): array
+    {
+        $srcDir = $frontendRoot . '/src';
+        if (!is_dir($srcDir)) {
+            return [];
+        }
+
+        $root = rtrim($this->projectRoot(), '/\\');
+        $candidates = [];
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($srcDir, \FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($iterator as $file) {
+            /** @var \SplFileInfo $file */
+            if (!$file->isFile() || !in_array(strtolower($file->getExtension()), ['css', 'js'], true)) {
+                continue;
+            }
+            $candidates[] = ltrim(str_replace('\\', '/', substr($file->getPathname(), strlen($root))), '/');
+        }
+
+        sort($candidates);
+        return $candidates;
+    }
+
     private function findFrontendRoot(string $basePath): ?string
     {
         foreach (self::CANDIDATE_FRONTEND_DIRS as $candidate) {

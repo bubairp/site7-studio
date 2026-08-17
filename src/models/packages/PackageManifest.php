@@ -213,6 +213,42 @@ class PackageManifest extends Model
     public array $projectConfigPaths = [];
 
     /**
+     * Explicit package-owned files beyond the type-specific ones already
+     * captured elsewhere (template.twig, fields.yaml, matrix.yaml) - Step
+     * 8.1, Package-Owned File Model. Each entry is
+     * {sourcePath, targetPath, type}:
+     *   - sourcePath: relative to this package's own directory (e.g.
+     *     'frontend/src/css/components/ctaBanner.css') - where the file's
+     *     actual content lives inside packages/{handle}/, shipped inside
+     *     the .s7pkg automatically like any other file already there (see
+     *     PackageArchiveHelper::addDirectoryToZip() - a generic recursive
+     *     copy, no export-side change needed for this).
+     *   - targetPath: relative to the Craft install root (e.g. the same
+     *     'frontend/src/css/components/ctaBanner.css') - where it belongs
+     *     on the consuming site, the same "preserve the real relative
+     *     runtime path" rule templates/_blocks/{handle}.twig already
+     *     follows. sourcePath and targetPath are identical in every case
+     *     produced today (the real relative path is mirrored verbatim,
+     *     never flattened/renamed) - kept as two separate keys rather than
+     *     one so a future case where they genuinely need to differ doesn't
+     *     require a schema change.
+     *   - type: free-text category ('frontend-css'|'frontend-js'|'asset')
+     *     for display/filtering only - nothing in the install/update/
+     *     rollback pipeline branches on it as of Step 8.1.
+     * Never populated by automatic scanning - a file only appears here
+     * because a human explicitly selected it during Import Existing
+     * Section (MatrixEntryTypeImportService::captureOwnedFiles()). Empty
+     * on every package created before Step 8.1, and on any package whose
+     * author selected no additional files (the common case - see the Step
+     * 8A audit: most components in this project own no dedicated CSS/JS at
+     * all, styled instead through Tailwind utilities and shared global
+     * frontend files that no single package should claim ownership of).
+     *
+     * @var array<int, array{sourcePath: string, targetPath: string, type: string}>
+     */
+    public array $ownedFiles = [];
+
+    /**
      * @inheritdoc
      */
     protected function defineRules(): array
@@ -220,7 +256,7 @@ class PackageManifest extends Model
         $rules = parent::defineRules();
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion'], 'required'];
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview', 'sourceEntryType', 'sourceSection'], 'string'];
-        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords', 'importedFrom', 'globals', 'excludedFields', 'assetVolumes', 'categoryGroups', 'tagGroups', 'craftSections', 'navigation', 'projectConfigPaths'], 'safe'];
+        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords', 'importedFrom', 'globals', 'excludedFields', 'assetVolumes', 'categoryGroups', 'tagGroups', 'craftSections', 'navigation', 'projectConfigPaths', 'ownedFiles'], 'safe'];
         $rules[] = [['displayName', 'company', 'website', 'supportUrl', 'documentationUrl', 'license', 'pricingType', 'minimumCraftVersion', 'minimumSite7Version'], 'string'];
         return $rules;
     }

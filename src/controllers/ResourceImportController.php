@@ -513,6 +513,34 @@ class ResourceImportController extends Controller
             'author' => (string)$request->getBodyParam('author', ''),
             'category' => (string)$request->getBodyParam('category', ''),
             'tags' => (string)$request->getBodyParam('tags', ''),
+            // Step 8.1 - explicit package-owned-file selection. Always an
+            // array of Craft-root-relative paths the user actually checked
+            // in the import UI; never auto-populated from a scan. Absent/
+            // empty is the common, correct case for a component with no
+            // dedicated CSS/JS.
+            'ownedFiles' => array_map('strval', (array)$request->getBodyParam('ownedFiles', [])),
         ];
+    }
+
+    /**
+     * Step 8.1 - lists candidate frontend source files (CSS/JS under the
+     * detected frontend root's src/ directory) for the Import Existing
+     * Section file-selection step. Discovery only - returning a path here
+     * does not make it package-owned; the import actions above only ever
+     * capture whatever subset of these the caller explicitly re-submits as
+     * $meta['ownedFiles'].
+     */
+    public function actionListFrontendFileCandidates()
+    {
+        $this->requireAcceptsJson();
+        $this->requireImportAccess();
+
+        $scanner = new \site7\studio\services\FrontendToolingScanner();
+        $detection = $scanner->detect();
+        if (!$detection) {
+            return $this->asJson(['success' => true, 'candidates' => []]);
+        }
+
+        return $this->asJson(['success' => true, 'candidates' => $scanner->listCandidateFrontendFiles($detection['root'])]);
     }
 }
