@@ -1,0 +1,9 @@
+# Codeception Test Suite configuration - unit tests, no live Craft app/DB.
+# Matches every existing tests/unit/**/*Test.php file - they extend
+# Codeception\Test\Unit but (checked) none currently call $this->tester->...,
+# so Asserts is the only module needed to make the base class's own
+# bootstrapping (DI container, actor wiring) work under `codecept run`.
+actor: UnitTester
+modules:
+    enabled:
+        - Asserts

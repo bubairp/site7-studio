@@ -58,7 +58,7 @@ class PackageArchiveHelper
                 /** @var \SplFileInfo $file */
                 if ($file->isFile() && !self::isExcluded($file->getFilename())) {
                     $relative = ltrim(str_replace('\\', '/', substr($file->getPathname(), strlen($path))), '/');
-                    $fileHashes[$relative] = hash_file('sha256', $file->getPathname());
+                    $fileHashes[$relative] = self::computeFileChecksum($file->getPathname());
                 }
             }
         }
@@ -71,6 +71,23 @@ class PackageArchiveHelper
         }
 
         return hash('sha256', implode("\n", $lines));
+    }
+
+    /**
+     * The same per-file sha256 convention computeDirectoryChecksum() hashes
+     * every file with, exposed standalone so callers that need to compare a
+     * single file's content (e.g. a package's template.twig against its live
+     * source) reuse the exact same algorithm rather than a second one.
+     *
+     * @return string|null The file's sha256, or null if it doesn't exist.
+     */
+    public static function computeFileChecksum(string $path): ?string
+    {
+        if (!is_file($path)) {
+            return null;
+        }
+
+        return hash_file('sha256', $path);
     }
 
     /**
