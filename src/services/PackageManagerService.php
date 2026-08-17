@@ -7,7 +7,9 @@ use site7\studio\repositories\PackageRepository;
 use site7\studio\services\engine\PackageDiscovery;
 use site7\studio\registries\MemoryPackageRegistry;
 use site7\studio\records\PackageRecord;
+use site7\studio\records\PackageVersionRecord;
 use site7\studio\services\support\PackageArchiveHelper;
+use site7\studio\services\synchronization\PackageUpdatePlanner;
 use Craft;
 
 /**
@@ -318,6 +320,147 @@ class PackageManagerService extends Component
             echo "Exception: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n";
             return false;
         }
+    }
+
+    /**
+     * Step 6 - safely updates $handle's already-installed files toward
+     * $toVersionRecordId's archived content, using PackageUpdatePlanner's
+     * baseline/live/incoming three-way comparison. Only files it classifies
+     * as a safe update or safe removal are ever touched; a locally-modified
+     * or conflicting file is left completely untouched. Never a blind
+     * "force update" - every item in the returned plan reports what
+     * happened (or didn't) to that specific file, so a partial result
+     * (some files updated, others left alone) is never misreported as a
+     * full success.
+     *
+     * Does not touch the package's own manifest.json/version - that's
+     * governed by Sync From Source (Step 2) / VersionManagerService
+     * (Step 4) on the package's authoring side, a separate concern from
+     * "which version's files does this SITE currently have installed."
+     *
+     * @return array<int, array{targetPath: string, resourceHandle: string,
+     *   result: string, baselineChecksum: string, liveChecksum: ?string,
+     *   incomingChecksum: ?string, message: string, applied: bool}>
+     * @throws \Exception if the package or the target version (with a real archive) can't be found.
+     */
+    public function updateInstalledFiles(string $handle, int $toVersionRecordId): array
+    {
+        $record = $this->getPackageByHandle($handle);
+        if (!$record) {
+            throw new \Exception("Package '{$handle}' was not found.");
+        }
+
+        $versionRecord = PackageVersionRecord::findOne(['id' => $toVersionRecordId, 'packageId' => $record->id]);
+        if (!$versionRecord || !$versionRecord->archivePath || !file_exists($versionRecord->archivePath)) {
+            throw new \Exception("Version #{$toVersionRecordId} has no real archive to update from.");
+        }
+
+        $plugin = \site7\studio\Site7Studio::getInstance();
+        /** @var PackageUpdatePlanner $planner */
+        $planner = $plugin->packageUpdatePlanner;
+        $baselineService = $plugin->installedFileBaseline;
+
+        $baselines = $baselineService->allForPackage($record->id);
+        $targetPaths = array_map(fn(array $b) => $b['targetPath'], $baselines);
+        $incomingFiles = $planner->resolveIncomingChecksums($handle, $versionRecord->archivePath, $targetPaths);
+
+        $plan = $planner->plan($record->id, $incomingFiles);
+
+        // Deliberately does NOT call PackageBackupService here, even though
+        // it's the existing backup mechanism: that service keeps only the
+        // LATEST backup per handle (unlinking any previous one it finds via
+        // its own handle-prefixed glob - see its own docblock), which would
+        // silently delete an OLDER PackageVersionRecord's own archivePath
+        // whenever that older archive happens to already live in the same
+        // marketplace-repo folder (true for a package's very first version,
+        // backed up there automatically on import). Confirmed live during
+        // this step's own verification - calling it here destroyed v1's
+        // archive out from under its own version row. Every version already
+        // has its own permanent, independent archive via
+        // VersionManagerService::createVersion() (Step 4) - that IS this
+        // operation's safety net; a live file is only ever replaced with
+        // bytes read straight back out of $versionRecord->archivePath
+        // below, and applySafeFileUpdate() only advances the baseline after
+        // verifying the written file's checksum matches exactly what was
+        // promised.
+        $root = dirname(rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/'));
+
+        foreach ($plan as &$item) {
+            if ($item['result'] === PackageUpdatePlanner::RESULT_SAFE_UPDATE) {
+                $item['applied'] = $this->applySafeFileUpdate($record, $handle, $versionRecord, $item, $root);
+            } elseif ($item['result'] === PackageUpdatePlanner::RESULT_SAFE_REMOVAL) {
+                $item['applied'] = $this->applySafeFileRemoval($record, $item, $root, $baselineService);
+            } else {
+                $item['applied'] = false;
+            }
+        }
+        unset($item);
+
+        return $plan;
+    }
+
+    /**
+     * Extracts $item's file from $versionRecord's archive and copies it onto
+     * the live site - but only advances the baseline (via
+     * InstalledFileBaselineService, Step 5's sole writer) if the file that
+     * actually landed on disk checksums to exactly what the plan promised.
+     * A failed/partial write must never look identical to a clean baseline
+     * advance.
+     */
+    private function applySafeFileUpdate(PackageRecord $record, string $handle, PackageVersionRecord $versionRecord, array $item, string $root): bool
+    {
+        $tempDir = Craft::getAlias('@storage') . '/runtime/site7-studio/update-apply/' . uniqid('', true);
+        try {
+            // Matches PackageUpdatePlanner::resolveIncomingChecksums()'s own
+            // targetPath<->archive-entry mapping exactly - the one real
+            // installed-file shape this codebase has today.
+            $entryName = 'packages/' . $handle . '/template.twig';
+            PackageArchiveHelper::extractZip($versionRecord->archivePath, $tempDir, [$entryName]);
+            $extractedPath = $tempDir . '/' . $entryName;
+            if (!is_file($extractedPath)) {
+                return false;
+            }
+
+            $absoluteTarget = $root . '/' . $item['targetPath'];
+            \craft\helpers\FileHelper::createDirectory(dirname($absoluteTarget));
+            copy($extractedPath, $absoluteTarget);
+
+            $writtenChecksum = PackageArchiveHelper::computeFileChecksum($absoluteTarget);
+            if ($writtenChecksum === null || $writtenChecksum !== $item['incomingChecksum']) {
+                return false;
+            }
+
+            \site7\studio\Site7Studio::getInstance()->installedFileBaseline->record(
+                $record->id,
+                $item['resourceHandle'],
+                $item['targetPath'],
+                $versionRecord->version,
+                $writtenChecksum,
+            );
+
+            return true;
+        } finally {
+            if (is_dir($tempDir)) {
+                \craft\helpers\FileHelper::removeDirectory($tempDir);
+            }
+        }
+    }
+
+    /**
+     * Removes a file the incoming version no longer contains - only ever
+     * called by updateInstalledFiles() for a RESULT_SAFE_REMOVAL item,
+     * meaning the live file still matched its baseline (never a locally
+     * modified file). Removes the baseline row too, since there is nothing
+     * left on disk for it to describe.
+     */
+    private function applySafeFileRemoval(PackageRecord $record, array $item, string $root, $baselineService): bool
+    {
+        $absoluteTarget = $root . '/' . $item['targetPath'];
+        if (file_exists($absoluteTarget)) {
+            @unlink($absoluteTarget);
+        }
+        $baselineService->remove($record->id, $item['targetPath']);
+        return true;
     }
 
     /**

@@ -25,6 +25,7 @@ use site7\studio\services\installation\InstallationStageRunner;
 use site7\studio\services\installation\InstallationOrchestratorService;
 use site7\studio\services\installation\StarterKitCatalogService;
 use site7\studio\services\synchronization\InstalledFileBaselineService;
+use site7\studio\services\synchronization\PackageUpdatePlanner;
 use site7\studio\services\synchronization\InstalledStarterKitTrackingService;
 use site7\studio\services\synchronization\SynchronizationHistoryService;
 use site7\studio\services\synchronization\SynchronizationPlanner;
@@ -164,6 +165,10 @@ class CoreServiceProvider implements ServiceProviderInterface
 
         $plugin->set('installedFileBaseline', [
             'class' => InstalledFileBaselineService::class,
+        ]);
+
+        $plugin->set('packageUpdatePlanner', [
+            'class' => PackageUpdatePlanner::class,
         ]);
 
         $plugin->set('synchronizationHistory', [

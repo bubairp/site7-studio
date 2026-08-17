@@ -51,6 +51,18 @@ class InstalledFileBaselineService extends Component
     }
 
     /**
+     * Removes a baseline row entirely - used only when a file has actually
+     * been removed from the site by this package (Step 6's "safe removal"
+     * case, the incoming version no longer contains it and it was never
+     * locally modified). Never called merely because an update attempt
+     * happened - only after the file itself was actually deleted.
+     */
+    public function remove(int $packageId, string $targetPath): void
+    {
+        PackageInstalledFileRecord::deleteAll(['packageId' => $packageId, 'targetPath' => $targetPath]);
+    }
+
+    /**
      * @return array<int, array{targetPath: string, resourceHandle: string, installedVersion: string, checksum: string, installedAt: string}>
      */
     public function allForPackage(int $packageId): array
