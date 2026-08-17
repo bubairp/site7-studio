@@ -144,12 +144,19 @@ class PackageAuthoringService extends Component
 
         // Phase 9.1/9.2: an imported Section or Page package is a read-only
         // mirror of live Craft content - only its SITE7-specific metadata
-        // (these three keys) may be edited; Name/Author/Version come from
-        // the source and are locked. Silently dropped rather than erroring,
-        // since the Package Editor already renders them disabled - this is
-        // the defensive server-side half of that same rule.
+        // (these keys) may be edited; Name/Author come from the source and
+        // stay locked. Silently dropped rather than erroring, since the
+        // Package Editor already renders them disabled - this is the
+        // defensive server-side half of that same rule.
+        //
+        // 'version' is deliberately allowed through even here: a version
+        // bump is always a system-computed semver value (VersionManagerService
+        // ::createVersion()), never a human hand-typing an arbitrary string -
+        // the Package Editor's version field stays disabled in the UI for
+        // these packages regardless, so this doesn't reopen the thing the
+        // lock exists to prevent.
         if ($this->isLockedImportedSection($record) || $this->isLockedImportedPage($record) || $this->isLockedImportedWebsite($record)) {
-            $fields = array_intersect_key($fields, array_flip(['description', 'category', 'tags']));
+            $fields = array_intersect_key($fields, array_flip(['description', 'category', 'tags', 'version']));
         }
 
         $packagePath = $packageManager->getPackagePath($handle);

@@ -7,6 +7,7 @@ use site7\studio\events\publishing\VersionCreatedEvent;
 use site7\studio\interfaces\VersionManagerInterface;
 use site7\studio\records\PackageVersionRecord;
 use site7\studio\services\PackageAuthoringService;
+use site7\studio\services\PackageExportService;
 use site7\studio\Site7Studio;
 
 /**
@@ -40,12 +41,34 @@ class VersionManagerService extends Component implements VersionManagerInterface
         // for "version" specifically.
         (new PackageAuthoringService())->updatePackage($handle, ['version' => $newVersion]);
 
-        $versionRecord = new PackageVersionRecord();
-        $versionRecord->packageId = $record->id;
-        $versionRecord->version = $newVersion;
-        $versionRecord->releaseDate = (new \DateTime())->format('Y-m-d H:i:s');
-        $versionRecord->releaseNotes = $releaseNotes;
-        $versionRecord->save();
+        // Reuses PackageExportService::exportPackage() for the actual .s7pkg
+        // archive + content checksum - it already calls
+        // MarketplaceService::recordVersion() internally (dedup-safe on
+        // packageId+version) once the archive is built, so a version created
+        // here ends up with exactly the same real archivePath/checksum a
+        // manual export would produce, through the one existing recording
+        // path - not a second one. Dependencies are deliberately excluded
+        // (includeDependencies: false): a version row represents this
+        // package's own state, not a bundle of everything it requires -
+        // those are versioned independently, by their own packages.
+        (new PackageExportService())->exportPackage($handle, false);
+
+        $versionRecord = PackageVersionRecord::find()
+            ->where(['packageId' => $record->id, 'version' => $newVersion])
+            ->one();
+        if (!$versionRecord) {
+            // exportPackage() always records a version row for its own root
+            // handle - if it didn't, something upstream broke silently
+            // (e.g. the manifest write above didn't actually take, as it
+            // used to for a locked imported package). Fail loudly rather
+            // than return a version that doesn't have a real archive behind it.
+            throw new \Exception("Version '{$newVersion}' was exported but its history row could not be found.");
+        }
+
+        if ($releaseNotes !== null) {
+            $versionRecord->releaseNotes = $releaseNotes;
+            $versionRecord->save();
+        }
 
         Site7Studio::getInstance()->getService('eventDispatcher')->dispatch(new VersionCreatedEvent([
             'handle' => $handle,
