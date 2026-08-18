@@ -19,6 +19,7 @@ class PackageActionController extends Controller
     public function actionInstall()
     {
         $this->requirePostRequest();
+        $this->requirePermission('managePackages');
 
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
@@ -50,6 +51,7 @@ class PackageActionController extends Controller
     public function actionEnable()
     {
         $this->requirePostRequest();
+        $this->requirePermission('managePackages');
 
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
@@ -75,7 +77,8 @@ class PackageActionController extends Controller
     public function actionDisable()
     {
         $this->requirePostRequest();
-        
+        $this->requirePermission('managePackages');
+
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
         // Phase 7.2 Safety Check
@@ -102,7 +105,8 @@ class PackageActionController extends Controller
     public function actionRemove()
     {
         $this->requirePostRequest();
-        
+        $this->requirePermission('managePackages');
+
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
         // Phase 7.2 Safety Check
@@ -185,6 +189,7 @@ class PackageActionController extends Controller
     public function actionDetach()
     {
         $this->requirePostRequest();
+        $this->requirePermission('managePackages');
 
         if (!Site7Studio::isDevMode()) {
             throw new \yii\web\ForbiddenHttpException('You are not permitted to detach this package.');

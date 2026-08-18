@@ -24,12 +24,13 @@ FILE SAFETY            PackageUpdatePlanner::classify() — three-way baseline/l
 RESOURCE DELETION      CraftResourceService::removePackageResources() — usage-checked via
                        Entry::find()->typeId()->count() / findFieldUsages() (12_PACKAGE_UNINSTALLATION.md)
 
-DESTRUCTIVE-OP GATING  deletePackage()/detachPackage() — Dev-Mode-gated (with a self-captured-
-                       Template exception for deletePackage only). installPackage()/enablePackage()/
-                       disablePackage()/removePackage() have NEITHER a permission check NOR a
-                       Dev-Mode gate — PackageActionController calls requirePermission() nowhere in
-                       the file (see 28_CONTROLLERS_AND_ROUTES.md §10). Any CP user with general CP
-                       access can install/enable/disable/remove packages today.
+DESTRUCTIVE-OP GATING  installPackage()/enablePackage()/disablePackage()/removePackage()/
+                       detachPackage() now all require the managePackages permission
+                       (PackageActionController::actionInstall/Enable/Disable/Remove/Detach,
+                       fixed - see 43_KNOWN_ISSUES_AND_TECHNICAL_DEBT.md #16). detachPackage()
+                       additionally keeps its pre-existing Dev-Mode gate on top of the permission
+                       check. deletePackage() remains Dev-Mode-gated only (with a self-captured-
+                       Template exception) - not part of this fix, still permission-check-free.
 
 DUPLICATE PREVENTION   SectionImportSourceRepository/PageImportSourceRepository/
                        WebsiteImportSourceRepository — 1:1 uniqueness guards at import time

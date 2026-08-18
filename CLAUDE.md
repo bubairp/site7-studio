@@ -52,7 +52,7 @@ Read what's relevant to the task, not the whole set.
 6. **Rollback** restores package source and re-runs the same `PackageUpdatePlanner`; it never creates a new version row and never modifies a historical archive. (`20`)
 7. **Frontend owned files** are explicit via `PackageManifest::$ownedFiles` — never inferred from filename/handle. (`21`)
 8. Prefer **Craft's native service APIs** (Fields, Entry Types, Sections, Volumes, Category Groups — see `CraftResourceService`/`CraftResourceInstallExecutor`) over manually editing Project Config YAML. (`04`)
-9. `PackageActionController`'s `install`/`enable`/`disable`/`remove` actions currently have **no permission gate** (documented gap — `28` §10, `31`, `43` #16). Don't assume a destructive controller action is authorized just because it already works.
+9. `PackageActionController`'s `install`/`enable`/`disable`/`remove`/`detach` actions require the `managePackages` permission (fixed — `28` §10, `31`, `43` #16). `detach` also keeps its Dev-Mode gate as an additional layer. `delete` remains Dev-Mode-gated only, not permission-gated — that was an intentional scope decision, not an oversight. Still, don't assume a destructive controller action is authorized just because it already works — verify against `28`/`31` for the current, real state before relying on it.
 10. **Starter Kit** (`32`) is a structurally separate three-way system from #5 — don't merge them. Its Build phase (`StarterKitBuilder`) is CLI-only today, unlike Install (`32` §14).
 
 ## Do-not-duplicate rule
