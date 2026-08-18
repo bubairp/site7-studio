@@ -63,3 +63,8 @@ Twelve common symptoms. Each entry lists likely cause, where to inspect, and SAF
 **Likely cause**: pre-existing suite issues, not your change — see `33_TESTING_ARCHITECTURE.md` §10 (3 parse-error files, 3 environment-dependent failures, 2 files with genuine pre-existing assertion drift).
 **Inspect**: run your specific test file individually, excluding the 3 known parse-error files.
 **Safe steps**: compare against the baseline failure list in `33_TESTING_ARCHITECTURE.md` before concluding your change broke something.
+
+### 13. "Clicking 'Add Section' on a Matrix field silently creates an unwanted block" — RESOLVED
+**Likely cause (was)**: a Site7-injected button shared Craft's generic `btn` class and lived inside the same `.buttons` container Craft's own field JS scopes its native add-button selector to (`.buttons .btn:not(.menubtn)`), so Craft bound its own native add handler onto Site7's button too. Most visible when the field has exactly one allowed Entry Type, where Craft's native handler is an instant no-confirmation add. Fixed 2026-08-18 — see `44_CONTENT_BROWSER_MATRIX_INJECTION.md` §11 for the full mechanism and fix.
+**Inspect**: if a similar symptom recurs elsewhere, check whether any newly-injected CP control shares a class with, and lives inside a container scoped by, a selector in Craft's own compiled field JS.
+**Safe steps**: after editing `src/resources/js/pattern-matrix.js` or `pattern-browser.js`, clear the CP resources cache (`ddev craft clear-caches/all`) — Yii's `AssetManager` serves a content-hashed, non-auto-invalidating published copy, so edits will appear to have no effect until this cache is cleared.
