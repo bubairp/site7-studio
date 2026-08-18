@@ -28,40 +28,84 @@
             // is appended as a SIBLING of .buttons/.flex-inline (see injectButton()
             // below for why), so hiding "everything except site7-btn-group" can
             // simply hide all of .buttons/.flex-inline's own children.
+            //
+            // Uses the CHILD combinator (>) throughout, not the descendant
+            // combinator ( ) - `.site7-matrix-override .buttons` (descendant)
+            // matches a `.buttons` ANYWHERE inside a `.site7-matrix-override`
+            // element, at any depth. Since the override class is added to the
+            // site7Components field's own container (which CONTAINS every
+            // block/entry inside it), a descendant-combinator rule also hid
+            // the NATIVE add button of any Matrix-type field nested inside a
+            // site7Components block (e.g. a "CTA Banner" block's own "CTA
+            // Button" field lost its own "Add a button" control this way) -
+            // same root-cause pattern as the injectButton() `.find()` bugs
+            // above, just in CSS instead of JS. The child combinator only
+            // matches `.buttons`/`.flex-inline` that are DIRECT children of
+            // the site7-matrix-override element itself, never a nested
+            // field's own.
             if (!this.cssInjected) {
-                $('<style>.site7-matrix-override .buttons > *, .site7-matrix-override .flex-inline > * { display: none !important; } .site7-matrix-override .site7-btn-group, .site7-matrix-override .site7-add-block-btn, .site7-matrix-override .site7-insert-pattern-btn { display: flex !important; }</style>').appendTo(document.head);
+                $('<style>.site7-matrix-override > .buttons > *, .site7-matrix-override > .flex-inline > * { display: none !important; } .site7-matrix-override > .site7-btn-group, .site7-matrix-override > .site7-add-block-btn, .site7-matrix-override > .site7-insert-pattern-btn { display: flex !important; }</style>').appendTo(document.head);
                 this.cssInjected = true;
             }
         },
 
         injectButton: function($matrixContainer) {
-            // Only inject once per field container
-            if ($matrixContainer.find('.site7-btn-group').length > 0) {
+            // Only inject once per field container. Scoped to DIRECT children
+            // only - see the $btnContainer comment below for why an unscoped
+            // descendant search (.find()) is wrong here, for the same reason.
+            if ($matrixContainer.children('.site7-btn-group').length > 0) {
                 return;
             }
 
-            // Check against configured matrix field handle
+            // Check against configured matrix field handle. Must be an EXACT
+            // match against the field's own data-attribute, not a substring
+            // match against ids/input names. Craft namespaces a nested field's
+            // container id and input names with every ANCESTOR field's handle
+            // as a path prefix - e.g. a "button" field nested inside a
+            // site7Components block gets an id like
+            // "fields-site7Components-entries-uid-...-fields-button" - so any
+            // substring/`.includes()` check against those (as a previous
+            // version of this code did, including an `input[name*="..."]`
+            // check) matches EVERY Matrix-shaped field nested anywhere inside
+            // a site7Components block, not just the top-level field itself.
+            // That previously caused Add Section/Insert Pattern buttons to be
+            // injected into e.g. a "CTA Banner" block's own "CTA Button" or
+            // "Block Style" fields. `data-attribute` on the immediate `.field`
+            // wrapper is set to that field's OWN handle only - "button"/
+            // "blockStyle" for those nested fields, never "site7Components" -
+            // so an exact match against it is reliable regardless of nesting
+            // depth.
             if (window.site7Studio && window.site7Studio.matrixFieldHandle) {
                 const searchHandle = window.site7Studio.matrixFieldHandle.toLowerCase();
-                const containerId = ($matrixContainer.attr('id') || '').toLowerCase();
                 const $fieldParent = $matrixContainer.closest('.field');
                 const fieldAttr = ($fieldParent.attr('data-attribute') || '').toLowerCase();
-                const fieldIdAttr = ($fieldParent.attr('id') || '').toLowerCase();
-                
-                const hasHandle = containerId.includes(searchHandle) || 
-                                  fieldAttr.includes(searchHandle) || 
-                                  fieldIdAttr.includes(searchHandle) ||
-                                  $matrixContainer.find('input[name*="' + searchHandle + '"]').length > 0;
-                
-                if (!hasHandle) {
+
+                if (fieldAttr !== searchHandle) {
                     return;
                 }
             }
 
-            // Wait until the button container is created in the DOM
-            let $btnContainer = $matrixContainer.find('.buttons').first();
+            // Wait until the button container is created in the DOM. Must be
+            // a DIRECT CHILD of $matrixContainer - `.find()` (searches ALL
+            // descendants at any depth, not just direct children) is wrong
+            // here: a Matrix field nested inside one of THIS field's own
+            // blocks/entries (e.g. a "CTA Banner" block's own "CTA Button"
+            // field, itself a Matrix field) has its OWN `.buttons` div too.
+            // Craft renders a field's blocks/entries list BEFORE its own
+            // top-level `.buttons`, so when such a nested `.buttons` exists,
+            // it appears EARLIER in DOM source order than this field's own -
+            // `.find('.buttons').first()` then silently returns the WRONG,
+            // nested one (document order, not nesting depth, decides
+            // `.first()`), and the button group ends up inserted inside that
+            // nested field instead of this one. Confirmed live: exactly this
+            // caused a "CTA Banner" block's own "CTA Button" field to receive
+            // Add Section/Insert Pattern buttons, even though the handle
+            // check above had already correctly identified site7Components
+            // (not "button") as the matched field - the handle check was
+            // right, $btnContainer just resolved to the wrong element.
+            let $btnContainer = $matrixContainer.children('.buttons').first();
             if ($btnContainer.length === 0) {
-                $btnContainer = $matrixContainer.find('.flex-inline, .flex.flex-inline').first();
+                $btnContainer = $matrixContainer.children('.flex-inline, .flex.flex-inline').first();
             }
 
             if ($btnContainer.length === 0) {

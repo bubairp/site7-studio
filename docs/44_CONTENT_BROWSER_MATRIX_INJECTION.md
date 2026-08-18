@@ -10,7 +10,7 @@ Document how the "Add Section" / "Insert Pattern" buttons and the "Site7 Content
 
 ## 3. Current Status
 
-**Implemented.** A bug where clicking "Add Section" could silently also create a native block (see §11) was found and fixed on 2026-08-18.
+**Implemented.** Three related bugs were found and fixed on 2026-08-18: clicking "Add Section" could silently also create a native block (§11); the field-matching and DOM-scoping logic could reach into Matrix-type fields nested inside a site7Components block's own entries, injecting Site7's buttons into them and hiding their native controls (§15).
 
 ## 4. Architecture
 
@@ -19,12 +19,15 @@ PatternInserter (Garnish.Base, instantiated once on $(document).ready())
    ↓ setInterval(500ms): pollForMatrixFields()
    ↓ for each div.matrix / .nested-element-cards on the page:
 injectButton($matrixContainer)
-   → matches field by window.site7Studio.matrixFieldHandle
-   → finds $btnContainer (.buttons, or .flex-inline fallback)
+   → matches field by EXACT data-attribute against
+     window.site7Studio.matrixFieldHandle (see §11B)
+   → finds $btnContainer: DIRECT CHILD .buttons, or .flex-inline
+     fallback (see §15 for why this must be .children(), not .find())
    → builds $btnGroup (Add Section / Insert Pattern) and inserts it
      as a SIBLING of $btnContainer (NOT a child — see §11)
    → adds .site7-matrix-override class, which triggers injected CSS
-     to hide $btnContainer's own (native) children
+     (child-combinator-scoped, see §11B) to hide $btnContainer's own
+     (native) children
    ↓ click "Add Section" / "Insert Pattern"
 openPatternModal() → new Site7PatternBrowser(defaultTab, onSelectCallback)
    ↓ user selects a card → onInsertClick() → hide() → onSelectCallback(handle, type, ...)
@@ -88,9 +91,22 @@ A prior fix attempt (still visible in git history / superseded comments) avoided
 
 **Follow-up hardening (2026-08-18, same day):** the underlying reason this class of bug was even possible — simulating a click on Craft's native button (`$addBtn.trigger('click').trigger('activate')`) instead of calling a real API — was independently fixed. See §14.
 
+### §11B. Fixed 2026-08-18 (same day) — Site7's buttons injected into, and their native controls hidden on, a Matrix-type field nested inside a site7Components block's own entries.
+
+Reported symptom: after adding a "CTA Banner" section (a site7Components block whose own field layout includes a "CTA Button" field — itself a Matrix field, since it's site7-studio's mechanism for letting a button optionally link to a Section/Pattern/Template), that nested "CTA Button" field's own content area showed Site7's "Add Section"/"Insert Pattern" buttons instead of its own "+ Add a button" control.
+
+Two independent, unscoped-descendant-search bugs, both following the exact same pattern as §11 (an unscoped selector reaching past the intended field into content nested inside it), were found:
+
+1. **`injectButton()`'s `$btnContainer` resolution used `$matrixContainer.find('.buttons').first()`.** `.find()` searches ALL descendants at any depth, not just direct children. A Matrix field nested inside one of site7Components' own blocks/entries (e.g. "CTA Banner"'s own "CTA Button" field) has its OWN `.buttons` div. Craft renders a field's blocks/entries list *before* its own top-level `.buttons`, so a nested field's `.buttons` appears *earlier* in DOM source order than the outer field's own — `.find('.buttons').first()` then silently returns the wrong, nested one (document order, not nesting depth, decides `.first()`), and `$btnContainer.after($btnGroup)` inserts Site7's button group inside that nested field instead of site7Components itself. Confirmed live via `console.log`-instrumented reproduction across genuinely fresh page loads (cache-busted URLs, a brand-new tab) — this was not a caching artifact. The field-handle-matching check (§11's fix) was independently correct and had already identified site7Components, not "button", as the matched field; the bug was purely in *where* the matched field's own button container was found.
+2. **The injected CSS hiding native controls used the descendant combinator, not the child combinator**: `.site7-matrix-override .buttons > *` matches a `.buttons` *anywhere* inside a `.site7-matrix-override`-classed element, at any depth — since that class is added to site7Components' own container (which contains every block/entry inside it), this also hid the nested "CTA Button" field's own native "Add a button" control, even after fix #1 above stopped the wrong injection.
+
+**Fix**: `$btnContainer` resolution now uses `$matrixContainer.children('.buttons').first()` / `.children('.flex-inline, .flex.flex-inline').first()` (direct children only), and the "already injected" guard at the top of `injectButton()` was changed from `.find('.site7-btn-group')` to `.children('.site7-btn-group')` for the same reason. The injected CSS now uses the child combinator throughout: `.site7-matrix-override > .buttons > *` / `.site7-matrix-override > .flex-inline > *` / `.site7-matrix-override > .site7-btn-group` etc.
+
+**General lesson (applies to both §11 and §11B):** when scoping a selector to "this field's own X", always prefer `.children()`/an exact attribute-equality match over `.find()`/`.includes()`/a bare descendant-combinator CSS selector. Nested fields inside a Matrix field's own blocks share DOM ancestry, ID/name-prefix namespacing, and (via the override class) even shared ancestor classes with the outer field — any unscoped/substring/descendant check will eventually match something nested that it shouldn't.
+
 ## 12. Developer Change Guide
 
-If adding a new injected control near a native Craft field control: never place it *inside* a container Craft's own field JS scopes a selector to (commonly `.buttons`, `.flex-inline`), and avoid Craft's generic utility classes (`btn`, `add`, `menubtn`) on it — either keep it as a sibling (as this fix does) or use only Site7-prefixed classes. After editing any file listed in `PatternMatrixBundle::$js`, clear the CP resources cache (§11) before testing in a browser — otherwise you will be testing stale code. When triggering native Craft entry/block creation from custom JS, prefer calling the field instance's own public method (e.g. `matrixInstance.addEntry(entryTypeHandle)`, `manager.createElement(attributes)`) over simulating clicks/keydowns on its DOM controls — see §14 for why.
+If adding a new injected control near a native Craft field control: never place it *inside* a container Craft's own field JS scopes a selector to (commonly `.buttons`, `.flex-inline`), and avoid Craft's generic utility classes (`btn`, `add`, `menubtn`) on it — either keep it as a sibling (as this fix does) or use only Site7-prefixed classes. After editing any file listed in `PatternMatrixBundle::$js`, clear the CP resources cache (§11) before testing in a browser — otherwise you will be testing stale code. When triggering native Craft entry/block creation from custom JS, prefer calling the field instance's own public method (e.g. `matrixInstance.addEntry(entryTypeHandle)`, `manager.createElement(attributes)`) over simulating clicks/keydowns on its DOM controls — see §14 for why. When resolving "this field's own X container/button/state" from `$matrixContainer` (or writing a CSS rule scoped by an override class on it), always use `.children()`/a direct-child CSS combinator (`>`) or an exact attribute-equality match — never `.find()`, `input[name*="..."]`, or a bare descendant-combinator selector, all of which will eventually match content nested inside one of this field's own blocks/entries too (§11B).
 
 ## 13. Related Features
 
