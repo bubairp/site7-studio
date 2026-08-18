@@ -9,6 +9,7 @@ use craft\helpers\FileHelper;
 use site7\studio\events\ResourceImportedEvent;
 use site7\studio\records\PackageRecord;
 use site7\studio\repositories\PageImportSourceRepository;
+use site7\studio\services\support\AssetCaptureHelper;
 use site7\studio\services\TemplateGeneratorService;
 use site7\studio\Site7Studio;
 use Symfony\Component\Yaml\Yaml;
@@ -97,9 +98,15 @@ class PageImportService extends Component
      * MatrixEntryTypeImportService::detectFields()'s extraction in Phase
      * 9.1).
      *
+     * @param string|null $packagePath When non-null, an Assets field's
+     *   selected file(s) are actually copied into the package (via
+     *   AssetCaptureHelper) rather than only being described. Left null by
+     *   callers that only need a read-only preview/diff (see
+     *   PageUpdateService::diff()), so computing a diff never mutates a
+     *   package's files on disk.
      * @return array{0: array, 1: array, 2: string[], 3: array, 4: array} [detectedFields, entryFields, sharedResourceHandles, pluginDependencies, excludedFields]
      */
-    public function captureNativeFields(Entry $entry, ?string $matrixHandle): array
+    public function captureNativeFields(Entry $entry, ?string $matrixHandle, ?string $packagePath = null): array
     {
         $craftResourceService = Site7Studio::getInstance()->craftResourceGenerator;
         $layout = $entry->getFieldLayout();
@@ -129,6 +136,24 @@ class PageImportService extends Component
                     $registry->registerField($liveFieldsByHandle[$field['handle']], $field);
                 }
                 $sharedResourceHandles[] = $field['handle'];
+
+                // Assets fields are always a Shared Resource for FIELD
+                // (definition) purposes - the Volume it points at must
+                // already exist on the installing site, never bundled - but
+                // that's orthogonal to the field's VALUE on this specific
+                // page: which image(s) were actually selected. Previously
+                // that selection was dropped entirely; now it's captured
+                // separately via AssetCaptureHelper so a fresh install can
+                // re-link the same file(s) instead of arriving with an empty
+                // field. See AssetCaptureHelper's docblock for the full
+                // rationale.
+                if (($field['type'] ?? '') === 'Assets' && isset($liveFieldsByHandle[$field['handle']])) {
+                    $value = $entry->getFieldValue($field['handle']);
+                    $descriptor = AssetCaptureHelper::captureAssetField($value, $packagePath, $packagePath !== null);
+                    if ($descriptor !== null) {
+                        $entryFields[$field['handle']] = $descriptor;
+                    }
+                }
                 continue;
             }
             if (in_array($field['classification'], [ResourceClassifierService::PLUGIN_DEPENDENCY, ResourceClassifierService::EXTERNAL_DEPENDENCY], true)) {
@@ -204,6 +229,13 @@ class PageImportService extends Component
         $handle = $proposedHandle;
         $packagePath = rtrim(Craft::getAlias('@packages'), '/') . '/' . $handle;
         FileHelper::createDirectory($packagePath);
+
+        // Re-capture now that packagePath exists, so any Assets field's
+        // selected file(s) actually get copied into the package this time
+        // (the first captureNativeFields() call above, before packagePath
+        // existed, only built the descriptor for validation purposes - see
+        // that method's $packagePath docblock).
+        [, $entryFields] = $this->captureNativeFields($entry, $matrixHandle, $packagePath);
 
         $tags = array_values(array_filter(array_map('trim', explode(',', (string)($meta['tags'] ?? '')))));
 

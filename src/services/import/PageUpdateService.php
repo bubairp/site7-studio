@@ -37,7 +37,10 @@ class PageUpdateService
      */
     public function diff(string $packageHandle): array
     {
-        [, , $manifestData, $recaptured] = $this->resolve($packageHandle);
+        // copyAssetFiles: false - a diff is a read-only preview and must
+        // never mutate the package's files on disk; only updateInPlace()
+        // actually copies a changed asset selection's bytes.
+        [, , $manifestData, $recaptured] = $this->resolve($packageHandle, false);
 
         $oldContent = array_merge((array)($manifestData['entryFields'] ?? []), (array)($manifestData['demoContent'] ?? []));
         $newContent = array_merge($recaptured['entryFields'], $recaptured['demoContent']);
@@ -75,7 +78,7 @@ class PageUpdateService
      */
     public function updateInPlace(string $packageHandle): PackageRecord
     {
-        [$record, $entry, $manifestData, $recaptured, $sourceRecord] = $this->resolve($packageHandle);
+        [$record, $entry, $manifestData, $recaptured, $sourceRecord] = $this->resolve($packageHandle, true);
 
         $packageManager = Site7Studio::getInstance()->packageManager;
         $packagePath = $packageManager->getPackagePath($packageHandle);
@@ -122,7 +125,7 @@ class PageUpdateService
      * @return array{0: PackageRecord, 1: Entry, 2: array, 3: array{entryFields: array, demoContent: array, requires: array, dependencies?: array, excludedFields?: array}, 4: \site7\studio\records\PageImportSourceRecord}
      * @throws \Exception if the package isn't an imported Page, or its source Entry no longer exists.
      */
-    private function resolve(string $packageHandle): array
+    private function resolve(string $packageHandle, bool $copyAssetFiles = false): array
     {
         $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($packageHandle);
         if (!$record || $record->type !== 'template') {
@@ -145,15 +148,19 @@ class PageUpdateService
         }
         $manifestData = json_decode(file_get_contents($packagePath . '/manifest.json'), true) ?: [];
 
-        $recaptured = $this->recapture($entry);
+        $recaptured = $this->recapture($entry, $copyAssetFiles ? $packagePath : null);
 
         return [$record, $entry, $manifestData, $recaptured, $sourceRecord];
     }
 
     /**
+     * @param string|null $packagePath Non-null (and only then) actually
+     *   copies a captured Assets field's file(s) into the package - see
+     *   PageImportService::captureNativeFields()'s own $packagePath
+     *   docblock. Left null by diff()'s read-only preview.
      * @return array{entryFields: array, demoContent: array, requires: array, dependencies?: array, excludedFields?: array}
      */
-    private function recapture(Entry $entry): array
+    private function recapture(Entry $entry, ?string $packagePath = null): array
     {
         $matrixHandle = $this->getMatrixFieldHandle();
         $hasSite7Content = false;
@@ -165,7 +172,7 @@ class PageUpdateService
         $hasher = new EntrySourceHasher();
 
         if (!$hasSite7Content) {
-            [, $entryFields, $sharedResourceHandles, $pluginDependencies, $excludedFields] = (new PageImportService())->captureNativeFields($entry, $matrixHandle);
+            [, $entryFields, $sharedResourceHandles, $pluginDependencies, $excludedFields] = (new PageImportService())->captureNativeFields($entry, $matrixHandle, $packagePath);
             return [
                 'entryFields' => $entryFields,
                 'demoContent' => [],

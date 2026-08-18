@@ -7,6 +7,7 @@ use craft\base\Component;
 use craft\elements\Entry;
 use craft\models\Section;
 use site7\studio\models\packages\PackageManifest;
+use site7\studio\services\support\AssetCaptureHelper;
 use site7\studio\Site7Studio;
 use Symfony\Component\Yaml\Yaml;
 
@@ -223,11 +224,32 @@ class TemplateInsertionService extends Component
         // Restore the source Entry's own captured custom field values (e.g. Theme,
         // Header Style - anything besides the Matrix field), skipping any handle no
         // longer present on the target Entry Type's field layout.
+        //
+        // An Assets field's captured value isn't a plain scalar - it's the
+        // structured descriptor AssetCaptureHelper::captureAssetField() wrote
+        // (filename/volume/folder/alt/title + the file bundled at
+        // preview/assets/ inside the package). Restore it into real Asset
+        // element(s) on this install (re-using an existing matching Asset by
+        // filename+Volume when one's already there, uploading from the
+        // package's own bundled copy otherwise) before calling
+        // setFieldValue(), rather than passing the raw descriptor through -
+        // which would leave the field either empty or containing garbage.
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($templateHandle);
         $entryFieldLayout = $entryType->getFieldLayout();
         foreach ($manifest?->entryFields ?? [] as $fieldHandle => $fieldValue) {
-            if ($entryFieldLayout?->getFieldByHandle($fieldHandle)) {
-                $entry->setFieldValue($fieldHandle, $fieldValue);
+            if (!$entryFieldLayout?->getFieldByHandle($fieldHandle)) {
+                continue;
             }
+            if (AssetCaptureHelper::isAssetDescriptor($fieldValue)) {
+                if ($packagePath) {
+                    $assetIds = AssetCaptureHelper::restoreAssetField($fieldValue, $packagePath);
+                    if (!empty($assetIds)) {
+                        $entry->setFieldValue($fieldHandle, $assetIds);
+                    }
+                }
+                continue;
+            }
+            $entry->setFieldValue($fieldHandle, $fieldValue);
         }
 
         if (!Craft::$app->getElements()->saveElement($entry)) {
