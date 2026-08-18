@@ -129,6 +129,7 @@ class TemplateGeneratorService extends Component
             'tags' => $tags,
             'sourceEntryType' => $entry->getType()->handle,
             'sourceSection' => $entry->getSection()?->handle,
+            'sourceSectionType' => $entry->getSection()?->type,
             'requires' => array_filter([
                 'patterns' => $requiresPatterns,
                 'sections' => $requiresSections,

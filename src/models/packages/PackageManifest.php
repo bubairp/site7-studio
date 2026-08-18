@@ -71,6 +71,15 @@ class PackageManifest extends Model
     public ?string $sourceSection = null;
 
     /**
+     * The source Section's own type ('single'|'channel'|'structure', craft\models\
+     * Section::TYPE_*) at capture time - lets the Library list/detail views show
+     * what kind of page this Template came from, and lets "Create from Template"
+     * (TemplateInsertionService::getEligibleEntryTypes()) reason about it without
+     * re-resolving the (possibly since-deleted) source Section on every request.
+     */
+    public ?string $sourceSectionType = null;
+
+    /**
      * The source Entry's own custom field values (i.e. its Section/Entry Type field
      * layout), keyed by field handle - everything except the Site7 Matrix field
      * itself, which is captured separately via demoContent/requires.
@@ -255,7 +264,7 @@ class PackageManifest extends Model
     {
         $rules = parent::defineRules();
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion'], 'required'];
-        $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview', 'sourceEntryType', 'sourceSection'], 'string'];
+        $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview', 'sourceEntryType', 'sourceSection', 'sourceSectionType'], 'string'];
         $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords', 'importedFrom', 'globals', 'excludedFields', 'assetVolumes', 'categoryGroups', 'tagGroups', 'craftSections', 'navigation', 'projectConfigPaths', 'ownedFiles'], 'safe'];
         $rules[] = [['displayName', 'company', 'website', 'supportUrl', 'documentationUrl', 'license', 'pricingType', 'minimumCraftVersion', 'minimumSite7Version'], 'string'];
         return $rules;

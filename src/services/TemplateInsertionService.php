@@ -146,6 +146,16 @@ class TemplateInsertionService extends Component
         $options = [];
 
         foreach ($entriesService->getAllSections() as $section) {
+            // Single sections have exactly one, already-existing Entry -
+            // there's no "create a new page" to do there, so they're never
+            // an eligible target for this wizard even if their one Entry
+            // Type happens to carry the Site7 Matrix field (e.g. a
+            // single-entry "Contact" page built the same way a multi-entry
+            // "Standard Pages" one is).
+            if ($section->type === Section::TYPE_SINGLE) {
+                continue;
+            }
+
             foreach ($entriesService->getEntryTypesBySectionId($section->id) as $entryType) {
                 $field = $entryType->getFieldLayout()?->getFieldByHandle($matrixHandle);
                 if (!$field) {

@@ -162,6 +162,12 @@
             <div class="heading"><label>{{ "Package Type"|t('site7-studio') }}</label></div>
             <div class="input">{{ package.type|title }}</div>
         </div>
+        {% if package.type == 'template' and package.manifest and package.manifest.sourceSectionType %}
+            <div class="field">
+                <div class="heading"><label>{{ "Source Page Type"|t('site7-studio') }}</label></div>
+                <div class="input">{{ package.manifest.sourceSectionType|title }}{% if package.manifest.sourceSection %} ({{ package.manifest.sourceSection }}){% endif %}</div>
+            </div>
+        {% endif %}
         {% if package.category %}
             <div class="field">
                 <div class="heading"><label>{{ "Category"|t('site7-studio') }}</label></div>

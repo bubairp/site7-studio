@@ -251,6 +251,7 @@ class PageImportService extends Component
             'tags' => $tags,
             'sourceEntryType' => $entry->getType()->handle,
             'sourceSection' => $entry->getSection()?->handle,
+            'sourceSectionType' => $entry->getSection()?->type,
             'requires' => [],
             'demoContent' => [],
             'entryFields' => $entryFields,
