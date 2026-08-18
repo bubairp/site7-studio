@@ -44,6 +44,7 @@ class SetupController extends Controller
                 $matrixField = new Matrix([
                     'handle' => 'site7Components',
                     'name' => 'Site7 Components',
+                    'viewMode' => 'blocks',
                 ]);
                 
                 // Craft 5 removed field groups, so we can just save the field.

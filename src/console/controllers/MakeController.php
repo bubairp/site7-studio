@@ -68,6 +68,7 @@ class MakeController extends Controller
             $matrixField = new Matrix([
                 'handle' => 'site7Components',
                 'name' => 'Site7 Components',
+                'viewMode' => 'blocks',
             ]);
             // A brand new Matrix field legitimately has zero Entry Types at
             // this point - they arrive later as Section packages are
