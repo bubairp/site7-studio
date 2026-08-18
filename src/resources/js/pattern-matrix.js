@@ -193,7 +193,7 @@
             return null;
         },
 
-        insertSection: function($matrixContainer, handle, blockTypeHandle, blockTypeId) {
+        insertSection: async function($matrixContainer, handle, blockTypeHandle, blockTypeId) {
             const searchHandle = blockTypeHandle || handle;
             const manager = $matrixContainer.data('nestedElementManager') || $matrixContainer.data('nested-element-manager');
             const matrixInstance = $matrixContainer.data('matrix');
@@ -212,6 +212,34 @@
             // is "Blocks" instead of "Cards" - those still render the classic
             // block editor, not NestedElementManager).
             if (matrixInstance) {
+                // Prefer calling Craft's own addEntry(entryTypeHandle) instance
+                // method directly over simulating a click on its native add
+                // button. A previous version of this code instead did
+                // `$addBtn.trigger('click').trigger('activate')`, which - because
+                // it operates on the SAME DOM element Craft's own field JS binds
+                // its native handlers to - was exactly what caused a real bug
+                // (docs/44_CONTENT_BROWSER_MATRIX_INJECTION.md §11): any
+                // accidental overlap between our injected UI and that same
+                // button/selector could trigger Craft's native handler a second,
+                // unwanted time. addEntry() is Craft's own public instance method
+                // (it posts to the "matrix/create-entry" action itself) - calling
+                // it directly never touches the DOM button at all, so there is
+                // nothing left for our UI to collide with.
+                if (typeof matrixInstance.addEntry === 'function' &&
+                    matrixInstance.entryTypesByHandle &&
+                    matrixInstance.entryTypesByHandle[searchHandle]) {
+                    try {
+                        await matrixInstance.addEntry(searchHandle);
+                        Craft.cp.displayNotice('Section inserted.');
+                    } catch (err) {
+                        console.error('Failed to insert section:', err);
+                        Craft.cp.displayError('Failed to insert section: ' + searchHandle);
+                    }
+                    return;
+                }
+
+                // Fallback for older Craft builds without a public addEntry()
+                // method - simulates a click on the native button as before.
                 let $addBtn = matrixInstance.$container.find(`.buttons .btn[data-type="${searchHandle}"]`);
                 if ($addBtn.length === 0) {
                     // A field with exactly one allowed Entry Type renders a single
@@ -355,7 +383,24 @@
             for (const block of blocks) {
                 const searchHandle = block.type;
 
-                // If Craft 4 MatrixInput
+                // If Craft 4 MatrixInput - prefer calling addEntry() directly,
+                // same reasoning as insertSection() above
+                // (docs/44_CONTENT_BROWSER_MATRIX_INJECTION.md §11 and §14): this
+                // also replaces the previous fixed 500ms delay-and-hope with an
+                // actually-awaited completion signal, since addEntry()'s own
+                // network round trip is awaited directly instead of guessed at.
+                if (matrixInstance && typeof matrixInstance.addEntry === 'function' &&
+                    matrixInstance.entryTypesByHandle && matrixInstance.entryTypesByHandle[searchHandle]) {
+                    try {
+                        await matrixInstance.addEntry(searchHandle);
+                    } catch (err) {
+                        console.error('Failed to create block:', err);
+                    }
+                    continue;
+                }
+
+                // Fallback for older Craft builds without a public addEntry()
+                // method - simulates a click on the native button as before.
                 if (matrixInstance) {
                     const $addBtn = matrixInstance.$container.find(`.buttons .btn[data-type="${searchHandle}"]`);
                     if ($addBtn.length) {

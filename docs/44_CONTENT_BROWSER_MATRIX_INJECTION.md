@@ -30,8 +30,9 @@ openPatternModal() → new Site7PatternBrowser(defaultTab, onSelectCallback)
    ↓ user selects a card → onInsertClick() → hide() → onSelectCallback(handle, type, ...)
 insertSection() / insertPattern() / insertTemplate()
    → Craft 5 Cards/NestedElementManager: manager.createElement(attributes)
-   → Craft 4 / "Blocks" viewMode MatrixInput: finds the native per-type
-     add button (`.buttons .btn[data-type="..."]`) and triggers it
+   → Craft 4 / "Blocks" viewMode MatrixInput: matrixInstance.addEntry(handle)
+     (Craft's own public instance method — see §14; DOM-click-simulation on
+     the native per-type add button is kept only as a last-resort fallback)
 ```
 
 ## 5. Execution Flow
@@ -83,11 +84,13 @@ A prior fix attempt (still visible in git history / superseded comments) avoided
 
 **If this class of bug recurs** (a Site7-injected control unexpectedly triggering native Craft field behavior): suspect a shared CSS class between a Site7 element and whatever selector Craft's own field JS uses to find its native controls, *especially* when that Site7 element lives inside a container Craft's JS also scopes its own selector to. Verify by patching the suspected native method (e.g. `mi.addEntry = function(...) { console.trace(); return orig.apply(this, arguments); }`) live in DevTools and reproducing.
 
-**Caches to clear after editing these JS files**: `ddev craft clear-caches/all` (or specifically the "Control panel resources" cache) — Yii's `AssetManager` publishes `src/resources/js/*` to a content-hashed `web/cpresources/<hash>/` directory and does not automatically detect source-file changes; without clearing this cache the CP will keep serving the pre-edit copy indefinitely.
+**Caches to clear after editing these JS files**: `ddev craft clear-caches/all` (or specifically the "Control panel resources" cache) — Yii's `AssetManager` publishes `src/resources/js/*` to a content-hashed `web/cpresources/<hash>/` directory and does not automatically detect source-file changes; without clearing this cache the CP will keep serving the pre-edit copy indefinitely. (Also note: in this dev environment the published hash was observed to change on effectively every page load regardless of whether the source changed — a WSL2/Docker bind-mount `mtime` instability, not a Site7 Studio issue. Don't rely on comparing hash values to tell whether a cache-clear "worked"; verify by `fetch()`-ing the currently-loaded script URL from the browser console and checking its content instead.)
+
+**Follow-up hardening (2026-08-18, same day):** the underlying reason this class of bug was even possible — simulating a click on Craft's native button (`$addBtn.trigger('click').trigger('activate')`) instead of calling a real API — was independently fixed. See §14.
 
 ## 12. Developer Change Guide
 
-If adding a new injected control near a native Craft field control: never place it *inside* a container Craft's own field JS scopes a selector to (commonly `.buttons`, `.flex-inline`), and avoid Craft's generic utility classes (`btn`, `add`, `menubtn`) on it — either keep it as a sibling (as this fix does) or use only Site7-prefixed classes. After editing any file listed in `PatternMatrixBundle::$js`, clear the CP resources cache (§11) before testing in a browser — otherwise you will be testing stale code.
+If adding a new injected control near a native Craft field control: never place it *inside* a container Craft's own field JS scopes a selector to (commonly `.buttons`, `.flex-inline`), and avoid Craft's generic utility classes (`btn`, `add`, `menubtn`) on it — either keep it as a sibling (as this fix does) or use only Site7-prefixed classes. After editing any file listed in `PatternMatrixBundle::$js`, clear the CP resources cache (§11) before testing in a browser — otherwise you will be testing stale code. When triggering native Craft entry/block creation from custom JS, prefer calling the field instance's own public method (e.g. `matrixInstance.addEntry(entryTypeHandle)`, `manager.createElement(attributes)`) over simulating clicks/keydowns on its DOM controls — see §14 for why.
 
 ## 13. Related Features
 
@@ -95,4 +98,4 @@ If adding a new injected control near a native Craft field control: never place 
 
 ## 14. Known Limitations
 
-`insertPattern()`/`insertTemplate()`'s Craft-4/"Blocks"-viewMode fallback path (`createBlocksSequentially()`) creates blocks by triggering native add-button clicks with a fixed 500ms delay between each — this is a polling/timing-based approach, not an awaited completion signal, and could in principle race under heavy server latency. Not confirmed to have caused a real failure.
+**Resolved 2026-08-18.** `insertSection()`'s classic/"Blocks"-viewMode path and `createBlocksSequentially()`'s classic-Matrix loop now call `matrixInstance.addEntry(entryTypeHandle)` directly (Craft's own public instance method, which itself posts to the `matrix/create-entry` action and returns a promise) whenever that method and a matching `entryTypesByHandle` entry are available, instead of simulating a click on the native add button. This was done for two reasons: (1) it's the deeper fix for the §11 bug class — calling the real method never touches the native DOM button at all, so there is nothing for a future Site7-injected control to accidentally collide with, even if the DOM-isolation fix in §11 were ever undone by a future edit; (2) it replaced `createBlocksSequentially()`'s previous fixed-500ms-delay-and-hope pacing with an actually-awaited completion signal per block, removing a real (if unconfirmed-in-practice) race risk under slow server responses. The DOM-click-simulation path is kept only as a fallback for hypothetical older Craft builds that don't expose `addEntry()` as a public method — not currently known to be needed on any supported Craft version. Verified live: stubbing `Site7PatternBrowser`'s constructor to auto-select a card and clicking "Add Section" produced a real block via `addEntry()` and the expected "Section inserted." notice, with no console errors.
