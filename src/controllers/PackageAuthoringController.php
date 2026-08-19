@@ -145,11 +145,33 @@ class PackageAuthoringController extends Controller
             ? (new StarterKitReferenceResolverService())->resolve($handle)
             : null;
         $starterKitTree = null;
+        // Distinguishes a Starter Kit produced by StarterKitGeneratorService's
+        // "Save/Update Current Site as Starter Kit" (has manifest.pages, but is NOT
+        // the Import-Existing-Website flow handled above) from a hand-authored,
+        // drag/drop-composed Starter Kit (PackageAuthoringController::
+        // actionSaveStarterKit(), which has no manifest.pages at all) - edit.twig
+        // uses this to show a compact "what's included" summary + an "Update
+        // Starter Kit" trigger instead of the drag/drop Builder canvas, which has
+        // nothing to do with a captured-Entries Starter Kit's actual data shape. See
+        // docs/32_STARTER_KIT_SYSTEM.md 14.1 for the full three-flows rationale.
+        //
+        // Only the websiteLocked (Import Existing Website) branch below still needs
+        // the full site-wide WebsiteTreeService tree ($starterKitTree) - that flow's
+        // "included" set can plausibly cover most of the site, so a full browsable
+        // tree with checkmarks is the right UI there. isCapturedStarterKit's own
+        // branch in edit.twig reads capturedManifest.pages directly instead (a
+        // compact table of ONLY what's included - see 14.1.9): building the full
+        // tree there too was wasted work, and worse, made it easy to miss a
+        // checkmark buried among dozens of unrelated site pages.
+        $isCapturedStarterKit = false;
         if ($websiteImportStatus && $websiteImportStatus['isImported']) {
             $sourceRecord = (new WebsiteImportSourceRepository())->findByPackageId($package->id);
             $entryUids = $sourceRecord ? (array)json_decode($sourceRecord->sourceEntryUids, true) : [];
             $treeService = new WebsiteTreeService();
             $starterKitTree = $treeService->markIncluded($treeService->buildTree(), $entryUids);
+        } elseif ($package->type === 'starter-kit') {
+            $capturedManifest = $package->getManifest();
+            $isCapturedStarterKit = $capturedManifest !== null && !empty($capturedManifest->pages);
         }
 
         // Shared Resource/Plugin dependencies and import provenance apply to
@@ -203,6 +225,7 @@ class PackageAuthoringController extends Controller
             'websiteImportStatus' => $websiteImportStatus,
             'starterKitReferences' => $starterKitReferences,
             'starterKitTree' => $starterKitTree,
+            'isCapturedStarterKit' => $isCapturedStarterKit,
             'packageDependencies' => $packageDependencies,
             'availableSections' => $availableSections,
             'patternComposition' => $patternComposition,

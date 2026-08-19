@@ -51,6 +51,20 @@
             <button type="button" class="btn submit" id="site7-install-starter-kit-btn" data-handle="{{ package.handle }}">{{ "Install Starter Kit"|t('site7-studio') }}</button>
         {% endif %}
 
+        {% if package.type|lower == 'starter-kit' and isDevMode and not isWebsiteImportedStarterKit %}
+            {% set skPackageTags = package.tags is iterable ? package.tags|join(',') : package.tags|default('') %}
+            <button type="button" class="btn" id="site7-update-starter-kit-btn"
+                data-handle="{{ package.handle }}"
+                data-name="{{ package.name }}"
+                data-description="{{ package.description }}"
+                data-version="{{ package.version }}"
+                data-author="{{ package.author }}"
+                data-category="{{ package.category }}"
+                data-tags="{{ skPackageTags }}"
+                title="{{ 'Re-captures this Starter Kit\'s pages (and site structure) from the current project, overwriting this same package rather than creating a new one.'|t('site7-studio') }}"
+            >{{ "Update Starter Kit"|t('site7-studio') }}</button>
+        {% endif %}
+
         {% if not isSetupComplete %}
             <a href="{{ url('site7-studio/setup') }}" class="btn submit">{{ "Complete Setup to Install"|t('site7-studio') }}</a>
         {% else %}
@@ -238,6 +252,28 @@
                                 <td>{{ page.title }}</td>
                                 <td class="light">{{ page.sectionHandle|default('—') }}</td>
                                 <td class="light">{{ page.templateHandle|default('—') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+            {% if manifest and manifest.siteStructure is defined and manifest.siteStructure|length %}
+                <h3>{{ "Site Structure"|t('site7-studio') }}</h3>
+                <p class="light">{{ "Header/Footer/General-style content, captured automatically from every Single-type Section - not a Craft Global Set."|t('site7-studio') }}</p>
+                <table class="data fullwidth">
+                    <thead>
+                        <tr>
+                            <th>{{ "Title"|t('site7-studio') }}</th>
+                            <th>{{ "Section"|t('site7-studio') }}</th>
+                            <th>{{ "Entry Type"|t('site7-studio') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in manifest.siteStructure %}
+                            <tr>
+                                <td>{{ item.title }}</td>
+                                <td class="light">{{ item.sectionHandle|default('—') }}</td>
+                                <td class="light">{{ item.entryTypeHandle|default('—') }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>

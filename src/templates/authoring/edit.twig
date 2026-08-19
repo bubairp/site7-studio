@@ -333,6 +333,75 @@
                 <p class="light">{{ "The pages this Starter Kit was captured from, shown in the live project's own structure - included pages are checked."|t('site7-studio') }}</p>
                 <div id="site7-sk-tree" data-tree="{{ starterKitTree|json_encode|escape('html_attr') }}"></div>
             {% endif %}
+        {% elseif package.type == 'starter-kit' and isCapturedStarterKit %}
+            {% set capturedManifest = package.getManifest() %}
+            <p class="light">{{ "Captured from existing pages via \"Save Current Site as Starter Kit\" - not the drag/drop Starter Kit Builder. Use Update Starter Kit to re-capture its page list and site structure (Header/Footer/General-style content) from the current project."|t('site7-studio') }}</p>
+
+            {% set skPackageTags = package.tags is iterable ? package.tags|join(',') : package.tags|default('') %}
+            <div style="margin: 8px 0 16px;">
+                <button type="button" class="btn submit" id="site7-update-starter-kit-btn"
+                    data-handle="{{ package.handle }}"
+                    data-name="{{ package.name }}"
+                    data-description="{{ package.description }}"
+                    data-version="{{ package.version }}"
+                    data-author="{{ package.author }}"
+                    data-category="{{ package.category }}"
+                    data-tags="{{ skPackageTags }}"
+                >{{ "Update Starter Kit"|t('site7-studio') }}</button>
+            </div>
+
+            {# A compact list of exactly what's included, not the full site-wide
+               Website Structure tree (89+ rows on a real project, with only a
+               handful of checkmarks scattered through it - easy to miss, and easy
+               to mistake for a bug when it's actually just hard to scan). Mirrors
+               the same "Pages" table library/package.twig's Starter Kit Composition
+               section already shows, for consistency - see
+               docs/32_STARTER_KIT_SYSTEM.md 14.1.9. #}
+            {% if capturedManifest and capturedManifest.pages is defined and capturedManifest.pages|length %}
+                <h3>{{ "Pages"|t('site7-studio') }}</h3>
+                <p class="light">{{ "The pages this Starter Kit currently includes."|t('site7-studio') }}</p>
+                <table class="data fullwidth">
+                    <thead>
+                        <tr>
+                            <th>{{ "Title"|t('site7-studio') }}</th>
+                            <th>{{ "Section"|t('site7-studio') }}</th>
+                            <th>{{ "Template"|t('site7-studio') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for page in capturedManifest.pages %}
+                            <tr>
+                                <td>{{ page.title }}</td>
+                                <td class="light">{{ page.sectionHandle|default('—') }}</td>
+                                <td class="light">{{ page.templateHandle|default('—') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            {% if capturedManifest and capturedManifest.siteStructure is defined and capturedManifest.siteStructure|length %}
+                <h3>{{ "Site Structure"|t('site7-studio') }}</h3>
+                <p class="light">{{ "Header/Footer/General-style content, captured automatically from every Single-type Section - not a Craft Global Set. Always included; there's nothing to select here."|t('site7-studio') }}</p>
+                <table class="data fullwidth">
+                    <thead>
+                        <tr>
+                            <th>{{ "Title"|t('site7-studio') }}</th>
+                            <th>{{ "Section"|t('site7-studio') }}</th>
+                            <th>{{ "Entry Type"|t('site7-studio') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in capturedManifest.siteStructure %}
+                            <tr>
+                                <td>{{ item.title|default('—') }}</td>
+                                <td class="light">{{ item.sectionHandle|default('—') }}</td>
+                                <td class="light">{{ item.entryTypeHandle|default('—') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
         {% elseif package.type == 'starter-kit' %}
             <p class="light">{{ "Drag Templates from the library on the left into the canvas to add Pages, reorder them, then select a Page to set its Title, Slug, and Entry Type (a Template's own content is never changed - a Starter Kit only references it)."|t('site7-studio') }}</p>
             <form method="post" accept-charset="UTF-8" id="site7-starter-kit-builder-form">
@@ -413,22 +482,30 @@
             {% if packageDependencies.importedFrom|length %}
                 <h3>{{ "Imported From"|t('site7-studio') }}</h3>
                 <div class="meta">
-                    {% if packageDependencies.importedFrom.sourceType %}
+                    {# Twig's strict_variables mode (on in Dev Mode) throws a RuntimeError
+                       on `x.y` when key `y` is entirely absent - not just falsy - so every
+                       check here must use `is defined` first rather than a bare truthiness
+                       check. Confirmed as a real 500 on a Template package whose importedFrom
+                       only had sourceUid/sourceHash (see PageImportService::recordSource()'s
+                       docblock for the root cause) - this defensive guard is the belt to that
+                       fix's suspenders, so no future manifest shape gap can 500 this page
+                       again. #}
+                    {% if packageDependencies.importedFrom.sourceType is defined and packageDependencies.importedFrom.sourceType %}
                         <div class="field"><div class="heading"><label>{{ "Source Type"|t('site7-studio') }}</label></div><div class="input">{{ packageDependencies.importedFrom.sourceType }}</div></div>
                     {% endif %}
-                    {% if packageDependencies.importedFrom.sourceHandle %}
+                    {% if packageDependencies.importedFrom.sourceHandle is defined and packageDependencies.importedFrom.sourceHandle %}
                         <div class="field"><div class="heading"><label>{{ "Source Handle"|t('site7-studio') }}</label></div><div class="input"><code>{{ packageDependencies.importedFrom.sourceHandle }}</code></div></div>
                     {% endif %}
-                    {% if packageDependencies.importedFrom.sourceUid %}
+                    {% if packageDependencies.importedFrom.sourceUid is defined and packageDependencies.importedFrom.sourceUid %}
                         <div class="field"><div class="heading"><label>{{ "Source UID"|t('site7-studio') }}</label></div><div class="input"><code>{{ packageDependencies.importedFrom.sourceUid }}</code></div></div>
                     {% endif %}
-                    {% if packageDependencies.importedFrom.sourceHash %}
+                    {% if packageDependencies.importedFrom.sourceHash is defined and packageDependencies.importedFrom.sourceHash %}
                         <div class="field"><div class="heading"><label>{{ "Source Hash"|t('site7-studio') }}</label></div><div class="input"><code>{{ packageDependencies.importedFrom.sourceHash }}</code></div></div>
                     {% endif %}
-                    {% if packageDependencies.importedFrom.importedAt %}
+                    {% if packageDependencies.importedFrom.importedAt is defined and packageDependencies.importedFrom.importedAt %}
                         <div class="field"><div class="heading"><label>{{ "Imported At"|t('site7-studio') }}</label></div><div class="input">{{ packageDependencies.importedFrom.importedAt }}</div></div>
                     {% endif %}
-                    {% if packageDependencies.importedFrom.importedBy %}
+                    {% if packageDependencies.importedFrom.importedBy is defined and packageDependencies.importedFrom.importedBy %}
                         <div class="field"><div class="heading"><label>{{ "Imported By"|t('site7-studio') }}</label></div><div class="input">{{ packageDependencies.importedFrom.importedBy }}</div></div>
                     {% endif %}
                 </div>

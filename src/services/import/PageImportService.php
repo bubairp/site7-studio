@@ -68,9 +68,25 @@ class PageImportService extends Component
 
     /**
      * Patches the generated package's manifest.json with Phase 9.2's
-     * sourceUid/sourceHash (additive keys - importedFrom already carries
-     * sourceType/sourceId/sourceHandle/importedAt/importedBy, written by
-     * whichever sub-path produced $record) and persists the tracking row.
+     * sourceUid/sourceHash and persists the tracking row.
+     *
+     * IMPORTANT: this method's original docblock assumed importedFrom already
+     * carried sourceType/sourceId/sourceHandle/importedAt/importedBy, "written
+     * by whichever sub-path produced $record" - that's only true for
+     * importNativeContent()'s own manifest write. When $entry has Site7
+     * content, importFromEntry() delegates to
+     * TemplateGeneratorService::generateFromEntry() instead - and that
+     * generator (frozen, not modified by this phase) never writes an
+     * importedFrom key at all. Patching only sourceUid/sourceHash onto a
+     * manifest with no pre-existing importedFrom therefore left a partial
+     * shape ({sourceUid, sourceHash} only, missing sourceType and friends) -
+     * confirmed live as a real 500 (Twig strict_variables RuntimeError on
+     * `packageDependencies.importedFrom.sourceType` in authoring/edit.twig)
+     * for a Template package generated exactly this way. Fixed by always
+     * writing the FULL importedFrom shape here, never assuming any of it
+     * already exists - safe/idempotent for importNativeContent()'s own
+     * manifests too, which already have every one of these keys with the
+     * same values this would (re)write.
      * Same "patch after generation, never touch the generator" technique
      * CraftSectionImportService already uses (Phase 9.1) for
      * MatrixEntryTypeImportService's output - here applied to both
@@ -83,8 +99,16 @@ class PageImportService extends Component
 
         if ($packagePath && file_exists($packagePath . '/manifest.json')) {
             $manifestData = json_decode(file_get_contents($packagePath . '/manifest.json'), true) ?: [];
-            $manifestData['importedFrom']['sourceUid'] = $entry->uid;
-            $manifestData['importedFrom']['sourceHash'] = $sourceHash;
+            $manifestData['importedFrom'] = array_merge([
+                'sourceType' => 'entry',
+                'sourceId' => $entry->id,
+                'sourceHandle' => $entry->getType()->handle,
+                'importedAt' => date('c'),
+                'importedBy' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? null,
+            ], $manifestData['importedFrom'] ?? [], [
+                'sourceUid' => $entry->uid,
+                'sourceHash' => $sourceHash,
+            ]);
             file_put_contents($packagePath . '/manifest.json', json_encode($manifestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         }
 
@@ -202,8 +226,20 @@ class PageImportService extends Component
      * Captures a page's native (non-Site7) field layout into a Template
      * package whose demoContent/requires stay empty - there is no Site7
      * Section content to reference, only the page's own custom field values.
+     *
+     * Public (not just importFromEntry()'s private sub-path) so
+     * StarterKitGeneratorService can call it directly for a selected page that has
+     * no Site7 content of its own (e.g. "Home"/"Contact" - see
+     * StarterKitGeneratorService::PAGE_LIKE_SINGLE_SECTIONS and
+     * docs/32_STARTER_KIT_SYSTEM.md 14.1.12), DELIBERATELY bypassing
+     * importFromEntry()'s two wrapper behaviors: the "already imported" guard (a
+     * Starter Kit capture must never be blocked by unrelated Resource-Importer
+     * state) and recordSource()'s write into PageImportSourceRepository (would
+     * incorrectly Name/Author-lock the resulting package - the exact regression
+     * fixed in 14.1.8; this method itself never touches that repository, only
+     * importFromEntry() does, so calling this directly is safe).
      */
-    private function importNativeContent(Entry $entry, array $meta, ?string $matrixHandle): PackageRecord
+    public function importNativeContent(Entry $entry, array $meta, ?string $matrixHandle): PackageRecord
     {
         [$detectedFields, $entryFields, $sharedResourceHandles, $pluginDependencies, $excludedFields] = $this->captureNativeFields($entry, $matrixHandle);
         $hasCapturableContent = !empty($entryFields);

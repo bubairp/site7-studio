@@ -140,6 +140,29 @@ class PackageManifest extends Model
     public array $globals = [];
 
     /**
+     * Starter Kit only ("Save Current Site as Starter Kit" /
+     * StarterKitGeneratorService::captureSiteStructure()): captured content from
+     * every Single-type Craft Section (craft\models\Section::TYPE_SINGLE) on the
+     * source site - Header/Footer/General/Theme-style structural content, each
+     * Single having exactly one Entry. Always captured, unconditionally, on every
+     * generate/update - never opt-in like $pages. Each entry is {sectionHandle,
+     * entryTypeHandle, title, fields: {handle: value}}, captured via
+     * PageImportService::captureNativeFields() (the same native-field capture "Import
+     * Existing Page" uses for pages with no Site7 Matrix content).
+     *
+     * DO NOT CONFUSE with $globals above: $globals captures actual Craft GlobalSet
+     * elements (a genuinely different Craft feature) via the separate
+     * WebsiteImportService/installGlobals() path. In this project, Header/Footer/
+     * General/Theme content is implemented as Single-type Sections with one Entry
+     * each - NOT as Craft Global Sets - so $siteStructure and $globals are two
+     * unrelated capture mechanisms that happen to serve a similar conceptual purpose
+     * ("sitewide structural content") for two different underlying Craft resource
+     * types. A Starter Kit's manifest may legitimately have content in one, both, or
+     * neither, independently.
+     */
+    public array $siteStructure = [];
+
+    /**
      * Fields the Resource Importer detected on the source but did not
      * capture into this package - Platform Configuration and Unknown
      * Resource classified fields (Shared Resource and Plugin Dependency
@@ -265,7 +288,7 @@ class PackageManifest extends Model
         $rules = parent::defineRules();
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion'], 'required'];
         $rules[] = [['type', 'handle', 'name', 'version', 'schemaVersion', 'author', 'description', 'category', 'preview', 'sourceEntryType', 'sourceSection', 'sourceSectionType'], 'string'];
-        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords', 'importedFrom', 'globals', 'excludedFields', 'assetVolumes', 'categoryGroups', 'tagGroups', 'craftSections', 'navigation', 'projectConfigPaths', 'ownedFiles'], 'safe'];
+        $rules[] = [['compatibility', 'dependencies', 'tags', 'requires', 'demoContent', 'entryFields', 'pages', 'keywords', 'importedFrom', 'globals', 'siteStructure', 'excludedFields', 'assetVolumes', 'categoryGroups', 'tagGroups', 'craftSections', 'navigation', 'projectConfigPaths', 'ownedFiles'], 'safe'];
         $rules[] = [['displayName', 'company', 'website', 'supportUrl', 'documentationUrl', 'license', 'pricingType', 'minimumCraftVersion', 'minimumSite7Version'], 'string'];
         return $rules;
     }

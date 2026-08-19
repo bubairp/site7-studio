@@ -61,6 +61,17 @@
         this.options = $.extend({
             selectionMode: 'single',
             showImportStatus: false,
+            // Deliberately separate from showImportStatus: whether an already-
+            // imported row's badge/link is VISIBLE (showImportStatus) is a
+            // different question from whether it should be UNSELECTABLE
+            // (lockImported) - "Import Existing Page"/"Import Existing Website"
+            // want both (re-importing the same source would create a duplicate
+            // package there), but the Starter Kit picker wants only the former:
+            // knowing a page already has a standalone Page/Template package is
+            // useful context, but it must never prevent selecting that same page
+            // for a Starter Kit too - a Starter Kit only references an existing
+            // Template, it doesn't create a competing import.
+            lockImported: false,
             readOnly: false,
             name: 'site7-tree-select-' + Math.random().toString(36).slice(2),
             onChange: null,
@@ -171,7 +182,22 @@
 
     Tree.prototype.renderEntryNode = function(entry, depth, nested) {
         var self = this;
-        var isLocked = entry.importStatus === 'imported' || entry.importStatus === 'update-available';
+        // Locking a row because it was previously imported as a standalone Page/
+        // Section/Website package (entry.importStatus, set by WebsiteTreeService::
+        // describeEntry() via PageImportSourceRepository) is only correct for
+        // "Import Existing Page/Website" - re-importing the same source twice would
+        // create a duplicate package there. The Starter Kit picker wants the
+        // OPPOSITE combination: it should still show the "Imported"/"Open Package"
+        // badge (showImportStatus) as useful context - a Starter Kit page selected
+        // here will reuse that existing Template rather than duplicating it, see
+        // StarterKitGeneratorService::findExistingTemplateHandle() - but must NEVER
+        // disable the row over it. A Starter Kit only references an existing
+        // Template; it doesn't create a competing import the way "Import Existing
+        // Page" would, so there's nothing to guard against. Gated on
+        // options.lockImported (a separate option from showImportStatus - see the
+        // constructor) so only "Import Existing Page/Website" locks; the Starter
+        // Kit wizard sets showImportStatus without lockImported.
+        var isLocked = this.options.lockImported && (entry.importStatus === 'imported' || entry.importStatus === 'update-available');
         var hasChildren = nested && entry.children && entry.children.length;
         var inputType = this.options.selectionMode === 'single' ? 'radio' : 'checkbox';
 
@@ -200,8 +226,20 @@
             $('<span style="display:inline-block; width:16px; flex-shrink:0; text-align:center;">' + mark + '</span>').appendTo($row);
             $row.append('<span class="site7-tree-title' + (entry.included ? '' : ' light') + '">' + escapeHtml(entry.title) + '</span>');
         } else {
-            var $input = $('<input type="' + inputType + '" name="' + this.options.name + '" value="' + entry.id + '"' + (isLocked ? ' disabled' : '') + '>').appendTo($row);
+            // entry.included (set by WebsiteTreeService::markIncluded()) pre-checks a
+            // row in editable mode too, not just readOnly - used by "Update Starter
+            // Kit" to pre-select whichever pages the target Starter Kit's manifest
+            // already lists. Never set by Import Existing Website's own usage, so
+            // this is a no-op there.
+            var isIncluded = !!entry.included && !isLocked;
+            var $input = $('<input type="' + inputType + '" name="' + this.options.name + '" value="' + entry.id + '"' + (isLocked ? ' disabled' : '') + (isIncluded ? ' checked' : '') + '>').appendTo($row);
             this.entryDisabledById[entry.id] = isLocked;
+            if (isIncluded) {
+                var includedId = parseInt(entry.id, 10);
+                if (this.selectedIds.indexOf(includedId) === -1) {
+                    this.selectedIds.push(includedId);
+                }
+            }
             $row.append(
                 '<span class="site7-tree-title">' + escapeHtml(entry.title) + '</span>' +
                 (this.options.showImportStatus ? importBadgeHtml(entry) : '') +

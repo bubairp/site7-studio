@@ -205,12 +205,19 @@ class TemplateInsertionService extends Component
         }
 
         $blocks = $this->getTemplateBlocks($templateHandle);
-        if (empty($blocks)) {
-            throw new \Exception('This Template has no content to generate an Entry from.');
-        }
-
         $package = Site7Studio::getInstance()->packageManager->getPackageByHandle($templateHandle);
         $manifest = $package?->getManifest();
+
+        // A Template captured with no Site7 Matrix content at all (e.g. via
+        // PageImportService::importNativeContent(), now also reachable from a
+        // Starter Kit capture of a page like Home/Contact that has no Site7 blocks
+        // of its own - see StarterKitGeneratorService's PAGE_LIKE_SINGLE_SECTIONS and
+        // docs/32_STARTER_KIT_SYSTEM.md 14.1.12) has zero blocks by design, not by
+        // error - only entryFields carries its content. Only refuse when there's
+        // truly nothing to apply at all.
+        if (empty($blocks) && empty($manifest?->entryFields)) {
+            throw new \Exception('This Template has no content to generate an Entry from.');
+        }
 
         $entry = new Entry();
         $entry->sectionId = $section->id;
@@ -222,6 +229,73 @@ class TemplateInsertionService extends Component
             $entry->slug = $slug;
         }
 
+        $this->applyTemplateContent($entry, $matrixHandle, $blocks, $manifest, $templateHandle);
+
+        if (!Craft::$app->getElements()->saveElement($entry)) {
+            throw new \Exception('Could not create the Entry: ' . implode(' ', $entry->getFirstErrors()));
+        }
+
+        return $entry;
+    }
+
+    /**
+     * Restores a Template's captured content onto an existing, already-loaded Entry
+     * in place, rather than creating a new one - used by
+     * StarterKitInstallationService::installStarterKit() for a page whose target
+     * Section is a Single: Craft never allows a second Entry in a Single section, so
+     * a Single-targeted page in manifest.pages is applied to that Single's one
+     * existing Entry instead of going through createEntryFromTemplate(). Reuses the
+     * exact same content-application logic (applyTemplateContent()) that method
+     * uses for a brand new Entry - see its docblock for the matrixValue-shape and
+     * Assets-restore caveats.
+     *
+     * @throws \Exception if the Template or its Matrix content can't be resolved, or
+     *   if saving the updated Entry fails.
+     */
+    public function updateEntryFromTemplate(string $templateHandle, Entry $entry): Entry
+    {
+        $matrixHandle = $this->getMatrixFieldHandle();
+        if (!$matrixHandle) {
+            throw new \Exception('No Site7 Matrix field is configured.');
+        }
+
+        $blocks = $this->getTemplateBlocks($templateHandle);
+        $package = Site7Studio::getInstance()->packageManager->getPackageByHandle($templateHandle);
+        $manifest = $package?->getManifest();
+
+        // See createEntryFromTemplate()'s matching guard - a native-only-captured
+        // Template (no Site7 Matrix content) has zero blocks by design; only refuse
+        // when there's truly nothing to apply at all.
+        if (empty($blocks) && empty($manifest?->entryFields)) {
+            throw new \Exception('This Template has no content to update the Entry from.');
+        }
+
+        $this->applyTemplateContent($entry, $matrixHandle, $blocks, $manifest, $templateHandle);
+
+        if (!Craft::$app->getElements()->saveElement($entry)) {
+            throw new \Exception('Could not update the Entry: ' . implode(' ', $entry->getFirstErrors()));
+        }
+
+        return $entry;
+    }
+
+    /**
+     * Shared by createEntryFromTemplate() (brand new Entry) and
+     * updateEntryFromTemplate() (existing Entry, Single sections) - sets the Matrix
+     * field value from the Template's captured blocks, then restores entryFields
+     * (skipping any handle no longer present on the target's field layout).
+     *
+     * An Assets field's captured value isn't a plain scalar - it's the structured
+     * descriptor AssetCaptureHelper::captureAssetField() wrote (filename/volume/
+     * folder/alt/title + the file bundled at preview/assets/ inside the package).
+     * Restore it into real Asset element(s) on this install (re-using an existing
+     * matching Asset by filename+Volume when one's already there, uploading from the
+     * package's own bundled copy otherwise) before calling setFieldValue(), rather
+     * than passing the raw descriptor through - which would leave the field either
+     * empty or containing garbage.
+     */
+    private function applyTemplateContent(Entry $entry, string $matrixHandle, array $blocks, ?PackageManifest $manifest, string $templateHandle): void
+    {
         $matrixValue = [];
         foreach ($blocks as $i => $block) {
             $matrixValue['new' . ($i + 1)] = [
@@ -231,21 +305,8 @@ class TemplateInsertionService extends Component
         }
         $entry->setFieldValue($matrixHandle, $matrixValue);
 
-        // Restore the source Entry's own captured custom field values (e.g. Theme,
-        // Header Style - anything besides the Matrix field), skipping any handle no
-        // longer present on the target Entry Type's field layout.
-        //
-        // An Assets field's captured value isn't a plain scalar - it's the
-        // structured descriptor AssetCaptureHelper::captureAssetField() wrote
-        // (filename/volume/folder/alt/title + the file bundled at
-        // preview/assets/ inside the package). Restore it into real Asset
-        // element(s) on this install (re-using an existing matching Asset by
-        // filename+Volume when one's already there, uploading from the
-        // package's own bundled copy otherwise) before calling
-        // setFieldValue(), rather than passing the raw descriptor through -
-        // which would leave the field either empty or containing garbage.
         $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($templateHandle);
-        $entryFieldLayout = $entryType->getFieldLayout();
+        $entryFieldLayout = $entry->getFieldLayout();
         foreach ($manifest?->entryFields ?? [] as $fieldHandle => $fieldValue) {
             if (!$entryFieldLayout?->getFieldByHandle($fieldHandle)) {
                 continue;
@@ -261,12 +322,6 @@ class TemplateInsertionService extends Component
             }
             $entry->setFieldValue($fieldHandle, $fieldValue);
         }
-
-        if (!Craft::$app->getElements()->saveElement($entry)) {
-            throw new \Exception('Could not create the Entry: ' . implode(' ', $entry->getFirstErrors()));
-        }
-
-        return $entry;
     }
 
     private function findSectionForEntryType(int $entryTypeId): ?Section

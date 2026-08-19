@@ -397,6 +397,7 @@
             Site7WebsiteTree.render($treeContainer, res, {
                 selectionMode: 'single',
                 showImportStatus: true,
+                lockImported: true,
                 name: 'site7ri-page-tree',
                 onChange: function(selectedIds) {
                     selectedEntryId = selectedIds[0] || null;
@@ -431,6 +432,7 @@
             Site7WebsiteTree.render($treeContainer, treeData, {
                 selectionMode: 'grouped-multiple',
                 showImportStatus: true,
+                lockImported: true,
                 name: 'site7ri-website-tree',
                 onChange: function(selectedIds) {
                     selectedEntryIds = selectedIds;

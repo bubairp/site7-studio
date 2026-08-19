@@ -45,7 +45,16 @@ class WebsiteTreeService
             /** @var Section $section */
             if ($section->type === 'single') {
                 foreach ($this->getSectionEntries($section) as $entry) {
-                    $singles[] = $this->describeEntry($entry, $sourceRepo, $matrixHandle);
+                    // A Single's one Entry is usually pre-titled to match its Section
+                    // when Craft creates it, but that's only a default - an editor (or
+                    // anything creating the Entry programmatically) can blank it out,
+                    // and the Section itself still has a perfectly good name in that
+                    // case ("Google Structure Data", confirmed live on this project's
+                    // actual data - a Single with a blank Entry title but a clearly
+                    // named Section). Fall back to the Section's own name rather than
+                    // showing (or, for consumers that filter blank titles, silently
+                    // hiding) an unlabeled row for a page that's perfectly real.
+                    $singles[] = $this->describeEntry($entry, $sourceRepo, $matrixHandle, $section->name);
                 }
             } elseif ($section->type === 'channel') {
                 $channels[] = [
@@ -163,10 +172,19 @@ class WebsiteTreeService
     }
 
     /**
-     * @return array{id: int, uid: string, title: string, slug: ?string, hasSite7Content: bool, importStatus: string, existingPackageHandle: ?string, existingPackageId: ?int}
+     * @param string|null $fallbackTitle Used only for Singles (see buildTree()) -
+     *   when the Entry's own title is blank, falls back to this (the Section's own
+     *   name) rather than returning an empty/unlabeled title. Channels/Structures
+     *   never pass this - their Entries are expected to always have their own title.
+     * @return array{id: int, uid: string, title: string, slug: ?string, sectionHandle: ?string, hasSite7Content: bool, importStatus: string, existingPackageHandle: ?string, existingPackageId: ?int}
      */
-    private function describeEntry(Entry $entry, PageImportSourceRepository $sourceRepo, ?string $matrixHandle): array
+    private function describeEntry(Entry $entry, PageImportSourceRepository $sourceRepo, ?string $matrixHandle, ?string $fallbackTitle = null): array
     {
+        $title = $entry->title;
+        if (($title === null || trim((string)$title) === '') && $fallbackTitle !== null && trim($fallbackTitle) !== '') {
+            $title = $fallbackTitle;
+        }
+
         $hasSite7Content = false;
         if ($matrixHandle && $entry->getFieldLayout()?->getFieldByHandle($matrixHandle)) {
             $fieldValue = $entry->getFieldValue($matrixHandle);
@@ -189,13 +207,76 @@ class WebsiteTreeService
         return [
             'id' => $entry->id,
             'uid' => $entry->uid,
-            'title' => $entry->title,
+            'title' => $title,
             'slug' => $entry->slug,
+            // Needed by StarterKitGeneratorController to identify specific Singles
+            // (e.g. "home"/"contact") within the flat `singles` array, which - unlike
+            // channels/structures - carries no section-level wrapping object of its
+            // own. Additive/harmless for every other existing consumer.
+            'sectionHandle' => $entry->getSection()?->handle,
             'hasSite7Content' => $hasSite7Content,
             'importStatus' => $importStatus,
             'existingPackageHandle' => $existingPackageHandle,
             'existingPackageId' => $existingPackageId,
         ];
+    }
+
+    /**
+     * Resolves a Starter Kit's manifest.pages entries (title/slug/sectionHandle/
+     * entryTypeHandle - manifest.pages never stores a live Entry id/uid, per this
+     * codebase's "structural identity only, never a runtime ID" convention) back to
+     * live Entry UIDs, for markIncluded(). Shared by StarterKitGeneratorController
+     * (the "Update Starter Kit" checklist pre-selection) and PackageAuthoringController
+     * (the Package Editor's read-only Website Structure tree for a captured Starter
+     * Kit) so both stay consistent - see docs/32_STARTER_KIT_SYSTEM.md 14.1.
+     *
+     * Best-effort match: primarily by sectionHandle + entryTypeHandle + slug (the
+     * most robust structural key available, resilient to title edits), falling back
+     * to a title-only match within the same section/entry type when the slug has
+     * since changed. A page that matches neither (its section/entry type was since
+     * removed, or the page itself was deleted) is simply omitted - callers must never
+     * fail just because a previously-captured page can no longer be resolved.
+     *
+     * @param array $manifestPages
+     * @return string[]
+     */
+    public function resolvePageUidsFromManifest(array $manifestPages): array
+    {
+        $entriesService = Craft::$app->getEntries();
+        $uids = [];
+
+        foreach ($manifestPages as $page) {
+            $sectionHandle = $page['sectionHandle'] ?? null;
+            $entryTypeHandle = $page['entryTypeHandle'] ?? null;
+            $slug = $page['slug'] ?? null;
+            $title = $page['title'] ?? null;
+
+            $query = Entry::find()->status(null);
+            if ($sectionHandle) {
+                $section = $entriesService->getSectionByHandle($sectionHandle);
+                if (!$section) {
+                    continue;
+                }
+                $query->sectionId($section->id);
+            }
+            if ($entryTypeHandle) {
+                $entryType = $entriesService->getEntryTypeByHandle($entryTypeHandle);
+                if (!$entryType) {
+                    continue;
+                }
+                $query->typeId($entryType->id);
+            }
+
+            $entry = $slug ? (clone $query)->slug($slug)->one() : null;
+            if (!$entry && $title) {
+                $entry = (clone $query)->title($title)->one();
+            }
+            if ($entry) {
+                $uids[] = $entry->uid;
+            }
+        }
+
+        return array_values(array_unique($uids));
     }
 
     private function getMatrixFieldHandle(): ?string

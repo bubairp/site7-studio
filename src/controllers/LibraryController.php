@@ -140,6 +140,20 @@ class LibraryController extends Controller
         // (incorrectly) claimed this page showed it.
         $versionHistory = Site7Studio::getInstance()->versionManager->getVersionHistory($handle);
 
+        // "Update Starter Kit" (StarterKitGeneratorService::generateFromEntries()'s
+        // overwrite-in-place mode) must never be offered for a Starter Kit that was
+        // actually produced by the separate, incompatible "Import Existing Website"
+        // flow - confirmed live as real data corruption: running Update against one
+        // overwrote its manifest.json with StarterKitGeneratorService's shape while
+        // leaving WebsiteImportSourceRepository's own tracking record (which
+        // authoring/edit.twig's read-only view relies on for "what's included")
+        // untouched and now stale/wrong. See docs/32_STARTER_KIT_SYSTEM.md 14.1.10.
+        $isWebsiteImportedStarterKit = false;
+        if ($package->type === 'starter-kit') {
+            $websiteImportStatus = (new \site7\studio\services\PackageAuthoringService())->getWebsiteImportStatus($handle);
+            $isWebsiteImportedStarterKit = $websiteImportStatus['isImported'] ?? false;
+        }
+
         return $this->renderTemplate('site7-studio/library/package', [
             'title' => $package->name,
             'package' => $package,
@@ -149,6 +163,7 @@ class LibraryController extends Controller
             'hasPreviewTemplate' => $hasPreviewTemplate,
             'publishHistory' => $publishHistory,
             'versionHistory' => $versionHistory,
+            'isWebsiteImportedStarterKit' => $isWebsiteImportedStarterKit,
         ]);
     }
 

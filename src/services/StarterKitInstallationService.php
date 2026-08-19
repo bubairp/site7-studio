@@ -6,6 +6,8 @@ use Craft;
 use craft\base\Component;
 use craft\elements\Entry;
 use craft\elements\GlobalSet;
+use craft\models\Section;
+use site7\studio\services\support\AssetCaptureHelper;
 use site7\studio\Site7Studio;
 
 /**
@@ -16,11 +18,24 @@ use site7\studio\Site7Studio;
  * WebsiteImportService (manifest->globals) are restored on a best-effort
  * basis: a Global Set missing on the target site, or a field no longer on
  * its layout, is skipped and reported rather than failing the install.
+ *
+ * A captured page whose own Section is a Single (e.g. "Home") is installed
+ * differently from every other page: since Craft never allows a second Entry
+ * in a Single section, its captured Template content is applied to that
+ * Single's one existing Entry in place (TemplateInsertionService::
+ * updateEntryFromTemplate()), never via createEntryFromTemplate()'s "brand
+ * new Entry" path used for every Channel/Structure page.
+ *
+ * manifest->siteStructure (Single-section Header/Footer/General/Theme-style
+ * content, see PackageManifest::$siteStructure) is a SEPARATE mechanism from
+ * manifest->globals above - installSiteStructure() below restores it onto the
+ * target's existing Single-section Entries, not onto any GlobalSet. Do not
+ * conflate the two when changing either.
  */
 class StarterKitInstallationService extends Component
 {
     /**
-     * @return array{createdEntries: Entry[], skipped: string[], installedTemplates: string[], installedGlobals: string[]}
+     * @return array{createdEntries: Entry[], skipped: string[], installedTemplates: string[], installedGlobals: string[], installedSiteStructure: string[]}
      * @throws \Exception if the Starter Kit package or its manifest can't be resolved.
      */
     public function installStarterKit(string $handle): array
@@ -70,6 +85,7 @@ class StarterKitInstallationService extends Component
         foreach ($manifest->pages as $page) {
             $templateHandle = $page['templateHandle'] ?? null;
             $entryTypeHandle = $page['entryTypeHandle'] ?? null;
+            $sectionHandle = $page['sectionHandle'] ?? null;
             $title = $page['title'] ?? 'Untitled';
 
             if ($templateHandle && isset($missingTemplates[$templateHandle])) {
@@ -80,6 +96,29 @@ class StarterKitInstallationService extends Component
             $entryType = $entryTypeHandle ? $entriesService->getEntryTypeByHandle($entryTypeHandle) : null;
             if (!$entryType) {
                 $skipped[] = "{$title}: Entry Type '{$entryTypeHandle}' is not installed in this project.";
+                continue;
+            }
+
+            $targetSection = $sectionHandle ? $entriesService->getSectionByHandle($sectionHandle) : null;
+
+            if ($targetSection && $targetSection->type === Section::TYPE_SINGLE) {
+                // Craft never allows a second Entry in a Single section - this page
+                // was originally captured from a Single (e.g. "Home", which can carry
+                // its own genuine Site7 Matrix content distinct from the native-field
+                // "site structure" installSiteStructure() below always restores) so
+                // its captured content is applied to that Single's one existing Entry
+                // in place, never via createEntryFromTemplate()'s "brand new Entry"
+                // path. See docs/32_STARTER_KIT_SYSTEM.md 14.1.3.
+                $existingEntry = Entry::find()->sectionId($targetSection->id)->status(null)->one();
+                if (!$existingEntry) {
+                    $skipped[] = "{$title}: Section '{$sectionHandle}' has no Entry on this site to update.";
+                    continue;
+                }
+                try {
+                    $createdEntries[] = $insertionService->updateEntryFromTemplate($templateHandle, $existingEntry);
+                } catch (\Throwable $e) {
+                    $skipped[] = "{$title}: " . $e->getMessage();
+                }
                 continue;
             }
 
@@ -96,13 +135,88 @@ class StarterKitInstallationService extends Component
         }
 
         $installedGlobals = $this->installGlobals($manifest->globals, $skipped);
+        $installedSiteStructure = $this->installSiteStructure($manifest->siteStructure, $skipped, $packageManager->getPackagePath($handle));
 
         return [
             'createdEntries' => $createdEntries,
             'skipped' => $skipped,
             'installedTemplates' => array_values(array_unique($installedTemplates)),
             'installedGlobals' => $installedGlobals,
+            'installedSiteStructure' => $installedSiteStructure,
         ];
+    }
+
+    /**
+     * Restores captured Single-section "site structure" content (manifest->
+     * siteStructure: [{sectionHandle, entryTypeHandle, title, fields: {handle:
+     * value}}]) onto the matching Single section's own, already-existing Entry on
+     * the target site - Craft auto-creates that one Entry when the Section itself is
+     * created, so this never creates a new Entry itself. A Single section missing on
+     * the target (e.g. its owning Section package isn't installed here), or a field
+     * no longer on its current layout, is skipped and reported rather than failing
+     * the install - same tolerance as installGlobals() above.
+     *
+     * @param array $siteStructure
+     * @param string[] $skipped
+     * @param string|null $packagePath The Starter Kit's own package directory - where
+     *   captureSiteStructure() bundled any captured Assets field's file(s)
+     *   (preview/assets/), needed here to restore them via AssetCaptureHelper the
+     *   same way TemplateInsertionService::createEntryFromTemplate() already does
+     *   for a Template's entryFields. Without this, an Assets field's captured
+     *   descriptor array would be passed straight to setFieldValue() and fail
+     *   Craft's Assets normalizer.
+     * @return string[] sectionHandles actually updated
+     */
+    private function installSiteStructure(array $siteStructure, array &$skipped, ?string $packagePath): array
+    {
+        $installed = [];
+        $entriesService = Craft::$app->getEntries();
+
+        foreach ($siteStructure as $item) {
+            $sectionHandle = $item['sectionHandle'] ?? null;
+            $title = $item['title'] ?? $sectionHandle ?? 'Untitled section';
+            if (!$sectionHandle) {
+                continue;
+            }
+
+            $section = $entriesService->getSectionByHandle($sectionHandle);
+            if (!$section) {
+                $skipped[] = "{$title}: Section '{$sectionHandle}' is not installed in this project.";
+                continue;
+            }
+
+            $entry = Entry::find()->sectionId($section->id)->status(null)->one();
+            if (!$entry) {
+                $skipped[] = "{$title}: Section '{$sectionHandle}' has no Entry on this site to update.";
+                continue;
+            }
+
+            $fieldLayout = $entry->getFieldLayout();
+            foreach ($item['fields'] ?? [] as $fieldHandle => $fieldValue) {
+                if (!$fieldLayout?->getFieldByHandle($fieldHandle)) {
+                    continue;
+                }
+                if (AssetCaptureHelper::isAssetDescriptor($fieldValue)) {
+                    if ($packagePath) {
+                        $assetIds = AssetCaptureHelper::restoreAssetField($fieldValue, $packagePath);
+                        if (!empty($assetIds)) {
+                            $entry->setFieldValue($fieldHandle, $assetIds);
+                        }
+                    }
+                    continue;
+                }
+                $entry->setFieldValue($fieldHandle, $fieldValue);
+            }
+
+            if (!Craft::$app->getElements()->saveElement($entry)) {
+                $skipped[] = "{$title}: " . implode(' ', $entry->getFirstErrors());
+                continue;
+            }
+
+            $installed[] = $sectionHandle;
+        }
+
+        return $installed;
     }
 
     /**
