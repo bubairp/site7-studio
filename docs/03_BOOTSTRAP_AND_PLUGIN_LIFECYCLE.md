@@ -17,7 +17,7 @@ Registers ~70 named service-locator components, CP routes, event handlers, and C
 ```
 Craft boot
    ↓
-Migrations run (Install.php [no-op stub] + 15 timestamped migrations, if pending)
+Migrations run (fresh install: Install.php replays all 15 timestamped migrations via Install::migrations(); upgrade: pending timestamped migrations)
    ↓
 Site7Studio::init()
    ↓

@@ -6,7 +6,7 @@ Explain the complete SITE7 Studio database schema, how the 16 tables relate, and
 
 ## 2. What It Does
 
-16 tables (all prefixed `site7_`, Craft's `{{%...}}` table-prefix convention applies to all), created across 15 timestamped migrations + one no-op `Install.php` stub. (§7's table below always had all 16 listed — the "15" in earlier prose here was an off-by-one against its own reference table.)
+16 tables (all prefixed `site7_`, Craft's `{{%...}}` table-prefix convention applies to all), created across 15 timestamped migrations. On a fresh install Craft runs only `Install.php` and marks the rest applied, so `Install.php` replays every timestamped migration's `safeUp()` in the order listed in `Install::migrations()` (`safeDown()` in reverse on uninstall); `tests/unit/migrations/InstallTest.php` fails if a new migration is missing from that list. (§7's table below always had all 16 listed — the "15" in earlier prose here was an off-by-one against its own reference table.)
 
 ## 3. Current Status
 

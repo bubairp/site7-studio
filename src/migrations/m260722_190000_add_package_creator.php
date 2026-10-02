@@ -48,6 +48,9 @@ class m260722_190000_add_package_creator extends Migration
     public function safeDown(): bool
     {
         if ($this->db->columnExists('{{%site7_packages}}', 'creatorId')) {
+            // The FK added in safeUp() must go first - MySQL refuses to
+            // drop a column that a foreign key constraint still references.
+            $this->dropForeignKeyIfExists('{{%site7_packages}}', 'creatorId');
             $this->dropColumn('{{%site7_packages}}', 'creatorId');
         }
 

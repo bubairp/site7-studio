@@ -24,20 +24,43 @@ class m260730_130418_widen_install_session_data extends Migration
 {
     public function safeUp(): bool
     {
-        $this->alterColumn('{{%site7_install_sessions}}', 'data', $this->mediumText()->notNull());
-        $this->alterColumn('{{%site7_installed_starter_kits}}', 'blueprintSnapshot', $this->mediumText()->notNull());
-        $this->alterColumn('{{%site7_sync_history}}', 'report', $this->mediumText()->notNull());
-        $this->alterColumn('{{%site7_sync_sessions}}', 'data', $this->mediumText()->notNull());
+        // Guarded like every other migration in this codebase: these tables
+        // are only guaranteed to exist when this runs as part of a real
+        // incremental upgrade. When Install.php replays the full migration
+        // chain (fresh install) or reverses it (uninstall), the guard makes
+        // this migration order-tolerant instead of throwing "table doesn't
+        // exist" if it's ever invoked before/after its target tables are
+        // present.
+        if ($this->db->tableExists('{{%site7_install_sessions}}')) {
+            $this->alterColumn('{{%site7_install_sessions}}', 'data', $this->mediumText()->notNull());
+        }
+        if ($this->db->tableExists('{{%site7_installed_starter_kits}}')) {
+            $this->alterColumn('{{%site7_installed_starter_kits}}', 'blueprintSnapshot', $this->mediumText()->notNull());
+        }
+        if ($this->db->tableExists('{{%site7_sync_history}}')) {
+            $this->alterColumn('{{%site7_sync_history}}', 'report', $this->mediumText()->notNull());
+        }
+        if ($this->db->tableExists('{{%site7_sync_sessions}}')) {
+            $this->alterColumn('{{%site7_sync_sessions}}', 'data', $this->mediumText()->notNull());
+        }
 
         return true;
     }
 
     public function safeDown(): bool
     {
-        $this->alterColumn('{{%site7_install_sessions}}', 'data', $this->text()->notNull());
-        $this->alterColumn('{{%site7_installed_starter_kits}}', 'blueprintSnapshot', $this->text()->notNull());
-        $this->alterColumn('{{%site7_sync_history}}', 'report', $this->text()->notNull());
-        $this->alterColumn('{{%site7_sync_sessions}}', 'data', $this->text()->notNull());
+        if ($this->db->tableExists('{{%site7_install_sessions}}')) {
+            $this->alterColumn('{{%site7_install_sessions}}', 'data', $this->text()->notNull());
+        }
+        if ($this->db->tableExists('{{%site7_installed_starter_kits}}')) {
+            $this->alterColumn('{{%site7_installed_starter_kits}}', 'blueprintSnapshot', $this->text()->notNull());
+        }
+        if ($this->db->tableExists('{{%site7_sync_history}}')) {
+            $this->alterColumn('{{%site7_sync_history}}', 'report', $this->text()->notNull());
+        }
+        if ($this->db->tableExists('{{%site7_sync_sessions}}')) {
+            $this->alterColumn('{{%site7_sync_sessions}}', 'data', $this->text()->notNull());
+        }
 
         return true;
     }
