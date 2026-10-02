@@ -44,11 +44,28 @@ class SiteKitBuilder extends Component
         $projectYaml = Yaml::parseFile("{$root}/config/project/project.yaml");
         [$projectYaml, $stalePlugins] = SiteKitFiles::removeStalePlugins($projectYaml, $installedPlugins);
 
+        // Built under a temporary name and renamed when complete, so a failed
+        // build never leaves a broken .zip in the kits list.
+        $partPath = "{$zipPath}.part";
         $zip = new \ZipArchive();
-        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
-            throw new \Exception("Could not create {$zipPath}.");
+        if ($zip->open($partPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            throw new \Exception("Could not create {$partPath}.");
         }
 
+        try {
+            $manifest = $this->fill($zip, $root, $handle, $name, $withContent, $composerJson, $projectYaml, $stalePlugins);
+        } catch (\Throwable $e) {
+            @$zip->close();
+            @unlink($partPath);
+            throw $e;
+        }
+        rename($partPath, $zipPath);
+
+        return ['path' => $zipPath, 'manifest' => $manifest];
+    }
+
+    private function fill(\ZipArchive $zip, string $root, string $handle, string $name, bool $withContent, array $composerJson, array $projectYaml, array $stalePlugins): array
+    {
         $fileCounts = [];
         $zip->addFile("{$root}/composer.json", 'files/composer.json');
         $zip->addFile("{$root}/composer.lock", 'files/composer.lock');
@@ -100,6 +117,6 @@ class SiteKitBuilder extends Component
             @rmdir(dirname($content['tempFiles'][0]));
         }
 
-        return ['path' => $zipPath, 'manifest' => $manifest];
+        return $manifest;
     }
 }

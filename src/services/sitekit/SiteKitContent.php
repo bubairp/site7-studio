@@ -292,6 +292,13 @@ class SiteKitContent extends Component
      */
     private function exportAssetFiles(\ZipArchive $zip, array $ids): array
     {
+        // An empty id() makes Craft abort the query (QueryAbortedException
+        // from each()) rather than return nothing - e.g. building on a site
+        // with no content.
+        if (!$ids) {
+            return [0, []];
+        }
+
         $tempDir = Craft::getAlias('@storage') . '/runtime/site7-studio/site-kit-assets/' . uniqid();
         FileHelper::createDirectory($tempDir);
         $tempFiles = [];
