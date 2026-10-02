@@ -109,6 +109,9 @@ class PackageAuthoringService extends Component
         // on disk before this feature did - see the authoringStatus column's
         // own DB default and its migration).
         $record->authoringStatus = 'draft';
+        // Marks it as created on this site, like the import flows do - also
+        // exempts it from the licence gate (PackageService::canInstallOrEnable()).
+        $record->creatorId = Craft::$app->getUser()->getId();
         $record->save();
 
         // Backed up into the Local Repository immediately, even though a

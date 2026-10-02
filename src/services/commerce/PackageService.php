@@ -117,18 +117,42 @@ class PackageService extends Component implements PackageProviderInterface
      * plan's includedPackages, never purchased/free - a package the
      * developer authored locally) is never restricted; only handles
      * syncEntitlements() would also act on are gated here.
+     *
+     * Paid packages (manifest pricingType other than "free") are gated even
+     * when Commerce24 is unconfigured/unreachable or doesn't list the handle -
+     * fails closed, so clearing the API settings or copying a .s7pkg onto
+     * another site doesn't unlock them. Packages created on this site
+     * (creatorId set) are never gated, so an authoring site can always
+     * install its own packages.
      */
     public function canInstallOrEnable(string $handle): bool
     {
-        if (!$this->client->isConfigured()) {
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        if ($record !== null && $record->creatorId !== null) {
             return true;
         }
-        if (!in_array($handle, $this->getAllCommerceManagedHandles(), true)) {
+
+        $isPaid = $this->isPaidPackage($record);
+        if (!$this->client->isConfigured()) {
+            return !$isPaid;
+        }
+        if (!$isPaid && !in_array($handle, $this->getAllCommerceManagedHandles(), true)) {
             return true;
         }
 
         $plan = Site7Studio::getInstance()->plan->getCurrentPlan();
         return $plan !== null && $this->isCurrentlyAllowed($handle, $plan);
+    }
+
+    /**
+     * Whether a package is sold rather than free, per its manifest's
+     * pricingType (free/premium/private/enterprise - see the Publish
+     * wizard's Metadata step). Missing/unreadable manifests count as free.
+     */
+    public function isPaidPackage(?PackageRecord $record): bool
+    {
+        $pricingType = $record?->getManifest()?->pricingType;
+        return $pricingType !== null && $pricingType !== '' && $pricingType !== 'free';
     }
 
     /**

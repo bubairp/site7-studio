@@ -208,7 +208,7 @@ class PackageImportService extends Component
         if ($autoInstall) {
             try {
                 if (!$packageManager->installPackage($validation->bundle->rootHandle)) {
-                    throw new \Exception('installPackage() reported failure.');
+                    throw new \Exception(implode(' ', $packageManager->getLastInstallWarnings()) ?: 'installPackage() reported failure.');
                 }
                 if ($autoEnable) {
                     $packageManager->enablePackage($validation->bundle->rootHandle);

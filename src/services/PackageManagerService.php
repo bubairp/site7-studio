@@ -10,6 +10,7 @@ use site7\studio\records\PackageRecord;
 use site7\studio\records\PackageVersionRecord;
 use site7\studio\services\support\PackageArchiveHelper;
 use site7\studio\services\synchronization\PackageUpdatePlanner;
+use site7\studio\Site7Studio;
 use Craft;
 
 /**
@@ -153,6 +154,10 @@ class PackageManagerService extends Component
 
         $record = $this->getPackageByHandle($handle);
         if (!$record) {
+            return false;
+        }
+
+        if (!$this->isLicensed($handle)) {
             return false;
         }
 
@@ -540,6 +545,10 @@ class PackageManagerService extends Component
      */
     public function enablePackage(string $handle): bool
     {
+        if (!$this->isLicensed($handle)) {
+            return false;
+        }
+
         $record = $this->getPackageByHandle($handle);
         if ($record && $record->type === 'section') {
             $this->linkToMatrix($handle);
@@ -547,6 +556,25 @@ class PackageManagerService extends Component
         $result = $this->updatePackageStatus($handle, 'enabled');
         $this->invalidateCraftCaches();
         return $result;
+    }
+
+    /**
+     * Licence gate shared by installPackage() and enablePackage(), so every
+     * caller (CP buttons, archive import, Local Repository, dependency
+     * cascade, console, import flows) is checked - not only
+     * PackageActionController. The reason is surfaced via
+     * getLastInstallWarnings().
+     */
+    private function isLicensed(string $handle): bool
+    {
+        if (Site7Studio::getInstance()->commercePackages->canInstallOrEnable($handle)) {
+            return true;
+        }
+
+        $message = "'{$handle}' is not included in your current plan or purchases.";
+        $this->_lastInstallWarnings[] = $message;
+        Craft::warning($message, __METHOD__);
+        return false;
     }
 
     /**
