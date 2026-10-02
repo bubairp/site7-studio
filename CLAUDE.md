@@ -62,7 +62,7 @@ Before writing a new service, helper, validator, planner, model, migration, cont
 ## Testing & git safety
 
 - `git status` before touching anything. Report and **preserve** any pre-existing unrelated changes — never revert, stash, or clean up files you didn't create for this task.
-- Prefer the smallest focused test, then relevant regression tests (`33`). The Codeception `unit` suite currently fails as a whole-suite run due to a 3-file parse error (`33` §10, `43` #1) — run individual files, or fix that specific typo first if you need the full suite green.
+- Prefer the smallest focused test, then relevant regression tests (`33`). The Codeception `unit` suite runs green as a whole (`codecept run unit -c codeception.yml`, `33`) — keep it that way.
 - For lifecycle changes (install/sync/update/rollback/Starter Kit), a live DDEV verification is required, not optional — run it against an isolated target where possible rather than mutating the shared dev site. Clean up any test packages, DB rows, generated archives, or template files afterward.
 - Before reporting done: `git status` / `git diff` / `git diff --stat`, confirm no unrelated files changed.
 - If an architecture change was made, confirm the matching `docs/*.md` update landed alongside it — a code change to a documented invariant without a doc update is incomplete.

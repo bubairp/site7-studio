@@ -10,7 +10,7 @@ class SearchServiceTest extends Unit
     /**
      * @var \UnitTester
      */
-    protected clone $tester;
+    protected \UnitTester $tester;
     
     private array $components = [
         [

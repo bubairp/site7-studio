@@ -5,6 +5,7 @@ paths:
     envs: tests/_envs
     data: tests/_data
 actor_suffix: Tester
+bootstrap: bootstrap.php
 extensions:
     enabled:
         - Codeception\Extension\RunFailed

@@ -17,6 +17,30 @@ class SynchronizationPlannerTest extends Unit
 {
     protected \UnitTester $tester;
 
+    /**
+     * plan() always asks Project Config whether changes are already pending
+     * (projectConfigNotes()); stub just that so no live Craft app is needed.
+     */
+    protected function _before()
+    {
+        \Craft::$app = new class {
+            public function getProjectConfig(): object
+            {
+                return new class {
+                    public function areChangesPending(): bool
+                    {
+                        return false;
+                    }
+                };
+            }
+        };
+    }
+
+    protected function _after()
+    {
+        \Craft::$app = null;
+    }
+
     private function fakeScanner(array $liveByHandle): object
     {
         return new class ($liveByHandle) {

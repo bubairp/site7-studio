@@ -10,7 +10,7 @@ Codeception 5 + PHPUnit, `unit` suite, `UnitTester` actor. 25 test files under `
 
 ## 3. Current Status
 
-**Implemented** (test infrastructure and most tests). **3 files have a hard parse error** (§10) and **3 files have genuine failures** (§10) as of this documentation pass — these are pre-existing, not introduced by the documentation task.
+**Implemented.** The whole `unit` suite runs green in one invocation (153 tests as of 2026-10-02) — the parse errors, missing Yii/Craft classes and stale assertions recorded in §10 are fixed.
 
 ## 4. Architecture
 
@@ -31,7 +31,7 @@ tests/fixtures/packages/test-hero/*
 
 ## 5. Execution Flow
 
-`vendor/bin/codecept run unit -c codeception.yml` — parses and runs every file matching the suite. Because 3 files (§10) contain a hard PHP parse error, a **whole-suite invocation currently fails before any test executes** — the only reliable way to run the suite today is per-file or with those 3 files excluded.
+`vendor/bin/codecept run unit -c codeception.yml` — parses and runs every file matching the suite (from the plugin root; inside this project that's `../../vendor/bin/codecept` in the DDEV web container). `codeception.yml`'s `bootstrap: bootstrap.php` loads `tests/bootstrap.php`, which finds Composer's autoloader (the plugin's own `vendor/` or the host project's) and loads the `Yii`/`Craft` class files, which Composer doesn't autoload. `Craft::$app` stays null — a test that reaches it stubs it itself (see `SynchronizationPlannerTest::_before()`).
 
 ## 6. Important Classes
 
@@ -51,6 +51,11 @@ Not applicable.
 
 ## 10. Validation and Safety — confirmed suite state
 
+**All of the following was fixed on 2026-10-02** (kept as a record of what was wrong):
+- the 3 parse errors → `protected \UnitTester $tester;`
+- the 3 "Class Yii/Craft not found" files, plus `ManifestReaderTest::testReadInvalidManifest` (`Craft::error()`, only reachable once its parse error was gone) → `tests/bootstrap.php` wired into `codeception.yml` (§5), and a `Craft::$app` stub for `SynchronizationPlannerTest`
+- the assertion mismatches → tests updated to current behavior. Fixing `ResourceImportValidatorTest` also exposed a **real bug**: `validateImport()` warned on the deprecated `UNKNOWN_RESOURCE` but had no case for its replacement `REVIEW_REQUIRED` (nor `EXTERNAL_DEPENDENCY`), so fields needing manual review produced no warning at all. Both are now warned on; the test runs fields through the real classifier, so it guards that.
+
 **`protected clone $tester;` typo — hard PHP parse error, confirmed in exactly 3 files** (this is a parse-time failure, not a runtime one — it blocks `codecept run unit` as a whole-suite invocation):
 - `tests/unit/services/LibraryServiceTest.php:16`
 - `tests/unit/services/ManifestReaderTest.php:13`
@@ -69,15 +74,14 @@ Not applicable.
 
 ## 11. Failure Scenarios
 
-| Scenario | Cause | Fix category (not applied — documentation only) |
+| Scenario | Cause | Fix |
 |---|---|---|
-| `codecept run unit` fails immediately, no tests execute | Parse error in 3 files (§10) | Fix the typo `protected clone $tester;` → `protected UnitTester $tester;` (or remove the unused property) |
-| `PackageManifestTest`/`SettingsTest`/`SynchronizationPlannerTest` fail with "Class Yii/Craft not found" | These tests reference live Craft/Yii classes but the `unit` suite has no bootstrapped Craft app | Needs either a Craft-aware test suite (`functional`/integration-style bootstrap) or refactoring the test to mock the dependency |
-| `ResourceImportValidatorTest`/`ResourceClassifierServiceTest` specific assertions fail | See §10 — stale fixture shape (missing `classification` key) and a deliberate `UNKNOWN_RESOURCE`→`review-required` rename, respectively; both root-caused, not mysterious drift | Update the test fixtures/expected values to match current behavior |
+| "Class Yii/Craft not found" | `tests/bootstrap.php` not loaded (run without `-c codeception.yml`, or the `bootstrap:` key removed) | Run with `-c codeception.yml` from the plugin root |
+| "Call to a member function ... on null" from `Craft::$app` | Code under test reaches the live app; the unit suite has none | Stub only the calls it makes in the test's `_before()`, reset `Craft::$app = null` in `_after()` |
 
 ## 12. Developer Change Guide
 
-Before trusting `codecept run unit`'s overall pass/fail signal: run it excluding the 3 parse-error files, or fix the typo first — otherwise the whole suite reports failure regardless of any other change's correctness.
+Run the whole suite (`codecept run unit -c codeception.yml`) before and after a change — it's green, so any failure is new.
 
 ## 13. Related Features
 

@@ -10,7 +10,7 @@ class ManifestReaderTest extends Unit
     /**
      * @var \UnitTester
      */
-    protected clone $tester;
+    protected \UnitTester $tester;
     
     private string $tempDir;
 

@@ -4,6 +4,8 @@ Consolidated from every feature document's "Known Limitations" section, plus ite
 
 ## Confirmed bugs
 
+Items 1-3 are **fixed** (2026-10-02) — the whole `unit` suite runs green; see `33_TESTING_ARCHITECTURE.md` §10. Kept for numbering stability.
+
 1. **`protected clone $tester;` parse error in 3 test files** — hard PHP parse error, blocks whole-suite `codecept run unit` invocation. Files: `tests/unit/services/LibraryServiceTest.php:16`, `tests/unit/services/ManifestReaderTest.php:13`, `tests/unit/services/SearchServiceTest.php:13`. (`33_TESTING_ARCHITECTURE.md`)
 2. **3 test files fail with "Class Yii/Craft not found"** when run individually — `PackageManifestTest.php`, `SettingsTest.php`, `SynchronizationPlannerTest.php`. These reference live Craft/Yii classes but the `unit` suite has no bootstrapped Craft app. (`33_TESTING_ARCHITECTURE.md`)
 3. **2 test files have genuine assertion-mismatch failures** (not environment errors): `ResourceImportValidatorTest.php` (`testFlagsUnsupportedFieldsAsWarnings`, `testFlagsAssetsFieldsAsWarning`), `ResourceClassifierServiceTest.php` (`testUnsupportedFieldWithNoSignalIsUnknownResource`). (`33_TESTING_ARCHITECTURE.md`)

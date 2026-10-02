@@ -13,7 +13,7 @@ class LibraryServiceTest extends Unit
     /**
      * @var \UnitTester
      */
-    protected clone $tester;
+    protected \UnitTester $tester;
     
     public function testLibraryAggregation()
     {
