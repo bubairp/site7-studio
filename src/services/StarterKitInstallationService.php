@@ -42,6 +42,13 @@ class StarterKitInstallationService extends Component
     {
         $packageManager = Site7Studio::getInstance()->packageManager;
         $package = $packageManager->getPackageByHandle($handle);
+        if (!$package) {
+            // On a fresh site the kit is on disk but not registered yet - the
+            // Install Wizard's catalog reads packages/ directly. Same fallback
+            // as the Template lookup below.
+            $packageManager->discoverPackages();
+            $package = $packageManager->getPackageByHandle($handle);
+        }
         if (!$package || $package->type !== 'starter-kit') {
             throw new \Exception('Starter Kit package not found.');
         }
