@@ -11,7 +11,7 @@
     "site7",
     "builder"
   ],
-  "license": "MIT",
+  "license": "proprietary",
   "require": {
     "craftcms/cms": "^5.0",
     "ext-zip": "*",
