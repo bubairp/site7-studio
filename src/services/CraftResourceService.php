@@ -63,9 +63,23 @@ class CraftResourceService extends Component
             'installedTemplate' => null,
         ];
 
-        // 1. Parse fields.yaml
+        // Format v2: the block exactly as captured (SectionSchemaService).
+        // Records only what it created, so uninstalling never deletes a
+        // field or entry type that existed before this package.
+        $schemaPath = $packagePath . '/' . \site7\studio\services\import\SectionSchemaService::FILE;
+        $schema = is_file($schemaPath) ? json_decode((string)file_get_contents($schemaPath), true) : null;
+        if (is_array($schema)) {
+            $result = (new \site7\studio\services\import\SectionSchemaService())->install($schema);
+            foreach ($schema['items'] as $item) {
+                if (in_array($item['uid'], $result['created'], true)) {
+                    $createdResources[$item['kind'] === 'fields' ? 'fields' : 'entryTypes'][] = $item['uid'];
+                }
+            }
+        }
+
+        // 1. Parse fields.yaml (format v1)
         $fieldsYamlPath = $packagePath . '/fields.yaml';
-        if (file_exists($fieldsYamlPath)) {
+        if (!is_array($schema) && file_exists($fieldsYamlPath)) {
             $fieldsData = Yaml::parseFile($fieldsYamlPath);
             if (isset($fieldsData['fields']) && is_array($fieldsData['fields'])) {
                 foreach ($fieldsData['fields'] as $fieldDef) {
@@ -81,7 +95,7 @@ class CraftResourceService extends Component
         $matrixYamlPath = $packagePath . '/matrix.yaml';
         if (file_exists($matrixYamlPath)) {
             $matrixData = Yaml::parseFile($matrixYamlPath);
-            if (isset($matrixData['blocks']) && is_array($matrixData['blocks'])) {
+            if (!is_array($schema) && isset($matrixData['blocks']) && is_array($matrixData['blocks'])) {
                 foreach ($matrixData['blocks'] as $blockDef) {
                     $entryType = $this->createMatrixEntryType($blockDef);
                     if ($entryType) {

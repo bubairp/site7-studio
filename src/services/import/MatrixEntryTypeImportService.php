@@ -67,11 +67,16 @@ class MatrixEntryTypeImportService extends Component
         }
         $version = (string)($meta['version'] ?? '1.0.0');
 
+        // Format v2: the whole block as Craft defines it (SectionSchemaService).
+        // A block whose fields are all shared resources is still a complete,
+        // installable block in v2 - v1 had nothing of its own to capture.
+        $schema = (new SectionSchemaService())->capture($entryType);
+
         $validator = new ResourceImportValidator();
         $proposedHandle = $validator->generateUniqueHandle($name);
         $validation = $validator->validateImport('matrix-entry-type', [
             'detectedFields' => $detectedFields,
-            'hasCapturableContent' => !empty($importableFields),
+            'hasCapturableContent' => !empty($importableFields) || !empty($schema['items']),
             'proposedHandle' => $proposedHandle,
             'version' => $version,
         ]);
@@ -120,6 +125,7 @@ class MatrixEntryTypeImportService extends Component
 
         $this->writeFieldsYaml($packagePath, $name, $importableFields);
         $this->writeMatrixYaml($packagePath, $name, $entryType, $importableFields);
+        $this->writeSchemaJson($packagePath, $schema);
         $this->writeTemplateTwig($packagePath, $handle, $entryType->handle, $importableFields);
 
         FileHelper::createDirectory($packagePath . '/preview');
@@ -244,6 +250,14 @@ class MatrixEntryTypeImportService extends Component
             ], fn($v, $k) => $k !== 'settings' || !empty($v), ARRAY_FILTER_USE_BOTH), $fields),
         ];
         file_put_contents($packagePath . '/fields.yaml', Yaml::dump($fieldsYaml, 4));
+    }
+
+    /**
+     * @internal Public so SectionUpdateService can regenerate schema.json in-place.
+     */
+    public function writeSchemaJson(string $packagePath, array $schema): void
+    {
+        file_put_contents($packagePath . '/' . SectionSchemaService::FILE, json_encode($schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
     }
 
     /**

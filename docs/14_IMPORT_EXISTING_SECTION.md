@@ -122,3 +122,21 @@ If changing Twig capture behavior: modify `copyTemplateTwigFromLiveSource()` —
 ## 14. Known Limitations
 
 None confirmed beyond the general Section-package "one template file" assumption noted in `13_TEMPLATE_ARCHITECTURE.md`.
+
+## 15. Section package format v2 (`schema.json`, 2026-10-02)
+
+**Why:** format v1 (`fields.yaml`/`matrix.yaml`) is a simplified copy - field handles, seven writable field types, one plain tab. Real blocks lost their per-layout field handles (Craft 5 lets a layout rename a global field; v1 created a *new* field per renamed handle - 28 duplicates on rp-craft), conditions, other field types (Assets, Table, plugin fields became PlainText), nested blocks and UIDs. Measured on rp-craft's `matrixContent`: 175 field placements, 47 renamed, 20 with conditions, 63 nested Matrix fields.
+
+**What:** `SectionSchemaService::capture()` writes `schema.json` next to the v1 files: the block's entry type, every field its layout uses and - recursively - the entry types of nested Matrix fields and their fields, each as Craft's own project config with its UID, in dependency order (`items[]`: `kind` = `fields`|`entryTypes`, `uid`, `handle`, `config`). Dependencies come from `fieldUid` in layouts and a Matrix field's `settings.entryTypes` (`SectionSchemaService::references()`, unit-tested).
+
+**Install** (`CraftResourceService::generateResources()` uses `schema.json` when present, v1 files otherwise): `SectionSchemaService::plan()` matches every item by UID - existing ones are **reused, never modified**; a different field/entry type with the same handle, or a field type whose plugin is missing, stops the install before anything changes. Missing items are applied with `ProjectConfig::set()` (Craft's own handlers, as when applying `config/project`) in dependency order, then re-applied with `force` so references inside cycles (blocks nesting each other) resolve. Only *created* UIDs are recorded as the package's resources, so uninstalling never deletes structure that existed before.
+
+**Linking** a block into the page-builder field edits the field's own `settings.entryTypes` list (`SectionSchemaService::linkToMatrix()`), keeping the other entries' add-menu groups.
+
+**Import/sync:** Import Existing Section writes `schema.json`; a block whose fields are all Shared Resources is now importable (v1 had nothing of its own to capture). Sync From Source regenerates it and treats any schema difference as a change.
+
+**Bulk:** `php craft site7-studio/import/sections [--dry-run]` imports every block type of the configured page-builder field (Setup Option B lets an authoring site use its own field, e.g. rp-craft's `matrixContent`).
+
+**Verified 2026-10-02:**
+- rp-craft: 27 of 27 `matrixContent` blocks imported (27 Sections, 17 Shared Resources); rp-craft unchanged - still 170 fields / 104 entry types, the only project config change is the plugin's `matrixFieldUid`, 12 content pages identical to a pre-import baseline.
+- Fresh Craft with rp-craft's plugins and no structure: installing the 27 packages through `PackageManagerService` created 78 fields + 45 entry types, **123 of 123 identical** to rp-craft's project config, 90 per-layout handles kept, 27 `_blocks` templates; installing again created nothing.

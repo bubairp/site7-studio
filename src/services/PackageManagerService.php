@@ -694,8 +694,13 @@ class PackageManagerService extends Component
      */
     private function invalidateCraftCaches(): void
     {
-        // 1. Rebuild project config YAML so the "Apply YAML Changes" banner never appears
-        Craft::$app->getProjectConfig()->rebuild();
+        // 1. (Removed) This used to call ProjectConfig::rebuild() after every
+        // package operation. A rebuild regenerates the whole project config
+        // from the database, which drops anything that only lives in project
+        // config - verified 2026-10-02: it stripped the add-menu groups from
+        // every block type of the page-builder field. Every change this
+        // plugin makes goes through Craft's services (saveField(),
+        // ProjectConfig::set()), which keep project config in sync already.
 
         // 2. Refresh the DB schema cache (new columns from new fields)
         Craft::$app->getDb()->getSchema()->refresh();
@@ -828,31 +833,18 @@ class PackageManagerService extends Component
             return;
         }
 
+        // Edits the field's own entry type list in place, so the other block
+        // types keep their add-menu groups (re-saving the field through
+        // setEntryTypes() dropped them).
         $entriesService = Craft::$app->getEntries();
-        $existingEntryTypes = $matrixField->getEntryTypes();
-        $entryTypeIds = array_map(fn($et) => $et->id, $existingEntryTypes);
-
-        $changed = false;
+        $schemaService = new \site7\studio\services\import\SectionSchemaService();
 
         foreach ($matrixData['blocks'] as $blockDef) {
             $blockHandle = $blockDef['handle'] ?? null;
-            if (!$blockHandle) continue;
-
-            $entryType = $entriesService->getEntryTypeByHandle($blockHandle);
-            if (!$entryType) continue;
-
-            if ($add && !in_array($entryType->id, $entryTypeIds)) {
-                $entryTypeIds[] = $entryType->id;
-                $changed = true;
-            } elseif (!$add && in_array($entryType->id, $entryTypeIds)) {
-                $entryTypeIds = array_diff($entryTypeIds, [$entryType->id]);
-                $changed = true;
+            $entryType = $blockHandle ? $entriesService->getEntryTypeByHandle($blockHandle) : null;
+            if ($entryType) {
+                $schemaService->linkToMatrix($matrixField, $entryType->uid, $add);
             }
-        }
-
-        if ($changed) {
-            $matrixField->setEntryTypes($entryTypeIds);
-            $fieldsService->saveField($matrixField);
         }
     }
 }

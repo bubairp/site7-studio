@@ -185,7 +185,14 @@ class SectionUpdateService extends Component
         $changedOwnedFiles = array_values(array_filter($ownedFilesDiff, fn(array $f) => $f['changed']));
 
         $fieldsChanged = !empty($fieldsDiff['added']) || !empty($fieldsDiff['removed']) || !empty($fieldsDiff['changed']);
-        if (!$fieldsChanged && !$twigDiff['changed'] && empty($changedOwnedFiles)) {
+
+        // Format v2 (schema.json) also changes on things v1 doesn't see
+        // (conditions, layout handles, nested blocks, field settings).
+        $schema = (new SectionSchemaService())->capture($entryType);
+        $schemaPath = $packagePath . '/' . SectionSchemaService::FILE;
+        $schemaChanged = !is_file($schemaPath) || json_decode((string)file_get_contents($schemaPath), true) != $schema;
+
+        if (!$fieldsChanged && !$schemaChanged && !$twigDiff['changed'] && empty($changedOwnedFiles)) {
             // Nothing meaningful changed since the last sync - not even the
             // source-hash bookkeeping is touched, so calling this repeatedly
             // with no intervening source change is a true no-op.
@@ -195,6 +202,7 @@ class SectionUpdateService extends Component
         $importer = new MatrixEntryTypeImportService();
         $importer->writeFieldsYaml($packagePath, $record->name, $importableFields);
         $importer->writeMatrixYaml($packagePath, $record->name, $entryType, $importableFields);
+        $importer->writeSchemaJson($packagePath, $schema);
         if ($twigDiff['changed']) {
             $importer->copyTemplateTwigFromLiveSource($packagePath, $entryType->handle);
         }
