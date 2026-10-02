@@ -42,8 +42,8 @@ VERSION INTEGRITY      (packageId, version) uniqueness is application-level only
                        post-rollback collisions. PageUpdateService bypasses recordVersion()
                        entirely and can write real duplicate rows (18_SYNC_FROM_SOURCE.md §5a).
 
-PACKAGE AUTHENTICITY   PackageSignerInterface / NullPackageSigner — architecture prepared,
-                       NOT cryptographically enforced (verify() always true)
+PACKAGE AUTHENTICITY   Ed25519PackageSigner — signature.json over bundle-manifest.json,
+                       verified on import (47_PACKAGE_SIGNING.md)
 ```
 
 ## 5. Execution Flow
@@ -86,4 +86,4 @@ Before adding any new file-writing code path anywhere in this plugin: check whet
 
 ## 14. Known Limitations
 
-Package signing/authenticity verification is architecturally prepared but not implemented (`NullPackageSigner`) — see `24_LICENSING_AND_COMMERCE.md` §10 and `43_KNOWN_ISSUES_AND_TECHNICAL_DEBT.md`.
+Package signing/authenticity verification is implemented (`Ed25519PackageSigner`) — see `47_PACKAGE_SIGNING.md`, including its limits (§10).

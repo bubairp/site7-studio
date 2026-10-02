@@ -12,7 +12,7 @@ Items 1-3 are **fixed** (2026-10-02) — the whole `unit` suite runs green; see 
 
 ## Confirmed architectural gaps (not bugs — deliberate stubs/extension points)
 
-4. **Package signing is architecturally prepared but not cryptographically implemented.** `NullPackageSigner` is the only `PackageSignerInterface` implementation; `verify()` always returns `true`. Package authenticity is NOT currently verifiable beyond content-integrity checksums. (`24_LICENSING_AND_COMMERCE.md`)
+4. **Fixed 2026-10-02** — Ed25519 package signing is implemented (`47_PACKAGE_SIGNING.md`); Commerce24's production key still has to be generated and built in (`47` §9). Original entry: **Package signing is architecturally prepared but not cryptographically implemented.** `NullPackageSigner` is the only `PackageSignerInterface` implementation; `verify()` always returns `true`. Package authenticity is NOT currently verifiable beyond content-integrity checksums. (`24_LICENSING_AND_COMMERCE.md`)
 5. **`PackageInstallEvent`/`PackageEvent` and `PackageSignedEvent` are unused extension points** — declared but no current code path dispatches them. (`27_EVENTS_AND_HOOKS.md`)
 
 ## Confirmed leftover artifacts

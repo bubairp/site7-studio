@@ -62,7 +62,7 @@ Tracked centrally in `43_KNOWN_ISSUES_AND_TECHNICAL_DEBT.md`, and referenced per
 
 ## D. Future / not implemented
 
-Also tracked in `43_KNOWN_ISSUES_AND_TECHNICAL_DEBT.md` — package signing (`NullPackageSigner`), any CP UI specifically for owned-file update/rollback, rename/move detection for owned files, and others.
+Also tracked in `43_KNOWN_ISSUES_AND_TECHNICAL_DEBT.md` — any CP UI specifically for owned-file update/rollback, rename/move detection for owned files, and others.
 
 ## Bootstrap-level components (what Craft actually instantiates)
 
@@ -71,7 +71,7 @@ Also tracked in `43_KNOWN_ISSUES_AND_TECHNICAL_DEBT.md` — package signing (`Nu
 - **Services** (`src/services/**/*.php`): the bulk of the domain logic, ~70 named components — see `38_SERVICE_REFERENCE.md`.
 - **Models** (`src/models/**/*.php`): plain `craft\base\Model` DTOs — never persistence-aware.
 - **Records** (`src/records/*.php`): `craft\db\ActiveRecord` subclasses, mostly bare — one per database table, see `05_DATABASE_ARCHITECTURE.md`.
-- **Migrations** (`src/migrations/*.php`): 16 timestamped migrations + `Install.php`.
+- **Migrations** (`src/migrations/*.php`): 17 timestamped migrations + `Install.php`.
 - **Controllers** (`src/controllers/*.php`, `src/console/controllers/*.php`): see `28_CONTROLLERS_AND_ROUTES.md`, `30_CONSOLE_COMMANDS.md`.
 - **Events** (`src/events/**/*.php`): see `27_EVENTS_AND_HOOKS.md`.
 - **Repositories** (`src/repositories/**/*.php`): thin, table-scoped read/write helpers, distinct from full services — the source-tracking tables (`site7_*_import_sources`), general package CRUD (`PackageRepository`, also in `repositories/` root), and marketplace file/HTTP "repositories" (`repositories/marketplace/`).

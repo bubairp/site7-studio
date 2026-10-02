@@ -176,8 +176,10 @@ class MarketplaceService extends Component
 
         $path = $repository->fetchPackage($handle);
 
+        // Commerce24 signs everything it serves, so an unsigned download
+        // means tampering in transit or a misconfigured server.
         $importService = new PackageImportService();
-        $validation = $importService->validatePackage($path);
+        $validation = $importService->validatePackage($path, $repository instanceof Commerce24MarketplaceRepository);
         if (!$validation->valid) {
             throw new \Exception('The package failed validation: ' . implode(' ', $validation->errors));
         }

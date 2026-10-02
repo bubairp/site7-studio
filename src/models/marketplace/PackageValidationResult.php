@@ -39,6 +39,17 @@ class PackageValidationResult extends Model
     /** The original .s7pkg path this result was validated from (informational only). */
     public string $sourcePath = '';
 
+    /** The archive's signature check - see Ed25519PackageSigner::verifyArchive(). */
+    public ?SignatureVerification $signature = null;
+
+    /**
+     * pricingType of each bundled package, from the archive's own
+     * manifest.json files (handle => pricingType).
+     *
+     * @var array<string, string>
+     */
+    public array $pricingTypes = [];
+
     /**
      * @inheritdoc
      */

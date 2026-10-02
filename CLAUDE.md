@@ -35,6 +35,7 @@ Read what's relevant to the task, not the whole set.
 | Versioning / Sync / Baseline / Update / Rollback — **one system, read all five together** | `16`, `17`, `18`, `19`, `20` |
 | Frontend owned files | `21`, `22` |
 | Marketplace / Licensing / Dependencies / Backup | `23`, `24`, `25`, `26` |
+| Package signing (Ed25519, Commerce24 key) | `47` |
 | Events / Controllers / CP / Console / Security | `27`, `28`, `29`, `30`, `31` |
 | Starter Kit (separate parallel system — don't conflate with `19`) | `32` |
 | Testing | `33` |

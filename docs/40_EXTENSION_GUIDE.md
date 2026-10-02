@@ -15,7 +15,7 @@ Implement `MarketplaceRepositoryInterface` and register it in `MarketplaceServic
 Use `FeatureGateService` — do not hand-roll a new entitlement check (`24_LICENSING_AND_COMMERCE.md` §12).
 
 ## Implementing real package signing
-Replace `NullPackageSigner` with a real `PackageSignerInterface` implementation; `PackagePublisherService` already calls the interface, not the concrete class (`24_LICENSING_AND_COMMERCE.md` §12).
+`Ed25519PackageSigner` is the registered `PackageSignerInterface` implementation (`47_PACKAGE_SIGNING.md`); a different scheme would replace it in `PublishingServiceProvider`, and must keep `verifyArchive()` since `PackageImportService` calls it.
 
 ## Adding a new CP nav item or permission
 Add a listener to `RegisterNavigationEvent`/`RegisterPermissionsEvent` (or extend `CpSubscriber`) — never hard-code into `CpNavigationRegistry`/`CpPermissionRegistry` (`29_CP_UI_ARCHITECTURE.md` §12).

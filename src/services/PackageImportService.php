@@ -9,6 +9,8 @@ use craft\helpers\StringHelper;
 use site7\studio\events\PackageImportedEvent;
 use site7\studio\models\marketplace\PackageBundleManifest;
 use site7\studio\models\marketplace\PackageValidationResult;
+use site7\studio\models\marketplace\SignatureVerification;
+use site7\studio\services\commerce\PackageService;
 use site7\studio\services\support\PackageArchiveHelper;
 use site7\studio\Site7Studio;
 
@@ -38,7 +40,7 @@ class PackageImportService extends Component
      * Always returns a result object, even for a completely invalid file -
      * check ->valid (or ->errors) before offering Install.
      */
-    public function validatePackage(string $s7pkgPath): PackageValidationResult
+    public function validatePackage(string $s7pkgPath, bool $requireSignature = false): PackageValidationResult
     {
         $result = new PackageValidationResult(['sourcePath' => $s7pkgPath]);
 
@@ -125,6 +127,9 @@ class PackageImportService extends Component
                 continue;
             }
 
+            $packageManifest = json_decode((string)file_get_contents($extractedPath . '/manifest.json'), true);
+            $result->pricingTypes[$handle] = (string)($packageManifest['pricingType'] ?? 'free');
+
             $existing = $packageManager->getPackageByHandle($handle);
             if ($existing) {
                 $existingPath = $packageManager->getPackagePath($handle);
@@ -139,8 +144,67 @@ class PackageImportService extends Component
             }
         }
 
+        $this->checkSignature($result, $s7pkgPath, $requireSignature);
+
         $result->valid = empty($result->errors);
         return $result;
+    }
+
+    /**
+     * Stores what the archive's signature vouched for, so the licence gate
+     * (commerce PackageService::isPaidPackage()) uses the signed pricingType
+     * rather than manifest.json, which can be edited after import.
+     */
+    private function recordSignature(\site7\studio\records\PackageRecord $record, PackageValidationResult $validation, string $handle): void
+    {
+        $verified = $validation->signature?->isVerified() ?? false;
+        $record->signatureStatus = $validation->signature?->status;
+        $record->signatureKeyId = $verified ? $validation->signature->keyId : null;
+        $record->verifiedPricingType = $verified ? ($validation->pricingTypes[$handle] ?? 'free') : null;
+        $record->save(false);
+    }
+
+    /**
+     * Signature rules (docs/47_PACKAGE_SIGNING.md): a bad signature is
+     * always refused; an unsigned archive is refused when the caller
+     * requires a signature (Commerce24 downloads) or when it contains a
+     * paid package, and otherwise imports with a warning. The signature
+     * covers bundle-manifest.json, whose per-package checksums were matched
+     * above, so a verified signature vouches for every bundled file.
+     */
+    private function checkSignature(PackageValidationResult $result, string $s7pkgPath, bool $requireSignature): void
+    {
+        /** @var \site7\studio\services\publishing\Ed25519PackageSigner $signer */
+        $signer = Site7Studio::getInstance()->packageSigner;
+        $result->signature = $signer->verifyArchive($s7pkgPath);
+
+        if ($result->signature->status === SignatureVerification::INVALID) {
+            $result->errors[] = 'Package signature is not valid: ' . $result->signature->message;
+            return;
+        }
+        if ($result->signature->isVerified()) {
+            // Checksums are only compared when present, and the signature
+            // only vouches for files through them.
+            foreach ($result->bundle?->packages ?? [] as $entry) {
+                if (empty($entry['checksum'])) {
+                    $result->errors[] = "Signed archive has no checksum for package '" . ($entry['handle'] ?? '?') . "', so its files aren't covered by the signature.";
+                }
+            }
+            return;
+        }
+
+        if ($requireSignature) {
+            $result->errors[] = 'This package is not signed. Packages from Commerce24 must be signed.';
+            return;
+        }
+
+        $paid = array_keys(array_filter($result->pricingTypes, [PackageService::class, 'isPaidPricingType']));
+        if ($paid !== []) {
+            $result->errors[] = 'This archive is not signed but contains paid packages (' . implode(', ', $paid) . '). Paid packages must come signed from Commerce24.';
+            return;
+        }
+
+        $result->warnings[] = 'This archive is not signed. It contains only free packages, so it can still be imported.';
     }
 
     /**
@@ -202,6 +266,10 @@ class PackageImportService extends Component
             if ($record) {
                 $marketplace->recordVersion($record, $entry['checksum'] ?? null);
                 $marketplace->syncDependencyRecords($record);
+                // A skipped handle kept its own files, which this archive's signature doesn't cover.
+                if (!in_array($entry['handle'], $summary['skipped'], true)) {
+                    $this->recordSignature($record, $validation, $entry['handle']);
+                }
             }
         }
 

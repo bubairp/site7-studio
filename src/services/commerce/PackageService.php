@@ -145,13 +145,23 @@ class PackageService extends Component implements PackageProviderInterface
     }
 
     /**
-     * Whether a package is sold rather than free, per its manifest's
-     * pricingType (free/premium/private/enterprise - see the Publish
-     * wizard's Metadata step). Missing/unreadable manifests count as free.
+     * Whether a package is sold rather than free, per its pricingType
+     * (free/premium/private/enterprise - see the Publish wizard's Metadata
+     * step). A pricingType verified by a signature at import wins over
+     * manifest.json on disk, which can be edited afterwards; otherwise the
+     * manifest decides, and a missing/unreadable one counts as free.
      */
     public function isPaidPackage(?PackageRecord $record): bool
     {
-        $pricingType = $record?->getManifest()?->pricingType;
+        if ($record !== null && $record->verifiedPricingType !== null) {
+            return self::isPaidPricingType($record->verifiedPricingType);
+        }
+
+        return self::isPaidPricingType($record?->getManifest()?->pricingType);
+    }
+
+    public static function isPaidPricingType(?string $pricingType): bool
+    {
         return $pricingType !== null && $pricingType !== '' && $pricingType !== 'free';
     }
 

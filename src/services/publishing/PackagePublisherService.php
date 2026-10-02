@@ -83,8 +83,9 @@ class PackagePublisherService extends Component implements PackagePublisherInter
             return $this->fail($handle, "Publishing to '{$target->getName()}' failed: " . $e->getMessage(), $dispatcher);
         }
 
-        // Extension point only - see PackageSignerInterface's docblock;
-        // NullPackageSigner always returns null, so nothing is persisted.
+        // Commerce24 signs what it serves; an author site has no signing key,
+        // so this returns null there. It only signs on a host that has
+        // SITE7_SIGNING_SECRET_KEY set (see Ed25519PackageSigner).
         $plugin->packageSigner->sign($s7pkgPath);
 
         // A successful publish is the one authoritative signal that this

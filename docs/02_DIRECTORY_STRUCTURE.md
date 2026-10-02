@@ -24,7 +24,7 @@ plugins/site7-studio/
 │   ├── records/                      # ActiveRecord subclasses - one per table, mostly bare
 │   ├── repositories/                 # Thin table-scoped read/write helpers, PLUS PackageRepository (general package CRUD)
 │   │   └── marketplace/              # File/HTTP-backed "repositories" (not DB tables)
-│   ├── migrations/                   # 16 timestamped migrations + Install.php
+│   ├── migrations/                   # 17 timestamped migrations + Install.php
 │   ├── events/                       # Event classes
 │   │   └── subscribers/              # CpSubscriber, PackageBackupSubscriber
 │   ├── interfaces/                   # Contracts for pluggable subsystems

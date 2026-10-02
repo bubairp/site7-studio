@@ -34,7 +34,8 @@ Flat lookup, grouped by domain, for "where is the service that does X." Each ent
 | `PackagePublisherService` | `src/services/publishing/PackagePublisherService.php` | `09_PACKAGE_BUILD_AND_EXPORT.md`, `24_LICENSING_AND_COMMERCE.md` |
 | `PublishValidatorService` | `src/services/publishing/PublishValidatorService.php` | `09_PACKAGE_BUILD_AND_EXPORT.md` |
 | `PackageRollbackService` | `src/services/publishing/PackageRollbackService.php` | `20_ROLLBACK.md` |
-| `NullPackageSigner` | `src/services/publishing/NullPackageSigner.php` | `24_LICENSING_AND_COMMERCE.md` |
+| `Ed25519PackageSigner` (`packageSigner`) | `src/services/publishing/Ed25519PackageSigner.php` | `47_PACKAGE_SIGNING.md` |
+| `NullPackageSigner` (unregistered, former no-op) | `src/services/publishing/NullPackageSigner.php` | `24_LICENSING_AND_COMMERCE.md` |
 
 ## Synchronization Services (single-file three-way system)
 | Service | File | Doc |

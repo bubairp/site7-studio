@@ -3,14 +3,9 @@
 namespace site7\studio\interfaces;
 
 /**
- * Extension point only - per Phase 14's explicit scope ("Prepare architecture
- * for Package Signing / Signature Validation / Publisher Verification. Do
- * not implement cryptography yet."). No implementation of this interface
- * does any real signing; NullPackageSigner is the only one that exists, and
- * it's a deliberate no-op. A future milestone implementing real signing
- * (e.g. openssl-based) only needs to implement this interface and register
- * it in place of NullPackageSigner - PackagePublisherService already calls
- * $this->signer->sign() unconditionally, so nothing else changes.
+ * Package signing. Ed25519PackageSigner is the registered implementation
+ * (see docs/47_PACKAGE_SIGNING.md); NullPackageSigner is the old no-op,
+ * kept unregistered.
  */
 interface PackageSignerInterface
 {
