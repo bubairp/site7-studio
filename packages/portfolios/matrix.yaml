@@ -1,0 +1,9 @@
+name: 'Portfolios Matrix'
+blocks:
+    -
+        handle: portfolios
+        name: Portfolios
+        fields:
+            - selectPortfolios
+            - portfolioPerRow
+            - paginations

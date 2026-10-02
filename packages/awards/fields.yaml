@@ -1,0 +1,21 @@
+name: 'Awards Fields'
+fields:
+    -
+        handle: awardContentGroup
+        name: 'Award Content Group'
+        type: Matrix
+        instructions: ''
+        settings:
+            entryTypeHandles: [awardContents]
+            viewMode: blocks
+            maxEntries: null
+    -
+        handle: displayMode
+        name: 'Display Mode'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: columnPerRow
+        name: 'Column per row'
+        type: Dropdown
+        instructions: ''

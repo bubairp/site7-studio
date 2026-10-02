@@ -1,0 +1,35 @@
+{
+    "schemaVersion": "1",
+    "handle": "page-banner",
+    "name": "Page Banner",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "Imported from the Craft Entry Type \"Page Banner\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "switchOff",
+            "plainText",
+            "shortDescription",
+            "images",
+            "colorLibrary",
+            "titleColor"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [],
+    "ownedFiles": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 51,
+        "sourceUid": "3aaefd28-eb87-4453-b22d-1ac377260247",
+        "sourceHandle": "pageBanner",
+        "sourceHash": "9b1f48655a86636a886247cd9614b0d99e0e63e80c7fdc7b5ee735613e6816f3",
+        "importedAt": "2026-10-02T04:09:13-07:00",
+        "importedBy": null
+    }
+}

@@ -1,0 +1,163 @@
+{
+    "formatVersion": 2,
+    "entryType": "79b40454-cc32-43a9-af44-6202bffac601",
+    "items": [
+        {
+            "kind": "fields",
+            "uid": "133ed570-a003-4812-b0e5-846df1f849d5",
+            "handle": "entriesList",
+            "config": {
+                "columnSuffix": null,
+                "handle": "entriesList",
+                "instructions": null,
+                "name": "Entries (List)",
+                "searchable": false,
+                "settings": {
+                    "allowSelfRelations": false,
+                    "branchLimit": null,
+                    "defaultPlacement": "end",
+                    "maintainHierarchy": false,
+                    "maxRelations": null,
+                    "minRelations": null,
+                    "selectionLabel": null,
+                    "showSearchInput": true,
+                    "showSiteMenu": false,
+                    "showUnpermittedEntries": true,
+                    "showUnpermittedSections": true,
+                    "sources": "*",
+                    "targetSiteId": null,
+                    "validateRelatedElements": false,
+                    "viewMode": "list"
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\Entries"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "76d00c6d-1cfa-4977-8322-0bfa2e297408",
+            "handle": "plainText",
+            "config": {
+                "columnSuffix": null,
+                "handle": "plainText",
+                "instructions": null,
+                "name": "Plain Text",
+                "searchable": false,
+                "settings": {
+                    "byteLimit": null,
+                    "charLimit": null,
+                    "code": false,
+                    "initialRows": 4,
+                    "multiline": false,
+                    "placeholder": null,
+                    "uiMode": "normal"
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\PlainText"
+            }
+        },
+        {
+            "kind": "entryTypes",
+            "uid": "79b40454-cc32-43a9-af44-6202bffac601",
+            "handle": "selectEntries",
+            "config": {
+                "allowLineBreaksInTitles": false,
+                "color": "cyan",
+                "description": null,
+                "fieldLayouts": {
+                    "74b9220a-13e3-499b-9b63-06956c8370df": {
+                        "cardThumbAlignment": "end",
+                        "tabs": [
+                            {
+                                "elementCondition": null,
+                                "elements": [
+                                    {
+                                        "autocapitalize": true,
+                                        "autocomplete": false,
+                                        "autocorrect": true,
+                                        "class": null,
+                                        "dateAdded": "2025-01-08T12:19:15+00:00",
+                                        "disabled": false,
+                                        "elementCondition": null,
+                                        "id": null,
+                                        "inputType": null,
+                                        "instructions": null,
+                                        "label": null,
+                                        "max": null,
+                                        "min": null,
+                                        "name": null,
+                                        "orientation": null,
+                                        "placeholder": null,
+                                        "readonly": false,
+                                        "required": true,
+                                        "size": null,
+                                        "step": null,
+                                        "tip": null,
+                                        "title": null,
+                                        "type": "craft\\fieldlayoutelements\\entries\\EntryTitleField",
+                                        "uid": "b061dc24-18c5-46c6-9b1c-9074cf90627a",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    },
+                                    {
+                                        "dateAdded": "2025-01-08T12:21:04+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "133ed570-a003-4812-b0e5-846df1f849d5",
+                                        "handle": null,
+                                        "instructions": null,
+                                        "label": null,
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "0c47b2f3-f3b3-448e-a58a-b36b33577c28",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    },
+                                    {
+                                        "dateAdded": "2025-01-30T13:19:58+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "76d00c6d-1cfa-4977-8322-0bfa2e297408",
+                                        "handle": null,
+                                        "instructions": null,
+                                        "label": null,
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "8dcc840f-62bb-4d6c-bbd1-5831a865c861",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    }
+                                ],
+                                "name": "Content",
+                                "uid": "cca40538-a055-41c5-b1a0-b21ff3dac259",
+                                "userCondition": null
+                            }
+                        ],
+                        "thumbFieldKey": null
+                    }
+                },
+                "handle": "selectEntries",
+                "hasTitleField": false,
+                "icon": "road-barrier",
+                "name": "Select Entries",
+                "showSlugField": true,
+                "showStatusField": true,
+                "slugTranslationKeyFormat": null,
+                "slugTranslationMethod": "site",
+                "titleFormat": null,
+                "titleTranslationKeyFormat": null,
+                "titleTranslationMethod": "site",
+                "uiLabelFormat": "{title}"
+            }
+        }
+    ]
+}

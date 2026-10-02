@@ -1,0 +1,6 @@
+name: 'Select Entries Matrix'
+blocks:
+    -
+        handle: selectEntries
+        name: 'Select Entries'
+        fields: {  }

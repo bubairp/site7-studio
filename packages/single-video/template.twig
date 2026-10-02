@@ -1,0 +1,92 @@
+{% import "_macros/images" as images %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+{% set headingAndContent = block.headingAndContent.one() %}
+{% set video = block ?? '' %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? 'video' %}
+{% set containerWidth = 'container' %}
+{% set title = block.title ?? '' %}
+{% set heading = block.heading ?? '' %}
+{% set headingTags = block.headingTags ?? 'h2' %}
+{% set align = block.align ?? 'left' %}
+{% set contentData = block.contentdata ?? '' %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid  ?? '' %}
+{% set blockCssClasses = '' %}
+{% set themeSwitche = '' %}
+
+<!-- video -->
+{% if video | length %}
+	{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+	{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+	{% set themeSwitche = null %}
+
+	{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+		{% if blockStyleData.background is defined %}
+			{% set backgroundEntry = blockStyleData.background.one() %}
+			{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+		{% endif %}
+	{% endif %}
+	{% if returnVars.containerWidth is defined %}
+		{% set containerWidth = returnVars.containerWidth %}
+	{% endif %}
+
+	{{ bsResponsive(blockStyle, scopedSel) }}
+	<div class="video-content-block py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+		<div class="{{ containerWidth }}">
+			{% if headingAndContent %}
+				{% if headingAndContent.heading|length or  headingAndContent.Description|length %}
+					{% include "_components/header-content-block" %}
+				{% endif %}
+			{% endif %}
+
+			<div class="relative w-full max-w-5xl mx-auto mt-8 lg:mt-12">
+				{% set showPopup = block.switchOff ?? false %}
+				{% set theVideo = block.video.one() ?? null %}
+				{% set theThumb = block.videoThumbImage.one() ?? null %}
+
+				{% if showPopup %}
+					{% set modalId = 'video-modal-' ~ block.id %}
+					<div class="w-full">
+						<div class="relative aspect-video overflow-hidden rounded-2xl lg:rounded-3xl shadow-md hover:shadow-xl transition-shadow duration-300 group cursor-pointer" @click.prevent="$store.modal.open('{{ modalId }}')">
+							{% if theThumb %}
+								{{ images.singleImg(theThumb, 1600, {'ratio': 1.777}, 'block w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 motion-reduce:transform-none') }}
+							{% endif %}
+
+							<div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300 pointer-events-none"></div>
+
+							<div
+								class="absolute inset-0 flex items-center justify-center z-10">
+								{# The Play Button Trigger #}
+								<button type="button" class="tw-btn tw-btn-primary tw-btn-icon rounded-full shadow-2xl shadow-primary/40 w-20 h-20 lg:w-24 lg:h-24 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 motion-reduce:transform-none" aria-label="Play video">
+									<i class="ti ti-player-play text-3xl lg:text-4xl ml-1 text-white"></i>
+								</button>
+							</div>
+						</div>
+					</div>
+
+					{# Alpine.js Video Modal using global store #}
+					{% include "_components/video-modal.twig" with {
+						modalId: modalId,
+						theVideo: theVideo
+					} %}
+				{% else %}
+					<div class="relative overflow-hidden rounded-2xl lg:rounded-3xl shadow-md bg-black">
+						<div class="aspect-video relative">
+							{% if theVideo %}
+								{% set embedded = craft.embeddedAssets.get(theVideo) %}
+								{% if theVideo.kind == 'json' %}
+									{{ embedded ? embedded.getIframeCode(['autoplay=0', 'loop=0', 'background=0', 'class=w-full h-full absolute inset-0'])|raw }}
+								{% else %}
+									<video class="w-full h-full object-cover" controls {% if theThumb %} poster="{{ theThumb.url }}" {% endif %}>
+										<source src="{{ theVideo.getUrl() }}" type="video/mp4">Your browser does not support the video tag.</video>
+								{% endif %}
+							{% endif %}
+						</div>
+					</div>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+{% endif %}

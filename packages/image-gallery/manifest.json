@@ -1,0 +1,32 @@
+{
+    "schemaVersion": "1",
+    "handle": "image-gallery",
+    "name": "Image Gallery",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "Imported from the Craft Entry Type \"Image Gallery\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "images",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [],
+    "ownedFiles": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 74,
+        "sourceUid": "9385a028-c2e4-482d-8672-f601d1bd5903",
+        "sourceHandle": "imageGallery",
+        "sourceHash": "9460b74518a11e89152cfd80f83ae21d328d957a2da9455066d5853cc03c2ae0",
+        "importedAt": "2026-10-02T04:09:11-07:00",
+        "importedBy": null
+    }
+}

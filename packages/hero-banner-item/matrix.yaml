@@ -1,0 +1,11 @@
+name: 'Hero Banner Item Matrix'
+blocks:
+    -
+        handle: heroBannerItem
+        name: 'Hero Banner Item'
+        fields:
+            - heading
+            - displayTitle
+            - switchOffDes
+            - subtitle
+            - displayCheckList

@@ -1,0 +1,45 @@
+{
+    "schemaVersion": "1",
+    "handle": "contact",
+    "name": "Contact",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "Imported from the Craft Entry Type \"Contact \".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "blockStyle"
+        ],
+        "pluginDependencies": [
+            {
+                "handle": "selectForm",
+                "requiredPlugin": "wheelform\\fields plugin"
+            }
+        ]
+    },
+    "excludedFields": [
+        {
+            "handle": "themeDark",
+            "name": "Form Theme Dark",
+            "type": "Lightswitch",
+            "classification": "platform-configuration",
+            "statusLabel": "Platform Configuration",
+            "detail": "Site-wide theme configuration value - excluded from the package, referenced informationally only."
+        }
+    ],
+    "ownedFiles": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 98,
+        "sourceUid": "d3e3d189-26c0-4600-9328-4bf8961334f8",
+        "sourceHandle": "contact",
+        "sourceHash": "474b16738ac282239f055655be73cd65faa2d0fd9f34d9a30b05c27b4356af01",
+        "importedAt": "2026-10-02T04:09:09-07:00",
+        "importedBy": null
+    }
+}

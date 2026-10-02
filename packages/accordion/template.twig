@@ -1,0 +1,252 @@
+{% import "_macros/images" as images %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+{% set expandableContent = block.expandableContent ?? [] %}
+{% set headingAndContent = block.headingAndContent.one() %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? 'accordion' %}
+{% set blockTypeUid = block.uid ?? '' %}
+{% set containerWidth = 'container mx-auto px-4' %}
+
+{% set accordionStyles = block.accordionStyle.one() %}
+{% set blockCssClasses = '' %}
+{% set themeSwitche = '' %}
+
+{% if expandableContent | length %}
+	{% set scopedSelector = '.' ~ blockType ~ '-' ~ block.id ~ '-style' %}
+	{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+	{% set themeSwitche = null %}
+
+	{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+		{% if blockStyleData.background is defined %}
+			{% set backgroundEntry = blockStyleData.background.one() %}
+			{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+		{% endif %}
+	{% endif %}
+	{% if returnVars.containerWidth is defined %}
+		{% set containerWidth = returnVars.containerWidth %}
+	{% endif %}
+
+	{% set scopedSelector = '.' ~ blockType ~ '-' ~ block.id ~ '-style' %}
+	{% set borderRadiusClass = accordionStyles.borderRadius ?? null %}
+	{% set borderWidthClass = accordionStyles.number ?? null %}
+	{% set borderColorClass = accordionStyles.colorLibrary.one().colorcode ?? accordionStyles.colorLibrary.one().plainText ?? null %}
+	{% set toggleBackgroundColorClass = accordionStyles.toggleBackgroundColor.one().colorcode ?? accordionStyles.toggleBackgroundColor.one().plainText ?? null %}
+	{% set titleColorClass = accordionStyles.titleColor.one().colorcode ?? accordionStyles.titleColor.one().plainText ?? null %}
+	{% set textColorClass = accordionStyles.contentColor.one().colorcode ?? accordionStyles.contentColor.one().plainText ?? null %}
+	{% set toggleHoverColorClass = accordionStyles.toggleHoverColor.one().colorcode ?? accordionStyles.toggleHoverColor.one().plainText ?? null %}
+
+	{% set blockBadgeColorClass = null %}
+	{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+		{% if blockStyleData.typography is defined and blockStyleData.typography|length %}
+			{% set typographyData = blockStyleData.typography.one() %}
+			{% set blockBadgeColorClass = typographyData.colorLibraryBadge.one().colorcode ?? null %}
+		{% endif %}
+	{% endif %}
+
+	<style>
+		{% if borderRadiusClass is not same as(null) and borderRadiusClass != '' %}
+			{{scopedSelector}}
+			.tw-accordion-item {
+				border-radius: {{borderRadiusClass}}
+				px !important;
+			}
+		{% endif %}
+		{% if borderColorClass %}
+			{{scopedSelector}}
+			.tw-accordion-item {
+				border-color: {{borderColorClass|raw}}
+				!important;
+				border-style: solid !important;
+			}
+			{{scopedSelector}}
+			.tw-accordion-border {
+				border-color: {{borderColorClass|raw}}
+				!important;
+				border-style: solid !important;
+			}
+		{% endif %}
+		{% if borderWidthClass is not same as(null) and borderWidthClass != '' %}
+			{{scopedSelector}}
+			.tw-accordion-item, {{scopedSelector}}
+			.tw-accordion-border, {{scopedSelector}}
+			.tw-accordion-toggle-item {
+				border-width: {{borderWidthClass}}
+				px !important;
+				border-style: solid !important;
+			}
+		{% endif %}
+		{% if toggleBackgroundColorClass %}
+			{{scopedSelector}}
+			.tw-accordion-toggle-item, {{scopedSelector}}
+			.tw-accordion-item {
+				background-color: {{toggleBackgroundColorClass|raw}}
+				!important;
+			}
+			{{scopedSelector}}
+			.tw-accordion-button {
+				background-color: {{toggleBackgroundColorClass|raw}}
+				!important;
+			}
+			{{scopedSelector}}
+			.tw-accordion-button.is-open {
+				background-color: {{toggleBackgroundColorClass|raw}}
+				!important;
+				opacity: 0.9;
+			}
+		{% endif %}
+		{% if titleColorClass %}
+			{{scopedSelector}}
+			.tw-accordion-heading-title {
+				color: {{titleColorClass|raw}}
+				!important;
+			}
+		{% endif %}
+		{% if textColorClass %}
+			{{scopedSelector}}
+			.tw-accordion-content-style {
+				color: {{textColorClass|raw}}
+				!important;
+			}
+		{% endif %}
+		{% if toggleHoverColorClass %}
+			{{scopedSelector}}
+			.tw-accordion-button.is-open {
+				color: {{toggleHoverColorClass|raw}}
+				!important;
+			}
+		{% endif %}
+
+		{% if blockBadgeColorClass %}
+			{{scopedSelector}}
+			.smallText-badge {
+				color: {{blockBadgeColorClass|raw}}
+				!important;
+				background-color: color-mix(in srgb, {{blockBadgeColorClass|raw}} 10%, transparent) !important;
+			}
+		{% endif %}
+	</style>
+
+	{{ bsResponsive(blockStyle, scopedSelector) }}
+	<div class="py-10 md:py-12 lg:py-16 {{ blockType }}-{{ block.id }}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+		<div class="{{ containerWidth }}">
+			{% if headingAndContent %}
+				{% include "_components/header-content-block" %}
+			{% endif %}
+
+			{% set accordionStyle = block.accordionStyle|length
+				? block.accordionStyle.one().accordionDisplayStyle.value ?? ''
+				: '' 
+			%}
+			{% set isAltStyle = (accordionStyle == 'flatMinimalAccordion' or accordionStyle == 'borderedAccordion') %}
+			{% set isAlt2Style = (accordionStyle == 'cardHeaderStyleAccordion') %}
+
+			{% if accordionStyle == 'borderedAccordion' %}
+				{% set accordionItemTopBorderClass = 'border-b border-solid border-gray-200 tw-accordion-border mb-0' %}
+			{% elseif accordionStyle == 'cardStyleAccordion' %}
+				{% set cardFullBorderStyleAccordion = 'border border-solid border-gray-200 tw-accordion-border' %}
+			{% elseif accordionStyle == 'cardHeaderStyleAccordion' %}
+				{% set accordionItemClass = 'bg-white border border-solid border-gray-200 tw-accordion-border tw-accordion-toggle-item' %}
+			{% endif %}
+
+			{% set isColumnReverse = block.columnReverse ?? false %}
+			{% set isArrowTextReverse = block.accordionStyle.one().toggleIconAlignment ?? false %}
+
+			{% set accordionDisplayMode = block.accordionDisplayMode ?? 'simpleAccordion' %}
+			{% if accordionDisplayMode == 'simpleAccordion' %}
+				<div class="flex flex-col mt-8 lg:mt-12">
+					<div class="w-full max-w-4xl mx-auto">
+						<div class="tw-accordion w-full {% if isAlt2Style or accordionStyle == 'cardStyleAccordion' %}!overflow-visible !rounded-none{% endif %}" id="industries" x-data="{ activeAccordion: 0 }">
+							{% for index, item in expandableContent %}
+								{% include "_blocks/_nested/accordion/" ~ item.type.handle with { 
+									index: index, 
+									item: item, 
+									accordionItemClass: accordionItemClass ?? 'text-xl', 
+									isArrowTextReverse: isArrowTextReverse, 
+									cardFullBorderStyleAccordion: cardFullBorderStyleAccordion ?? '', 
+									accordionItemTopBorderClass: accordionItemTopBorderClass ?? '',
+									toggleBackgroundColorClass: toggleBackgroundColorClass,
+									borderColorClass: borderColorClass,
+									borderWidthClass: borderWidthClass,
+									borderRadiusClass: borderRadiusClass,
+									titleColorClass: titleColorClass,
+									textColorClass: textColorClass,
+									toggleHoverColorClass: toggleHoverColorClass,
+									isAltStyle: isAltStyle,
+									isAlt2Style: isAlt2Style
+								} %}
+							{% endfor %}
+						</div>
+					</div>
+				</div>
+			{% elseif accordionDisplayMode == 'accordionWithChangingImage' %}
+				<div class="flex flex-col lg:flex-row items-start gap-10 lg:gap-16 mt-8 lg:mt-12 {% if isColumnReverse %}lg:flex-row-reverse{% endif %}">
+					<div class="w-full lg:w-1/2">
+						<div class="tw-accordion w-full {% if isAlt2Style or accordionStyle == 'cardStyleAccordion' %}!overflow-visible !rounded-none{% endif %}" id="industries" x-data="{ activeAccordion: 0 }">
+							{% for index, item in expandableContent %}
+								{% include "_blocks/_nested/accordion/" ~ item.type.handle with { 
+									index: index, 
+									item: item, 
+									accordionItemClass: accordionItemClass ?? 'text-xl', 
+									isArrowTextReverse: isArrowTextReverse, 
+									cardFullBorderStyleAccordion: cardFullBorderStyleAccordion ?? '', 
+									accordionItemTopBorderClass: accordionItemTopBorderClass ?? '',
+									toggleBackgroundColorClass: toggleBackgroundColorClass,
+									borderColorClass: borderColorClass,
+									borderWidthClass: borderWidthClass,
+									borderRadiusClass: borderRadiusClass,
+									titleColorClass: titleColorClass,
+									textColorClass: textColorClass,
+									toggleHoverColorClass: toggleHoverColorClass,
+									isAltStyle: isAltStyle,
+									isAlt2Style: isAlt2Style
+								} %}
+							{% endfor %}
+						</div>
+					</div>
+					<div class="w-full lg:w-1/2 lg:sticky lg:top-32">
+						<div class="binded-content w-full relative">
+							{% for index, item in expandableContent %}
+								<div class="binded-item {{ index == 0 ? 'active' : '' }}" id="img-{{ index }}" x-show="activeAccordion === {{ index }}" x-transition.opacity>
+									{{ images.singleImg(item.image.one() ?? null, 800, {'ratio': 1.257}, 'w-full rounded-2xl md:rounded-3xl shadow-md') }}
+								</div>
+							{% endfor %}
+						</div>
+					</div>
+				</div>
+			{% elseif accordionDisplayMode == 'accordionWithSingleImage' %}
+				<div class="flex flex-col lg:flex-row items-start gap-10 lg:gap-16 mt-8 lg:mt-12 {% if isColumnReverse %}lg:flex-row-reverse{% endif %}">
+					<div class="w-full lg:w-1/2">
+						<div class="tw-accordion w-full {% if isAlt2Style or accordionStyle == 'cardStyleAccordion' %}!overflow-visible !rounded-none{% endif %}" id="industries" x-data="{ activeAccordion: 0 }">
+							{% for index, item in expandableContent %}
+								{% include "_blocks/_nested/accordion/" ~ item.type.handle with { 
+									index: index, 
+									item: item, 
+									accordionItemClass: accordionItemClass ?? 'text-xl', 
+									isArrowTextReverse: isArrowTextReverse, 
+									cardFullBorderStyleAccordion: cardFullBorderStyleAccordion ?? '', 
+									accordionItemTopBorderClass: accordionItemTopBorderClass ?? '',
+									toggleBackgroundColorClass: toggleBackgroundColorClass,
+									borderColorClass: borderColorClass,
+									borderWidthClass: borderWidthClass,
+									borderRadiusClass: borderRadiusClass,
+									titleColorClass: titleColorClass,
+									textColorClass: textColorClass,
+									toggleHoverColorClass: toggleHoverColorClass,
+									isAltStyle: isAltStyle,
+									isAlt2Style: isAlt2Style
+								} %}
+							{% endfor %}
+						</div>
+					</div>
+					<div class="w-full lg:w-1/2 lg:sticky lg:top-32">
+						{% if block.image|length %}
+							{{ images.singleImg(block.image.one() ?? null, 800, {'ratio': 1.257}, 'w-full rounded-2xl md:rounded-3xl shadow-md') }}
+						{% endif %}
+					</div>
+				</div>
+			{% endif %}
+		</div>
+	</div>
+{% endif %}

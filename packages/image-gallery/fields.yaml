@@ -1,0 +1,32 @@
+name: 'Image Gallery Fields'
+fields:
+    -
+        handle: galleryDisplayView
+        name: 'Gallery Display View'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: galleryPerRow
+        name: 'Gallery Per Row'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: imageChooseEntry
+        name: 'Image Choose From Entry'
+        type: Lightswitch
+        instructions: ''
+    -
+        handle: displayMode
+        name: 'Display Only Category'
+        type: Lightswitch
+        instructions: ''
+    -
+        handle: selectGallery
+        name: 'Select Gallery'
+        type: Entries
+        instructions: ''
+        settings:
+            sectionHandles: [gallery]
+            maxRelations: null
+            minRelations: null
+            selectionLabel: null

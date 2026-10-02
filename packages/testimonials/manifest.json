@@ -1,0 +1,32 @@
+{
+    "schemaVersion": "1",
+    "handle": "testimonials",
+    "name": "Testimonials",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "Imported from the Craft Entry Type \"Testimonials\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "displayView",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [],
+    "ownedFiles": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 71,
+        "sourceUid": "f0480b52-be0e-408d-bc85-e9c928b78d9f",
+        "sourceHandle": "testimonials",
+        "sourceHash": "4a47a3740bbf0b1e729224396f0ef2a3e43e7d75baf1e16bc89ed17946917de5",
+        "importedAt": "2026-10-02T04:09:16-07:00",
+        "importedBy": null
+    }
+}

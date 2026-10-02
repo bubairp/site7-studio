@@ -1,0 +1,279 @@
+{% import "_macros/images" as images %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+{% set generalEntry = craft.entries()
+    .section('general')
+    .type('general')
+    .with(['button', 'background', 'spacing'])
+    .one() 
+%}
+
+{% set form_id = block.selectForm.id  %}
+{% set headingAndContent = block.headingAndContent.one() %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{# {% set blockType = block.type.handle ?? 'image' %} #}
+{% set contactPageLayout = block.contactPageLayout ?? [] %}
+{% set containerWidth = "container" %}
+
+{% set title = block.title ?? '' %}
+{% set heading = block.heading ?? '' %}
+{% set headingTags = block.headingTags ?? 'h2' %}
+{% set align = block.align ?? 'left' %}
+{% set contentData = block.contentdata ?? '' %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid  ?? '' %}
+
+{# {% dd(generalEntry) %} #}
+
+<!-- images -->
+	{% if contactPageLayout|length %}
+	{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+	{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+		{% if returnVars.containerWidth is defined %}
+	{% set containerWidth = returnVars.containerWidth %}
+	{% endif %}
+	{% set themeSwitche = null %}
+		{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+			{% if blockStyleData.background is defined %}
+			{% set backgroundEntry = blockStyleData.background.one() %}
+		{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+	{% endif %}
+	{% endif %}
+
+
+	{% set formBackgroundColorClass = block.formColor.one().colorcode ?? '' %}
+		{% if formBackgroundColorClass %}
+		{% css %}
+		.form-style {
+			background:{{formBackgroundColorClass|raw}}
+		!important;
+		}
+	{% endcss %}
+	{% endif %}
+
+	{% set contactBoxBackgroundColorClass = block.contactBoxBackground.one().colorcode ?? '' %}
+		{% if contactBoxBackgroundColorClass %}
+		{% css %}
+		.contentBox-style {
+			background:{{contactBoxBackgroundColorClass|raw}}
+		!important;
+		}
+	{% endcss %}
+	{% endif %}
+
+	{% set contactBoxTitleColorClass = block.contactBoxTitleColor.one().colorcode ?? '' %}
+		{% if contactBoxTitleColorClass %}
+		{% css %}
+		.contentBoxTitle-style {
+			color:{{contactBoxTitleColorClass|raw}}
+		!important;
+		}
+	{% endcss %}
+	{% endif %}
+
+	{% set contactBoxTextColorClass = block.contactBoxTextColor.one().colorcode ?? '' %}
+		{% if contactBoxTextColorClass %}
+		{% css %}
+		.contentBoxText-style {
+			color:{{contactBoxTextColorClass|raw}}
+		!important;
+		}
+	{% endcss %}
+	{% endif %}
+
+	{% set isformBackground = block.formBackground ?? false %}
+	{% set isformBorderRadius = block.formBorderRadius ?? false %}
+	{% set iscontactBoxBorderRadius = block.contactBoxBorderRadius ?? false %}
+
+	{{ bsResponsive(blockStyle, scopedSel) }}
+		<div class="image-content-block py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" style="{{ bsStyle(blockStyle) }}"> <div class="{{ containerWidth }}">
+			{% if headingAndContent %}
+				{% if headingAndContent.heading|length or  headingAndContent.Description|length %}
+					{% include "_components/header-content-block" %}
+				{% endif %}
+			{% endif %}
+
+			{% set contactPageLayout = block.contactPageLayout.value ?? '' %}
+			{% if contactPageLayout == 'contactLayout1' %}
+
+				<div
+					class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 pb-6 sm:pb-6 lg:pb-12">
+					<!-- Address -->
+					{% if block.showAddress|length %}
+						<div>
+							<div class="flex flex-col tw-card h-full {{ iscontactBoxBorderRadius ? 'rounded-2xl md:rounded-3xl' : 'rounded-none' }}">
+								<div class="flex-1 p-6">
+									<h4 class="text-xl font-bold mb-4 contentBoxTitle-style text-gray-900 dark:text-white flex items-center gap-2">
+										<i class="ti ti-map-pin text-primary"></i>
+										Address</h4>
+									<div class="text-base lg:text-lg font-medium pb-3 mb-3 contentBoxText-style text-gray-600 dark:text-gray-300">{{ generalEntry.Description }}</div>
+								</div>
+							</div>
+						</div>
+					{% endif %}
+
+					<!-- Phone -->
+					{% if block.showPhone|length %}
+						<div>
+							<div class="flex flex-col tw-card h-full {{ iscontactBoxBorderRadius ? 'rounded-2xl md:rounded-3xl' : 'rounded-none' }}">
+								<div class="flex-1 p-6">
+									<h4 class="text-xl font-bold mb-4 contentBoxTitle-style text-gray-900 dark:text-white flex items-center gap-2">
+										<i class="ti ti-phone text-primary"></i>
+										Phone</h4>
+									<ul class="list-none mb-0 p-0 contentBoxText-style">
+										<li class="pb-1 mb-2">
+											<span class="block text-sm opacity-80 mb-1 contentBoxText-style text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Main office</span>
+											<a href="tel:{{ generalEntry.phoneNumber }}" class="text-base lg:text-lg font-bold p-0 no-underline hover:text-primary contentBoxText-style text-gray-900 dark:text-gray-100">{{ generalEntry.phoneNumber }}</a>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					{% endif %}
+
+					<!-- Email -->
+					{% if block.showEmail|length %}
+						<div>
+							<div class="flex flex-col tw-card h-full {{ iscontactBoxBorderRadius ? 'rounded-2xl md:rounded-3xl' : 'rounded-none' }}">
+								<div class="flex-1 p-6">
+									<h4 class="text-xl font-bold mb-4 contentBoxTitle-style text-gray-900 dark:text-white flex items-center gap-2">
+										<i class="ti ti-mail text-primary"></i>
+										Email</h4>
+									<ul class="list-none mb-0 p-0 contentBoxText-style">
+										<li class="pb-1 mb-2">
+											<span class="block text-sm opacity-80 mb-1 contentBoxText-style text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Main office</span>
+											<a class="text-base font-bold p-0 no-underline hover:text-primary contentBoxText-style text-gray-900 dark:text-gray-100" href="mailto:{{ generalEntry.email }}">{{ generalEntry.email }}</a>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					{% endif %}
+
+					<!-- Schedule -->
+					{% if block.showTiming %}
+						{% if generalEntry.timing|length %}
+							<div>
+								<div class="flex flex-col tw-card h-full {{ iscontactBoxBorderRadius ? 'rounded-2xl md:rounded-3xl' : 'rounded-none' }}">
+									<div class="flex-1 p-6">
+										<h4 class="text-xl font-bold mb-4 contentBoxTitle-style text-gray-900 dark:text-white flex items-center gap-2">
+											<i class="ti ti-clock text-primary"></i>
+											Schedule</h4>
+										<table class="office-hours w-full contentBoxText-style text-sm text-gray-600 dark:text-gray-300">
+											<thead>
+												<tr>
+													<th class="text-left pb-2 font-bold uppercase tracking-wider text-xs">Day</th>
+													<th class="text-left pb-2 font-bold uppercase tracking-wider text-xs">Open</th>
+													<th class="text-left pb-2 font-bold uppercase tracking-wider text-xs">Close</th>
+												</tr>
+											</thead>
+											<tbody>
+												{% for row in generalEntry.timing %}
+													<tr>
+														<td class="py-1">{{ row.day }}</td>
+														<td class="py-1">{{ row.startTime|date('g:i A') }}</td>
+														<td class="py-1">{{ row.endTime|date('g:i A') }}</td>
+													</tr>
+												{% endfor %}
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+						{% endif %}
+					{% endif %}
+				</div>
+
+				<section {% if isformBackground %} data-theme="{{ block.themeDark ? 'dark' : 'light'}}" {% endif %}>
+					<div class="flex flex-col border border-gray-100 dark:border-gray-800 relative lg:py-6 xl:py-12 shadow-sm bg-white dark:bg-dark {% if isformBackground %} form-style {% endif %} {{ isformBorderRadius ? 'rounded-2xl md:rounded-3xl' : 'rounded-none' }}">
+						<div class="flex-1 relative z-10 py-12 ">
+							<div class="mx-auto" style="max-width: 800px;">
+								<h2 class="text-3xl lg:text-4xl font-bold text-center pb-4">{{ block.formTitle }}</h2>
+								{% include "_forms/contact" %}
+							</div>
+						</div>
+					</div>
+				</section>
+
+			{% endif %}
+			{% if contactPageLayout == 'contactLayout2' %}
+
+				<div class="flex flex-wrap pb-1 sm:pb-3 lg:pb-6 -mx-4">
+					<div class="lg:w-1/3 w-full px-4 xl:pr-6 mb-8 lg:mb-0">
+						<div class="flex flex-col gap-6">
+							<div>
+								<div class="flex flex-col border border-gray-100 dark:border-gray-800 contentBox-style {{ iscontactBoxBorderRadius ? 'rounded-2xl md:rounded-3xl' : 'rounded-none' }} bg-white dark:bg-dark shadow-sm hover:shadow-xl transition-all duration-300">
+									<div class="flex-1 p-6 lg:p-8">
+										<h4 class="text-xl font-bold mb-4 contentBoxTitle-style text-gray-900 dark:text-white flex items-center gap-2">
+											<i class="ti ti-map-pin text-primary"></i>
+											Address</h4>
+										<div class="text-base lg:text-lg font-medium pb-4 border-b border-gray-100 dark:border-gray-800 contentBoxText-style text-gray-600 dark:text-gray-300">{{ generalEntry.Description }}</div>
+
+										{% if block.showPhone|length %}
+											<div class="flex items-center contentBoxText-style mt-6">
+												<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4 shrink-0">
+													<i class="ti ti-phone text-primary text-xl"></i>
+												</div>
+												<a href="tel:{{ generalEntry.phoneNumber }}" class="text-lg font-bold p-0 no-underline hover:text-primary contentBoxText-style text-gray-900 dark:text-gray-100">{{ generalEntry.phoneNumber }}</a>
+											</div>
+										{% endif %}
+
+										{% if block.showEmail|length %}
+											<div class="flex items-center contentBoxText-style mt-4">
+												<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4 shrink-0">
+													<i class="ti ti-mail text-primary text-xl"></i>
+												</div>
+												<a class="text-lg font-bold p-0 no-underline hover:text-primary contentBoxText-style text-gray-900 dark:text-gray-100" href="mailto:{{ generalEntry.email }}">{{ generalEntry.email }}</a>
+											</div>
+										{% endif %}
+									</div>
+								</div>
+							</div>
+							{% if block.showTiming|length %}
+								<div>
+									<div class="flex flex-col border border-gray-100 dark:border-gray-800 contentBox-style {{ iscontactBoxBorderRadius ? 'rounded-2xl md:rounded-3xl' : 'rounded-none' }} bg-white dark:bg-dark shadow-sm hover:shadow-xl transition-all duration-300">
+										<div class="flex-1 p-6 lg:p-8">
+											<h4 class="text-xl font-bold mb-4 contentBoxTitle-style text-gray-900 dark:text-white flex items-center gap-2">
+												<i class="ti ti-clock text-primary"></i>
+												Schedule</h4>
+											<table class="office-hours w-full contentBoxText-style text-sm text-gray-600 dark:text-gray-300">
+												<thead>
+													<tr>
+														<th class="text-left pb-2 font-bold uppercase tracking-wider text-xs">Day</th>
+														<th class="text-left pb-2 font-bold uppercase tracking-wider text-xs">Open</th>
+														<th class="text-left pb-2 font-bold uppercase tracking-wider text-xs">Close</th>
+													</tr>
+												</thead>
+												<tbody>
+													{% for row in generalEntry.timing %}
+														<tr>
+															<td class="py-1">{{ row.day }}</td>
+															<td class="py-1">{{ row.startTime|date('g:i A') }}</td>
+															<td class="py-1">{{ row.endTime|date('g:i A') }}</td>
+														</tr>
+													{% endfor %}
+												</tbody>
+											</table>
+										</div>
+									</div>
+								</div>
+							{% endif %}
+						</div>
+					</div>
+					<div class="lg:w-2/3 xl:w-7/12 xl:ml-[8.333333%] w-full px-4">
+						<section class="" {% if isformBackground %} data-theme="{{ block.themeDark ? 'dark' : 'light'}}" {% endif %}>
+							<div class="flex flex-col border border-gray-100 dark:border-gray-800 bg-white dark:bg-dark relative {% if isformBackground %} form-style {% endif %} {{ isformBorderRadius ? 'rounded-2xl md:rounded-3xl' : 'rounded-none' }} shadow-sm">
+								<div class="flex-1 relative z-10 {% if isformBackground %} p-3 md:p-4 lg:p-12 {% endif %}">
+									<div class="mx-auto">
+										<h2 class="text-2xl lg:text-3xl font-bold pb-4">{{ block.formTitle }}</h2>
+										{% include "_forms/contact" %}
+									</div>
+								</div>
+							</div>
+						</section>
+					</div>
+				</div>
+			{% endif %}
+		</div>
+	</div>
+{% endif %}

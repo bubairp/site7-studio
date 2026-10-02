@@ -1,0 +1,11 @@
+name: 'Image Gallery Matrix'
+blocks:
+    -
+        handle: imageGallery
+        name: 'Image Gallery'
+        fields:
+            - galleryDisplayView
+            - galleryPerRow
+            - imageChooseEntry
+            - displayMode
+            - selectGallery

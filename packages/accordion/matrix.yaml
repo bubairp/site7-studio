@@ -1,0 +1,10 @@
+name: 'Accordion Matrix'
+blocks:
+    -
+        handle: accordion
+        name: Accordion
+        fields:
+            - expandableContent
+            - accordionDisplayMode
+            - columnReverse
+            - accordionStyle

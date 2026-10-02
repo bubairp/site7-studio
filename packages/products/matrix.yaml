@@ -1,0 +1,10 @@
+name: 'Products Matrix'
+blocks:
+    -
+        handle: products
+        name: Products
+        fields:
+            - selectProducts
+            - productPerRow
+            - paginations
+            - displayFilter

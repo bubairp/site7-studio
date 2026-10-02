@@ -1,0 +1,32 @@
+{
+    "schemaVersion": "1",
+    "handle": "teams",
+    "name": "Teams",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "Imported from the Craft Entry Type \"Teams\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "displayView",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [],
+    "ownedFiles": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 68,
+        "sourceUid": "569c3bf1-8745-4089-9f45-cc40a85f0ac0",
+        "sourceHandle": "teams",
+        "sourceHash": "a2a0ad1dfe8931175445bcdb043c2869d52cdfb91fc979671e32033b204aa8d8",
+        "importedAt": "2026-10-02T04:10:40-07:00",
+        "importedBy": null
+    }
+}

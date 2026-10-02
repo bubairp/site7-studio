@@ -1,0 +1,233 @@
+{% import "_macros/images" as images %}
+{% import "_macros/utils" as utils %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+
+{% set headingAndContent = block.headingAndContent.one() %}
+{% set selectProducts = block.selectProducts.with(['image', 'tags']) %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid ?? '' %}
+{% set containerWidth = 'container' %}
+{% set title = block.title ?? '' %}
+{% set heading = block.heading ?? '' %}
+{% set headingTags = block.headingTags ?? 'h2' %}
+{% set align = block.align ?? 'left' %}
+{% set contentData = block.contentdata ?? '' %}
+{% set paginationData = block.paginations.one() ?? '' %}
+
+{% set searchParams = craft.app.request.getParam('search')|trim %}
+{% set categoryParam = craft.app.request.getParam('category') %}
+{% set selectedCategory = categoryParam ? categoryParam : null %}
+
+{% set relationQuery = block['selectProducts'] ?? null %}
+{% if relationQuery and relationQuery.count() %}
+	{% set selectProducts = relationQuery %}
+{% else %}
+	{% set selectProducts = craft.entries.section('products') %}
+{% endif %}
+
+{% if searchParams %}
+	{% set term = searchParams|replace({'"':' '})|trim %}
+	{% if term|length %}
+		{% set selectProducts = selectProducts.search('*' ~ term ~ '*').orderBy('score') %}
+	{% endif %}
+{% endif %}
+
+{% if selectedCategory %}
+	{% set category = craft.entries().section('productCategory').slug(selectedCategory).one() %}
+	{% if category %}
+		{% set categoryIds = craft.entries().section('productCategory').descendantOf(category).ids() | merge([category.id]) %}
+		{% set selectProducts = selectProducts.relatedTo(categoryIds) %}
+	{% endif %}
+{% endif %}
+
+{% set blockTypeUid = '' %}
+{% set blockCssClasses = '' %}
+
+{% if selectProducts %}
+
+	{% block structured_data %}
+		{# Render schema on standard pages and category pages, but not on partial loads #}
+		{% set contextElement = category ?? entry ?? null %}
+		{% if contextElement and (craft.app.request.getParam('partial') is empty) %}
+
+			{% set posts = (selectProducts is defined and selectProducts|length) ? selectProducts|slice(0, 5) : [] %}
+
+			{% set listItems = [] %}
+			{% for p in posts %}
+				{% set thumbImg = p.image|length ? p.image.one() : null %}
+				{% set listItems = listItems|merge([{
+					"@type": "ListItem",
+					"position": loop.index,
+					"item": {
+						"@type": "Product",
+						"@id": p.url ~ "#product",
+						"url": p.url,
+						"name": p.title,
+						"image": thumbImg.url ?? null,
+						"description": p.productDiscription ?? ''
+					}
+				}]) %}
+			{% endfor %}
+
+			{% set webPage = {
+				"@type": ["WebPage","CollectionPage"],
+				"@id": contextElement.url ~ "#webpage",
+				"url": contextElement.url,
+				"name": contextElement.title,
+				"mainEntity": { "@id": contextElement.url ~ "#list" },
+				"breadcrumb": { "@id": contextElement.url ~ "#breadcrumb" }
+			} %}
+
+			{% set itemList = {
+				"@type": "ItemList",
+				"@id": contextElement.url ~ "#list",
+				"name": "Products",
+				"numberOfItems": posts|length,
+				"itemListElement": listItems
+			} %}
+
+			{% set breadcrumbList = {
+				"@type": "BreadcrumbList",
+				"@id": contextElement.url ~ "#breadcrumb",
+				"itemListElement": [
+					{ "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl() },
+					{ "@type": "ListItem", "position": 2, "name": contextElement.title, "item": contextElement.url }
+				]
+			} %}
+
+			<script type="application/ld+json">
+				{{ {
+					"@context": "https://schema.org",
+					"@graph": [ webPage, itemList, breadcrumbList ]
+				}|json_encode(constant('JSON_UNESCAPED_SLASHES'))|raw }}
+			</script>
+		{% endif %}
+	{% endblock %}
+
+	{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+	{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+	{% set themeSwitche = null %}
+
+	{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+		{% if blockStyleData.background is defined %}
+			{% set backgroundEntry = blockStyleData.background.one() %}
+			{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+		{% endif %}
+	{% endif %}
+
+	{{ bsResponsive(blockStyle, scopedSel) }}
+	<div class="py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+		<div class="{{ containerWidth }}">
+			{% if headingAndContent %}
+				{% if headingAndContent.heading|length or headingAndContent.Description|length %}
+					{% include "_components/header-content-block" %}
+				{% endif %}
+			{% endif %}
+
+			{% set fieldLayout = block.getFieldLayout() ?? null %}
+			{% if fieldLayout and 'displayFilter' in fieldLayout.getCustomFields()|map(f => f.handle) and block.displayFilter %}
+				<div class="pb-2 xl:pb-3">
+					{% include "_components/_products/searchProduct.twig" %}</div>
+			{% endif %}
+
+
+			{% set displayView = block.displayView.value ?? '' %}
+			{% if displayView == 'gridView' or displayView == 'default' or displayView == '' %}
+
+				{% set showNav = paginationData.displayPagination ?? false %}
+				{% if showNav %}
+					{% set perPage = (paginationData.records_per_page ?? 10) %}
+					{% paginate selectProducts.limit(perPage) as pageInfo, entries %}
+
+						{% if entries|length %}
+							{% if craft.app.request.getParam('partial') %}
+								<div class="js-chunk" data-next-url="{{ pageInfo.nextUrl ?? '' }}">
+									{% for product in entries %}
+										<div>
+											{% include "_components/_products/productCard.twig" with { product: product } %}
+										</div>
+									{% endfor %}
+								</div>
+								{% exit %}
+							{% endif %}
+
+							<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-{{ block.productPerRow.value }} gap-8 lg:gap-10" id="js-list">
+								{% for product in entries %}
+									<div>
+										{% include "_components/_products/productCard.twig" with { product: product } %}
+									</div>
+								{% endfor %}
+							</div>
+
+							{% if paginationData.paginationDisplayStyle == 'loadMore' %}
+								{% include "_components/loadMore" with {
+								pageInfo: pageInfo,
+								targetId: 'js-list',
+								partialQueryString: 'partial=1'
+							} only %}
+							{% else %}
+								{% include "_components/pagination" with { pageInfo: pageInfo } only %}
+							{% endif %}
+						{% else %}
+							<div class="text-center py-12 px-4 tw-card border-dashed bg-gray-50 dark:bg-gray-800/50 shadow-none">
+								<div class="bg-gray-200 dark:bg-gray-700 rounded-full inline-flex items-center justify-center mb-4 shadow-sm w-20 h-20">
+									<i class="ti ti-package-off text-3xl text-gray-500 dark:text-gray-400"></i>
+								</div>
+								<h2 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">{{ 'No products found.'|t }}</h2>
+								<p class="mb-6 text-gray-500 dark:text-gray-400">{{ 'Try changing your search or filters.'|t }}</p>
+								<a href="{{ siteUrl(craft.app.request.pathInfo) }}" class="tw-btn tw-btn-primary">{{ 'Clear Filters'|t }}</a>
+							</div>
+						{% endif %}
+
+					{% else %}
+						{% set allProducts = selectProducts.all() %}
+						{% if allProducts|length %}
+							<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-{{ block.productPerRow.value }} gap-8 lg:gap-10" id="js-list">
+								{% for product in allProducts %}
+									<div>
+										{% include "_components/_products/productCard.twig" with { product: product } %}
+									</div>
+								{% endfor %}
+							</div>
+						{% else %}
+							<div class="text-center py-12 px-4 tw-card border-dashed bg-gray-50 dark:bg-gray-800/50 shadow-none">
+								<div class="bg-gray-200 dark:bg-gray-700 rounded-full inline-flex items-center justify-center mb-4 shadow-sm w-20 h-20">
+									<i class="ti ti-package-off text-3xl text-gray-500 dark:text-gray-400"></i>
+								</div>
+								<h2 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">{{ 'No products found.'|t }}</h2>
+								<p class="mb-6 text-gray-500 dark:text-gray-400">{{ 'Try changing your search or filters.'|t }}</p>
+								<a href="{{ siteUrl(craft.app.request.pathInfo) }}" class="tw-btn tw-btn-primary">{{ 'Clear Filters'|t }}</a>
+							</div>
+						{% endif %}
+					{% endif %}
+
+				{% elseif displayView == 'sliderView' %}
+					{% set sliderProducts = selectProducts.all() %}
+					{% if sliderProducts|length %}
+						<div class="swiper" data-swiper-options='{{ utils.swiperConfig(block.productPerRow.value, 32, true) }}'>
+							<div class="swiper-wrapper pb-4">
+								{% for product in sliderProducts %}
+									<div class="swiper-slide h-auto">
+										{% include "_components/_products/productCard.twig" with { product: product } %}
+									</div>
+								{% endfor %}
+							</div>
+							<!-- Pagination (bullets) -->
+							<div class="swiper-pagination relative bottom-0 mt-2 pt-4"></div>
+						</div>
+					{% else %}
+						<div class="text-center py-12 px-4 tw-card border-dashed bg-gray-50 dark:bg-gray-800/50 shadow-none">
+							<div class="bg-gray-200 dark:bg-gray-700 rounded-full inline-flex items-center justify-center mb-4 shadow-sm w-20 h-20">
+								<i class="ti ti-package-off text-3xl text-gray-500 dark:text-gray-400"></i>
+							</div>
+							<h2 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">{{ 'No products found.'|t }}</h2>
+							<p class="mb-6 text-gray-500 dark:text-gray-400">{{ 'Try changing your search or filters.'|t }}</p>
+							<a href="{{ siteUrl(craft.app.request.pathInfo) }}" class="tw-btn tw-btn-primary">{{ 'Clear Filters'|t }}</a>
+						</div>
+					{% endif %}
+				{% endif %}
+			</div>
+		</div>
+	{% endif %}

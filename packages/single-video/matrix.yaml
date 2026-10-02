@@ -1,0 +1,6 @@
+name: 'Single-video Matrix'
+blocks:
+    -
+        handle: video
+        name: Single-video
+        fields: {  }

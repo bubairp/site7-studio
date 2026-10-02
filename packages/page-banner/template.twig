@@ -1,0 +1,53 @@
+{% import '_components/ctaButton' as buttons %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+{% import "_macros/images" as images %}
+
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid  ?? '' %}
+
+{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+
+{% set pageBannerHeading = block.plainText %}
+{% set pageBannerDisplayHeading = block.switchOffHeading %}
+{% set pageBannerDisplayTitle = block.switchOff %}
+{% set SliderDescription = block.shortDescription %}
+
+{% set pageBannerTitleColorData = block.titleColor.one().colorcode ?? '' %}
+{% set pageBannerTextColorData = block.textColor.one().colorcode ?? '' %}
+
+{% set pageBannerImages = block.images %}
+
+{% if pageBannerImages is defined and pageBannerImages|length %}
+	{{ bsResponsive(blockStyle, scopedSel) }}
+
+	{% set themeSwitche = true %}
+	{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+		{% if blockStyleData.background is defined and blockStyleData.background|length %}
+			{% set backgroundEntry = blockStyleData.background.one() %}
+			{% set themeSwitche = backgroundEntry.themeDark ?? true %}
+		{% endif %}
+	{% endif %}
+
+	<div class="relative w-full py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }} overflow-hidden shadow-sm" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+
+		{% for image in pageBannerImages.all() %}
+			<div class="absolute inset-0 w-full h-full bg-cover bg-center z-0" style="background-image: url('{{ images.bgImageUrl(image)|trim }}');"></div>
+		{% endfor %}
+
+		{# Contrast Overlay #}
+		<div class="absolute inset-0 {{ themeSwitche ? 'bg-dark/70 mix-blend-multiply' : 'bg-white/70 mix-blend-screen' }} z-0 pointer-events-none"></div>
+
+		<div class="{{ containerWidth }} relative z-10 flex flex-col justify-center items-center text-center">
+			{% if pageBannerDisplayHeading %}
+				<h1 class="font-bold tracking-tight mb-4 block-heading-title" style="color: {{ pageBannerTitleColorData }} !important">{{ pageBannerHeading }}</h1>
+			{% endif %}
+
+			{% if SliderDescription %}
+				<div class="block-description {{ themeSwitche ? 'text-gray-200' : 'text-gray-700' }}" style="color: {{ pageBannerTextColorData }} !important">{{ SliderDescription|raw }}</div>
+			{% endif %}
+		</div>
+	</div>
+{% endif %}

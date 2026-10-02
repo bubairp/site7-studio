@@ -1,0 +1,202 @@
+{% import "_macros/images" as images %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+
+{% set headingAndContent = block.headingAndContent.one() %}
+{% set awardContentGroup = block.awardContentGroup ?? [] %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid  ?? '' %}
+{% set title = block.title ?? '' %}
+{% set heading = block.heading ?? '' %}
+{% set headingTags = block.headingTags ?? 'h2' %}
+{% set align = block.align ?? 'left' %}
+{% set contentData = block.contentdata ?? '' %}
+
+{% if awardContentGroup | length %}
+	{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+	{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+	{% set themeSwitche = null %}
+
+	{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+		{% if blockStyleData.background is defined %}
+			{% set backgroundEntry = blockStyleData.background.one() %}
+			{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+		{% endif %}
+	{% endif %}
+
+	{% set isLogoTitleDisplay = block.logoTitleDisplay ?? false %}
+
+	{{ bsResponsive(blockStyle, scopedSel) }}
+
+	{% set displayMode = block.displayMode.value ?? '' %}
+	{% if displayMode == 'Slider View' or displayMode == 'sliderView' %}
+
+		<div class="py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+			<div class="{{ containerWidth }}">
+				{% if headingAndContent %}
+					{% if headingAndContent.heading|length or  headingAndContent.Description|length %}
+						{% include "_components/header-content-block" %}
+					{% endif %}
+				{% endif %}
+
+				{% set columnPerRow = block.columnPerRow.value ?? 'md-6' %}
+				{% set columnClassMap = {
+					'md-6': '2',
+					'md-4': '3',
+					'md-3': '4',
+					'md-2': '6'
+				} %}
+				{% set rowColsClass = columnClassMap[columnPerRow] ?? '6' %}
+
+				<div class="swiper" data-swiper-options='{"slidesPerView": 1,"spaceBetween": 24,"loop": true,"navigation": {"prevEl": "#awards-prev-{{ blockTypeUid }}","nextEl": "#awards-next-{{ blockTypeUid }}"},"breakpoints": {"500": { "slidesPerView": 2 },"860": { "slidesPerView": 3 },"1200": { "slidesPerView": {{ rowColsClass }} }}}'>
+					<div class="swiper-wrapper">
+						{% for index, item in awardContentGroup %}
+							<div class="swiper-slide h-auto">
+								<div class="flex flex-col h-full tw-card card-hover text-left overflow-hidden">
+									{% set hasLink = item.linkUrl is defined and item.linkUrl | length %}
+									{% set hasImage = item.image is defined and item.image | length %}
+									<div class="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+										{% if hasImage %}
+											{% if item.image.0.extension == "svg" %}
+												<div class="p-6 relative z-10 w-full h-full flex items-center justify-center">
+													{{ images.singleImg(item.image.0, 400, {}, 'max-w-full max-h-full object-contain', { alt: 'icon', style: 'max-height: 120px;' }) }}
+												</div>
+											{% else %}
+												{{ images.singleImg(item.image.0, 600, {}, 'absolute inset-0 w-full h-full object-cover') }}
+											{% endif %}
+										{% endif %}
+									</div>
+									<div class="flex-1 p-6">
+										<h4 class="text-xl font-bold mb-2 {% if isLogoTitleDisplay %} hidden {% endif %}">{{ item.title | default('') }}</h4>
+										{% if item.plainText|length %}
+											<div class="text-sm font-semibold text-primary mb-2">{{ item.plainText }}</div>
+										{% endif %}
+										<div class="text-sm opacity-80">{{ item.shortDescription }}</div>
+										{% if hasLink %}
+											<div class="mt-auto pt-6">
+												<a href="{{ item.linkUrl }}" class="tw-btn tw-btn-primary tw-btn-sm px-6 rounded-full">View More</a>
+											</div>
+										{% endif %}
+									</div>
+								</div>
+							</div>
+						{% endfor %}
+					</div>
+				</div>
+
+				<div class="flex items-center justify-center mt-6">
+					<button class="tw-btn btn-prev tw-btn-icon tw-btn-sm tw-btn-outline-primary rounded-full mx-2" type="button" id="awards-prev-{{ blockTypeUid }}" aria-label="Prev">
+						<i class="ti ti-arrow-left"></i>
+					</button>
+					<button class="tw-btn btn-next tw-btn-icon tw-btn-sm tw-btn-outline-primary rounded-full mx-2" type="button" id="awards-next-{{ blockTypeUid }}" aria-label="Next">
+						<i class="ti ti-arrow-right"></i>
+					</button>
+				</div>
+
+			</div>
+		</div>
+	{% endif %}
+
+	{% if displayMode == 'List View' or displayMode == 'listView' %}
+		<div class="py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+			<div class="{{ containerWidth }}">
+				{% if headingAndContent %}
+					{% if headingAndContent.heading|length or headingAndContent.Description|length %}
+						{% include "_components/header-content-block" %}
+					{% endif %}
+				{% endif %}
+
+				<div class="grid grid-cols-1 gap-6">
+					{% for item in awardContentGroup %}
+						<div>
+							<div class="flex flex-col tw-card card-hover text-left overflow-hidden">
+								<div class="flex flex-col md:flex-row items-stretch h-full">
+									{% set hasImage = item.image|length %}
+									{% if hasImage %}
+										<div class="relative w-full md:w-1/3 lg:w-1/4 bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden shrink-0 min-h-[200px]">
+											{% if item.image.0.extension == "svg" %}
+												<div class="p-6 relative z-10 w-full h-full flex items-center justify-center">
+													{{ images.singleImg(item.image.0, 400, {}, 'max-w-full max-h-full object-contain', { alt: 'award logo', style: 'max-height: 100px;' }) }}
+												</div>
+											{% else %}
+												{{ images.singleImg(item.image.0, 600, {}, 'absolute inset-0 w-full h-full object-cover') }}
+											{% endif %}
+										</div>
+									{% endif %}
+									<div class="{{ hasImage ? 'w-full md:w-2/3 lg:w-3/4' : 'w-full' }} flex flex-col justify-center">
+										<div class="flex-1 p-6">
+											<h4 class="text-xl font-bold mb-2 {% if isLogoTitleDisplay %} hidden {% endif %}">{{ item.title | default('') }}</h4>
+											{% if item.plainText|length %}
+												<div class="text-sm font-semibold text-primary mb-2">{{ item.plainText }}</div>
+											{% endif %}
+											<div class="text-sm opacity-80">{{ item.shortDescription }}</div>
+											{% if item.linkUrl|length %}
+												<a href="{{ item.linkUrl }}" class="inline-flex items-center text-primary no-underline p-0 mt-4 font-bold">View Details<i class="ti ti-arrow-right ml-2"></i>
+												</a>
+											{% endif %}
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+			</div>
+		</div>
+	{% endif %}
+
+	{% if displayMode == 'Grid View' or displayMode == 'gridView' %}
+		{% set columnPerRow = block.columnPerRow.value ?? 'md-6' %}
+		{% set columnClassMap = {
+			'md-6': 'grid-cols-1 sm:grid-cols-2',
+			'md-4': 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
+			'md-3': 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4',
+			'md-2': 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'
+		} %}
+		{% set rowColsClass = columnClassMap[columnPerRow] ?? 'grid-cols-1 md:grid-cols-2' %}
+
+		<div class="py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+			<div class="{{ containerWidth }}">
+				{% if headingAndContent %}
+					{% if headingAndContent.heading|length or headingAndContent.Description|length %}
+						{% include "_components/header-content-block" %}
+					{% endif %}
+				{% endif %}
+
+				<div class="grid {{ rowColsClass }} gap-6">
+					{% for item in awardContentGroup %}
+						<div>
+							<div class="flex flex-col h-full tw-card card-hover text-left overflow-hidden">
+								{% set hasImage = item.image|length %}
+								{% if hasImage %}
+									<div class="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+										{% if item.image.0.extension == "svg" %}
+											<div class="p-6 relative z-10 w-full h-full flex items-center justify-center">
+												{{ images.singleImg(item.image.0, 400, {}, 'max-w-full max-h-full object-contain', { alt: 'award icon', style: 'max-height: 120px;' }) }}
+											</div>
+										{% else %}
+											{{ images.singleImg(item.image.0, 600, {}, 'absolute inset-0 w-full h-full object-cover') }}
+										{% endif %}
+									</div>
+								{% endif %}
+								<div class="flex-1 p-6">
+									<h4 class="text-lg font-bold mb-2 {% if isLogoTitleDisplay %} hidden {% endif %}">{{ item.title | default('') }}</h4>
+									{% if item.plainText|length %}
+										<div class="text-xs font-semibold text-primary mb-2">{{ item.plainText }}</div>
+									{% endif %}
+									<div class="text-sm opacity-80">{{ item.shortDescription }}</div>
+									{% if item.linkUrl|length %}
+										<div class="mt-auto pt-4">
+											<a href="{{ item.linkUrl }}" class="tw-btn tw-btn-outline-primary tw-btn-sm rounded-full px-4">View More</a>
+										</div>
+									{% endif %}
+								</div>
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+			</div>
+		</div>
+	{% endif %}
+{% endif %}

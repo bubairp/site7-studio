@@ -1,0 +1,20 @@
+name: 'Our Process Fields'
+fields:
+    -
+        handle: processItems
+        name: 'Process Items'
+        type: Matrix
+        instructions: ''
+        settings:
+            entryTypeHandles: [processItem]
+            viewMode: blocks
+            maxEntries: null
+    -
+        handle: processStyle
+        name: 'Process Style'
+        type: Matrix
+        instructions: ''
+        settings:
+            entryTypeHandles: [processStyle]
+            viewMode: cards
+            maxEntries: 1

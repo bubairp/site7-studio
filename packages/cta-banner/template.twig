@@ -1,0 +1,195 @@
+{% import '_components/ctaButton' as buttons %}
+{% import "_macros/images" as images %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid  ?? '' %}
+{% set scopeClass = blockType ~ blockTypeUid ~ '-style' %}
+
+{# Container Logic #}
+{% set blockStyle = block.blockStyle.one() ?? null %}
+{% set containerWidth = bsContainer(block.blockStyle, 'container mx-auto px-4') %}
+
+{% if returnVars.containerWidth is defined %}
+	{% set containerWidth = returnVars.containerWidth %}
+{% endif %}
+
+{% set ctaBannerItemHeading = block.plainText %}
+{% set headingTags = block.headingTags|length ? block.headingTags : 'h2' %}
+{% set ctaBannerItemDisplaySubHeading = block.switchOff %}
+{% set ctaBannerItemSubHeading = block.plainTextSub %}
+{% set ctaBannerItemDescription = block.Description %}
+{% set ctaBannerItemImageVideo = block.imageVideo %}
+{% set ctaBannerItemImage = block.image.one() %}
+{% set ctaBannerItemButton = block.button.all() %}
+
+{% set isBorderRounded = block.rounded ?? false %}
+
+{% set pageBannerColorData = block.ctaBoxBackgroundColor.one() %}
+{% set ctaBoxBackgroundColor = pageBannerColorData.colorcode ?? null %}
+{% set pageBannerStyles = ctaBoxBackgroundColor ? 'background-color: ' ~ ctaBoxBackgroundColor ~ ' !important;' : '' %}
+{% set themeSwitche = pageBannerColorData.themeDark ?? null %}
+{% if not themeSwitche and blockStyle and blockStyle.background is defined and blockStyle.background|length %}
+	{% set bgStyle = blockStyle.background.one() ?? null %}
+	{% set themeSwitche = bgStyle.themeDark ?? null %}
+{% endif %}
+
+{# Scoping logic moved up #}
+
+{# Typography Alignment (Scoped) #}
+{% set blockStyleAlign = blockStyle.typography.one() ?? null %}
+{% set justifyClass = 'justify-center lg:justify-start' %}
+{% set alignClass = 'text-center lg:text-left' %}
+
+{% if blockStyleAlign and blockStyleAlign.align.value %}
+	{% set justifyClassMap = {
+		'left': 'justify-start',
+		'center': 'justify-center',
+		'right': 'justify-end'
+	} %}
+	{% set alignClassMap = {
+		'left': 'text-left',
+		'center': 'text-center',
+		'right': 'text-right'
+	} %}
+
+	{% set justifyClass = justifyClassMap[blockStyleAlign.align.value] ?? justifyClass %}
+	{% set alignClass = alignClassMap[blockStyleAlign.align.value] ?? alignClass %}
+{% endif %}
+
+{{ bsResponsive(block.blockStyle, '.' ~ scopeClass) }}
+
+{# CTA Box Spacing Styles #}
+{% set ctaSpacing = block.spacing.one() ?? null %}
+{% set innerClasses = [] %}
+{% set innerVars = [] %}
+
+{% if ctaSpacing %}
+	{# Mobile Spacing (Base) #}
+	{% set padMob = ctaSpacing.paddingMob is not empty ? ctaSpacing.paddingMob[0] : {} %}
+	{% if padMob.top    is defined and padMob.top|length    %}
+		{% set innerVars = innerVars|merge(['--cta-pt-m:' ~ padMob.top ~ 'px']) %}{% set innerClasses = innerClasses|merge(['!pt-[var(--cta-pt-m)]']) %}
+	{% endif %}
+	{% if padMob.right  is defined and padMob.right|length  %}
+		{% set innerVars = innerVars|merge(['--cta-pr-m:' ~ padMob.right ~ 'px']) %}{% set innerClasses = innerClasses|merge(['!pr-[var(--cta-pr-m)]']) %}
+	{% endif %}
+	{% if padMob.bottom is defined and padMob.bottom|length %}
+		{% set innerVars = innerVars|merge(['--cta-pb-m:' ~ padMob.bottom ~ 'px']) %}{% set innerClasses = innerClasses|merge(['!pb-[var(--cta-pb-m)]']) %}
+	{% endif %}
+	{% if padMob.left   is defined and padMob.left|length   %}
+		{% set innerVars = innerVars|merge(['--cta-pl-m:' ~ padMob.left ~ 'px']) %}{% set innerClasses = innerClasses|merge(['!pl-[var(--cta-pl-m)]']) %}
+	{% endif %}
+
+	{% set marMob = ctaSpacing.marginMob  is not empty ? ctaSpacing.marginMob[0]  : {} %}
+	{% if marMob.top    is defined and marMob.top|length    %}
+		{% set innerVars = innerVars|merge(['--cta-mt-m:' ~ marMob.top ~ 'px']) %}{% set innerClasses = innerClasses|merge(['!mt-[var(--cta-mt-m)]']) %}
+	{% endif %}
+	{% if marMob.right  is defined and marMob.right|length  %}
+		{% set innerVars = innerVars|merge(['--cta-mr-m:' ~ marMob.right ~ 'px']) %}{% set innerClasses = innerClasses|merge(['!mr-[var(--cta-mr-m)]']) %}
+	{% endif %}
+	{% if marMob.bottom is defined and marMob.bottom|length %}
+		{% set innerVars = innerVars|merge(['--cta-mb-m:' ~ marMob.bottom ~ 'px']) %}{% set innerClasses = innerClasses|merge(['!mb-[var(--cta-mb-m)]']) %}
+	{% endif %}
+	{% if marMob.left   is defined and marMob.left|length   %}
+		{% set innerVars = innerVars|merge(['--cta-ml-m:' ~ marMob.left ~ 'px']) %}{% set innerClasses = innerClasses|merge(['!ml-[var(--cta-ml-m)]']) %}
+	{% endif %}
+
+	{# Tablet Spacing (md) #}
+	{% set padTab = ctaSpacing.paddingTab is not empty ? ctaSpacing.paddingTab[0] : {} %}
+	{% if padTab.top    is defined and padTab.top|length    %}
+		{% set innerVars = innerVars|merge(['--cta-pt-t:' ~ padTab.top ~ 'px']) %}{% set innerClasses = innerClasses|merge(['md:!pt-[var(--cta-pt-t)]']) %}
+	{% endif %}
+	{% if padTab.right  is defined and padTab.right|length  %}
+		{% set innerVars = innerVars|merge(['--cta-pr-t:' ~ padTab.right ~ 'px']) %}{% set innerClasses = innerClasses|merge(['md:!pr-[var(--cta-pr-t)]']) %}
+	{% endif %}
+	{% if padTab.bottom is defined and padTab.bottom|length %}
+		{% set innerVars = innerVars|merge(['--cta-pb-t:' ~ padTab.bottom ~ 'px']) %}{% set innerClasses = innerClasses|merge(['md:!pb-[var(--cta-pb-t)]']) %}
+	{% endif %}
+	{% if padTab.left   is defined and padTab.left|length   %}
+		{% set innerVars = innerVars|merge(['--cta-pl-t:' ~ padTab.left ~ 'px']) %}{% set innerClasses = innerClasses|merge(['md:!pl-[var(--cta-pl-t)]']) %}
+	{% endif %}
+
+	{% set marTab = ctaSpacing.marginTab  is not empty ? ctaSpacing.marginTab[0]  : {} %}
+	{% if marTab.top    is defined and marTab.top|length    %}
+		{% set innerVars = innerVars|merge(['--cta-mt-t:' ~ marTab.top ~ 'px']) %}{% set innerClasses = innerClasses|merge(['md:!mt-[var(--cta-mt-t)]']) %}
+	{% endif %}
+	{% if marTab.right  is defined and marTab.right|length  %}
+		{% set innerVars = innerVars|merge(['--cta-mr-t:' ~ marTab.right ~ 'px']) %}{% set innerClasses = innerClasses|merge(['md:!mr-[var(--cta-mr-t)]']) %}
+	{% endif %}
+	{% if marTab.bottom is defined and marTab.bottom|length %}
+		{% set innerVars = innerVars|merge(['--cta-mb-t:' ~ marTab.bottom ~ 'px']) %}{% set innerClasses = innerClasses|merge(['md:!mb-[var(--cta-mb-t)]']) %}
+	{% endif %}
+	{% if marTab.left   is defined and marTab.left|length   %}
+		{% set innerVars = innerVars|merge(['--cta-ml-t:' ~ marTab.left ~ 'px']) %}{% set innerClasses = innerClasses|merge(['md:!ml-[var(--cta-ml-t)]']) %}
+	{% endif %}
+
+	{# Desktop Spacing (lg) #}
+	{% set pad = ctaSpacing.padding is not empty ? ctaSpacing.padding[0] : {} %}
+	{% if pad.top    is defined and pad.top|length    %}
+		{% set innerVars = innerVars|merge(['--cta-pt-d:' ~ pad.top ~ 'px']) %}{% set innerClasses = innerClasses|merge(['lg:!pt-[var(--cta-pt-d)]']) %}
+	{% endif %}
+	{% if pad.right  is defined and pad.right|length  %}
+		{% set innerVars = innerVars|merge(['--cta-pr-d:' ~ pad.right ~ 'px']) %}{% set innerClasses = innerClasses|merge(['lg:!pr-[var(--cta-pr-d)]']) %}
+	{% endif %}
+	{% if pad.bottom is defined and pad.bottom|length %}
+		{% set innerVars = innerVars|merge(['--cta-pb-d:' ~ pad.bottom ~ 'px']) %}{% set innerClasses = innerClasses|merge(['lg:!pb-[var(--cta-pb-d)]']) %}
+	{% endif %}
+	{% if pad.left   is defined and pad.left|length   %}
+		{% set innerVars = innerVars|merge(['--cta-pl-d:' ~ pad.left ~ 'px']) %}{% set innerClasses = innerClasses|merge(['lg:!pl-[var(--cta-pl-d)]']) %}
+	{% endif %}
+
+	{% set mar = ctaSpacing.margin is not empty ? ctaSpacing.margin[0] : {} %}
+	{% if mar.top    is defined and mar.top|length    %}
+		{% set innerVars = innerVars|merge(['--cta-mt-d:' ~ mar.top ~ 'px']) %}{% set innerClasses = innerClasses|merge(['lg:!mt-[var(--cta-mt-d)]']) %}
+	{% endif %}
+	{% if mar.right  is defined and mar.right|length  %}
+		{% set innerVars = innerVars|merge(['--cta-mr-d:' ~ mar.right ~ 'px']) %}{% set innerClasses = innerClasses|merge(['lg:!mr-[var(--cta-mr-d)]']) %}
+	{% endif %}
+	{% if mar.bottom is defined and mar.bottom|length %}
+		{% set innerVars = innerVars|merge(['--cta-mb-d:' ~ mar.bottom ~ 'px']) %}{% set innerClasses = innerClasses|merge(['lg:!mb-[var(--cta-mb-d)]']) %}
+	{% endif %}
+	{% if mar.left   is defined and mar.left|length   %}
+		{% set innerVars = innerVars|merge(['--cta-ml-d:' ~ mar.left ~ 'px']) %}{% set innerClasses = innerClasses|merge(['lg:!ml-[var(--cta-ml-d)]']) %}
+	{% endif %}
+{% endif %}
+
+{% set innerSpacingStyle = innerVars|join(';') %}
+{% set innerSpacingClasses = innerClasses|join(' ') %}
+
+<div class="{{ scopeClass }} py-10 md:py-12 lg:py-16 {{ bsClasses(block.blockStyle) }} dark:bg-dark" style="{{ bsStyle(block.blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}">
+	<div class="{{ containerWidth }}">
+		<div class="cta-box-spacing p-6 sm:p-10 lg:p-12 {{ innerSpacingClasses }} {% if isBorderRounded %}rounded-[1.25rem] lg:rounded-[2rem]{% endif %} shadow-xl ring-1 ring-white/10 overflow-hidden relative" style="background: {{ ctaBoxBackgroundColor }} !important; {{ innerSpacingStyle }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}">
+			<div class="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-10 items-center relative z-10 w-full">
+
+				<div class="{{ block.image|length ? 'md:col-span-6 lg:col-span-5 lg:col-start-2' : 'md:col-span-12 lg:col-span-12' }} {{ alignClass }}">
+					{% if ctaBannerItemDisplaySubHeading %}
+						<div class="mb-2">
+							<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase text-primary bg-primary/10 smallText-badge">{{ ctaBannerItemSubHeading }}</span>
+						</div>
+					{% endif %}
+					<{{headingTags}} class="block-heading-title tw-text-bodyText dark:text-white">{{ctaBannerItemHeading}}</{{headingTags}}>
+					<div class="pb-2 sm:pb-4 block-description tw-rich-text tw-text-bodyText dark:text-white">{{ ctaBannerItemDescription }}</div>
+					<div class="flex flex-wrap {{ justifyClass }} gap-3">{{ buttons.renderButton(ctaBannerItemButton) }}</div>
+				</div>
+				{% if block.image|length %}
+					<div class="md:col-span-6 text-center">{{ images.singleImg(block.image.0, 350, {'ratio': 2.578}, 'mx-auto md:mx-0 -mt-6 md:mt-0') }}</div>
+				{% endif %}
+			</div>
+			{% set ctaBannerItemImageVideo = block.imageVideo.one() ?? null %}
+			{% if ctaBannerItemImageVideo %}
+				{% if ctaBannerItemImageVideo.kind == 'video' %}
+					<video class="absolute inset-0 w-full h-full object-cover opacity-25 z-0 pointer-events-none" autoplay loop muted playsinline>
+						<source src="{{ ctaBannerItemImageVideo.url }}" type="{{ ctaBannerItemImageVideo.mimeType }}">
+					</video>
+				{% elseif ctaBannerItemImageVideo.kind == 'json' %}
+					{% set embedded = craft.embeddedAssets.get(ctaBannerItemImageVideo) %}
+					{% if embedded %}
+						<div class="absolute inset-0 w-full h-full opacity-25 z-0 pointer-events-none overflow-hidden [&>iframe]:absolute [&>iframe]:top-1/2 [&>iframe]:left-1/2 [&>iframe]:-translate-x-1/2 [&>iframe]:-translate-y-1/2 [&>iframe]:w-[max(100vw,177.77vh)] [&>iframe]:h-[max(100vh,56.25vw)] [&>iframe]:max-w-none">{{ embedded.getIframeCode(['autoplay=1', 'loop=1', 'muted=1', 'controls=0', 'background=1'])|raw }}</div>
+					{% endif %}
+				{% else %}
+					<div class="absolute inset-0 w-full h-full opacity-25 bg-cover bg-center z-0" style="background-image: url('{{ images.bgImageUrl(ctaBannerItemImageVideo)|trim }}');"></div>
+				{% endif %}
+			{% endif %}
+		</div>
+	</div>
+</div>

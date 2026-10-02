@@ -1,0 +1,10 @@
+name: 'Heading + Content Matrix'
+blocks:
+    -
+        handle: headingContent
+        name: 'Heading + Content'
+        fields:
+            - heading
+            - headingTags
+            - align
+            - contentdata

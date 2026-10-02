@@ -1,0 +1,30 @@
+name: 'Accordion Fields'
+fields:
+    -
+        handle: expandableContent
+        name: 'Expandable Content'
+        type: Matrix
+        instructions: ''
+        settings:
+            entryTypeHandles: [expandableContent]
+            viewMode: blocks
+            maxEntries: null
+    -
+        handle: accordionDisplayMode
+        name: 'Accordion Display Mode'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: columnReverse
+        name: 'Column Reverse '
+        type: Lightswitch
+        instructions: ''
+    -
+        handle: accordionStyle
+        name: 'Accordion Style'
+        type: Matrix
+        instructions: ''
+        settings:
+            entryTypeHandles: [accordionStyle]
+            viewMode: cards
+            maxEntries: 1

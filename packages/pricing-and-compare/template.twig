@@ -1,0 +1,605 @@
+{% import "_macros/images" as images %}
+{% import '_components/ctaButton' as buttons %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+
+{% set headingAndContent = block.headingAndContent.one() %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid ?? '' %}
+{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+{% set themeSwitche = null %}
+{% set pricingLayout = block.pricingLayout.value ?? 'pricingLayout1' %}
+
+{% if blockStyle|length %}
+	{% set blockStyleData = blockStyle.one() %}
+	{% if blockStyleData.background is defined %}
+		{% set backgroundEntry = blockStyleData.background.one() %}
+		{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+	{% endif %}
+{% endif %}
+
+{% set packages = block.selectPackage.all() %}
+
+{# CURRENCY MAP LOGIC #}
+{% set currencyMap = {
+    'dollar': {'symbol': '$', 'code': 'USD'},
+    'rupee': {'symbol': '₹', 'code': 'INR'},
+    'euro': {'symbol': '€', 'code': 'EUR'},
+    'pound': {'symbol': '£', 'code': 'GBP'},
+    'usd': {'symbol': '$', 'code': 'USD'},
+    'inr': {'symbol': '₹', 'code': 'INR'},
+    '$': {'symbol': '$', 'code': 'USD'},
+    '€': {'symbol': '€', 'code': 'EUR'},
+    '£': {'symbol': '£', 'code': 'GBP'},
+    '₹': {'symbol': '₹', 'code': 'INR'}
+} %}
+{% set c_sym_raw = block.currencySymbol.value ?? block.currencySymbol ?? '$' %}
+{% set mappedCurrency = currencyMap[c_sym_raw|lower] ?? {'symbol': c_sym_raw, 'code': 'USD'} %}
+
+{# Payment Gateway Integration #}
+{% set enabledGateways = craft.app.plugins.getPlugin('payment-gateway').registry.getEnabled() %}
+{% set defaultGatewayHandle = enabledGateways|length ? enabledGateways|first.getHandle() : 'razorpay' %}
+
+{{ bsResponsive(blockStyle, scopedSel) }}
+<div class="pricing-compare-block {{ blockType }}{{ blockTypeUid }}-style {{ bsClasses(blockStyle) }} py-10 md:py-12 lg:py-16" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+	<div
+		class="{{ containerWidth }}">
+
+		{# ===================== HEADING ===================== #}
+		{% if headingAndContent %}
+			{% include "_components/header-content-block" %}
+		{% endif %}
+
+		{# ==================== TOGGLE ======================= #}
+		{% if block.showYearlyPricing %}
+			<div class="flex justify-center items-center mb-4 pb-2">
+				<span class="mr-3 font-medium">Monthly</span>
+				<label class="relative inline-flex items-center cursor-pointer m-0">
+					<input type="checkbox" class="sr-only peer pricing-period-switch" aria-label="Toggle between Monthly and Yearly pricing">
+					<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+				</label>
+				<span class="ml-3 font-medium">Yearly
+					{% if block.yearlyDiscountText %}
+						<span class="text-success">{{ block.yearlyDiscountText }}</span>
+					{% endif %}
+				</span>
+			</div>
+		{% endif %}
+
+		{# ================================================== #}
+		{# =============== LAYOUT 1 ========================= #}
+		{# Cards with features                               #}
+		{# ================================================== #}
+
+			{% if pricingLayout == 'pricingLayout1' %}
+				<div class="flex flex-nowrap pt-6 pb-4 px-2 overflow-x-auto lg:justify-center gap-6"> {% for package in packages %}
+					<!-- Plan -->
+					<div class="w-full sm:min-w-[19rem] lg:w-1/3">
+						<div
+							class="flex flex-col h-full tw-card text-left transition-all duration-300 relative {{ package.switchOff ? 'ring-2 ring-primary z-10 ' : '' }}">
+							<!-- Text -->
+							<div class="p-6 lg:p-8 pb-0 w-full bg-transparent border-0">
+								{% if package.switchOff %}
+									<div class="bg-primary text-white inline-block float-right text-xs font-bold uppercase tracking-wider px-3 py-1 m-0 mt-1 rounded-full shadow-sm">Recommended</div>
+								{% endif %}
+								{% if package.title|length %}
+									<h4 class="text-2xl font-bold mb-2">{{ package.title }}</h4>
+								{% endif %}
+								{% if package.editorFull|length %}
+									<div class="text-sm leading-tight">{{ package.editorFull }}</div>
+								{% endif %}
+								<div
+									class="pricing-price-container">
+									{# Monthly #}
+									<div class="pricing-item-monthly">
+										<div class="flex flex-wrap items-baseline gap-1 mb-3">
+											{% if package.monthlyPrice|length %}
+												<h5 class="text-4xl font-bold mb-0 whitespace-nowrap">{{ mappedCurrency.symbol }}{{ package.monthlyPrice }}</h5>
+											{% endif %}
+											{% if package.monthlyPriceLabel|length %}
+												<small class="text-base whitespace-nowrap text-gray-500 pb-1">{{ package.monthlyPriceLabel }}</small>
+											{% endif %}
+										</div>
+									</div>
+									{# Yearly #}
+									<div class="pricing-item-yearly hidden">
+										<div class="flex flex-wrap items-baseline gap-1 mb-3">
+											{% if package.yearlyPrice|length %}
+												<h5 class="text-4xl font-bold mb-0 whitespace-nowrap">{{ mappedCurrency.symbol }}{{ package.yearlyPrice }}</h5>
+											{% endif %}
+											{% if package.yearlyPriceLabel|length %}
+												<small class="text-base whitespace-nowrap text-gray-500 pb-1">{{ package.yearlyPriceLabel }}</small>
+											{% endif %}
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								class="p-6 lg:p-8 pt-6 flex-1 flex flex-col">
+								<!-- Button -->
+								{% set priceButton = package.button %}
+								{% set cleanMonthlyPrice = package.monthlyPrice %}
+								{% set cleanYearlyPrice = package.yearlyPrice %}
+								{{ buttons.renderButton(priceButton,{ },' btn-payment', {
+									'@click.prevent': "$store.modal.open('paymentModal', { amount: $el.dataset.paymentAmount, plan: $el.dataset.paymentPlan, currency: $el.dataset.paymentCurrency })",
+									'data-payment-amount': cleanMonthlyPrice,
+									'data-payment-monthly': cleanMonthlyPrice,
+									'data-payment-yearly': cleanYearlyPrice,
+									'data-payment-plan': package.title,
+									'data-payment-currency': mappedCurrency.code
+								}) }}
+								<!-- Features List -->
+								{% set cardFeatures = package.packageFeaturesEntry.all() %}
+								{% if cardFeatures | length %}
+									<ul class="list-none mt-4 mb-0 pl-0">
+										{% for feature in cardFeatures %}
+											{% set title = feature.selectFeature.one().title ?? '' %}
+											{% set type = feature.selectValueType ?? 'text' %}
+
+											{% set hasValue = false %}
+											{% set displayValue = '—' %}
+
+											{# Resolve value #}
+											{% if type == 'boolean' %}
+												{% set hasValue = feature.switchOffBoolean ?? false %}
+											{% elseif type == 'numeric' %}
+												{% if feature.number is not empty %}
+													{% set hasValue = true %}
+													{% set displayValue = feature.number %}
+												{% endif %}
+											{% else %}
+												{% if feature.plainText is not empty %}
+													{% set hasValue = true %}
+													{% set displayValue = feature.plainText %}
+												{% endif %}
+											{% endif %}
+
+											<li
+												class="flex items-center gap-4 py-2 {% if not loop.last %}border-b border-gray-200{% endif %}">
+												{# LEFT ICON #}
+												<div class="shrink-0">
+													<i class="ti ti-disc text-primary text-xl"></i>
+												</div>
+
+												{# RIGHT TEXT + VALUE INLINE #}
+												<div class="grow flex justify-between items-center">
+													<span class="font-medium">{{ title }}</span>
+													{% if type != 'boolean' %}
+														<span class="text-gray-500 font-bold">{{ hasValue ? displayValue : '—' }}</span>
+													{% else %}
+														{% if hasValue %}
+															<i class="ti ti-check text-success text-xl"></i>
+														{% else %}
+															<i class="ti ti-x text-danger text-xl"></i>
+														{% endif %}
+													{% endif %}
+												</div>
+											</li>
+										{% endfor %}
+									</ul>
+								{% endif %}
+							</div>
+						</div>
+					</div>
+				{% endfor %}
+			</div>
+		{% endif %}
+
+		{# ================================================== #}
+		{# =============== LAYOUT 2 ========================= #}
+		{# Highlighted middle plan                           #}
+		{# ================================================== #}
+
+			{% if pricingLayout == 'pricingLayout2' %}
+
+				<div class="flex flex-nowrap pt-6 pb-4 px-2 overflow-x-auto lg:justify-center gap-6"> {% for package in packages %}
+					<!-- Plan -->
+					<div class="w-full sm:min-w-[19rem] lg:w-1/3">
+						<div
+							class="flex flex-col h-full tw-card text-left transition-all duration-300 relative {{ package.switchOff ? 'ring-2 ring-primary z-10 ' : '' }}">
+							<!-- Text -->
+							<div class="p-6 lg:p-8 pb-0 w-full bg-transparent border-0">
+								{% if package.switchOff %}
+									<div class="bg-primary text-white inline-block float-right text-xs font-bold uppercase tracking-wider px-3 py-1 m-0 mt-1 rounded-full shadow-sm">Recommended</div>
+								{% endif %}
+								{% if package.title|length %}
+									<h4 class="text-2xl font-bold mb-2">{{ package.title }}</h4>
+								{% endif %}
+								{% if package.editorFull|length %}
+									<div class="text-sm leading-tight">{{ package.editorFull }}</div>
+								{% endif %}
+								<div
+									class="pricing-price-container">
+									{# Monthly #}
+									<h5 class="text-4xl font-bold mb-4 pricing-item-monthly">
+										{% if package.monthlyPrice|length %}
+											<span>{{ block.currencySymbol }}{{ package.monthlyPrice }}</span>
+										{% endif %}
+										{% if package.monthlyPriceLabel|length %}
+											<small class="text-base">{{ package.monthlyPriceLabel }}</small>
+										{% endif %}
+									</h5>
+									{# Yearly #}
+									<h5 class="text-4xl font-bold mb-4 pricing-item-yearly hidden">
+										{% if package.yearlyPrice|length %}
+											<span>{{ block.currencySymbol }}{{ package.yearlyPrice }}</span>
+										{% endif %}
+										{% if package.yearlyPriceLabel|length %}
+											<small class="text-base">{{ package.yearlyPriceLabel }}</small>
+										{% endif %}
+									</h5>
+								</div>
+							</div>
+							<div
+								class="p-6 lg:p-8 pt-6 flex-1 flex flex-col">
+								<!-- Button -->
+								{% set priceButton = package.button %}
+								{% set cleanMonthlyPrice = package.monthlyPrice %}
+								{% set cleanYearlyPrice = package.yearlyPrice %}
+								{{ buttons.renderButton(priceButton,{ },' btn-payment', {
+									'@click.prevent': "$store.modal.open('paymentModal', { amount: $el.dataset.paymentAmount, plan: $el.dataset.paymentPlan, currency: $el.dataset.paymentCurrency })",
+									'data-payment-amount': cleanMonthlyPrice,
+									'data-payment-monthly': cleanMonthlyPrice,
+									'data-payment-yearly': cleanYearlyPrice,
+									'data-payment-plan': package.title,
+									'data-payment-currency': mappedCurrency.code
+								}) }}
+								<!-- Features List -->
+								{% set cardFeatures = package.packageFeaturesEntry.all() %}
+								{% if cardFeatures | length %}
+									<ul class="list-none mt-4 mb-0 pl-0">
+										{% for feature in cardFeatures %}
+											{% set title = feature.selectFeature.one().title ?? '' %}
+											{% set type = feature.selectValueType ?? 'text' %}
+
+											{% set hasValue = false %}
+											{% set displayValue = '—' %}
+
+											{# Resolve value #}
+											{% if type == 'boolean' %}
+												{% set hasValue = feature.switchOffBoolean ?? false %}
+											{% elseif type == 'numeric' %}
+												{% if feature.number is not empty %}
+													{% set hasValue = true %}
+													{% set displayValue = feature.number %}
+												{% endif %}
+											{% else %}
+												{% if feature.plainText is not empty %}
+													{% set hasValue = true %}
+													{% set displayValue = feature.plainText %}
+												{% endif %}
+											{% endif %}
+
+											<li
+												class="flex items-center gap-4 py-2 {% if not loop.last %}border-b border-gray-200{% endif %}">
+												{# LEFT ICON #}
+												<div class="shrink-0">
+													<i class="ti ti-disc text-primary text-xl"></i>
+												</div>
+
+												{# RIGHT TEXT + VALUE INLINE #}
+												<div class="grow flex justify-between items-center">
+													<span class="font-medium">{{ title }}</span>
+													{% if type != 'boolean' %}
+														<span class="text-gray-500 font-bold">{{ hasValue ? displayValue : '—' }}</span>
+													{% else %}
+														{% if hasValue %}
+															<i class="ti ti-check text-success text-xl"></i>
+														{% else %}
+															<i class="ti ti-x text-danger text-xl"></i>
+														{% endif %}
+													{% endif %}
+												</div>
+											</li>
+										{% endfor %}
+									</ul>
+								{% endif %}
+							</div>
+						</div>
+					</div>
+				{% endfor %}
+			</div>
+
+
+		{% endif %}
+
+		{# ================================================== #}
+		{# =============== LAYOUT 3 ========================= #}
+		{# Cards + Compare Table                             #}
+		{# ================================================== #}
+
+			{% if pricingLayout == 'pricingLayout3' %}
+				<div class="flex flex-nowrap pt-6 pb-4 px-2 overflow-x-auto lg:justify-center gap-6"> {% for package in packages %}
+					<!-- Plan -->
+					<div class="w-full sm:min-w-[19rem] lg:w-1/3">
+						<div
+							class="flex flex-col h-full tw-card text-left transition-all duration-300 relative {{ package.switchOff ? 'ring-2 ring-primary z-10 ' : '' }}">
+							<!-- Text -->
+							<div class="p-6 lg:p-8 pb-0 w-full bg-transparent border-0">
+								{% if package.switchOff %}
+									<div class="bg-primary text-white inline-block float-right text-xs font-bold uppercase tracking-wider px-3 py-1 m-0 mt-1 rounded-full shadow-sm">Recommended</div>
+								{% endif %}
+								{% if package.title|length %}
+									<h4 class="text-2xl font-bold mb-2">{{ package.title }}</h4>
+								{% endif %}
+								{% if package.editorFull|length %}
+									<div class="text-sm leading-tight">{{ package.editorFull }}</div>
+								{% endif %}
+								<div
+									class="pricing-price-container">
+									{# Monthly #}
+									<div class="pricing-item-monthly">
+										<div class="flex flex-wrap items-baseline gap-1 mb-3">
+											{% if package.monthlyPrice|length %}
+												<h5 class="text-3xl font-bold mb-0 whitespace-nowrap">{{ mappedCurrency.symbol }}{{ package.monthlyPrice }}</h5>
+											{% endif %}
+											{% if package.monthlyPriceLabel|length %}
+												<small class="text-base whitespace-nowrap text-gray-500 pb-1">{{ package.monthlyPriceLabel }}</small>
+											{% endif %}
+										</div>
+									</div>
+									{# Yearly #}
+									<div class="pricing-item-yearly hidden">
+										<div class="flex flex-wrap items-baseline gap-1 mb-3">
+											{% if package.yearlyPrice|length %}
+												<h5 class="text-3xl font-bold mb-0 whitespace-nowrap">{{ mappedCurrency.symbol }}{{ package.yearlyPrice }}</h5>
+											{% endif %}
+											{% if package.yearlyPriceLabel|length %}
+												<small class="text-base whitespace-nowrap text-gray-500 pb-1">{{ package.yearlyPriceLabel }}</small>
+											{% endif %}
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								class="p-6 lg:p-8 pt-6 flex-1 flex flex-col">
+								<!-- Button -->
+								{% set priceButton = package.button %}
+								{% set cleanMonthlyPrice = package.monthlyPrice %}
+								{% set cleanYearlyPrice = package.yearlyPrice %}
+								{{ buttons.renderButton(priceButton,{ },' btn-payment', {
+									'@click.prevent': "$store.modal.open('paymentModal', { amount: $el.dataset.paymentAmount, plan: $el.dataset.paymentPlan, currency: $el.dataset.paymentCurrency })",
+									'data-payment-amount': cleanMonthlyPrice,
+									'data-payment-monthly': cleanMonthlyPrice,
+									'data-payment-yearly': cleanYearlyPrice,
+									'data-payment-plan': package.title,
+									'data-payment-currency': mappedCurrency.code
+								}) }}
+							</div>
+						</div>
+					</div>
+				{% endfor %}
+			</div>
+
+			{# Feature Section #}
+			<div class="text-center">
+				<button class="tw-btn btn-more tw-btn-link text-xl" type="button" data-show-label="Compare plans" data-hide-label="Compare plans" data-bs-toggle="collapse" data-bs-target="#comparePlans" aria-label="Compare plans"></button>
+			</div>
+
+			<div class="collapse show" id="comparePlans">
+				{% set featureGroups = craft.entries.section('featureGroups').all() %}
+				{% set planTitles = packages | map(e => e.title) %}
+
+				{% set featuresByGroup = {} %}
+				{% for package in packages %}
+					{% for feature in package.packageFeaturesEntry.all() %}
+
+						{% set groupTitle = feature.selectFeatureGroup.0.title %}
+						{% set featureTitle = feature.selectFeature.0.title %}
+						{% set featureDescription = feature.selectFeature.0.editorFull %}
+						{% set featureValueType = feature.selectValueType %}
+						{% if featureValueType == 'text' %}
+							{% set featureValue = feature.plainText ?? '—' %}
+						{% elseif featureValueType == 'boolean' %}
+							{% set featureValue = feature.switchOffBoolean ?? false %}
+						{% elseif featureValueType == 'numeric' %}
+							{% set featureValue = feature.number ?? '—' %}
+						{% endif %}
+
+						{% set groupData = featuresByGroup[groupTitle] ?? {} %}
+						{% set featureData = groupData[featureTitle] ?? {
+							'valueType': featureValueType,
+							'plans': {}
+							} 
+						%}
+
+						{% set updatedPlans = featureData.plans | merge({ (package.title): featureValue }) %}
+						{% set featureData = featureData | merge({ 'plans': updatedPlans, 'valueType': featureValueType, 'description': featureDescription }) %}
+						{% set groupData = groupData | merge({ (featureTitle): featureData }) %}
+						{% set featuresByGroup = featuresByGroup | merge({ (groupTitle): groupData }) %}
+					{% endfor %}
+				{% endfor %}
+				{% set colspan = planTitles | length + 1 %}
+				<div class="overflow-x-auto sm:pt-4 lg:pt-6 mt-6">
+					<table class="w-full text-center whitespace-nowrap bg-white dark:bg-dark border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+						<thead>
+							<tr>
+								<th scope="col" class="border-b border-gray-200 dark:border-gray-700 py-4 text-left bg-gray-50 dark:bg-gray-800/50">&nbsp;</th>
+								{% for plan in planTitles %}
+									<th scope="col" class="border-b border-gray-200 dark:border-gray-700 py-4 bg-gray-50 dark:bg-gray-800/50">
+										<div class="text-lg font-bold mb-0 text-gray-900 dark:text-white">{{ plan }}</div>
+									</th>
+								{% endfor %}
+							</tr>
+						</thead>
+						<tbody>
+							{% for groupName, features in featuresByGroup %}
+								<tr>
+									<td colspan={{ colspan }} scope="col" class="border-b border-gray-200 dark:border-gray-700 text-left pt-6 pb-2 pl-6 bg-white dark:bg-dark">
+										<div class="text-sm uppercase tracking-wider font-bold text-primary mb-0">{{ groupName }}</div>
+									</td>
+								</tr>
+								{% for featureName, data in features %}
+									<tr class="border-b border-gray-100 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+										<th class="featurecol border-0 text-left py-4 pl-6 align-top">
+											<div class="featurecol text-wrap">
+												<div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">{{ featureName }}</div>
+												{% if data.description %}
+													<div class="text-xs text-gray-500 dark:text-gray-400 font-normal leading-tight">{{ data.description|raw }}</div>
+												{% endif %}
+											</div>
+										</th>
+										{% for plan in planTitles %}
+											{% set val = data.plans[plan] ?? '—' %}
+											{% set type = data.valueType %}
+											<td class="border-0 py-4 align-top">
+												<div class="text-gray-900 dark:text-gray-300 font-medium text-sm flex items-center justify-center h-full">
+													{% if type == 'boolean' %}
+														{% if val == 1 %}
+															<i class="ti ti-check text-2xl text-success drop-shadow-sm"></i>
+														{% elseif val != 1 %}
+															<i class="ti ti-x text-2xl text-danger opacity-50"></i>
+														{% else %}
+															{{ val }}
+														{% endif %}
+													{% else %}
+														{{ val }}
+													{% endif %}
+												</div>
+											</td>
+										{% endfor %}
+									</tr>
+								{% endfor %}
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+		{% endif %}
+
+	</div>
+</div>
+
+<!-- Payment Selection Modal using Alpine.js and BEM components -->
+<div x-data="smoothModal('paymentModal')" @keydown.escape.window="$store.modal.close()" x-show="$store.modal.active === 'paymentModal'" class="tw-modal" id="paymentModal" role="dialog" aria-modal="true" aria-labelledby="paymentModalLabel" style="display: none;">
+
+	<div x-data="{
+		        get planName() { return $store.modal.data.plan || 'Custom Plan'; },
+		        get amountStr() {
+		            const amount = parseFloat(($store.modal.data.amount || '').toString().replace(/[^0-9.]/g, '') || 0);
+		            const isFree = amount === 0;
+		            const code = $store.modal.data.currency || 'INR';
+		            const symbols = { 'INR': '₹', 'USD': '$', 'EUR': '€', 'GBP': '£' };
+		            const sym = symbols[code] || code;
+		            return isFree ? 'Free' : (sym + ' ' + amount.toFixed(2));
+		        },
+		        get isFree() {
+		            const amount = parseFloat(($store.modal.data.amount || '').toString().replace(/[^0-9.]/g, '') || 0);
+		            return amount === 0;
+		        }
+		    }" x-effect="if($store.modal.active === 'paymentModal') {
+		        const amount = parseFloat(($store.modal.data.amount || '').toString().replace(/[^0-9.]/g, '') || 0);
+		        $dispatch('payment-modal-hydrated', { amount: amount, plan: $store.modal.data.plan, currency: $store.modal.data.currency });
+		    }" class="contents">
+
+		<div x-show="$store.modal.active === 'paymentModal'" x-transition.opacity.duration.300ms class="tw-modal__backdrop" aria-hidden="true"></div>
+
+		<div class="tw-modal__scroll-container" x-ref="scrollWrapper">
+			<div class="tw-modal__dialog-wrapper">
+				<div class="tw-modal__dialog max-w-xl" @click.away="$store.modal.close()" x-show="$store.modal.active === 'paymentModal'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-95 translate-y-4">
+
+					<div class="tw-modal__content border-0 shadow-lg rounded-2xl overflow-hidden bg-white dark:bg-gray-900">
+						<div class="tw-modal__header border-0 pb-0">
+							<h5 class="tw-modal__title font-bold text-2xl" id="paymentModalLabel">Complete Your Purchase</h5>
+							<button @click="$store.modal.close()" type="button" class="tw-modal__close" aria-label="Close">
+								<i class="ti ti-x text-xl"></i>
+							</button>
+						</div>
+						<div class="tw-modal__body">
+							<div class="mb-6">
+								<div class="flex items-end">
+									<div class="w-1/2">
+										<div class="uppercase text-sm font-bold text-gray-500 mb-1" style="letter-spacing: 0.05em;">Selected Plan</div>
+										<div class="text-2xl font-bold mb-0" x-text="planName"></div>
+									</div>
+									<div class="w-1/2 text-right">
+										<div class="uppercase text-sm font-bold text-gray-500 mb-1" style="letter-spacing: 0.05em;">Total Amount</div>
+										<div class="text-2xl font-bold mb-0 text-primary" x-text="amountStr"></div>
+									</div>
+								</div>
+							</div>
+
+							<div class="mb-6">
+								<div class="font-bold mb-4">Your Details</div>
+								<div class="mb-4">
+									<label for="checkoutName" class="form-label small font-medium tw-text-muted">Full Name
+										<span class="text-danger">*</span>
+									</label>
+									<input type="text" class="form-control" id="checkoutName" name="checkoutName" required placeholder="John Doe">
+									<div class="invalid-feedback">Please enter your full name.</div>
+								</div>
+								<div class="mb-4">
+									<label for="checkoutEmail" class="form-label small font-medium tw-text-muted">Email Address
+										<span class="text-danger">*</span>
+									</label>
+									<input type="email" class="form-control" id="checkoutEmail" name="checkoutEmail" required placeholder="john@example.com">
+									<div class="invalid-feedback">Please enter a valid email address.</div>
+								</div>
+								<div class="mb-4">
+									<label for="checkoutPhone" class="form-label small font-medium tw-text-muted">Phone Number
+										<span class="text-danger">*</span>
+									</label>
+									<input type="tel" class="form-control" id="checkoutPhone" name="checkoutPhone" required placeholder="+91 98765 43210">
+									<div class="invalid-feedback">Please enter your phone number.</div>
+								</div>
+							</div>
+
+							<div id="paymentGatewaySection" x-show="!isFree">
+								<div class="font-bold mb-4">Select Payment Method</div>
+								<div class="payment-gateways-list">
+									{% for gateway in enabledGateways %}
+										<div class="form-check mb-2 py-2 border rounded px-4 ps-12 bg-light">
+											<input class="form-check-input border-2" type="radio" name="paymentGateway" id="gateway_{{ gateway.getHandle() }}" value="{{ gateway.getHandle() }}" {{ loop.first ? 'checked' }}>
+											<label class="form-check-label font-medium ms-1 mt-0 w-full" for="gateway_{{ gateway.getHandle() }}">{{ gateway.getName() }}</label>
+										</div>
+									{% endfor %}
+								</div>
+							</div>
+
+							<div class="pt-6 text-right tw-modal__footer border-0 bg-transparent">
+								<button @click="$store.modal.close()" type="button" class="tw-btn tw-btn-light">Cancel</button>
+								<button type="button" class="tw-btn tw-btn-primary" id="confirmPaymentBtn" x-text="isFree ? 'Activate Free Plan' : 'Proceed to Pay'"></button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+{# Gateways SDKs #}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+	document.addEventListener("DOMContentLoaded", function () {
+const toggles = document.querySelectorAll('.pricing-period-switch');
+if (toggles.length > 0) {
+toggles.forEach(toggle => {
+toggle.addEventListener('change', function (e) {
+const isYearly = e.target.checked;
+const container = e.target.closest('.pricing-compare-block');
+
+// Toggle prices
+container.querySelectorAll('.pricing-item-monthly').forEach(el => {
+isYearly ? el.classList.add('hidden') : el.classList.remove('hidden');
+});
+container.querySelectorAll('.pricing-item-yearly').forEach(el => {
+isYearly ? el.classList.remove('hidden') : el.classList.add('hidden');
+});
+
+// Update payment buttons
+container.querySelectorAll('.btn-payment').forEach(btn => {
+const newAmount = isYearly ? btn.getAttribute('data-payment-yearly') : btn.getAttribute('data-payment-monthly');
+if (newAmount) {
+btn.setAttribute('data-payment-amount', newAmount);
+}
+});
+});
+});
+}
+});
+</script>

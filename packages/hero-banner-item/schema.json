@@ -1,0 +1,1184 @@
+{
+    "formatVersion": 2,
+    "entryType": "a0d2318d-5142-4949-afb8-e9cb92d0f045",
+    "items": [
+        {
+            "kind": "fields",
+            "uid": "76d00c6d-1cfa-4977-8322-0bfa2e297408",
+            "handle": "plainText",
+            "config": {
+                "columnSuffix": null,
+                "handle": "plainText",
+                "instructions": null,
+                "name": "Plain Text",
+                "searchable": false,
+                "settings": {
+                    "byteLimit": null,
+                    "charLimit": null,
+                    "code": false,
+                    "initialRows": 4,
+                    "multiline": false,
+                    "placeholder": null,
+                    "uiMode": "normal"
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\PlainText"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+            "handle": "switchOff",
+            "config": {
+                "columnSuffix": null,
+                "handle": "switchOff",
+                "instructions": null,
+                "name": "Switch Default Off",
+                "searchable": false,
+                "settings": {
+                    "default": false,
+                    "offLabel": "Off",
+                    "onLabel": "On",
+                    "showLabelsInCards": false
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\Lightswitch"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "a1cf70be-9fcd-44cd-88b5-3ec49ce3dc12",
+            "handle": "Description",
+            "config": {
+                "columnSuffix": null,
+                "handle": "Description",
+                "instructions": null,
+                "name": "HeaderNotification",
+                "searchable": false,
+                "settings": {
+                    "availableTransforms": "",
+                    "availableVolumes": "",
+                    "characterLimit": null,
+                    "ckeConfig": "5ba459cb-1a5d-439f-bf78-91ff474dca2b",
+                    "createButtonLabel": null,
+                    "defaultTransform": null,
+                    "expandEntryButtons": false,
+                    "fullGraphqlData": false,
+                    "parseEmbeds": false,
+                    "purifierConfig": null,
+                    "purifyHtml": true,
+                    "showUnpermittedFiles": false,
+                    "showUnpermittedVolumes": false,
+                    "showWordCount": false,
+                    "sourceEditingGroups": [
+                        "__ADMINS__"
+                    ],
+                    "wordLimit": null
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\ckeditor\\Field"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "12781b09-979c-42ed-beee-0413ce5e6a36",
+            "handle": "imageVideo",
+            "config": {
+                "columnSuffix": null,
+                "handle": "imageVideo",
+                "instructions": null,
+                "name": "Image/Video",
+                "searchable": false,
+                "settings": {
+                    "allowSelfRelations": false,
+                    "allowSubfolders": false,
+                    "allowUploads": true,
+                    "allowedKinds": [
+                        "image",
+                        "json",
+                        "video"
+                    ],
+                    "branchLimit": null,
+                    "defaultPlacement": "end",
+                    "defaultUploadLocationSource": "volume:bfdb387b-9eab-4a3f-9402-c5f478e60afb",
+                    "defaultUploadLocationSubpath": null,
+                    "maintainHierarchy": false,
+                    "maxRelations": 1,
+                    "minRelations": null,
+                    "previewMode": "full",
+                    "restrictFiles": true,
+                    "restrictLocation": false,
+                    "restrictedDefaultUploadSubpath": null,
+                    "restrictedLocationSource": "volume:bfdb387b-9eab-4a3f-9402-c5f478e60afb",
+                    "restrictedLocationSubpath": null,
+                    "selectionLabel": null,
+                    "showSearchInput": true,
+                    "showSiteMenu": true,
+                    "showUnpermittedFiles": false,
+                    "showUnpermittedVolumes": false,
+                    "sources": "*",
+                    "targetSiteId": null,
+                    "validateRelatedElements": false,
+                    "viewMode": "list"
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\Assets"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "4227d4d3-78dc-46a0-a113-6fca08453b44",
+            "handle": "image",
+            "config": {
+                "columnSuffix": null,
+                "handle": "image",
+                "instructions": null,
+                "name": "Image",
+                "searchable": false,
+                "settings": {
+                    "allowSelfRelations": false,
+                    "allowSubfolders": false,
+                    "allowUploads": true,
+                    "allowedKinds": [
+                        "image"
+                    ],
+                    "branchLimit": null,
+                    "defaultPlacement": "end",
+                    "defaultUploadLocationSource": "volume:bfdb387b-9eab-4a3f-9402-c5f478e60afb",
+                    "defaultUploadLocationSubpath": null,
+                    "maintainHierarchy": false,
+                    "maxRelations": 1,
+                    "minRelations": null,
+                    "previewMode": "full",
+                    "restrictFiles": true,
+                    "restrictLocation": false,
+                    "restrictedDefaultUploadSubpath": null,
+                    "restrictedLocationSource": "volume:bfdb387b-9eab-4a3f-9402-c5f478e60afb",
+                    "restrictedLocationSubpath": null,
+                    "selectionLabel": null,
+                    "showSearchInput": true,
+                    "showSiteMenu": true,
+                    "showUnpermittedFiles": false,
+                    "showUnpermittedVolumes": false,
+                    "sources": "*",
+                    "targetSiteId": null,
+                    "validateRelatedElements": true,
+                    "viewMode": "list"
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\Assets"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "6bbf32fb-e157-4619-8e79-f324421f2994",
+            "handle": "colorLibrary",
+            "config": {
+                "columnSuffix": null,
+                "handle": "colorLibrary",
+                "instructions": null,
+                "name": "Color Library",
+                "searchable": false,
+                "settings": {
+                    "allowSelfRelations": false,
+                    "branchLimit": null,
+                    "defaultPlacement": "end",
+                    "maintainHierarchy": false,
+                    "maxRelations": 1,
+                    "minRelations": null,
+                    "selectionLabel": "Add Color",
+                    "showSearchInput": true,
+                    "showSiteMenu": true,
+                    "showUnpermittedEntries": true,
+                    "showUnpermittedSections": true,
+                    "sources": [
+                        "section:650f5c9a-0a0e-4878-8889-dbd98994e94b"
+                    ],
+                    "targetSiteId": null,
+                    "validateRelatedElements": false,
+                    "viewMode": "cards"
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\Entries"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "841d5d31-b4c7-4955-ab98-7baad886a211",
+            "handle": "linkUrl",
+            "config": {
+                "columnSuffix": null,
+                "handle": "linkUrl",
+                "instructions": null,
+                "name": "Link url",
+                "searchable": false,
+                "settings": {
+                    "advancedFields": [
+                        "target",
+                        "class",
+                        "id",
+                        "download"
+                    ],
+                    "fullGraphqlData": false,
+                    "maxLength": 255,
+                    "showLabelField": true,
+                    "typeSettings": {
+                        "__assoc__": [
+                            [
+                                "asset",
+                                {
+                                    "__assoc__": [
+                                        [
+                                            "sources",
+                                            "*"
+                                        ],
+                                        [
+                                            "allowedKinds",
+                                            [
+                                                "audio",
+                                                "captionsSubtitles",
+                                                "image",
+                                                "pdf",
+                                                "word"
+                                            ]
+                                        ],
+                                        [
+                                            "showUnpermittedVolumes",
+                                            ""
+                                        ],
+                                        [
+                                            "showUnpermittedFiles",
+                                            ""
+                                        ]
+                                    ]
+                                }
+                            ],
+                            [
+                                "category",
+                                {
+                                    "__assoc__": [
+                                        [
+                                            "sources",
+                                            "*"
+                                        ]
+                                    ]
+                                }
+                            ],
+                            [
+                                "entry",
+                                {
+                                    "__assoc__": [
+                                        [
+                                            "sources",
+                                            "*"
+                                        ],
+                                        [
+                                            "showUnpermittedSections",
+                                            "1"
+                                        ],
+                                        [
+                                            "showUnpermittedEntries",
+                                            "1"
+                                        ]
+                                    ]
+                                }
+                            ],
+                            [
+                                "url",
+                                {
+                                    "__assoc__": [
+                                        [
+                                            "allowRootRelativeUrls",
+                                            ""
+                                        ],
+                                        [
+                                            "allowAnchors",
+                                            "1"
+                                        ],
+                                        [
+                                            "allowCustomSchemes",
+                                            ""
+                                        ]
+                                    ]
+                                }
+                            ]
+                        ]
+                    },
+                    "types": [
+                        "url",
+                        "asset",
+                        "category",
+                        "entry"
+                    ]
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\Link"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "2b44b0f4-8f0e-4236-8577-3223ac49483d",
+            "handle": "colorPalette",
+            "config": {
+                "columnSuffix": null,
+                "handle": "colorPalette",
+                "instructions": null,
+                "name": "Color Palette",
+                "searchable": false,
+                "settings": {
+                    "customOptions": false,
+                    "options": [
+                        {
+                            "__assoc__": [
+                                [
+                                    "label",
+                                    "Default"
+                                ],
+                                [
+                                    "value",
+                                    "default"
+                                ],
+                                [
+                                    "icon",
+                                    ""
+                                ],
+                                [
+                                    "color",
+                                    ""
+                                ],
+                                [
+                                    "default",
+                                    "1"
+                                ]
+                            ]
+                        },
+                        {
+                            "__assoc__": [
+                                [
+                                    "label",
+                                    "Primary"
+                                ],
+                                [
+                                    "value",
+                                    "primary"
+                                ],
+                                [
+                                    "icon",
+                                    ""
+                                ],
+                                [
+                                    "color",
+                                    ""
+                                ],
+                                [
+                                    "default",
+                                    ""
+                                ]
+                            ]
+                        },
+                        {
+                            "__assoc__": [
+                                [
+                                    "label",
+                                    "Secondary"
+                                ],
+                                [
+                                    "value",
+                                    "secondary"
+                                ],
+                                [
+                                    "icon",
+                                    ""
+                                ],
+                                [
+                                    "color",
+                                    ""
+                                ],
+                                [
+                                    "default",
+                                    ""
+                                ]
+                            ]
+                        },
+                        {
+                            "__assoc__": [
+                                [
+                                    "label",
+                                    "Light"
+                                ],
+                                [
+                                    "value",
+                                    "light"
+                                ],
+                                [
+                                    "icon",
+                                    ""
+                                ],
+                                [
+                                    "color",
+                                    ""
+                                ],
+                                [
+                                    "default",
+                                    ""
+                                ]
+                            ]
+                        },
+                        {
+                            "__assoc__": [
+                                [
+                                    "label",
+                                    "Dark"
+                                ],
+                                [
+                                    "value",
+                                    "dark"
+                                ],
+                                [
+                                    "icon",
+                                    ""
+                                ],
+                                [
+                                    "color",
+                                    ""
+                                ],
+                                [
+                                    "default",
+                                    ""
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\Dropdown"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "96a82c8f-a3a4-45f2-84f2-695c2d4a7fa2",
+            "handle": "cssClasses",
+            "config": {
+                "columnSuffix": null,
+                "handle": "cssClasses",
+                "instructions": null,
+                "name": "CSS Classes",
+                "searchable": false,
+                "settings": {
+                    "byteLimit": null,
+                    "charLimit": null,
+                    "code": false,
+                    "initialRows": 4,
+                    "multiline": false,
+                    "placeholder": null,
+                    "uiMode": "normal"
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\PlainText"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "75f1f897-0b83-4cc6-87a5-46993198f215",
+            "handle": "textAlign",
+            "config": {
+                "columnSuffix": null,
+                "handle": "textAlign",
+                "instructions": null,
+                "name": "Text Align",
+                "searchable": false,
+                "settings": {
+                    "customOptions": false,
+                    "options": [
+                        {
+                            "__assoc__": [
+                                [
+                                    "label",
+                                    "Left"
+                                ],
+                                [
+                                    "value",
+                                    "start"
+                                ],
+                                [
+                                    "icon",
+                                    ""
+                                ],
+                                [
+                                    "color",
+                                    ""
+                                ],
+                                [
+                                    "default",
+                                    "1"
+                                ]
+                            ]
+                        },
+                        {
+                            "__assoc__": [
+                                [
+                                    "label",
+                                    "Center"
+                                ],
+                                [
+                                    "value",
+                                    "center"
+                                ],
+                                [
+                                    "icon",
+                                    ""
+                                ],
+                                [
+                                    "color",
+                                    ""
+                                ],
+                                [
+                                    "default",
+                                    ""
+                                ]
+                            ]
+                        },
+                        {
+                            "__assoc__": [
+                                [
+                                    "label",
+                                    "Right"
+                                ],
+                                [
+                                    "value",
+                                    "end"
+                                ],
+                                [
+                                    "icon",
+                                    ""
+                                ],
+                                [
+                                    "color",
+                                    ""
+                                ],
+                                [
+                                    "default",
+                                    ""
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\Dropdown"
+            }
+        },
+        {
+            "kind": "entryTypes",
+            "uid": "b614767d-36bf-4981-911a-09ac70d628a0",
+            "handle": "button",
+            "config": {
+                "allowLineBreaksInTitles": false,
+                "color": "lime",
+                "description": null,
+                "fieldLayouts": {
+                    "561051d4-3b6e-494f-b5ec-62a51251669c": {
+                        "cardThumbAlignment": "end",
+                        "tabs": [
+                            {
+                                "elementCondition": null,
+                                "elements": [
+                                    {
+                                        "dateAdded": "2024-12-04T09:55:37+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "841d5d31-b4c7-4955-ab98-7baad886a211",
+                                        "handle": null,
+                                        "instructions": null,
+                                        "label": null,
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "83ff2d4c-3cf8-4d76-bcce-e1de904f2dc0",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T09:57:32+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "2b44b0f4-8f0e-4236-8577-3223ac49483d",
+                                        "handle": null,
+                                        "instructions": null,
+                                        "label": "Button Color",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "9e88a0b7-c052-4c1b-9eec-98387fa9b433",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 25
+                                    },
+                                    {
+                                        "dateAdded": "2025-01-10T08:17:45+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+                                        "handle": "displayIcon",
+                                        "instructions": null,
+                                        "label": "Display Icon",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "32befaf4-cbac-4f1d-9f17-161cdc73437f",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 25
+                                    },
+                                    {
+                                        "dateAdded": "2025-01-10T08:17:45+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": {
+                                            "class": "craft\\elements\\conditions\\entries\\EntryCondition",
+                                            "conditionRules": [
+                                                {
+                                                    "class": "craft\\fields\\conditions\\LightswitchFieldConditionRule",
+                                                    "fieldUid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+                                                    "layoutElementUid": "32befaf4-cbac-4f1d-9f17-161cdc73437f",
+                                                    "uid": "d7158299-f106-4ae1-9583-a31e3163b119",
+                                                    "value": true
+                                                }
+                                            ],
+                                            "elementType": "craft\\elements\\Entry",
+                                            "fieldContext": "global"
+                                        },
+                                        "elementEditCondition": null,
+                                        "fieldUid": "96a82c8f-a3a4-45f2-84f2-695c2d4a7fa2",
+                                        "handle": "buttonIconClasses",
+                                        "instructions": null,
+                                        "label": "Icon Classes",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "75d0a4fc-dba9-42e0-92e6-0d2cc17dff40",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 25
+                                    },
+                                    {
+                                        "dateAdded": "2025-12-23T08:12:52+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": {
+                                            "class": "craft\\elements\\conditions\\entries\\EntryCondition",
+                                            "conditionRules": [
+                                                {
+                                                    "class": "craft\\fields\\conditions\\LightswitchFieldConditionRule",
+                                                    "fieldUid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+                                                    "layoutElementUid": "32befaf4-cbac-4f1d-9f17-161cdc73437f",
+                                                    "uid": "ecd86bbc-034d-4265-ad3a-d1a9b53d5ba2",
+                                                    "value": true
+                                                }
+                                            ],
+                                            "elementType": "craft\\elements\\Entry",
+                                            "fieldContext": "global"
+                                        },
+                                        "elementEditCondition": null,
+                                        "fieldUid": "75f1f897-0b83-4cc6-87a5-46993198f215",
+                                        "handle": null,
+                                        "instructions": null,
+                                        "label": "Icon Align",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "84971bc1-ceb7-4b3a-8f83-459e789f6b2a",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 25
+                                    }
+                                ],
+                                "name": "Content",
+                                "uid": "b35b96b5-1c08-4450-8b8c-71dd526a241f",
+                                "userCondition": null
+                            }
+                        ],
+                        "thumbFieldKey": null
+                    }
+                },
+                "handle": "button",
+                "hasTitleField": false,
+                "icon": "link",
+                "name": "Button",
+                "showSlugField": true,
+                "showStatusField": true,
+                "slugTranslationKeyFormat": null,
+                "slugTranslationMethod": "site",
+                "titleFormat": "{title}",
+                "titleTranslationKeyFormat": null,
+                "titleTranslationMethod": "site",
+                "uiLabelFormat": "{title}"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "9c757d01-c77b-4635-a8e1-dcda41e12ab5",
+            "handle": "button",
+            "config": {
+                "columnSuffix": null,
+                "handle": "button",
+                "instructions": null,
+                "name": "Button",
+                "searchable": false,
+                "settings": {
+                    "createButtonLabel": "Add a button",
+                    "defaultIndexViewMode": "cards",
+                    "enableVersioning": false,
+                    "entryTypes": [
+                        {
+                            "__assoc__": [
+                                [
+                                    "uid",
+                                    "b614767d-36bf-4981-911a-09ac70d628a0"
+                                ],
+                                [
+                                    "group",
+                                    "General"
+                                ]
+                            ]
+                        }
+                    ],
+                    "includeTableView": false,
+                    "maxEntries": null,
+                    "minEntries": null,
+                    "pageSize": null,
+                    "propagationKeyFormat": null,
+                    "propagationMethod": "all",
+                    "showCardsInGrid": false,
+                    "viewMode": "blocks"
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "site",
+                "type": "craft\\fields\\Matrix"
+            }
+        },
+        {
+            "kind": "fields",
+            "uid": "bb1f82ec-197f-43c5-ae1e-4afb3eeb3771",
+            "handle": "checkListShowTable",
+            "config": {
+                "columnSuffix": null,
+                "handle": "checkListShowTable",
+                "instructions": null,
+                "name": "Check List Show Table",
+                "searchable": false,
+                "settings": {
+                    "addRowLabel": "Add a row",
+                    "columns": {
+                        "__assoc__": [
+                            [
+                                "col1",
+                                {
+                                    "__assoc__": [
+                                        [
+                                            "heading",
+                                            "Icon Class"
+                                        ],
+                                        [
+                                            "handle",
+                                            "iconClass"
+                                        ],
+                                        [
+                                            "width",
+                                            ""
+                                        ],
+                                        [
+                                            "type",
+                                            "singleline"
+                                        ]
+                                    ]
+                                }
+                            ],
+                            [
+                                "col2",
+                                {
+                                    "__assoc__": [
+                                        [
+                                            "heading",
+                                            "Title"
+                                        ],
+                                        [
+                                            "handle",
+                                            "title"
+                                        ],
+                                        [
+                                            "width",
+                                            ""
+                                        ],
+                                        [
+                                            "type",
+                                            "singleline"
+                                        ]
+                                    ]
+                                }
+                            ]
+                        ]
+                    },
+                    "defaults": [
+                        {
+                            "__assoc__": [
+                                [
+                                    "col1",
+                                    ""
+                                ],
+                                [
+                                    "col2",
+                                    ""
+                                ]
+                            ]
+                        }
+                    ],
+                    "maxRows": null,
+                    "minRows": null,
+                    "staticRows": false
+                },
+                "translationKeyFormat": null,
+                "translationMethod": "none",
+                "type": "craft\\fields\\Table"
+            }
+        },
+        {
+            "kind": "entryTypes",
+            "uid": "a0d2318d-5142-4949-afb8-e9cb92d0f045",
+            "handle": "heroBannerItem",
+            "config": {
+                "allowLineBreaksInTitles": false,
+                "color": "yellow",
+                "description": null,
+                "fieldLayouts": {
+                    "c33e9b33-107a-4dd6-9e48-9f020880a463": {
+                        "cardThumbAlignment": "end",
+                        "tabs": [
+                            {
+                                "elementCondition": null,
+                                "elements": [
+                                    {
+                                        "dateAdded": "2024-12-04T07:06:23+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "76d00c6d-1cfa-4977-8322-0bfa2e297408",
+                                        "handle": "heading",
+                                        "instructions": null,
+                                        "label": "Title/Headline",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "cbe47386-c855-45c3-96db-5d757fc28b94",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T08:00:26+00:00",
+                                        "elementCondition": null,
+                                        "type": "craft\\fieldlayoutelements\\HorizontalRule",
+                                        "uid": "ca59f3de-2b05-4bc1-9031-12a75632c235",
+                                        "userCondition": null
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T07:35:50+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+                                        "handle": "displayTitle",
+                                        "instructions": null,
+                                        "label": "Show Subtitle",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "decf9977-a010-4a27-959d-8e4bf737ac04",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 25
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T07:35:50+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+                                        "handle": "switchOffDes",
+                                        "instructions": null,
+                                        "label": "Show Description",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "d2f75605-0417-4325-a666-5c93b0c4901f",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 25
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T07:06:23+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": {
+                                            "class": "craft\\elements\\conditions\\entries\\EntryCondition",
+                                            "conditionRules": [
+                                                {
+                                                    "class": "craft\\fields\\conditions\\LightswitchFieldConditionRule",
+                                                    "fieldUid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+                                                    "layoutElementUid": "decf9977-a010-4a27-959d-8e4bf737ac04",
+                                                    "uid": "b9130eff-057c-494f-a156-8354d54ce632",
+                                                    "value": true
+                                                }
+                                            ],
+                                            "elementType": "craft\\elements\\Entry",
+                                            "fieldContext": "global"
+                                        },
+                                        "elementEditCondition": null,
+                                        "fieldUid": "76d00c6d-1cfa-4977-8322-0bfa2e297408",
+                                        "handle": "subtitle",
+                                        "instructions": null,
+                                        "label": "Subtitle/Tagline",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "1fa7fad6-a31c-403e-ba1d-c60217bb31a4",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T07:06:23+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": {
+                                            "class": "craft\\elements\\conditions\\entries\\EntryCondition",
+                                            "conditionRules": [
+                                                {
+                                                    "class": "craft\\fields\\conditions\\LightswitchFieldConditionRule",
+                                                    "fieldUid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+                                                    "layoutElementUid": "d2f75605-0417-4325-a666-5c93b0c4901f",
+                                                    "uid": "af844c2c-8161-43c7-9048-00d4f668ea35",
+                                                    "value": true
+                                                }
+                                            ],
+                                            "elementType": "craft\\elements\\Entry",
+                                            "fieldContext": "global"
+                                        },
+                                        "elementEditCondition": null,
+                                        "fieldUid": "a1cf70be-9fcd-44cd-88b5-3ec49ce3dc12",
+                                        "handle": "description",
+                                        "instructions": null,
+                                        "label": "Description",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "c203f4f6-e9c5-40b4-83b8-1f6431342640",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T07:59:47+00:00",
+                                        "elementCondition": null,
+                                        "type": "craft\\fieldlayoutelements\\HorizontalRule",
+                                        "uid": "6cfb32d2-c128-4893-a2dc-3bd450e064ab",
+                                        "userCondition": null
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T07:46:19+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "12781b09-979c-42ed-beee-0413ce5e6a36",
+                                        "handle": null,
+                                        "instructions": null,
+                                        "label": "BG Image/Video (For Desktop)",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "032e18f4-7485-4268-81ea-32fc15520191",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 50
+                                    },
+                                    {
+                                        "dateAdded": "2025-09-20T09:42:18+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "12781b09-979c-42ed-beee-0413ce5e6a36",
+                                        "handle": "bgImageVideoMobile",
+                                        "instructions": null,
+                                        "label": "BG Image/Video (For Mobile)",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "ac8991b3-3295-4b51-989f-6f80eea38f72",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 50
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T07:46:19+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "4227d4d3-78dc-46a0-a113-6fca08453b44",
+                                        "handle": null,
+                                        "instructions": null,
+                                        "label": null,
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "2f524844-3189-432b-9601-8ac648f20331",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 50
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T08:15:58+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "6bbf32fb-e157-4619-8e79-f324421f2994",
+                                        "handle": null,
+                                        "instructions": null,
+                                        "label": "BG Color",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "21892217-3a7d-4070-bb96-e906986dcbf7",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 50
+                                    },
+                                    {
+                                        "dateAdded": "2026-07-01T05:17:03+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+                                        "handle": "themeDark",
+                                        "instructions": null,
+                                        "label": "Theme Dark",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "3df88c64-f21a-4469-87fb-661b71d6f486",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T08:15:58+00:00",
+                                        "elementCondition": null,
+                                        "type": "craft\\fieldlayoutelements\\HorizontalRule",
+                                        "uid": "c665c61d-9b94-43f8-aeca-ac0aac4b62f0",
+                                        "userCondition": null
+                                    },
+                                    {
+                                        "dateAdded": "2024-12-04T10:00:45+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "9c757d01-c77b-4635-a8e1-dcda41e12ab5",
+                                        "handle": null,
+                                        "instructions": null,
+                                        "label": "Button CTA",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "4cc6c704-32e7-4685-8006-56fa38c4ca7f",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    },
+                                    {
+                                        "dateAdded": "2025-01-22T11:26:56+00:00",
+                                        "elementCondition": null,
+                                        "type": "craft\\fieldlayoutelements\\HorizontalRule",
+                                        "uid": "1f9fff26-2f44-43dd-ac24-fd5fb2f28721",
+                                        "userCondition": null
+                                    },
+                                    {
+                                        "dateAdded": "2025-01-22T11:26:56+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": null,
+                                        "elementEditCondition": null,
+                                        "fieldUid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+                                        "handle": "displayCheckList",
+                                        "instructions": null,
+                                        "label": "Display CheckList",
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "270847dd-8220-44ca-b5a6-2b049f2ccf60",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    },
+                                    {
+                                        "dateAdded": "2025-01-22T11:34:23+00:00",
+                                        "editCondition": null,
+                                        "elementCondition": {
+                                            "class": "craft\\elements\\conditions\\entries\\EntryCondition",
+                                            "conditionRules": [
+                                                {
+                                                    "class": "craft\\fields\\conditions\\LightswitchFieldConditionRule",
+                                                    "fieldUid": "2f1a4a0f-a931-42c0-93ff-81370cbf18c1",
+                                                    "layoutElementUid": "270847dd-8220-44ca-b5a6-2b049f2ccf60",
+                                                    "uid": "25a4d438-5b5c-4569-add3-fad429834535",
+                                                    "value": true
+                                                }
+                                            ],
+                                            "elementType": "craft\\elements\\Entry",
+                                            "fieldContext": "global"
+                                        },
+                                        "elementEditCondition": null,
+                                        "fieldUid": "bb1f82ec-197f-43c5-ae1e-4afb3eeb3771",
+                                        "handle": null,
+                                        "instructions": null,
+                                        "label": null,
+                                        "required": false,
+                                        "tip": null,
+                                        "type": "craft\\fieldlayoutelements\\CustomField",
+                                        "uid": "388bf5b2-dd31-4ee5-a4e2-966becb6796a",
+                                        "userCondition": null,
+                                        "warning": null,
+                                        "width": 100
+                                    }
+                                ],
+                                "name": "Content",
+                                "uid": "3264466f-1820-40ca-a90c-0eafa6a22fa0",
+                                "userCondition": null
+                            }
+                        ],
+                        "thumbFieldKey": null
+                    }
+                },
+                "handle": "heroBannerItem",
+                "hasTitleField": false,
+                "icon": "images",
+                "name": "Hero Banner Item",
+                "showSlugField": false,
+                "showStatusField": true,
+                "slugTranslationKeyFormat": null,
+                "slugTranslationMethod": "site",
+                "titleFormat": "{title}",
+                "titleTranslationKeyFormat": null,
+                "titleTranslationMethod": "site",
+                "uiLabelFormat": "{title}"
+            }
+        }
+    ]
+}

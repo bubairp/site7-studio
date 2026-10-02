@@ -1,0 +1,32 @@
+{
+    "schemaVersion": "1",
+    "handle": "map",
+    "name": "Map",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "Imported from the Craft Entry Type \"Map\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "shortDescription",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [],
+    "ownedFiles": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 96,
+        "sourceUid": "b4ef9fdb-5664-4b18-9c8a-e85649d91a91",
+        "sourceHandle": "map",
+        "sourceHash": "1822cd5d2cb1f083c48ea621e6dfb54bf9560b492da0f5442c71c15aca578c2d",
+        "importedAt": "2026-10-02T04:09:12-07:00",
+        "importedBy": null
+    }
+}

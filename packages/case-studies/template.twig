@@ -1,0 +1,238 @@
+{% import "_macros/images" as images %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+{% set headingAndContent = block.headingAndContent.one() %}
+{% set selectCasestudies = block.selectCasestudies.with(['image', 'tags']) %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid  ?? '' %}
+{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+{% set themeSwitche = null %}
+
+{% if blockStyle is defined and blockStyle|length %}
+	{% set blockStyleData = blockStyle.one() %}
+	{% if blockStyleData.background is defined %}
+		{% set backgroundEntry = blockStyleData.background.one() %}
+		{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+	{% endif %}
+{% endif %}
+{% set title = block.title ?? '' %}
+{% set heading = block.heading ?? '' %}
+{% set headingTags = block.headingTags ?? 'h2' %}
+{% set align = block.align ?? 'left' %}
+{% set contentData = block.contentdata ?? '' %}
+{% set paginationData = block.paginations.one() ?? '' %}
+
+{% if selectCasestudies %}
+	{% block structured_data %}
+		{% if entry is defined
+				and entry.type is defined
+				and entry.type.handle == 'standardPages'
+				and (craft.app.request.getParam('partial') is empty)
+		%}
+
+			{% set posts = (selectCasestudies is defined and selectCasestudies|length) ? selectCasestudies|slice(0, 2) : [] %}
+
+			{% set listItems = [] %}
+			{% for p in posts %}
+				{% set listItems = listItems|merge([{
+				"@type": "ListItem",
+				"position": loop.index,
+				"item": { "@id": p.url ~ "#post", "url": p.url }
+			}]) %}
+			{% endfor %}
+
+			{% set webPage = {
+			"@type": ["WebPage","CollectionPage"],
+			"@id": entry.url ~ "#webpage",
+			"url": entry.url,
+			"name": entry.title,
+			"mainEntity": { "@id": entry.url ~ "#list" },
+			"breadcrumb": { "@id": entry.url ~ "#breadcrumb" }
+			} %}
+
+			{% set itemList = {
+			"@type": "ItemList",
+			"@id": entry.url ~ "#list",
+			"name": "Case study posts",
+			"numberOfItems": posts|length,
+			"itemListElement": listItems
+			} %}
+
+			{% set breadcrumb = {
+			"@type": "BreadcrumbList",
+			"@id": entry.url ~ "#breadcrumb",
+			"itemListElement": [
+				{ "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl() },
+				{ "@type": "ListItem", "position": 2, "name": entry.title, "item": entry.url }
+			]
+			} %}
+
+			<script type="application/ld+json">
+				{{ {
+				"@context": "https://schema.org",
+				"@graph": [ webPage, itemList, breadcrumb ]
+			}|json_encode(constant('JSON_UNESCAPED_SLASHES'))|raw }}
+			</script>
+		{% endif %}
+	{% endblock %}
+
+	{{ bsResponsive(blockStyle, scopedSel) }}
+
+	<div class="py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+		<div class="{{ containerWidth }}">
+			{% if headingAndContent %}
+				{% if headingAndContent.heading|length or headingAndContent.Description|length %}
+					{% include "_components/header-content-block" %}
+				{% endif %}
+			{% endif %}
+
+
+			{% set displayView = block.displayView.value ?? '' %}
+			{% if displayView == 'gridView' %}
+
+				{% set showNav = paginationData.displayPagination ?? false %}
+				{% if showNav %}
+					{% set perPage = (paginationData.records_per_page ?? 10) %}
+					{% set navStyle = paginationData.paginationDisplayStyle ?? 'pagination' %}
+					{% set query = selectCasestudies.limit(perPage) %}
+					{% paginate query as pageInfo, pageEntries %}
+						{% set entries = pageEntries %}
+					{% else %}
+						{% set entries = selectCasestudies %}
+					{% endif %}
+
+					{% if showNav and craft.app.request.getParam('partial') %}
+						{% if showNav and craft.app.request.getParam('partial') %}
+							<div class="js-chunk" data-next-url="{{ pageInfo.nextUrl ?? '' }}">
+								{% for casestudy in pageEntries %}
+									<article class="masonry-grid-item shuffle-item">
+										<div class="tw-card card-hover flex flex-col h-full group relative">
+											{% if casestudy.image|length %}
+												<a href="{{ casestudy.url }}" class="block overflow-hidden rounded-t-2xl md:rounded-t-3xl">
+													<div>{{ images.singleImg(casestudy.image.0, 420, {'ratio': 1.55}, 'shrink-0 w-full object-cover transition-transform duration-500 group-hover:scale-105') }}</div>
+												</a>
+											{% endif %}
+											<div class="tw-card-body flex-grow p-6">
+												<h3 class="text-xl font-bold mb-3">
+													<a href="{{ casestudy.url }}" class="text-inherit no-underline hover:text-primary transition-colors">{{ casestudy.title }}</a>
+												</h3>
+												
+												<div class="flex items-center no-underline mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+													<span class="text-slate-900 dark:text-slate-300 mr-1.5">Industry:</span> {{ casestudy.industry }}
+												</div>
+
+												{% if casestudy.tags|length %}
+												<div class="flex flex-wrap items-center mb-4 gap-1.5">
+													<span class="text-xs text-slate-900 dark:text-slate-300 font-bold mr-1">Skills:</span>
+													{% for tag in casestudy.tags.all() %}
+													<span class="tw-badge text-[11px] border border-gray-100 dark:border-gray-800 px-2 py-0.5 rounded-full">{{ tag.title }}</span>
+													{% endfor %}
+												</div>
+												{% endif %}
+												
+												<p class="tw-card-text text-sm leading-relaxed">{{ casestudy.shortDescription }}</p>
+											</div>
+											
+											<div class="mt-auto px-6 pb-6 pt-4 flex justify-between items-center text-primary group-hover:text-dark dark:group-hover:text-white transition-colors border-t border-gray-50 dark:border-gray-800/40">
+												<span class="text-xs font-bold uppercase tracking-wider">Read Case Study</span>
+												<i class="ti ti-arrow-right text-lg transform group-hover:translate-x-1 transition-transform"></i>
+											</div>
+										</div>
+									</article>
+								{% endfor %}
+							</div>
+							{% exit %}
+						{% endif %}
+						{% exit %}
+					{% endif %}
+
+					{# Full initial page load #}
+					{# {% set rowColsClass = 'row-cols-' ~ rowColsClass %} #}
+					{# {% set rowColsClass = rowColsClass %} #}
+						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-{{ block.caseStudyPerRow.value }} gap-6" id="js-list"> {% for casestudy in entries %}
+							<article class="masonry-grid-item">
+								<div class="tw-card card-hover flex flex-col h-full group relative">
+									{% if casestudy.image|length %}
+										<a href="{{ casestudy.url }}" class="block overflow-hidden rounded-t-2xl md:rounded-t-3xl">
+											<div>{{ images.singleImg(casestudy.image.0, 420, {'ratio': 1.55}, 'shrink-0 w-full object-cover transition-transform duration-500 group-hover:scale-105') }}</div>
+										</a>
+									{% endif %}
+									<div class="tw-card-body flex-grow p-6">
+										<h3 class="text-xl font-bold mb-3">
+											<a href="{{ casestudy.url }}" class="text-inherit no-underline hover:text-primary transition-colors">{{ casestudy.title }}</a>
+										</h3>
+										
+										<div class="flex items-center no-underline mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+											<span class="text-slate-900 dark:text-slate-300 mr-1.5">Industry:</span> {{ casestudy.industry }}
+										</div>
+
+										{% if casestudy.tags|length %}
+										<div class="flex flex-wrap items-center mb-4 gap-1.5">
+											<span class="text-xs text-slate-900 dark:text-slate-300 font-bold mr-1">Skills:</span>
+											{% set tags = casestudy.tags.all() %}
+											{% if tags %}
+												{% for tag in tags %}
+												<span class="tw-badge text-[11px] border border-gray-100 dark:border-gray-800 px-2 py-0.5 rounded-full">{{ tag.title }}</span>
+												{% endfor %}
+											{% endif %}
+										</div>
+										{% endif %}
+										
+										<p class="tw-card-text text-sm leading-relaxed">{{ casestudy.shortDescription }}</p>
+									</div>
+									
+									<div class="mt-auto px-6 pb-6 pt-4 flex justify-between items-center text-primary group-hover:text-dark dark:group-hover:text-white transition-colors border-t border-gray-50 dark:border-gray-800/40">
+										<span class="text-xs font-bold uppercase tracking-wider">Read Case Study</span>
+										<i class="ti ti-arrow-right text-lg transform group-hover:translate-x-1 transition-transform"></i>
+									</div>
+								</div>
+							</article>
+						{% endfor %}
+					</div>
+					{% if showNav %}
+						{% if navStyle == 'loadMore' %}
+							{% include "_components/loadMore" with {
+							pageInfo: pageInfo,
+							targetId: 'js-list',           
+							partialQueryString: 'partial=1'
+							} only %}
+						{% else %}
+							{% include "_components/pagination" with { pageInfo: pageInfo } only %}
+						{% endif %}
+					{% endif %}
+				{% endif %}
+
+				{% if displayView == 'sliderView' %}
+
+					<div class="swiper" data-swiper-options='
+																				{
+																				"spaceBetween": 24,
+																				"autoplay": {
+																					"delay": 5000,
+																					"disableOnInteraction": false
+																				},
+																				"speed": 800,
+																				"pagination": {
+																					"el": ".swiper-pagination",
+																					"clickable": true
+																				},
+																				"breakpoints": {
+																					"576": { "slidesPerView": 2 },
+																					"992": { "slidesPerView": {{ block.caseStudyPerRow.value }} }
+																				}
+																				}
+																			'>
+						<div class="swiper-wrapper">
+							{% for casestudy in selectCasestudies %}
+								{% include "_components/_casestudies/singleCaseStudyInSlider.twig" with { caseStudy: casestudy } %}
+							{% endfor %}
+						</div>
+						<!-- Pagination (bullets) -->
+						<div class="swiper-pagination relative bottom-0 mt-2 pt-4"></div>
+					</div>
+				{% endif %}
+			</div>
+		</div>
+
+	{% endif %}

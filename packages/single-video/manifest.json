@@ -1,0 +1,34 @@
+{
+    "schemaVersion": "1",
+    "handle": "single-video",
+    "name": "Single-video",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "Imported from the Craft Entry Type \"Single-video\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "videoThumbImage",
+            "video",
+            "switchOff",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [],
+    "ownedFiles": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 122,
+        "sourceUid": "f6ff3966-a1d3-4017-9fcd-d60a96b62366",
+        "sourceHandle": "video",
+        "sourceHash": "532cd84f4fa930c943b338b8429310e9eaea0d062b90ed542ef7513eafda3328",
+        "importedAt": "2026-10-02T04:09:17-07:00",
+        "importedBy": null
+    }
+}

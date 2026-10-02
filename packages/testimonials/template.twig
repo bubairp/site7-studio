@@ -1,0 +1,74 @@
+{% import "_macros/images" as images %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+{% set headingAndContent = block.headingAndContent.one() %}
+{% import "_macros/ratings" as ratings %}
+{% set selectTestimonials = block.selectTestimonials ?? [] %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid  ?? '' %}
+
+{% set containerWidth = 'container' %}
+{% set title = block.title ?? '' %}
+{% set heading = block.heading ?? '' %}
+{% set headingTags = block.headingTags ?? 'h2' %}
+{% set align = block.align ?? 'left' %}
+{% set contentData = block.contentdata ?? '' %}
+
+{% set blockCssClasses = '' %}
+{% set themeSwitche = '' %}
+
+{% if selectTestimonials %}
+	{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+	{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+	{% set themeSwitche = null %}
+
+	{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+		{% if blockStyleData.background is defined %}
+			{% set backgroundEntry = blockStyleData.background.one() %}
+			{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+		{% endif %}
+	{% endif %}
+
+	{{ bsResponsive(blockStyle, scopedSel) }}
+	<div class="py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+		<div class="{{ containerWidth }}">
+			{% if headingAndContent %}
+				{% if headingAndContent.heading|length or headingAndContent.Description|length %}
+					{% include "_components/header-content-block" %}
+				{% endif %}
+			{% endif %}
+
+
+			{% set displayView = block.displayView.value ?? 'sliderView' %}
+			{% set validViews = ['gridView', 'sliderView'] %}
+			{% set displayView = (displayView in validViews) ? displayView : 'sliderView' %}
+			{% set itemsPerRow = block.testimonialPerRow.value|default(3) %}
+
+			{% if displayView == 'gridView' %}
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-{{ itemsPerRow }} gap-8 lg:gap-10">
+					{% for testimonial in selectTestimonials %}
+						<div>
+							{% include "_components/_testimonials/testimonialCard.twig" with { testimonial: testimonial } %}
+						</div>
+					{% endfor %}
+				</div>
+			{% endif %}
+
+			{% if displayView == 'sliderView' %}
+				<div class="swiper" data-swiper-options='{{ utils.swiperConfig(itemsPerRow) }}'>
+					<div class="swiper-wrapper pb-4">
+						{% for testimonial in selectTestimonials %}
+							<div class="swiper-slide h-auto">
+								{% include "_components/_testimonials/testimonialCard.twig" with { testimonial: testimonial } %}
+							</div>
+						{% endfor %}
+					</div>
+					<!-- Pagination (bullets) -->
+					<div class="swiper-pagination relative bottom-0 mt-2 pt-4"></div>
+				</div>
+			{% endif %}
+		</div>
+	</div>
+
+{% endif %}

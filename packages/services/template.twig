@@ -1,0 +1,132 @@
+{% import "_macros/images" as images %}
+{% import "_macros/utils" as utils %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+{% set headingAndContent = block.headingAndContent.one() %}
+{% set customItems = block.customItems ?? [] %}
+{% set selectServices = block.selectServices ?? [] %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid  ?? '' %}
+{% set serviceStyles = block.serviceStyle.one() %}
+{% set containerWidth = 'container' %}
+{% set title = block.title ?? '' %}
+{% set heading = block.heading ?? '' %}
+{% set headingTags = block.headingTags ?? 'h2' %}
+{% set align = block.align ?? 'left' %}
+{% set contentData = block.contentdata ?? '' %}
+
+{% set blockCssClasses = '' %}
+{% set themeSwitche = '' %}
+{% set itemThemeSwitche = '' %}
+
+{% if selectServices %}
+	{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+	{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+	{% set themeSwitche = null %}
+
+	{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+		{% if blockStyleData.background is defined %}
+			{% set backgroundEntry = blockStyleData.background.one() %}
+			{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+		{% endif %}
+	{% endif %}
+
+	{% set itemThemeSwitche = serviceStyles.themeDark ?? null %}
+	{% set serviceBackgroundColorClass = serviceStyles ? (serviceStyles.serviceBackground.one().colorcode ?? '') : '' %}
+	{% set titleColorClass = serviceStyles ? (serviceStyles.titleColor.one().colorcode ?? '') : '' %}
+	{% set textColorClass = serviceStyles ? (serviceStyles.contentColor.one().plainText ?? '') : '' %}
+
+	{% if serviceBackgroundColorClass or titleColorClass or textColorClass %}
+		{% css %}
+		{% if serviceBackgroundColorClass %}
+			.{{ blockType }}{{ blockTypeUid }}-style .service-item {
+																																																							background:{{ serviceBackgroundColorClass|raw }};
+																																																						}
+		{% endif %}
+
+		{% if titleColorClass %}
+			.{{ blockType }}{{ blockTypeUid }}-style .universalCard-title {
+																																																							color:{{ titleColorClass|raw }}
+			!important;
+																																																						}
+		{% endif %}
+
+		{% if textColorClass %}
+			.{{ blockType }}{{ blockTypeUid }}-style .universalCard-content {
+																																																							color:{{ textColorClass|raw }}
+			!important;
+																																																						}
+		{% endif %}
+		{% endcss %}
+	{% endif %}
+
+	{% set alignClassMap = {
+		'start': 'text-left',
+		'center': 'text-center',
+		'end': 'text-right'
+	} %}
+	{% set textAlignVal = (serviceStyles and serviceStyles.textAlign is defined and serviceStyles.textAlign) ? (serviceStyles.textAlign.value ?? serviceStyles.textAlign) : 'start' %}
+	{% set cardAlignClass = alignClassMap[textAlignVal] ?? 'text-left' %}
+
+	{{ bsResponsive(blockStyle, scopedSel) }}
+	<div class="py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+		<div class="{{ containerWidth }}">
+			{% if headingAndContent %}
+				{% if headingAndContent.heading|length or headingAndContent.Description|length %}
+					{% include "_components/header-content-block" %}
+				{% endif %}
+			{% endif %}
+
+			{% set displayView = block.displayView.value ?? '' %}
+
+			{% if displayView == 'sliderView' %}
+				{% set servicePerRow = block.servicePerRow.value ?? 'column3' %}
+				{% set columnClassMap = {
+				'column4': '4',
+				'column3': '3',
+				'column2': '2'
+			} %}
+				{% set rowColsClass = columnClassMap[servicePerRow] ?? '3' %}
+				<div class="swiper" data-swiper-options='{{ utils.swiperConfig(rowColsClass, 32) }}'>
+					<div class="swiper-wrapper pb-4" data-theme="{{ itemThemeSwitche ? 'dark' : 'light' }}">
+						{% for service in selectServices %}
+							<div class="swiper-slide h-auto">
+								{% include "_components/_services/serviceItem" with { item: service, cardAlignClass: cardAlignClass, serviceBackgroundColorClass: serviceBackgroundColorClass } %}
+							</div>
+						{% endfor %}
+						{% for index, item in customItems %}
+							<div class="swiper-slide h-auto">
+								{% include "_components/_services/customServiceItem" with { item: item, cardAlignClass: cardAlignClass, serviceBackgroundColorClass: serviceBackgroundColorClass } %}
+							</div>
+						{% endfor %}
+					</div>
+					<!-- Pagination (bullets) -->
+					<div class="swiper-pagination relative bottom-0 mt-2 pt-4"></div>
+				</div>
+			{% endif %}
+
+			{% if displayView == 'gridView' %}
+				{% set servicePerRow = block.servicePerRow.value ?? 'column3' %}
+				{% set columnClassMap = {
+				'column4': 'md:grid-cols-4',
+				'column3': 'md:grid-cols-3',
+				'column2': 'md:grid-cols-2'
+			} %}
+				{% set rowColsClass = columnClassMap[servicePerRow] ?? 'md:grid-cols-3' %}
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-8 lg:gap-10 w-auto {{ rowColsClass }}" data-theme="{{ itemThemeSwitche ? 'dark' : 'light' }}">
+					{% for service in selectServices %}
+						<div>
+							{% include "_components/_services/serviceItem" with { item: service, cardAlignClass: cardAlignClass, serviceBackgroundColorClass: serviceBackgroundColorClass } %}
+						</div>
+					{% endfor %}
+					{% for index, item in customItems %}
+						<div>
+							{% include "_components/_services/customServiceItem" with { item: item, cardAlignClass: cardAlignClass, serviceBackgroundColorClass: serviceBackgroundColorClass } %}
+						</div>
+					{% endfor %}
+				</div>
+			{% endif %}
+		</div>
+	</div>
+{% endif %}

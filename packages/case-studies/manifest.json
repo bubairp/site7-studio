@@ -1,0 +1,32 @@
+{
+    "schemaVersion": "1",
+    "handle": "case-studies",
+    "name": "Case Studies",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "Imported from the Craft Entry Type \"Case Studies\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "displayView",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [],
+    "ownedFiles": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 87,
+        "sourceUid": "4a547c2b-d3e5-47b5-a4d2-b795e65817e8",
+        "sourceHandle": "casestudies",
+        "sourceHash": "d24caf45646eb92732e23983399c47cc3abfbe395020ab33fe28e68b65ffa4cc",
+        "importedAt": "2026-10-02T04:09:08-07:00",
+        "importedBy": null
+    }
+}

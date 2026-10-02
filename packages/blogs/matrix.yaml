@@ -1,0 +1,10 @@
+name: 'Blogs Matrix'
+blocks:
+    -
+        handle: blogs
+        name: Blogs
+        fields:
+            - selectBlogs
+            - blogPerRow
+            - paginations
+            - displayBlogFilter

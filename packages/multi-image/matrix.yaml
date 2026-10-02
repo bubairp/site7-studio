@@ -1,0 +1,7 @@
+name: 'Multi-image Matrix'
+blocks:
+    -
+        handle: images
+        name: Multi-image
+        fields:
+            - columnPerRow

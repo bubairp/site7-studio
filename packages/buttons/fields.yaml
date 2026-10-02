@@ -1,0 +1,7 @@
+name: 'Buttons Fields'
+fields:
+    -
+        handle: align
+        name: 'Button Align'
+        type: Dropdown
+        instructions: ''

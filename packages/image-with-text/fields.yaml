@@ -1,0 +1,22 @@
+name: 'Image with Text Fields'
+fields:
+    -
+        handle: imageBorderRounded
+        name: 'Image Border Rounded'
+        type: Lightswitch
+        instructions: ''
+    -
+        handle: sideSwitch
+        name: 'Image Display Side'
+        type: Lightswitch
+        instructions: ''
+    -
+        handle: titleTags
+        name: 'Title Tags'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: textContent
+        name: 'Text Content'
+        type: Ckeditor
+        instructions: ''

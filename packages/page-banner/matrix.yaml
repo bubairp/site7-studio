@@ -1,0 +1,8 @@
+name: 'Page Banner Matrix'
+blocks:
+    -
+        handle: pageBanner
+        name: 'Page Banner'
+        fields:
+            - switchOffHeading
+            - textColor

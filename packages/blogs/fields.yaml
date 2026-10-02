@@ -1,0 +1,31 @@
+name: 'Blogs Fields'
+fields:
+    -
+        handle: selectBlogs
+        name: 'Select Blogs'
+        type: Entries
+        instructions: 'Leave empty to show all entries, or select entries to show only those.'
+        settings:
+            sectionHandles: [blogs]
+            maxRelations: null
+            minRelations: null
+            selectionLabel: null
+    -
+        handle: blogPerRow
+        name: 'Blog Per Row'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: paginations
+        name: Pagination
+        type: Matrix
+        instructions: ''
+        settings:
+            entryTypeHandles: [paginationET]
+            viewMode: blocks
+            maxEntries: 1
+    -
+        handle: displayBlogFilter
+        name: 'Display Blog Filter'
+        type: Lightswitch
+        instructions: ''

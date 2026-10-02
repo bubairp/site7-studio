@@ -1,0 +1,26 @@
+name: 'Case Studies Fields'
+fields:
+    -
+        handle: selectCasestudies
+        name: 'Select Case Studies'
+        type: Entries
+        instructions: 'Leave empty to show all entries, or select entries to show only those.'
+        settings:
+            sectionHandles: [casestudies]
+            maxRelations: null
+            minRelations: null
+            selectionLabel: null
+    -
+        handle: caseStudyPerRow
+        name: 'Case Study Per Row'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: paginations
+        name: Pagination
+        type: Matrix
+        instructions: ''
+        settings:
+            entryTypeHandles: [paginationET]
+            viewMode: blocks
+            maxEntries: 1

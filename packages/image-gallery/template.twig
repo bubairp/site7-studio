@@ -1,0 +1,410 @@
+{% import "_macros/images" as images %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+{% set headingAndContent = block.headingAndContent.one() %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockImages = block.images.all() ?? [] %}
+{% set containerWidth = 'container' %}
+{% set themeSwitche = "" %}
+
+{% set title = block.title ?? '' %}
+{% set heading = block.heading ?? '' %}
+{% set headingTags = block.headingTags ?? 'h2' %}
+{% set align = block.align ?? 'left' %}
+{% set contentData = block.contentdata ?? '' %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid  ?? '' %}
+
+{% set categories = block.selectGallery.all() %}
+{% set imageChooseEntry = block.imageChooseEntry ?? false %}
+{% set displayModeCategory = block.displayMode ?? false %}
+{% set galleryDisplayView = block.galleryDisplayView.value ?? 'gridView' %}
+
+{% if galleryDisplayView %}
+	{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+	{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-4') %}
+	{% if returnVars.containerWidth is defined %}
+		{% set containerWidth = returnVars.containerWidth %}
+	{% endif %}
+	{% set themeSwitche = null %}
+	{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+		{% if blockStyleData.background is defined %}
+			{% set backgroundEntry = blockStyleData.background.one() %}
+			{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+		{% endif %}
+	{% endif %}
+
+	{{ bsResponsive(blockStyle, scopedSel) }}
+	<div class="image-content-block py-10 md:py-12 lg:py-16 {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+		<div class="{{ containerWidth }}">
+			{% if headingAndContent %}
+				{% if headingAndContent.heading|length or headingAndContent.Description|length %}
+					<div class="header-content-block pb-3 lg:pb-6" data-theme="{{ themeSwitche ? 'dark' : 'light' }}">
+						{% if headingAndContent.heading|length %}
+							<{{headingAndContent.headingTags}} class="block-heading-title" style="text-align:{{ headingAndContent.align }}">{{ headingAndContent.heading }}</{{headingAndContent.headingTags}}>
+						{% endif %}
+						{% if headingAndContent.Description|length %}
+							<div class="block-description tw-rich-text tw-rich-text">{{ headingAndContent.Description }}</div>
+						{% endif %}
+					</div>
+				{% endif %}
+			{% endif %}
+
+			{% if not imageChooseEntry %}
+
+				{% if galleryDisplayView == 'gridView' %}
+					{% set galleryPerRow = block.galleryPerRow.value ?? 'column3' %}
+					{% set columnClassMap = {
+						'column4': 'md:grid-cols-4',
+						'column3': 'md:grid-cols-3',
+						'column2': 'md:grid-cols-2'
+					} %}
+					{% set rowColsClass = columnClassMap[galleryPerRow] ?? 'md:grid-cols-3' %}
+
+					<div class="relative">
+						<div class="grid grid-cols-1 sm:grid-cols-2 {{ rowColsClass }} gap-6 gallery items-end">
+							{% for image in blockImages %}
+								{% if image %}
+									<a class="group relative block gallery-item overflow-hidden rounded-3xl cursor-pointer" href="{{ image.url }}">
+										<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-3xl">
+											<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+										</div>
+										<div class="overflow-hidden rounded-3xl w-full h-full">
+											{{ images.singleImg(image, 635, {'ratio': 1.257}, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500') }}
+										</div>
+									</a>
+								{% endif %}
+							{% endfor %}
+						</div>
+					</div>
+
+				{% endif %}
+
+				{% if galleryDisplayView == 'sliderView' %}
+					{% set galleryPerRow = block.galleryPerRow.value ?? 'column3' %}
+					{% set columnClassMap = {
+						'column4': '4',
+						'column3': '3',
+						'column2': '2'
+					} %}
+					{% set rowColsClass = columnClassMap[galleryPerRow] ?? '3' %}
+
+					<div class="relative">
+						<div class="swiper" data-swiper-options='{ "spaceBetween": 24, "loop": true, "breakpoints": { "576": { "slidesPerView": 2 }, "992": { "slidesPerView": {{ rowColsClass }} } }, "navigation": { "prevEl": ".prev-gallery-{{ block.id }}", "nextEl": ".next-gallery-{{ block.id }}" } }'>
+							<div class="swiper-wrapper gallery items-end">
+								{% for image in blockImages %}
+									<div class="swiper-slide">
+										{% if image %}
+											<a class="group relative block gallery-item overflow-hidden rounded-3xl cursor-pointer" href="{{ image.url }}">
+												<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-3xl">
+													<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+												</div>
+												<div class="overflow-hidden rounded-3xl w-full h-full">
+													{{ images.singleImg(image, 635, {'ratio': 1.257}, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500') }}
+												</div>
+											</a>
+										{% endif %}
+									</div>
+								{% endfor %}
+							</div>
+						</div>
+
+						<div class="flex items-center justify-center pt-4">
+							<div class="hidden sm:flex">
+								<button class="prev-gallery-{{ block.id }} tw-btn tw-btn-icon tw-btn-outline-primary rounded-full mr-3" type="button" aria-label="Prev">
+									<i class="ti ti-arrow-left"></i>
+								</button>
+								<button class="next-gallery-{{ block.id }} tw-btn tw-btn-icon tw-btn-outline-primary rounded-full" type="button" aria-label="Next">
+									<i class="ti ti-arrow-right"></i>
+								</button>
+							</div>
+						</div>
+					</div>
+				{% endif %}
+
+				{% if galleryDisplayView == 'thumbsGallery' %}
+					{% set galleryPerRow = block.galleryPerRow.value ?? 'column3' %}
+					{% set columnClassMap = {
+						'column4': '4',
+						'column3': '3',
+						'column2': '2'
+					} %}
+					{% set rowColsClass = columnClassMap[galleryPerRow] ?? '4' %}
+
+					<div class="relative">
+						<!-- Main Swiper -->
+						<div class="swiper gallery main-swiper-{{ block.id }} aspect-[16/9] w-full" data-swiper-options='{ "loop": true, "spaceBetween": 24, "navigation": { "nextEl": ".swiper-button-next-{{ block.id }}", "prevEl": ".swiper-button-prev-{{ block.id }}" }, "thumbs": { "swiper": "#thumbs-swiper-{{ block.id }}" }, "breakpoints": { "576": { "slidesPerView": 1 }, "992": { "slidesPerView": 1 } } }'>
+							<div class="swiper-wrapper h-full">
+								{% for image in blockImages %}
+									{% if image %}
+										<div class="swiper-slide h-full">
+											<a class="group relative block gallery-item overflow-hidden rounded-3xl cursor-pointer w-full h-full" href="{{ image.url }}">
+												<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-3xl">
+													<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+												</div>
+												<div class="overflow-hidden rounded-3xl w-full h-full">
+													{{ images.singleImg(image, 1920, {'ratio': 1.757}, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500') }}
+												</div>
+											</a>
+										</div>
+									{% endif %}
+								{% endfor %}
+							</div>
+							<div class="swiper-button-next swiper-button-next-{{ block.id }} !text-white bg-black/30 hover:bg-black/50 w-10 h-10 rounded-full transition-all duration-300 after:!text-base"></div>
+							<div class="swiper-button-prev swiper-button-prev-{{ block.id }} !text-white bg-black/30 hover:bg-black/50 w-10 h-10 rounded-full transition-all duration-300 after:!text-base"></div>
+						</div>
+
+						<!-- Thumbs Swiper -->
+						<div id="thumbs-swiper-{{ block.id }}" thumbsslider="" class="swiper mt-4" data-swiper-options='{ "loop": false, "spaceBetween": 12, "slidesPerView": {{ rowColsClass }}, "freeMode": true, "watchSlidesProgress": true }'>
+							<div class="swiper-wrapper">
+								{% for image in blockImages %}
+									{% if image %}
+										<div class="swiper-slide cursor-pointer opacity-60 [&.swiper-slide-thumb-active]:opacity-100 transition-all duration-300 rounded-2xl overflow-hidden aspect-[16/9] border-2 border-transparent [&.swiper-slide-thumb-active]:border-primary">
+											{{ images.singleImg(image, 400, {'ratio': 1.757}, 'w-full h-full object-cover') }}
+										</div>
+									{% endif %}
+								{% endfor %}
+							</div>
+						</div>
+					</div>
+				{% endif %}
+
+			{% else %}
+
+				{% if galleryDisplayView == 'gridView' %}
+					{% set galleryPerRow = block.galleryPerRow.value ?? 'column3' %}
+					{% set columnClassMap = {
+						'column4': 'md:grid-cols-4',
+						'column3': 'md:grid-cols-3',
+						'column2': 'md:grid-cols-2'
+					} %}
+					{% set rowColsClass = columnClassMap[galleryPerRow] ?? 'md:grid-cols-3' %}
+
+					{% if categories|length %}
+
+						{% if not displayModeCategory %}
+							{% for categoty in categories %}
+								<div class="relative mb-12">
+									<h2 class="mb-4">{{ categoty.title }}</h2>
+									<div class="grid grid-cols-1 sm:grid-cols-2 {{ rowColsClass }} gap-6 gallery items-end">
+										{% set images = categoty.images.all() %}
+										{% if images|length %}
+											{% for image in images %}
+												<div>
+													<a class="group relative block gallery-item overflow-hidden rounded-3xl cursor-pointer" href="{{ image.url }}">
+														<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-3xl">
+															<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+														</div>
+														<div class="overflow-hidden rounded-3xl w-full h-full">
+															{{ images.singleImg(image, 635, {'ratio': 1.257}, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500') }}
+														</div>
+													</a>
+												</div>
+											{% endfor %}
+										{% endif %}
+									</div>
+								</div>
+							{% endfor %}
+						{% else %}
+
+							<div class="relative">
+								<div class="grid grid-cols-1 sm:grid-cols-2 {{ rowColsClass }} gap-6 items-end">
+									{% for categoty in categories %}
+										<div class="gallery">
+											{% set thumb = categoty.categoryThumb.one() %}
+											{% if thumb %}
+												<div>
+													<a class="group relative block gallery-item overflow-hidden rounded-t-3xl cursor-pointer" href="{{ categoty.images[0].url }}">
+														<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-t-3xl">
+															<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+														</div>
+														<div class="overflow-hidden rounded-t-3xl w-full h-full">
+															<div class="hidden">{{ images.singleImg(categoty.images[0], 635, {'ratio': 1.257}, 'w-full') }}</div>
+															{{ images.singleImg(thumb, 635, {'ratio': 1.257}, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500') }}
+														</div>
+													</a>
+													<div class="text-center p-4 bg-secondary dark:bg-slate-800 dark:text-white rounded-b-3xl text-base font-bold mb-0 border-t-0">{{ categoty.title }}</div>
+												</div>
+												{% set images = categoty.images.all() %}
+												{% if images|length %}
+													{% for image in images|slice(1) %}
+														<a class="hidden gallery-item" href="{{ image.url }}">
+															{{ images.singleImg(image, 635, {'ratio': 1.257}, 'hidden') }}
+														</a>
+													{% endfor %}
+												{% endif %}
+											{% endif %}
+										</div>
+									{% endfor %}
+								</div>
+							</div>
+						{% endif %}
+					{% endif %}
+				{% endif %}
+
+				{% if galleryDisplayView == 'sliderView' %}
+					{% set galleryPerRow = block.galleryPerRow.value ?? 'column3' %}
+					{% set columnClassMap = {
+						'column4': '4',
+						'column3': '3',
+						'column2': '2'
+					} %}
+					{% set rowColsClass = columnClassMap[galleryPerRow] ?? '3' %}
+
+					{% if categories|length %}
+
+						{% if not displayModeCategory %}
+							{% for categoty in categories %}
+								<div class="relative mb-12">
+									<div class="sm:flex items-center justify-between mb-3">
+										<h2 class="mb-0">{{ categoty.title }}</h2>
+										<div class="flex ">
+											<div class="hidden sm:flex">
+												<button class="prev-gallery-{{ block.id }}-{{ categoty.id }} tw-btn tw-btn-icon tw-btn-outline-primary rounded-full mr-3" type="button" aria-label="Prev">
+													<i class="ti ti-arrow-left"></i>
+												</button>
+												<button class="next-gallery-{{ block.id }}-{{ categoty.id }} tw-btn tw-btn-icon tw-btn-outline-primary rounded-full" type="button" aria-label="Next">
+													<i class="ti ti-arrow-right"></i>
+												</button>
+											</div>
+										</div>
+									</div>
+
+									<div class="swiper" data-swiper-options='{ "spaceBetween": 24, "loop": true, "breakpoints": { "576": { "slidesPerView": 2 }, "992": { "slidesPerView": {{ rowColsClass }} } }, "navigation": { "prevEl": ".prev-gallery-{{ block.id }}-{{ categoty.id }}", "nextEl": ".next-gallery-{{ block.id }}-{{ categoty.id }}" } }'>
+										<div class="swiper-wrapper gallery items-end">
+											{% set images = categoty.images.all() %}
+											{% if images|length %}
+												{% for image in images %}
+													<div class="swiper-slide">
+														<a class="group relative block gallery-item overflow-hidden rounded-3xl cursor-pointer" href="{{ image.url }}">
+															<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-3xl">
+																<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+															</div>
+															<div class="overflow-hidden rounded-3xl w-full h-full">
+																{{ images.singleImg(image, 635, {'ratio': 1.257}, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500') }}
+															</div>
+														</a>
+													</div>
+												{% endfor %}
+											{% endif %}
+										</div>
+									</div>
+								</div>
+							{% endfor %}
+						{% else %}
+
+							<div class="relative">
+								<div class="swiper" data-swiper-options='{ "spaceBetween": 24, "loop": true, "breakpoints": { "576": { "slidesPerView": 2 }, "992": { "slidesPerView": {{ rowColsClass }} } }, "navigation": { "prevEl": ".prev-gallery-{{ block.id }}", "nextEl": ".next-gallery-{{ block.id }}" } }'>
+									<div class="swiper-wrapper items-end">
+										{% for categoty in categories %}
+											<div class="gallery swiper-slide">
+												{% set thumb = categoty.categoryThumb.one() %}
+												{% if thumb %}
+													<div>
+														<a class="group relative block gallery-item overflow-hidden rounded-t-3xl cursor-pointer" href="{{ categoty.images[0].url }}">
+															<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-t-3xl">
+																<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+															</div>
+															<div class="overflow-hidden rounded-t-3xl w-full h-full">
+																<div class="hidden">{{ images.singleImg(categoty.images[0], 635, {'ratio': 1.257}, 'w-full') }}</div>
+																{{ images.singleImg(thumb, 635, {'ratio': 1.257}, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500') }}
+															</div>
+														</a>
+														<div class="text-center p-4 bg-secondary dark:bg-slate-800 dark:text-white rounded-b-3xl text-base font-bold mb-0 border-t-0">{{ categoty.title }}</div>
+													</div>
+
+													{% set images = categoty.images.all() %}
+													{% if images|length %}
+														{% for image in images|slice(1) %}
+															<a class="hidden gallery-item" href="{{ image.url }}">
+																{{ images.singleImg(image, 635, {'ratio': 1.257}, 'hidden') }}
+															</a>
+														{% endfor %}
+													{% endif %}
+												{% endif %}
+											</div>
+										{% endfor %}
+									</div>
+								</div>
+
+								<div class="flex justify-center mt-3">
+									<div class="hidden sm:flex">
+										<button class="prev-gallery-{{ block.id }} tw-btn tw-btn-icon tw-btn-outline-primary rounded-full mr-3" type="button" aria-label="Prev">
+											<i class="ti ti-arrow-left"></i>
+										</button>
+										<button class="next-gallery-{{ block.id }} tw-btn tw-btn-icon tw-btn-outline-primary rounded-full" type="button" aria-label="Next">
+											<i class="ti ti-arrow-right"></i>
+										</button>
+									</div>
+								</div>
+							</div>
+
+						{% endif %}
+					{% endif %}
+				{% endif %}
+
+				{% if galleryDisplayView == 'thumbsGallery' %}
+					{% set galleryPerRow = block.galleryPerRow.value ?? 'column3' %}
+					{% set columnClassMap = {
+						'column4': '4',
+						'column3': '3',
+						'column2': '2'
+					} %}
+					{% set rowColsClass = columnClassMap[galleryPerRow] ?? '4' %}
+
+					{% if categories|length %}
+
+						{% if not displayModeCategory %}
+							{% for categoty in categories %}
+								{% set catImages = categoty.images.all() %}
+								{% if catImages|length %}
+									<div class="relative mb-12">
+										<h2 class="mb-4">{{ categoty.title }}</h2>
+										
+										<!-- Main Swiper -->
+										<div class="swiper gallery main-swiper-{{ block.id }}-{{ categoty.id }} aspect-[16/9] w-full" data-swiper-options='{ "loop": true, "spaceBetween": 24, "navigation": { "nextEl": ".swiper-button-next-{{ block.id }}-{{ categoty.id }}", "prevEl": ".swiper-button-prev-{{ block.id }}-{{ categoty.id }}" }, "thumbs": { "swiper": "#thumbs-swiper-{{ block.id }}-{{ categoty.id }}" }, "breakpoints": { "576": { "slidesPerView": 1 }, "992": { "slidesPerView": 1 } } }'>
+											<div class="swiper-wrapper h-full">
+												{% for image in catImages %}
+													{% if image %}
+														<div class="swiper-slide h-full">
+															<a class="group relative block gallery-item overflow-hidden rounded-3xl cursor-pointer w-full h-full" href="{{ image.url }}">
+																<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-3xl">
+																	<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+																</div>
+																<div class="overflow-hidden rounded-3xl w-full h-full">
+																	{{ images.singleImg(image, 1920, {'ratio': 1.757}, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500') }}
+																</div>
+															</a>
+														</div>
+													{% endif %}
+												{% endfor %}
+											</div>
+											<div class="swiper-button-next swiper-button-next-{{ block.id }}-{{ categoty.id }} !text-white bg-black/30 hover:bg-black/50 w-10 h-10 rounded-full transition-all duration-300 after:!text-base"></div>
+											<div class="swiper-button-prev swiper-button-prev-{{ block.id }}-{{ categoty.id }} !text-white bg-black/30 hover:bg-black/50 w-10 h-10 rounded-full transition-all duration-300 after:!text-base"></div>
+										</div>
+
+										<!-- Thumbs Swiper -->
+										<div id="thumbs-swiper-{{ block.id }}-{{ categoty.id }}" thumbsslider="" class="swiper mt-4" data-swiper-options='{ "loop": false, "spaceBetween": 12, "slidesPerView": {{ rowColsClass }}, "freeMode": true, "watchSlidesProgress": true }'>
+											<div class="swiper-wrapper">
+												{% for image in catImages %}
+													{% if image %}
+														<div class="swiper-slide cursor-pointer opacity-60 [&.swiper-slide-thumb-active]:opacity-100 transition-all duration-300 rounded-2xl overflow-hidden aspect-[16/9] border-2 border-transparent [&.swiper-slide-thumb-active]:border-primary">
+															{{ images.singleImg(image, 400, {'ratio': 1.757}, 'w-full h-full object-cover') }}
+														</div>
+													{% endif %}
+												{% endfor %}
+											</div>
+										</div>
+									</div>
+								{% endif %}
+							{% endfor %}
+						{% endif %}
+					{% endif %}
+				{% endif %}
+
+			{% endif %}
+
+		</div>
+	</div>
+{% endif %}
