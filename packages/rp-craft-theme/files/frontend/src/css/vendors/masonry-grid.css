@@ -1,0 +1,63 @@
+@layer components {
+  /*
+    Masonry grid
+    based on https://vestride.github.io/Shuffle/
+  */
+
+  .masonry-grid[data-columns] {
+    overflow: hidden;
+    margin-right: -0.75rem;
+    margin-left: -0.75rem;
+  }
+
+  /* Replace clearfix */
+  .masonry-grid[data-columns]::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+
+  .masonry-grid[data-columns] .masonry-grid-item {
+    float: left;
+    width: 100%;
+    padding-right: 0.75rem;
+    padding-bottom: 1.5rem;
+    padding-left: 0.75rem;
+  }
+
+  .masonry-grid[data-columns="1"] .masonry-grid-item {
+    width: 100%;
+  }
+
+  @media (min-width: 640px) {
+    .masonry-grid[data-columns="2"] .masonry-grid-item,
+    .masonry-grid[data-columns="3"] .masonry-grid-item,
+    .masonry-grid[data-columns="4"] .masonry-grid-item,
+    .masonry-grid[data-columns="5"] .masonry-grid-item,
+    .masonry-grid[data-columns="6"] .masonry-grid-item { width: 50%; }
+  }
+
+  @media (min-width: 768px) {
+    .masonry-grid[data-columns="4"] .masonry-grid-item,
+    .masonry-grid[data-columns="5"] .masonry-grid-item,
+    .masonry-grid[data-columns="6"] .masonry-grid-item { width: 33.333%; }
+  }
+
+  @media (min-width: 1024px) {
+    .masonry-grid[data-columns="3"] .masonry-grid-item,
+    .masonry-grid[data-columns="4"] .masonry-grid-item,
+    .masonry-grid[data-columns="5"] .masonry-grid-item,
+    .masonry-grid[data-columns="6"] .masonry-grid-item { width: 33.333%; }
+  }
+
+  @media (min-width: 1280px) {
+    .masonry-grid[data-columns="4"] .masonry-grid-item,
+    .masonry-grid[data-columns="5"] .masonry-grid-item,
+    .masonry-grid[data-columns="6"] .masonry-grid-item { width: 25%; }
+  }
+
+  @media (min-width: 1536px) {
+    .masonry-grid[data-columns="5"] .masonry-grid-item { width: 20%; }
+    .masonry-grid[data-columns="6"] .masonry-grid-item { width: 16.666%; }
+  }
+}

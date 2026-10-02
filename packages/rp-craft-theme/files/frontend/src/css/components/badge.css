@@ -1,0 +1,5 @@
+@layer components {
+  .tw-badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 leading-none;
+  }
+}

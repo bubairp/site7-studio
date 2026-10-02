@@ -1,0 +1,3 @@
+{# Blog categories are shown as a filter on the blog listing (?category=slug),
+   not as pages of their own - send the category URL there. #}
+{% redirect siteUrl('blogs', { category: category.slug }) 301 %}

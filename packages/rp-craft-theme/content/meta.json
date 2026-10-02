@@ -1,0 +1,22 @@
+{
+    "counts": {
+        "elements": 27,
+        "elements_sites": 27,
+        "elements_owners": 12,
+        "entries": 22,
+        "entries_authors": 0,
+        "contentblocks": 0,
+        "categories": 0,
+        "tags": 0,
+        "assets": 5,
+        "assets_sites": 5,
+        "structureelements": 0,
+        "relations": 5,
+        "wheelform_forms": 2,
+        "wheelform_form_fields": 9
+    },
+    "skipped": {
+        "structureelements": 2
+    },
+    "assetFiles": 5
+}

@@ -1,0 +1,5 @@
+{% header "Content-Type: text/plain" %}
+{% set llmsContent = craft.entries.section('llmsText').one() %}
+{% if llmsContent and llmsContent.description %}
+{{ llmsContent.description | raw }}
+{% endif %}

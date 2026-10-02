@@ -93,7 +93,14 @@ class SiteKitContent extends Component
      * @return array{counts: array<string, int>, assetFiles: int, tempFiles: string[]}
      *   tempFiles must be deleted after the zip is closed.
      */
-    public function export(\ZipArchive $zip): array
+    /**
+     * @param string[]|null $sectionUids only these sections' entries, with
+     *   their nested entries and the assets/categories/tags they relate to
+     *   (a Theme's settings singles); null = all live content
+     * @param bool|string[] $pluginTables true = all PLUGIN_TABLES, false = none,
+     *   or a list (a Theme takes the forms but not the menus, which point at pages)
+     */
+    public function export(\ZipArchive $zip, ?array $sectionUids = null, bool|array $pluginTables = true): array
     {
         $db = Craft::$app->getDb();
         if ($db->getIsPgsql()) {
@@ -101,6 +108,9 @@ class SiteKitContent extends Component
         }
 
         $ids = $this->liveElementIds();
+        if ($sectionUids !== null) {
+            $ids = $this->subset($ids, $sectionUids);
+        }
         $idSet = array_flip($ids);
         $uidMaps = [];
         $counts = [];
@@ -140,7 +150,12 @@ class SiteKitContent extends Component
             $counts[$table] = count($kept);
         }
 
-        foreach (self::PLUGIN_TABLES as $table => $structural) {
+        $exportTables = match (true) {
+            $pluginTables === true => self::PLUGIN_TABLES,
+            $pluginTables === false => [],
+            default => array_intersect_key(self::PLUGIN_TABLES, array_flip($pluginTables)),
+        };
+        foreach ($exportTables as $table => $structural) {
             if (!$db->tableExists("{{%{$table}}}")) {
                 continue;
             }
@@ -192,15 +207,38 @@ class SiteKitContent extends Component
         $owned = [];
         foreach (['entries', 'contentblocks'] as $table) {
             if (Craft::$app->getDb()->tableExists("{{%{$table}}}")) {
-                foreach ((new Query())->select(['id', 'primaryOwnerId'])->from("{{%{$table}}}")->where(['not', ['primaryOwnerId' => null]])->all() as $row) {
-                    $owned[(int)$row['id']] = (int)$row['primaryOwnerId'];
+                foreach ((new Query())->select(['id', 'primaryOwnerId', 'fieldId'])->from("{{%{$table}}}")->where(['not', ['primaryOwnerId' => null]])->all() as $row) {
+                    $owned[(int)$row['id']] = [(int)$row['primaryOwnerId'], (int)$row['fieldId']];
                 }
+            }
+        }
+
+        // A nested entry is only live content while its field is still on
+        // its owner's field layout - one left behind in a field that was
+        // removed from the layout is invisible everywhere (rp-craft: a Theme
+        // Settings block in the retired `themeSetup` field), and that field
+        // or its entry types may no longer travel with the structure.
+        $ownerLayouts = (new Query())->select(['id', 'fieldLayoutId'])->from('{{%elements}}')
+            ->where(['id' => array_unique(array_column($owned, 0))])->pairs();
+        $layoutFieldIds = [];
+        $fieldsService = Craft::$app->getFields();
+        foreach ($owned as $id => [$ownerId, $fieldId]) {
+            $layoutId = $ownerLayouts[$ownerId] ?? null;
+            if ($layoutId === null || !isset($set[$id])) {
+                continue;
+            }
+            $layoutFieldIds[$layoutId] ??= array_flip(array_map(
+                fn($field) => (int)$field->id,
+                $fieldsService->getLayoutById((int)$layoutId)?->getCustomFields() ?? []
+            ));
+            if (!isset($layoutFieldIds[$layoutId][$fieldId])) {
+                unset($set[$id]);
             }
         }
 
         do {
             $dropped = 0;
-            foreach ($owned as $id => $ownerId) {
+            foreach ($owned as $id => [$ownerId]) {
                 if (isset($set[$id]) && !isset($set[$ownerId])) {
                     unset($set[$id]);
                     $dropped++;
@@ -209,6 +247,43 @@ class SiteKitContent extends Component
         } while ($dropped > 0);
 
         return array_keys($set);
+    }
+
+    /**
+     * Live entries of the given sections, plus - repeatedly, until nothing
+     * new is found - entries nested in what's included, and the assets,
+     * categories and tags it relates to. Relations to other entries (pages)
+     * are not followed.
+     *
+     * @return int[]
+     */
+    private function subset(array $liveIds, array $sectionUids): array
+    {
+        $live = array_flip($liveIds);
+        $sectionIds = (new Query())->select(['id'])->from('{{%sections}}')->where(['uid' => $sectionUids])->column();
+        $set = array_flip(array_filter(
+            (new Query())->select(['id'])->from('{{%entries}}')->where(['sectionId' => $sectionIds])->column(),
+            fn($id) => isset($live[$id])
+        ));
+
+        do {
+            $ids = array_keys($set);
+            $nested = (new Query())->select(['id'])->from('{{%entries}}')->where(['primaryOwnerId' => $ids])->column();
+            $related = (new Query())
+                ->select(['r.targetId'])
+                ->from(['r' => '{{%relations}}'])
+                ->innerJoin(['e' => '{{%elements}}'], '[[e.id]] = [[r.targetId]]')
+                ->where(['r.sourceId' => $ids, 'e.type' => [\craft\elements\Asset::class, \craft\elements\Category::class, \craft\elements\Tag::class]])
+                ->column();
+            $before = count($set);
+            foreach (array_merge($nested, $related) as $id) {
+                if (isset($live[$id])) {
+                    $set[$id] = true;
+                }
+            }
+        } while (count($set) > $before);
+
+        return array_map('intval', array_keys($set));
     }
 
     private function rowsFor(string $table, array $filterColumns, array $idSet): array
@@ -346,32 +421,65 @@ class SiteKitContent extends Component
         }
 
         $adminId = (int)User::find()->admin(true)->status(null)->ids()[0];
+        $primarySiteId = (int)Craft::$app->getSites()->getPrimarySite()->id;
         $uidToId = [];
-        $resolveUid = function(string $table, string $uid) use (&$uidToId): int {
+        $resolveUid = function(string $table, string $uid) use (&$uidToId, $primarySiteId): int {
             // pairs() keys by the first column: uid => id
             $uidToId[$table] ??= array_map('intval', (new Query())->select(['uid', 'id'])->from("{{%{$table}}}")->pairs());
             if (!isset($uidToId[$table][$uid])) {
+                // A Theme installs into this site rather than replacing it,
+                // so content from the source's site lands on the primary site.
+                if ($table === 'sites') {
+                    return $primarySiteId;
+                }
                 throw new \Exception("{$table} with UID {$uid} doesn't exist on this site - was the kit's project config applied?");
             }
             return $uidToId[$table][$uid];
         };
 
+        $rowsByTable = [];
+        foreach (array_keys(self::CORE_TABLES) as $table) {
+            $file = "{$contentDir}/tables/{$table}.json";
+            $rowsByTable[$table] = is_file($file) ? (json_decode((string)file_get_contents($file), true) ?: []) : [];
+        }
+
+        // Content can arrive in parts (a Theme's settings, then a Starter
+        // Kit's pages). An element already here with the same UID came with
+        // an earlier part (e.g. a logo both use): skip it. The same ID with
+        // a different UID is a real clash.
+        $incomingUids = array_column($rowsByTable['elements'], 'uid', 'id');
+        $skipIds = [];
+        $clashes = [];
+        foreach ((new Query())->select(['id', 'uid'])->from('{{%elements}}')->where(['id' => array_keys($incomingUids)])->pairs() as $id => $uid) {
+            if ($incomingUids[$id] === $uid) {
+                $skipIds[$id] = true;
+            } else {
+                $clashes[] = $id;
+            }
+        }
+        if ($clashes) {
+            throw new \Exception('Element IDs already used on this site by other content: ' . implode(', ', array_slice($clashes, 0, 10)));
+        }
+
         $transaction = $db->beginTransaction();
         $counts = [];
         try {
             // Craft creates an entry for every Single when its section is
-            // saved; the kit's own entries replace them.
-            $autoCreated = (new Query())->select(['id'])->from('{{%elements}}')->where(['type' => Entry::class])->column();
-            $db->createCommand()->delete('{{%elements}}', ['id' => $autoCreated])->execute();
-            $db->createCommand()->delete('{{%structureelements}}')->execute();
+            // saved; an incoming entry for that Single replaces it.
+            $singleSectionUids = [];
+            foreach ($rowsByTable['entries'] as $row) {
+                if (!isset($skipIds[$row['id']]) && is_string($row['sectionId'] ?? null) && str_starts_with($row['sectionId'], '@uid:')) {
+                    $singleSectionUids[substr($row['sectionId'], 5)] = true;
+                }
+            }
+            $singleSectionIds = (new Query())->select(['id'])->from('{{%sections}}')->where(['uid' => array_keys($singleSectionUids), 'type' => 'single'])->column();
+            $replaced = (new Query())->select(['id'])->from('{{%entries}}')
+                ->where(['sectionId' => $singleSectionIds])
+                ->andWhere(['not', ['id' => array_keys($incomingUids)]])
+                ->column();
+            $db->createCommand()->delete('{{%elements}}', ['id' => $replaced])->execute();
 
             $folderMap = $this->importFolders(json_decode((string)file_get_contents("{$contentDir}/folders.json"), true) ?: [], $resolveUid);
-
-            $incomingIds = array_column(json_decode((string)file_get_contents("{$contentDir}/tables/elements.json"), true) ?: [], 'id');
-            $clashes = (new Query())->select(['id'])->from('{{%elements}}')->where(['id' => $incomingIds])->column();
-            if ($clashes) {
-                throw new \Exception('Element IDs already used on this site: ' . implode(', ', array_slice($clashes, 0, 10)));
-            }
 
             $db->createCommand('SET FOREIGN_KEY_CHECKS = 0')->execute();
 
@@ -389,11 +497,11 @@ class SiteKitContent extends Component
             };
 
             foreach (self::CORE_TABLES as $table => $rules) {
-                $file = "{$contentDir}/tables/{$table}.json";
-                if (!is_file($file) || !$db->tableExists("{{%{$table}}}")) {
+                if (!$rowsByTable[$table] || !$db->tableExists("{{%{$table}}}")) {
                     continue;
                 }
-                $counts[$table] = $this->insertRows($table, json_decode((string)file_get_contents($file), true) ?: [], array_keys($rules['structural']), $resolve, $resolveUid);
+                $rows = $this->withoutExisting($table, $rowsByTable[$table], $rules['filter'][0], $skipIds);
+                $counts[$table] = $this->insertRows($table, $rows, array_keys($rules['structural']), $resolve, $resolveUid);
             }
 
             foreach (self::PLUGIN_TABLES as $table => $structural) {
@@ -469,6 +577,21 @@ class SiteKitContent extends Component
         return $map;
     }
 
+    /**
+     * Drops rows belonging to elements that are already here (by the row's
+     * owning element column) and rows whose UID already exists.
+     */
+    private function withoutExisting(string $table, array $rows, string $ownerColumn, array $skipIds): array
+    {
+        $rows = array_values(array_filter($rows, fn($row) => !isset($skipIds[$row[$ownerColumn] ?? null])));
+        if ($rows && array_key_exists('uid', $rows[0])) {
+            $existing = array_flip((new Query())->select(['uid'])->from("{{%{$table}}}")->where(['uid' => array_column($rows, 'uid')])->column());
+            $rows = array_values(array_filter($rows, fn($row) => !isset($existing[$row['uid']])));
+        }
+
+        return $rows;
+    }
+
     private function insertRows(string $table, array $rows, array $portableColumns, callable $resolve, callable $resolveUid): int
     {
         if (!$rows) {
@@ -500,6 +623,12 @@ class SiteKitContent extends Component
                 $this->targetSites ??= array_map('intval', (new Query())->select(['uid', 'id'])->from('{{%sites}}')->pairs());
                 foreach ($row as $column => $value) {
                     if (is_string($value) && str_contains($value, '@{site:')) {
+                        // A site UID unknown here is the source site of a
+                        // Theme-style install: map it to the primary site.
+                        preg_match_all('/@\{site:([0-9a-f\-]{36})\}/', $value, $m);
+                        foreach ($m[1] as $uid) {
+                            $this->targetSites[$uid] ??= (int)Craft::$app->getSites()->getPrimarySite()->id;
+                        }
                         $row[$column] = SiteKitFiles::resolveSiteRefs($value, $this->targetSites);
                     }
                 }

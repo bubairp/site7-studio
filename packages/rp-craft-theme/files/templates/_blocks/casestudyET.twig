@@ -1,0 +1,11 @@
+{% cache %}
+{% set casestudyEntries = craft.entries()
+            .section('casestudies')
+            .all() 
+%}
+{% for casestudy in casestudyEntries %}
+	{% set casestudyTitle = casestudy.title %}
+	{% set casestudyData = casestudy.casestudyMatrix %}
+	{{ casestudyData }}
+{% endfor %}
+{% endcache %}

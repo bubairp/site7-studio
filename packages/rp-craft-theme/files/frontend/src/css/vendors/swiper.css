@@ -1,0 +1,220 @@
+@layer components {
+
+  /* Dark mode overrides */
+  .tw-dark .swiper-pagination-bullet,
+  [data-theme="dark"] .swiper-pagination-bullet {
+    --swiper-bullet-bg: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Navigation Buttons */
+  .btn-prev,
+  .btn-next {
+    @apply absolute z-10 top-1/2 -translate-y-1/2 transition-all duration-300 ease-in-out cursor-pointer flex items-center justify-center w-10 h-10 rounded-full bg-white/80 text-gray-800 shadow-sm hover:bg-primary hover:text-white;
+  }
+
+  .btn-prev {
+    @apply left-4;
+  }
+
+  .btn-next {
+    @apply right-4;
+  }
+
+  .btn-prev>i,
+  .btn-next>i,
+  .btn-prev>[class^="ti-"],
+  .btn-next>[class^="ti-"] {
+    @apply text-xl;
+  }
+
+  .swiper-button-disabled {
+    @apply opacity-50 cursor-not-allowed pointer-events-none;
+  }
+
+  .swiper-nav-onhover .btn-prev,
+  .swiper-nav-onhover .btn-next {
+    @apply opacity-0;
+  }
+
+  .swiper-nav-onhover:hover .btn-prev,
+  .swiper-nav-onhover:hover .btn-next {
+    @apply opacity-100;
+  }
+
+  /* Pagination - Default to below the slider */
+  .swiper-horizontal>.swiper-pagination-bullets,
+  .swiper-pagination-bullets.swiper-pagination-horizontal,
+  .swiper-pagination {
+    @apply flex items-center justify-center !relative w-full !bottom-auto !left-auto;
+  }
+
+  .swiper-pagination:not(:empty) {
+    @apply mt-6;
+  }
+
+  /* Overlay Pagination (for Hero Banners) */
+  .swiper-pagination.swiper-pagination-overlay {
+    @apply !absolute !bottom-0 !mt-0 z-50;
+  }
+
+  .swiper-pagination-bullet {
+    @apply relative rounded-full transition-all duration-300 ease-in-out cursor-pointer;
+    width: var(--swiper-bullet-size) !important;
+    height: var(--swiper-bullet-size) !important;
+    background-color: var(--swiper-bullet-bg) !important;
+    margin: 0 var(--swiper-bullet-spacer) !important;
+  }
+
+  /* Expand touch target for accessibility (minimum 24x24px) */
+  .swiper-pagination-bullet::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  .swiper-pagination-bullet:focus {
+    @apply outline-none;
+  }
+
+  .swiper-pagination-bullet-active {
+    background-color: var(--swiper-bullet-active-bg) !important;
+    width: 2.15rem !important;
+    /* ~35px */
+    border-radius: 1rem !important;
+  }
+
+  /* Layer animations */
+  .from-top,
+  .from-bottom,
+  .from-start,
+  .from-end,
+  .scale-up,
+  .scale-down {
+    @apply opacity-0 transition-all duration-500 delay-200;
+    backface-visibility: hidden;
+  }
+
+  .from-top {
+    @apply -translate-y-8;
+  }
+
+  .from-bottom {
+    @apply translate-y-8;
+  }
+
+  .from-start {
+    @apply -translate-x-8;
+  }
+
+  .from-end {
+    @apply translate-x-8;
+  }
+
+  .scale-up {
+    @apply scale-90;
+  }
+
+  .swiper-slide-active .from-top,
+  .swiper-slide-active .from-bottom,
+  .swiper-slide-active .from-start,
+  .swiper-slide-active .from-end {
+    @apply opacity-100 translate-y-0 translate-x-0;
+  }
+
+  .swiper-slide-active .scale-up,
+  .swiper-slide-active .scale-down {
+    @apply opacity-100 scale-100;
+  }
+
+  /* Swiper slide cover scale effect */
+  .swiper-slide-cover {
+    @apply absolute inset-0 w-full h-full bg-center bg-no-repeat bg-cover;
+  }
+
+  .swiper-scale-effect .swiper-slide-cover {
+    transition: transform 8.5s ease-out;
+    @apply scale-110;
+  }
+
+  .swiper-scale-effect .swiper-slide.swiper-slide-active .swiper-slide-cover {
+    @apply scale-100;
+  }
+
+  /* Logos */
+  .swiper-slide .logo-item {
+    @apply border-l border-gray-200/50 border-t-0 border-r-0 border-b-0;
+  }
+
+  .swiper-slide-active .logo-item {
+    @apply !border-l-0;
+  }
+
+  /* Prevent FOUC for uninitialized Swipers by mapping JSON breakpoints to CSS Grid via inline variables */
+  .swiper:not(.swiper-initialized) .swiper-wrapper {
+    display: grid;
+    grid-template-columns: repeat(var(--swiper-cols, 1), minmax(0, 1fr));
+    gap: 24px;
+    overflow: hidden;
+  }
+
+  @media (min-width: 576px) {
+    .swiper:not(.swiper-initialized) .swiper-wrapper {
+      grid-template-columns: repeat(var(--swiper-cols-sm, var(--swiper-cols, 1)), minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 768px) {
+    .swiper:not(.swiper-initialized) .swiper-wrapper {
+      grid-template-columns: repeat(var(--swiper-cols-md, var(--swiper-cols-sm, var(--swiper-cols, 1))), minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 992px) {
+    .swiper:not(.swiper-initialized) .swiper-wrapper {
+      grid-template-columns: repeat(var(--swiper-cols-lg, var(--swiper-cols-md, var(--swiper-cols-sm, var(--swiper-cols, 1)))), minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .swiper:not(.swiper-initialized) .swiper-wrapper {
+      grid-template-columns: repeat(var(--swiper-cols-xl, var(--swiper-cols-lg, var(--swiper-cols-md, var(--swiper-cols-sm, var(--swiper-cols, 1))))), minmax(0, 1fr));
+    }
+  }
+
+  .swiper:not(.swiper-initialized) .swiper-slide {
+    width: 100% !important;
+  }
+
+  /* Hero sliders (scale-effect or fade) should be full width before init */
+  .swiper-scale-effect:not(.swiper-initialized) .swiper-wrapper,
+  .swiper:not(.swiper-initialized)[data-swiper-options*='"effect": "fade"'] .swiper-wrapper {
+    display: flex;
+  }
+
+  .swiper-scale-effect:not(.swiper-initialized) .swiper-slide,
+  .swiper:not(.swiper-initialized)[data-swiper-options*='"effect": "fade"'] .swiper-slide {
+    width: 100% !important;
+  }
+
+  /* Auto-compensate padding/margin for Swiper sliders to prevent shadow & hover clipping.
+   * This central rule replaces per-block py-4 -my-4 px-2 -mx-2 hacks.
+   * Covers: tw-card, card-hover, and any swiper containing a group (card-like) element.
+   */
+  .swiper:has(.tw-card),
+  .swiper:has(.card-hover) {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    margin-top: -1rem !important;
+    margin-bottom: -1rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    margin-left: -0.5rem !important;
+    margin-right: -0.5rem !important;
+  }
+}

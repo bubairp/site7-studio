@@ -1,0 +1,49 @@
+@import 'tailwindcss';
+
+/* =========================================
+   THEME
+   ========================================= */
+@import './theme.css';
+
+/* =========================================
+   BASE
+   ========================================= */
+@import './base/fonts.css';
+@import './base/globals.css';
+@import './base/typography.css';
+
+/* =========================================
+   VENDORS
+   ========================================= */
+@import './vendors/swiper.css';
+@import './vendors/gallery.css';
+@import './vendors/masonry-grid.css';
+@import './vendors/parallax.css';
+
+/* =========================================
+   COMPONENTS
+   ========================================= */
+@import './components/button.css';
+@import './components/form.css';
+@import './components/card.css';
+@import './components/badge.css';
+@import './components/accordion.css';
+@import './components/modal.css';
+@import './components/rich-text.css';
+@import './components/header.css';
+@import './components/header-menu.css';
+@import './components/sidebar-menu.css';
+@import './components/newsletter.css';
+@import './components/video.css';
+@import './components/sitemap.css';
+
+/* =========================================
+   UTILITIES
+   ========================================= */
+@import './utilities/container.css';
+
+/* =========================================
+   TAILWIND SOURCES
+   ========================================= */
+@source '../../../templates/**/*.twig';
+@source '../../js/**/*.js';

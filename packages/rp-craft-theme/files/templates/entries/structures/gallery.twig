@@ -1,0 +1,56 @@
+{% extends "_layouts/matrix-content" %}
+{% import "_macros/images" as images %}
+
+{# Fetch gallery based on entry or URL segment #}
+{% set gallery = entry ?? craft.entries().section('gallery').slug(craft.app.request.segment(1)).one() %}
+
+{% block before_content %}
+	{% if gallery %}
+		{# hideSectionLink ensures we don't link to a non-existent /gallery index page #}
+		{% include "_components/breadcrumbs" with {
+			element: gallery,
+			hideSectionLink: true
+		} %}
+	{% endif %}
+{% endblock %}
+
+{% block content_title %}
+	{% if gallery %}
+		<div class="container mx-auto px-4 py-10 md:py-12 lg:py-16">
+			<h1 class="block-heading-title mb-0">{{ gallery.title }}</h1>
+		</div>
+	{% endif %}
+{% endblock %}
+
+{% block before_content_matrix %}
+	{% if gallery %}
+		{% set galleryImages = gallery.images.all() %}
+		{% if galleryImages|length %}
+			<section class="gallery-section pb-10 md:pb-12 lg:pb-16">
+				<div class="container mx-auto px-4">
+					<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 gallery items-end">
+						{% for image in galleryImages %}
+							<a class="group relative block gallery-item overflow-hidden rounded-3xl cursor-pointer" href="{{ image.url }}">
+								<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-3xl">
+									<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+								</div>
+								<div class="overflow-hidden rounded-3xl w-full h-full">
+									{{ images.singleImg(image, 635, { ratio: 1.257 }, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500', { alt: image.title }) }}
+								</div>
+							</a>
+						{% endfor %}
+					</div>
+				</div>
+			</section>
+		{% endif %}
+
+		{% include "_includes/matrix-container" with {
+			entry: gallery,
+			cache_key: 'gallery-' ~ gallery.id
+		} %}
+	{% endif %}
+{% endblock %}
+
+{% block content_matrix %}
+	{# Handled in before_content_matrix to maintain gallery layout order #}
+{% endblock %}

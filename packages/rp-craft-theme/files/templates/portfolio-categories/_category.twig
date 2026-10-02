@@ -1,0 +1,3 @@
+{# Portfolio categories are shown as a filter on the portfolio listing
+   (?category=slug), not as pages of their own - send the category URL there. #}
+{% redirect siteUrl('portfolios', { category: category.slug }) 301 %}

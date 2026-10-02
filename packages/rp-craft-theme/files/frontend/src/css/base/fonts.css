@@ -1,0 +1,26 @@
+@font-face {
+  font-family: 'Europa Light';
+  src: url('../../../fonts/europa-light-webfont.eot');
+  src: url('../../../fonts/europa-light-webfont.eot?#iefix') format('embedded-opentype'),
+       url('../../../fonts/europa-light-webfont.woff2') format('woff2'),
+       url('../../../fonts/europa-light-webfont.woff') format('woff'),
+       url('../../../fonts/europa-light-webfont.ttf') format('truetype'),
+       url('../../../fonts/europa-light-webfont.svg#europalight') format('svg');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Override Tabler Icons CDN font-display to fix Lighthouse text visibility warning */
+@font-face {
+  font-family: "Tabler-Icons";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/fonts/tabler-icons.eot");
+  src: url("https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/fonts/tabler-icons.eot?#iefix") format("embedded-opentype"),
+       url("https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/fonts/tabler-icons.woff2") format("woff2"),
+       url("https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/fonts/tabler-icons.woff") format("woff"),
+       url("https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/fonts/tabler-icons.ttf") format("truetype"),
+       url("https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/fonts/tabler-icons.svg#tabler-icons") format("svg");
+}

@@ -1,0 +1,40 @@
+@layer components {
+  .tw-card {
+    @apply flex flex-col min-w-0 break-words bg-white dark:bg-dark border border-gray-100 dark:border-gray-800 rounded-2xl md:rounded-3xl shadow-sm transition duration-300 motion-reduce:transform-none overflow-hidden;
+  }
+
+  .tw-card-body {
+    @apply flex-1 p-4 md:p-5;
+  }
+
+  .tw-card-title {
+    @apply mb-2 text-xl font-semibold text-gray-900 dark:text-white;
+  }
+
+  .tw-card-text {
+    @apply mb-4 text-gray-600 dark:text-gray-400;
+  }
+
+  .tw-card-text:last-child {
+    @apply mb-0;
+  }
+
+  .tw-card-footer {
+    @apply px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-t border-solid border-gray-100 dark:border-gray-800 mt-auto;
+  }
+
+  /* ── card-hover: used on all interactive cards ── */
+  .card-hover {
+    @apply transition duration-300 ease-out motion-reduce:transform-none;
+  }
+
+  .card-hover:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+
+  /* ── Shared category/tag badge ── */
+  /* Usage: replace ad-hoc badge classes in productCard, portfolioCard, blogCard */
+  .tw-badge-category {
+    @apply inline-block px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full bg-primary/10 text-primary;
+  }
+}

@@ -1,0 +1,19 @@
+{% import "_macros/images" as images %}
+	<div class="jarallax bg-dark py-10 md:py-12 lg:py-16" data-jarallax data-speed="0.6" data-theme="dark">
+		<div class="absolute top-0 start-0 w-full h-full bg-black opacity-60"></div>
+
+		{% set image = service.featureImage.one() %}
+		{% if image %}
+			<div class="jarallax-img" style="background-image: url('{{ images.bgImageUrl(image)|trim }}');"></div>
+		{% endif %}
+
+		<div class="container mx-auto relative z-20 pt-12 md:pb-2 lg:pb-4 xl:pb-6 2xl:pb-12">
+
+			<!-- Page title -->
+			<div class="hidden 2xl:block" style="height: 170px;"></div>
+			<div class="hidden lg:block 2xl:hidden" style="height: 120px;"></div>
+			<div class="hidden md:block lg:hidden" style="height: 80px;"></div>
+			<div class="md:hidden" style="height: 40px;"></div>
+			<h1 class="text-6xl font-light mb-6 text-white">{{ service.title }}</h1>
+		</div>
+	</div>

@@ -119,36 +119,10 @@ class SiteKitInstaller extends Component
         $log("Backed up composer files, config/ and templates/ to {$result['backup']}");
 
         // 1. Code and config files (project config comes last, step 4).
-        foreach (SiteKitFiles::CODE_DIRECTORIES as $directory) {
-            if (is_dir("{$kit}/{$directory}")) {
-                if (is_dir("{$root}/{$directory}") && $directory === 'templates') {
-                    FileHelper::removeDirectory("{$root}/{$directory}");
-                }
-                FileHelper::copyDirectory("{$kit}/{$directory}", "{$root}/{$directory}");
-                $log("Copied {$directory}/");
-            }
-        }
-        foreach (scandir("{$kit}/config") ?: [] as $entry) {
-            if ($entry[0] === '.' || $entry === 'project') {
-                continue;
-            }
-            is_dir("{$kit}/config/{$entry}")
-                ? FileHelper::copyDirectory("{$kit}/config/{$entry}", "{$root}/config/{$entry}")
-                : copy("{$kit}/config/{$entry}", "{$root}/config/{$entry}");
-        }
-        $log('Copied config files: ' . implode(', ', $validation['manifest']['configFiles'] ?? []));
+        $this->copyCode($kit, $root, $log, $validation['manifest']['configFiles'] ?? []);
 
-        // 2. Exact packages.
-        copy("{$kit}/composer.json", "{$root}/composer.json");
-        copy("{$kit}/composer.lock", "{$root}/composer.lock");
-        $composerPhar = Craft::$app->getRuntimePath() . '/composer.phar';
-        copy(Craft::getAlias('@lib/composer.phar'), $composerPhar);
-        if (!$this->run([$php, $composerPhar, 'install', '--no-interaction', '--no-scripts', '--working-dir=' . $root], $root, 'composer install', $result, $log)) {
-            return $result;
-        }
-
-        // 3. Migrations for the packages just installed.
-        if (!$this->run([$php, "{$root}/craft", 'migrate/all', '--interactive=0'], $root, 'craft migrate/all', $result, $log)) {
+        // 2-3. Exact packages, then their migrations.
+        if (!$this->installPackages($kit, $root, $result, $log)) {
             return $result;
         }
 
@@ -174,6 +148,55 @@ class SiteKitInstaller extends Component
         }
 
         // 6. Frontend.
+        $this->buildFrontend($root, $result, $log);
+
+        return $result;
+    }
+
+    /**
+     * Copies a kit's code directories and config files (never config/project)
+     * into the project. templates/ is replaced, the rest merged.
+     */
+    protected function copyCode(string $kit, string $root, callable $log, array $configFiles): void
+    {
+        foreach (SiteKitFiles::CODE_DIRECTORIES as $directory) {
+            if (is_dir("{$kit}/{$directory}")) {
+                if (is_dir("{$root}/{$directory}") && $directory === 'templates') {
+                    FileHelper::removeDirectory("{$root}/{$directory}");
+                }
+                FileHelper::copyDirectory("{$kit}/{$directory}", "{$root}/{$directory}");
+                $log("Copied {$directory}/");
+            }
+        }
+        foreach (is_dir("{$kit}/config") ? scandir("{$kit}/config") : [] as $entry) {
+            if ($entry[0] === '.' || $entry === 'project') {
+                continue;
+            }
+            is_dir("{$kit}/config/{$entry}")
+                ? FileHelper::copyDirectory("{$kit}/config/{$entry}", "{$root}/config/{$entry}")
+                : copy("{$kit}/config/{$entry}", "{$root}/config/{$entry}");
+        }
+        $log('Copied config files: ' . implode(', ', $configFiles));
+    }
+
+    /**
+     * The kit's composer.json/composer.lock, `composer install`, then
+     * `craft migrate/all` - both as subprocesses.
+     */
+    protected function installPackages(string $kit, string $root, array &$result, callable $log): bool
+    {
+        $php = App::phpExecutable() ?? 'php';
+        copy("{$kit}/composer.json", "{$root}/composer.json");
+        copy("{$kit}/composer.lock", "{$root}/composer.lock");
+        $composerPhar = Craft::$app->getRuntimePath() . '/composer.phar';
+        copy(Craft::getAlias('@lib/composer.phar'), $composerPhar);
+
+        return $this->run([$php, $composerPhar, 'install', '--no-interaction', '--no-scripts', '--working-dir=' . $root], $root, 'composer install', $result, $log)
+            && $this->run([$php, "{$root}/craft", 'migrate/all', '--interactive=0'], $root, 'craft migrate/all', $result, $log);
+    }
+
+    protected function buildFrontend(string $root, array &$result, callable $log): void
+    {
         $npm = (new ExecutableFinder())->find('npm');
         $frontend = "{$root}/frontend";
         if ($npm && is_file("{$frontend}/package.json")) {
@@ -181,8 +204,6 @@ class SiteKitInstaller extends Component
                 && !empty(json_decode((string)file_get_contents("{$frontend}/package.json"), true)['scripts']['build'])
                 && $this->run([$npm, 'run', 'build'], $frontend, 'npm run build', $result, $log);
         }
-
-        return $result;
     }
 
     /**
@@ -207,7 +228,7 @@ class SiteKitInstaller extends Component
         return [$manifest, $dir];
     }
 
-    private function backup(string $root): string
+    protected function backup(string $root): string
     {
         $dir = Craft::getAlias('@storage') . '/site7-studio/site-kit-backups/' . date('Ymd-His');
         FileHelper::createDirectory($dir);
@@ -231,7 +252,7 @@ class SiteKitInstaller extends Component
      *
      * @return string[]
      */
-    private function availablePluginHandles(string $root): array
+    protected function availablePluginHandles(string $root): array
     {
         $file = "{$root}/vendor/craftcms/plugins.php";
         $plugins = is_file($file) ? (static fn() => require $file)() : [];
@@ -239,7 +260,7 @@ class SiteKitInstaller extends Component
         return array_values(array_filter(array_map(fn($info) => $info['handle'] ?? null, is_array($plugins) ? $plugins : [])));
     }
 
-    private function run(array $command, string $cwd, string $label, array &$result, callable $log): bool
+    protected function run(array $command, string $cwd, string $label, array &$result, callable $log): bool
     {
         $process = new Process($command, $cwd);
         $process->setTimeout(self::TIMEOUT_SECONDS);
@@ -256,7 +277,7 @@ class SiteKitInstaller extends Component
         return true;
     }
 
-    private function root(): string
+    protected function root(): string
     {
         return rtrim(Craft::getAlias('@root'), '/');
     }

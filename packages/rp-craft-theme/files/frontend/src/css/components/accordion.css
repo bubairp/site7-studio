@@ -1,0 +1,23 @@
+@layer components {
+  .tw-accordion {
+    @apply w-full rounded-xl overflow-hidden;
+  }
+
+  .tw-accordion-item {
+    @apply border-b border-solid border-gray-200 dark:border-gray-800 last:border-b-0;
+  }
+
+  .tw-accordion-button {
+    @apply flex w-full items-center justify-between px-5 py-4 text-left text-base font-semibold text-gray-800 dark:text-white bg-white dark:bg-gray-900 transition-colors duration-200 border-none cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800;
+  }
+
+  /* When active, change text color */
+  .tw-accordion-button.is-open {
+    @apply text-primary;
+  }
+
+  /* Simple styling for accordion bodies */
+  .tw-accordion-body {
+    @apply px-5 py-4 text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900;
+  }
+}

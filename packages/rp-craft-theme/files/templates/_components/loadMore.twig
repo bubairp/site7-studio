@@ -1,0 +1,69 @@
+
+{% if pageInfo.totalPages > 1 %}
+  {% set nextUrl = pageInfo.nextUrl ?? '' %}
+  {% set q = partialQueryString ?? 'partial=1' %}
+  {% set sep = nextUrl and ('?' in nextUrl) ? '&' : '?' %}
+
+  <div class="text-center mt-4">
+    <button
+      id="js-load-more"
+      class="tw-btn tw-btn-outline-primary"
+      type="button"
+      data-next="{{ nextUrl ? nextUrl ~ sep ~ q : '' }}"
+      data-target="#{{ targetId }}"
+      {{ nextUrl ? '' : 'disabled' }}>Load more</button>
+  </div>
+
+  <script>
+  (function () {
+    const btn = document.getElementById('js-load-more');
+    if (!btn) return;
+    const target = document.querySelector(btn.getAttribute('data-target'));
+    if (!target) return;
+
+    async function loadMore() {
+      const next = btn.getAttribute('data-next');
+      if (!next) return;
+
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = 'Loading…';
+
+      try {
+        const res = await fetch(next, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!res.ok) throw new Error('Network error');
+        
+        const html = await res.text();
+        const temp = document.createElement('div');
+        temp.innerHTML = html.trim();
+
+        const chunk = temp.querySelector('.js-chunk');
+        if (!chunk) throw new Error('Invalid response: .js-chunk not found');
+
+        const newItems = Array.from(chunk.querySelectorAll('article.masonry-grid-item'));
+        newItems.forEach(el => target.appendChild(el));
+
+        const nextUrl = chunk.getAttribute('data-next-url') || '';
+        if (nextUrl) {
+          const sep = nextUrl.includes('?') ? '&' : '?';
+          btn.setAttribute('data-next', nextUrl + sep + 'partial=1');
+          btn.disabled = false;
+          btn.textContent = original;
+        } else {
+          btn.style.visibility='hidden';
+        }
+
+        // If you use Masonry/Shuffle, trigger layout here:
+        //if (window.dispatchEvent) window.dispatchEvent(new Event('resize'));
+      } catch (e) {
+        console.error(e);
+        btn.textContent = 'Try again';
+        btn.disabled = false;
+        setTimeout(() => (btn.textContent = original), 1200);
+      }
+    }
+
+    btn.addEventListener('click', loadMore);
+  })();
+  </script>
+{% endif %}

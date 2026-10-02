@@ -1,0 +1,28 @@
+{% import "_macros/images" as images %}
+<div class="group relative flex flex-col h-full tw-card card-hover">
+	{# B4: card-hover added for consistent lift effect #}
+	<div class="relative overflow-hidden aspect-[16/10] bg-gray-100 dark:bg-gray-800">
+		{% if portfolio.image|length %}
+			{{ images.singleImg(portfolio.image.0, 800, {'ratio': 16/10}, 'w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 motion-reduce:transform-none', { alt: portfolio.title }) }}
+		{% endif %}
+		{# Overlay #}
+		<div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+	</div>
+
+	<div class="p-5 md:p-6 lg:p-8 flex flex-col grow">
+		{# TYPO-05: line-clamp-2 added for consistent title truncation #}
+		<h3 class="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-3 line-clamp-2">
+			<a href="{{ portfolio.url }}" class="text-inherit no-underline hover:text-primary transition-colors after:absolute after:inset-0" aria-label="{{ portfolio.title }} — View Project">{{ portfolio.title }}</a>
+		</h3>
+
+		<div class="flex flex-wrap gap-2 mt-auto relative z-20">
+			{% set portCats = portfolio.portfolioCategories.all() %}
+			{% if portCats|length %}
+				{% for cat in portCats %}
+					{# RADIUS-03: tw-badge-category — unified badge class #}
+					<span class="tw-badge-category">{{ cat.title }}</span>
+				{% endfor %}
+			{% endif %}
+		</div>
+	</div>
+</div>

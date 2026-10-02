@@ -1,0 +1,198 @@
+{% macro responsiveImg(image, styles, options = {}, sizes = "100vw", classes = '', attr = {}) %}
+
+	{% if styles is null %}
+		{% set styles = [
+            { width: 1920, ratio: 3/1 },
+            { width: 1400, ratio: 3/1 },
+            { width: 1024, ratio: 3/1 },
+            { width: 768,  ratio: 3/1 }
+        ] %}
+	{% endif %}
+
+	{# sort widths ASC for srcset correctness #}
+	{% set styles = styles|sort((a, b) =>a.width<=> b.width) %}
+
+	{% set options = {
+        upscale: false,
+        mode: 'crop',
+        jpegQuality: 80,
+        interlace: 'line',
+        lazy: true
+    }|merge(options) %}
+
+	{% set firstStyle = styles|first %}
+	{% set width  = firstStyle.width %}
+	{% set height = (firstStyle.height ?? (width / (firstStyle.ratio ?? 1)))|round(0, 'floor') %}
+
+	{% if image %}
+		{% set ext = image.extension|lower %}
+		{% set isLazy = options.lazy and ('no-lazy' not in classes) %}
+		{% if isLazy and 'lazyload' not in classes %}
+			{% set classes = classes ~ ' lazyload' %}
+		{% endif %}
+
+		{# SVG / GIF #}
+		{% if ext in ['svg','gif'] %}
+			<img src="{{ image.url }}" width="{{ width }}" height="{{ height }}" alt="{{ image.title }}" class="{{ classes }}" {% if isLazy %}loading="lazy"{% else %}fetchpriority="high"{% endif %} {% for name, value in attr %} {{ name }}="{{ value }}" {% endfor %}>
+
+		{% elseif ext in ['jpeg','jpg','png','webp'] %}
+
+			{% set srcsetItems = [] %}
+			{% set srcsetItemsWebp = [] %}
+
+			{% for style in styles %}
+				{% set h = (style.height ?? (style.width / (style.ratio ?? 1)))|round(0,'floor') %}
+				{% set transformOptions = {
+                    width: style.width,
+                    height: h,
+                    mode: options.mode,
+                    quality: options.jpegQuality,
+                    interlace: options.interlace,
+                    upscale: false
+                } %}
+
+				{% set tUrl = image.getUrl(transformOptions) ?: image.url %}
+				{% set srcsetItems = srcsetItems|merge([tUrl ~ ' ' ~ style.width ~ 'w']) %}
+
+				{% if craft.app.images.supportsWebP and ext != 'webp' %}
+					{% set webp = image.getUrl(transformOptions|merge({format:'webp'})) %}
+					{% if webp %}
+						{% set srcsetItemsWebp = srcsetItemsWebp|merge([webp ~ ' ' ~ style.width ~ 'w']) %}
+					{% endif %}
+				{% endif %}
+			{% endfor %}
+
+			{% set firstTransform = {
+                width: width,
+                height: height,
+                mode: options.mode,
+                quality: options.jpegQuality,
+                interlace: options.interlace,
+                upscale: false
+            } %}
+
+			{% set firstUrl = image.getUrl(firstTransform) %}
+			{% set placeholderUrl = image.getUrl({ width: 30, quality: 30, mode: 'crop' }) ?: firstUrl %}
+
+			{% if firstUrl %}
+				<picture>
+					{% if srcsetItemsWebp|length %}
+						<source {% if isLazy %} data-srcset="{{ srcsetItemsWebp|join(', ')|raw }}" data-sizes="auto" {% else %} srcset="{{ srcsetItemsWebp|join(', ')|raw }}" sizes="{{ sizes }}" {% endif %} type="image/webp">
+					{% endif %}
+					<img class="{{ classes }} scale-with-grid" width="{{ width }}" height="{{ height }}" alt="{{ image.title }}" {% if isLazy %}loading="lazy"{% else %}fetchpriority="high"{% endif %} decoding="async" {% if isLazy %} src="{{ placeholderUrl }}" data-src="{{ firstUrl }}" data-srcset="{{ srcsetItems|join(', ') }}" data-sizes="auto" {% else %} src="{{ firstUrl }}" srcset="{{ srcsetItems|join(', ') }}" sizes="{{ sizes }}" {% endif %} {% for name, value in attr %} {{ name }}="{{ value }}" {% endfor %}>
+				</picture>
+			{% endif %}
+
+		{% else %}
+			{{ image.getImg({ width: width, height: height }) }}
+		{% endif %}
+
+	{% else %}
+		<img src="https://placehold.co/{{ width }}x{{ height }}" width="{{ width }}" height="{{ height }}" alt="Placeholder" class="{{ classes }}" {% for name, value in attr %} {{ name }}="{{ value }}" {% endfor %}>
+	{% endif %}
+{% endmacro %}
+
+
+{# =========================================================
+  SINGLE IMAGE
+========================================================= #}
+{% macro singleImg(image, size = 200, options = {}, classes = '', attr = {}) %}
+
+	{% set options = {
+        allowUpscale: false,
+		mode: 'crop',
+		jpegQuality: 80,
+		interlace: 'line',
+		lazy: true
+	}|merge(options) %}
+
+	{% set width = size|round(0,'floor') %}
+	{% set ratio = options.ratio ?? (image ? image.width / image.height : null) %}
+	{% set height = ratio ? (width / ratio)|round(0,'floor') : null %}
+
+	{% if image %}
+		{% set ext = image.extension|lower %}
+		{% set isLazy = options.lazy and ('no-lazy' not in classes) %}
+		{% if isLazy and 'lazyload' not in classes %}
+			{% set classes = classes ~ ' lazyload' %}
+		{% endif %}
+
+		{% if ext in ['svg','gif'] %}
+			<img src="{{ image.url }}" width="{{ width }}" {% if height %}height="{{ height }}"{% endif %} class="{{ classes }} scale-with-grid" alt="{{ image.title }}" {% for name, value in attr %} {{ name }}="{{ value }}" {% endfor %}>
+
+		{% else %}
+			{% set transform = {
+				width: width,
+				height: height,
+				mode: options.mode,
+				quality: options.jpegQuality,
+				interlace: options.interlace,
+				upscale: false
+			} %}
+
+			{% set url = image.getUrl(transform) %}
+
+			{% if url %}
+				{% set placeholderUrl = image.getUrl({ width: 30, quality: 30 }) ?: url %}
+				{% set webp = (craft.app.images.supportsWebP and ext != 'webp') ? image.getUrl(transform|merge({format:'webp'})) : null %}
+				<picture>
+					{% if webp %}<source {% if isLazy %} data-srcset="{{ webp|raw }}" {% else %} srcset="{{ webp|raw }}" {% endif %} type="image/webp">
+					{% endif %}
+					<img {% if isLazy %} src="{{ placeholderUrl }}" data-src="{{ url }}" {% else %} src="{{ url }}" {% endif %} width="{{ width }}" {% if height %}height="{{ height }}"{% endif %} class="{{ classes }} scale-with-grid" alt="{{ image.title }}" {% if isLazy %}loading="lazy"{% else %}fetchpriority="high"{% endif %} decoding="async" {% for name, value in attr %} {{ name }}="{{ value }}" {% endfor %}>
+				</picture>
+			{% endif %}
+		{% endif %}
+	{% else %}
+		<img src="https://placehold.co/{{ width }}x{{ height }}" width="{{ width }}" height="{{ height }}" class="{{ classes }}" alt="Placeholder" {% for name, value in attr %} {{ name }}="{{ value }}" {% endfor %}>
+	{% endif %}
+{% endmacro %}
+
+
+{# =========================================================
+  TRANSFORM OR PLACEHOLDER
+========================================================= #}
+{% macro transformOrPlaceholder(image, settings, attr = {}, sizes = "100vw", classes = '') %}
+
+	{% set settings = { 
+		quality: 80,
+		lazy: true 
+	}|merge(settings) %}
+	{% set width  = settings.width  ?? settings.height ?? 800 %}
+	{% set height = settings.height ?? settings.width ?? 450 %}
+
+	{% if image %}
+		{% set isLazy = settings.lazy and ('no-lazy' not in classes) %}
+		{% if isLazy and 'lazyload' not in classes %}
+			{% set classes = classes ~ ' lazyload' %}
+		{% endif %}
+		{% set url = image.getUrl(settings) %}
+
+		{% if url %}
+			{% set placeholderUrl = image.getUrl({ width: 30, quality: 30 }) ?: url %}
+			{% set webp = (craft.app.images.supportsWebP and image.extension|lower != 'webp') ? image.getUrl(settings|merge({format:'webp'})) : null %}
+
+			<picture>
+				{% if webp %}<source {% if isLazy %} data-srcset="{{ webp|raw }}" {% else %} srcset="{{ webp|raw }}" {% endif %} type="image/webp">
+				{% endif %}
+				<img {% if isLazy %} src="{{ placeholderUrl }}" data-src="{{ url }}" {% else %} src="{{ url }}" {% endif %} width="{{ width }}" height="{{ height }}" class="{{ classes }} scale-with-grid" alt="{{ image.title }}" {% if isLazy %}loading="lazy"{% else %}fetchpriority="high"{% endif %} decoding="async" {% for name, value in attr %} {{ name }}="{{ value }}" {% endfor %}>
+			</picture>
+		{% endif %}
+	{% elseif width and height %}
+		<img src="https://placehold.co/{{ width }}x{{ height }}" width="{{ width }}" height="{{ height }}" alt="Placeholder" class="{{ classes }}" {% for name, value in attr %} {{ name }}="{{ value }}" {% endfor %}>
+	{% endif %}
+{% endmacro %}
+
+{# =========================================================
+  BACKGROUND IMAGE URL (WEBP)
+========================================================= #}
+{% macro bgImageUrl(image, width = 1920, quality = 80) %}
+	{% if image %}
+		{% set ext = image.extension|lower %}
+		{% if ext in ['svg', 'gif'] %}
+			{{ image.url }}
+		{% else %}
+			{% set webpUrl = (craft.app.images.supportsWebP and ext != 'webp') ? image.getUrl({width: width, format: 'webp', quality: quality}) : image.url %}
+			{{ webpUrl ?: image.url }}
+		{% endif %}
+	{% endif %}
+{% endmacro %}

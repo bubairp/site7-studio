@@ -1,0 +1,53 @@
+{% set categories = craft.entries().section('blogCategories').all() %}
+{% set selectedCategory = craft.app.request.getParam('category') %}
+{% set searchTerm = craft.app.request.getParam('search')|trim %}
+{# Submit back to the current listing page rather than a hardcoded "/blogs"
+   (that URL does not exist on this site and 404s). #}
+{% set currentUrl = siteUrl(craft.app.request.pathInfo) %}
+
+<div class="w-full mb-6">
+	<div class="bg-secondary p-4 rounded-xl border border-gray-200 shadow-sm">
+		<form name="blogSearch" id="blogSearch" action="{{ currentUrl }}" method="GET">
+
+			{% set inputClass = 'block w-full h-[44px] px-4 py-2.5 text-[0.95rem] text-gray-700 bg-white border border-gray-200 rounded-lg transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none' %}
+
+			<div class="grid grid-cols-12 gap-3 items-center">
+				{# Search Input #}
+				<div class="col-span-12 lg:col-span-6">
+					<div class="relative">
+						<i class="ti ti-search absolute top-1/2 start-4 -translate-y-1/2 tw-text-muted text-lg"></i>
+						<input class="{{ inputClass }} ps-11" type="search" name="search" placeholder="Enter keyword" value="{{ searchTerm }}">
+					</div>
+				</div>
+
+				{# Category Select #}
+				<div class="col-span-12 lg:col-span-3">
+					<select name="category" class="{{ inputClass }} pe-10 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3csvg%20xmlns%3d%22http%3a%2f%2fwww.w3.org%2f2000%2fsvg%22%20viewBox%3d%220%200%2016%2016%22%3e%3cpath%20fill%3d%22none%22%20stroke%3d%22%23343a40%22%20stroke-linecap%3d%22round%22%20stroke-linejoin%3d%22round%22%20stroke-width%3d%222%22%20d%3d%22m2%205%206%206%206-6%22%2f%3e%3c%2fsvg%3e')] bg-no-repeat bg-[position:right_1rem_center] bg-[size:16px_12px]" onchange="this.form.submit()">
+						<option value="">All categories</option>
+						{% if categories | length %}
+							{% for category in categories %}
+								<option value="{{ category.slug }}" {{ selectedCategory and selectedCategory == category.slug ? 'selected' : '' }}>{{ category.title | raw }}</option>
+							{% endfor %}
+						{% endif %}
+					</select>
+				</div>
+
+				{# Search Button #}
+				<div class="col-span-6 lg:col-span-2">
+					<button type="submit" class="tw-btn tw-btn-primary w-full h-[44px] flex items-center justify-center gap-2" aria-label="Search">
+						<i class="ti ti-search text-lg"></i>
+						<span class="hidden sm:inline">Search</span>
+					</button>
+				</div>
+
+				{# Reset Button #}
+				<div class="col-span-6 lg:col-span-1">
+					<a href="{{ currentUrl }}" class="tw-btn tw-btn-dark w-full h-[44px] flex items-center justify-center gap-2" aria-label="Reset" title="Reset">
+						<i class="ti ti-restore text-lg"></i>
+						<span class="inline lg:hidden">Reset</span>
+					</a>
+				</div>
+			</div>
+		</form>
+	</div>
+</div>

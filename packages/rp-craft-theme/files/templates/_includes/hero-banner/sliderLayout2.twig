@@ -1,0 +1,112 @@
+{% import '_components/ctaButton' as buttons %}
+{% import "_macros/images" as images %}
+
+
+{% if heroBannerSliders | length  >0 %}
+	<style>
+		.hero-slider-2 .swiper-wrapper {
+			align-items: stretch !important;
+		}
+		.hero-slider-2 .swiper-slide {
+			height: auto !important;
+			display: flex !important;
+			flex-direction: column !important;
+		}
+		.hero-slider-2 .tw-bg-neutral {
+			flex: 1 1 auto !important;
+			width: 100% !important;
+		}
+	</style>
+	<section
+		class="relative top-0 inset-s-0 py-0 w-full h-full hero-slider-2" data-theme="light">
+		<!-- Background image slider -->
+		<div class="swiper swiper-scale-effect" data-swiper-options='{"effect": "fade","speed": 800,"autoplay": {"delay": 7000,"disableOnInteraction": false},"pagination": {"el": ".swiper-pagination","clickable": true}}'>
+			<div class="swiper-wrapper">
+				{% for heroBannerSlider in heroBannerSliders %}
+
+					{% set heroBannerSliderHeading = heroBannerSlider.heading %}
+					{% set heroBannerSliderDisplayTitle = heroBannerSlider.displayTitle %}
+					{% set heroBannerSliderSubtitle = heroBannerSlider.subtitle %}
+					{% set heroBannerSliderSwitchOffDes = heroBannerSlider.switchOffDes %}
+					{% set heroBannerSliderDescription = heroBannerSlider.description %}
+					{% set heroBannerSliderImageVideo = heroBannerSlider.imageVideo.one() %}
+					{% set heroBannerSliderImage = heroBannerSlider.image.one() %}
+					{% set heroBannerSliderColorData = heroBannerSlider.colorLibrary.one() %}
+					{% set heroBannerSliderColor = heroBannerSliderColorData.plainText ?? null %}
+					{% set heroBannerSliderColorCode = heroBannerSliderColorData.colorcode ?? null %}
+					{% set heroBannerSliderButton = heroBannerSlider.button %}
+					{% set heroBannerSliderStyles = heroBannerSliderColorCode ? 'background-color: ' ~ heroBannerSliderColorCode ~ ' !important;' : '' %}
+
+					{% set heroBannerThemeDark = heroBannerSlider.themeDark ?? false %}
+					{% set textClass = heroBannerThemeDark ? 'text-white' : 'text-black' %}
+					{% set subtitleBgClass = heroBannerThemeDark ? 'bg-white/20' : 'bg-black/10' %}
+
+					{% set heroBannerSliderDisplayCheckList = heroBannerSlider.displayCheckList ?? null %}
+					{% set heroBannerSliderCheckListShow = heroBannerSlider.checkListShowTable ?? null %}
+					{% set heroBannerSliderIntroduction = heroBannerSlider.introduction ?? null %}
+
+					<div class="swiper-slide">
+						<div class="tw-bg-neutral w-full h-full flex relative overflow-hidden" style="{{ heroBannerSliderStyles }}" data-theme="{{ heroBannerThemeDark ? 'dark' : 'light' }}">
+							
+							{% if heroBannerSliderImageVideo %}
+								{% if heroBannerSliderImageVideo.kind == 'video' %}
+									<video class="absolute inset-0 w-full h-full object-cover opacity-50 z-0 pointer-events-none" autoplay loop muted="muted" playsinline>
+										<source src="{{ heroBannerSliderImageVideo.url }}" type="{{ heroBannerSliderImageVideo.mimeType }}">
+									</video>
+								{% elseif heroBannerSliderImageVideo.kind == 'json' %}
+									{% set embedded = craft.embeddedAssets.get(heroBannerSliderImageVideo) %}
+									{% if embedded %}
+										<div class="absolute inset-0 w-full h-full opacity-50 z-0 pointer-events-none overflow-hidden [&>iframe]:absolute [&>iframe]:top-1/2 [&>iframe]:left-1/2 [&>iframe]:-translate-x-1/2 [&>iframe]:-translate-y-1/2 [&>iframe]:w-[max(100vw,177.77vh)] [&>iframe]:h-[max(100vh,56.25vw)] [&>iframe]:max-w-none">{{ embedded.getIframeCode(['autoplay=1', 'loop=1', 'muted=1', 'mute=1', 'controls=0', 'background=1'])|raw }}</div>
+									{% endif %}
+								{% else %}
+									<div class="absolute inset-0 w-full h-full bg-cover bg-center z-0" style="background-image: url('{{ images.bgImageUrl(heroBannerSliderImageVideo)|trim }}');"></div>
+								{% endif %}
+							{% endif %}
+
+							<div class="container mx-auto px-4 flex flex-col justify-center h-full relative z-10 py-10 md:py-12 lg:py-16 xl:py-20">
+								<div class="grid grid-cols-12 gap-4 items-center py-2 h-full">
+									{% if heroBannerSliderImage %}
+										<div class="col-span-12 lg:col-span-6 lg:order-2 lg:ps-6 mb-2 lg:mb-0">
+											<div class="parallax lg:order-2 mx-auto" style="max-width: 740px;">
+												<div class="parallax-layer" data-depth="0.05">{{ images.singleImg(heroBannerSliderImage, 650, {}, 'hero') }}</div>
+											</div>
+										</div>
+									{% endif %}
+									<div class="col-span-12 lg:col-span-6 lg:order-1 text-center lg:text-left xl:pe-12">
+										{% if heroBannerSliderDisplayTitle %}
+											<span class="inline-flex items-center px-4 py-1 tw-text-md font-semibold rounded-full {{ subtitleBgClass }} {{ textClass }} border-none">{{ heroBannerSliderSubtitle }}</span>
+										{% endif %}
+										{% set bannerHeadingTag = loop.first ? 'h1' : 'h2' %}
+										<{{ bannerHeadingTag }} class="text-3xl md:text-4xl lg:text-5xl font-bold py-3 my-2 {{ textClass }}">{{heroBannerSliderHeading}}</{{ bannerHeadingTag }}>
+										{% if heroBannerSliderSwitchOffDes %}
+											<div class="text-lg pb-2 lg:pb-4 {{ textClass }}">{{ heroBannerSliderDescription }}</div>
+										{% endif %}
+										{% if heroBannerSliderDisplayCheckList is defined and heroBannerSliderDisplayCheckList  and heroBannerSliderCheckListShow | length >0 %}<ul class="list-none table text-left mx-auto lg:mx-0 mb-0">
+												{% for checkListShow in heroBannerSliderCheckListShow %}
+													<li class="flex {{ textClass }} pb-2 mb-1">
+														{% if checkListShow.iconClass is defined and checkListShow.iconClass %}
+															<i class="{{ checkListShow.iconClass }} text-primary text-2xl -mt-1 me-2"></i>
+														{% endif %}
+														{% if checkListShow.title is defined and checkListShow.title %}
+															{{ checkListShow.title }}
+														{% endif %}
+													</li>
+												{% endfor %}
+											</ul>
+										{% endif %}
+
+										<div class="flex flex-wrap justify-center lg:justify-start gap-3">{{ buttons.renderButton(heroBannerSliderButton,{ },'') }}</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+				{% endfor %}
+			</div>
+			<div class="swiper-pagination swiper-pagination-overlay mb-6" style="--swiper-bullet-bg: rgba(255,255,255,0.4); --swiper-bullet-active-bg: #ffffff;"></div>
+		</div>
+
+	</section>
+
+{% endif %}

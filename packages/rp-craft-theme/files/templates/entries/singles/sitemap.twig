@@ -1,0 +1,56 @@
+{% extends "_layouts/matrix-content" %}
+
+{% set title = entry.title ?? '' %}
+{% set heading = entry.heading ?? '' %}
+{% set headingTags = entry.headingTags ?? 'h2' %}
+{% set align = entry.align ?? 'left' %}
+{% set contentData = entry.contentdata ?? '' %}
+{% set blockStyle = entry.blockStyle ?? [] %}
+{% set blockType = entry.type.handle ?? '' %}
+{% set blockTypeUid = entry.uid  ?? '' %}
+{% set containerWidth = "container" %}
+{% set themeSwitche = "" %}
+
+{% block before_content_matrix %}
+	{% set cache_key_cs = 'cs' ~ '-' ~ entry.id ~ '-' ~ entry.dateUpdated.timestamp %}
+	{% cache using key cache_key_cs   %}
+	{% if blockStyle is defined and blockStyle|length %}
+		{% set blockStyleData = blockStyle.one() %}
+		{% set blockCssClasses = blockStyleData.cssClasses ?? '' %}
+
+
+		{% if blockStyleData.containerWidth is defined and blockStyleData.containerWidth.value|length %}
+			{% import "_macros/layout" as layout %}
+			{% set containerWidth = layout.getContainerClass(blockStyleData.containerWidth.value) %}
+
+			{% if blockStyleData.background is defined and blockStyleData.background.themeDark is defined %}
+				{% set themeSwitche = blockStyleData.background.one().themeDark ?? null %}
+			{% endif %}
+		{% endif %}
+	{% endif %}
+
+	{% set isformBackground = entry.formBackground ?? false %}
+	{% set isformBorderRadius = entry.formBorderRadius ?? false %}
+	{% set iscontactBoxBorderRadius = entry.contactBoxBorderRadius ?? false %}
+	{% endcache %}
+
+	<div class="sitemap-body py-10 md:py-12 lg:py-16 {{ blockType }}{{ entry.id }}-style" data-theme="{{ themeSwitche ? 'dark' : 'light' }}">
+		<div class="{{ containerWidth|replace({'container-small': 'max-w-4xl mx-auto px-4', 'container': 'container mx-auto px-4'}) }}">
+			<div>
+				{% if not entry.featureImage|length %}
+					<h1 class="block-heading-title">{{ entry.title }}</h1>
+					{% if entry.shortDescription|length %}{% endif %}
+				{% endif %}
+			</div>
+
+			<div>
+				<div class="sitemap-listing">{{ craft.sitemap.render() }}</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}
+
+{% block before_end_body_tag %}
+	{{ parent() }}
+	{{ craft.vite.script('src/js/pages/sitemap.js') }}
+{% endblock %}

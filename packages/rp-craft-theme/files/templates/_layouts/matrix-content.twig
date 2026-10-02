@@ -1,0 +1,38 @@
+{% extends "_layouts/entry" %}
+
+{% block header_banner %}
+	{% cache using key 'std-hero-' ~ entry.id ~ '-' ~ entry.dateUpdated.timestamp %}
+	{% if entry.standardBannerSlider is defined and entry.standardBannerSlider %}
+		{% set standardBannerSliders = entry.standardBannerSlider.all() %}
+		{% if standardBannerSliders | length  >0 %}
+			<div class="header-banner">
+				{% include "_includes/page-banner/standard-banner"%}
+			</div>
+		{% endif %}
+	{% endif %}
+	{% endcache %}
+
+{% endblock %}
+
+{% block content %}
+	{% block content_title %}
+		{% if not entry.hideTitleHere and entry.h1Title|length %}
+			<div class="{{ entry.titleContainerWidth.value|replace({'container-small': 'max-w-4xl', 'container': 'container mx-auto px-4'}) }} py-10 md:py-12 lg:py-16">
+				<h1 class="block-heading-title mb-0 text-{{ entry.titleAlign.value }}">{{ entry.h1Title}}</h1>
+			</div>
+		{% endif %}
+	{% endblock %}
+
+	{% block before_content_matrix %}{% endblock %}
+	{% block content_matrix %}
+		{% include "_includes/matrix-container" with {
+            cache_key: 'entry-' ~ entry.id
+        } %}
+		{% include "_includes/matrix-container" with {
+            matrixContainer: entry.site7Components ?? null,
+            cache_key: 'entry-' ~ entry.id ~ '-site7components',
+            id_prefix: 'site7-'
+        } %}
+	{% endblock %}
+	{% block after_content_matrix %}{% endblock %}
+{% endblock %}

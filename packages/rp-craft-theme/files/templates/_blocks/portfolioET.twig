@@ -1,0 +1,11 @@
+{% cache %}
+{% set portfolioEntries = craft.entries()
+            .section('portfolios')
+            .all() 
+%}
+{% for portfolio in portfolioEntries %}
+	{% set portfolioTitle = portfolio.title %}
+	{% set portfolioData = portfolio.portfolioMatrix %}
+	{{ portfolioData }}
+{% endfor %}
+{% endcache %}

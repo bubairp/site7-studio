@@ -1,0 +1,351 @@
+{% extends "_layouts/entry" %}
+{% import "_macros/images" as images %}
+{% import "_macros/ratings" as ratings %}
+{% import '_components/ctaButton' as buttons %}
+
+{# Fetch Product with Eager Loading #}
+{% set product = craft.entries()
+    .section('products')
+    .slug(craft.app.request.segment(2))
+    .with(['image', 'images', 'featureImage', 'tags', 'productCategory', 'selectAuthor', 'selectAuthor.image'])
+    .one() %}
+
+{% set productImages = [] %}
+{% if product.image|length %}
+	{% set productImages = productImages|merge(product.image.all()) %}
+{% endif %}
+{% if product.images is defined and product.images|length %}
+	{% set productImages = productImages|merge(product.images.all()) %}
+{% endif %}
+{% set featureItems = product.featureItemTable ?? [] %}
+{% set productButton = product.button.all() %}
+{% set author = product.selectAuthor.one() ?? null %}
+{% set category = product.productCategory.one() ?? null %}
+
+{# Calculate Average Rating #}
+{% set reviews = craft.entries().section('productReview').relatedTo({ targetElement: product.id, field: 'singleSelect' }).status('live').all() %}
+{% set totalRate = 0 %}
+{% set reviewCount = reviews|length %}
+{% for review in reviews %}
+	{% set totalRate = totalRate + (review.rate ?? 0) %}
+{% endfor %}
+{% set averageRating = reviewCount > 0 ? (totalRate / reviewCount)|number_format(1) : '0.0' %}
+
+{% block structured_data %}
+	{% if product %}
+		{% set thumbImg = product.image|length ? product.image.one() : null %}
+
+		{% set data = {
+			"@context": "https://schema.org",
+			"@type": "Product",
+			"name": product.title,
+			"description": product.productDiscription ?? ''
+		} %}
+
+		{% if thumbImg %}
+			{% set data = data|merge({ "image": [ thumbImg.url ] }) %}
+		{% endif %}
+
+		<script type="application/ld+json">
+			{{ data|json_encode(constant('JSON_UNESCAPED_SLASHES'))|raw }}
+		</script>
+	{% endif %}
+{% endblock %}
+
+{% block content %}
+	{% if product %}
+		{% set pageStyle = product.pageStyle.one() %}
+		{% set themeSwitche = pageStyle.themeColor ?? null %}
+		{% from '_macros/page-style' import psClasses, psStyle, psResponsive %}
+
+		<div class="{{ psClasses(product.pageStyle) }} entry-{{ product.id }}-style" style="{{ psStyle(product.pageStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}">{{ psResponsive(product.pageStyle, '.entry-' ~ product.id ~ '-style') }}
+
+			{# Breadcrumbs Section - Full Width Header #}
+			<div class="bg-gray-100 dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/50">
+				{% include "_components/breadcrumbs" with { element: product, hideSectionLink: true } %}
+			</div>
+
+			<section class="product-details-top relative py-10 md:py-12 lg:py-16 overflow-hidden bg-slate-50 dark:bg-slate-900">
+				<div class="container mx-auto relative z-10">
+					<div
+						class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-start">
+
+						{# Left Column: Images & Gallery (Standard e-commerce layout) #}
+						<div class="col-span-12 lg:col-span-5">
+							<div class="relative book-cover-wrapper max-w-[320px] sm:max-w-[360px] lg:max-w-none mx-auto lg:mx-0">
+								{% if productImages|length > 1 %}
+									<!-- Main Swiper Gallery -->
+									<div class="swiper gallery main-swiper-{{ product.id }} aspect-square w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-white dark:border-slate-800 relative z-20" data-swiper-options='{ "loop": true, "spaceBetween": 16, "navigation": { "nextEl": ".swiper-button-next-{{ product.id }}", "prevEl": ".swiper-button-prev-{{ product.id }}" }, "thumbs": { "swiper": "#thumbs-swiper-{{ product.id }}" } }'>
+										<div class="swiper-wrapper h-full">
+											{% for image in productImages %}
+												{% if image %}
+													<div class="swiper-slide h-full">
+														<a class="group relative block gallery-item overflow-hidden rounded-2xl cursor-pointer w-full h-full" href="{{ image.url }}">
+															<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-2xl">
+																<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+															</div>
+															<div class="overflow-hidden rounded-2xl w-full h-full">
+																{{ images.singleImg(image, 600, {'ratio': 1}, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500') }}
+															</div>
+														</a>
+													</div>
+												{% endif %}
+											{% endfor %}
+										</div>
+										<div class="swiper-button-next swiper-button-next-{{ product.id }} !text-white bg-black/30 hover:bg-black/50 w-10 h-10 rounded-full transition-all duration-300 after:!text-base"></div>
+										<div class="swiper-button-prev swiper-button-prev-{{ product.id }} !text-white bg-black/30 hover:bg-black/50 w-10 h-10 rounded-full transition-all duration-300 after:!text-base"></div>
+									</div>
+
+									<!-- Thumbs Swiper -->
+									<div id="thumbs-swiper-{{ product.id }}" thumbsslider="" class="swiper mt-4" data-swiper-options='{ "loop": false, "spaceBetween": 10, "slidesPerView": 4, "freeMode": true, "watchSlidesProgress": true }'>
+										<div class="swiper-wrapper">
+											{% for image in productImages %}
+												{% if image %}
+													<div class="swiper-slide cursor-pointer opacity-60 [&.swiper-slide-thumb-active]:opacity-100 transition-all duration-300 rounded-xl overflow-hidden aspect-square border-2 border-transparent [&.swiper-slide-thumb-active]:border-primary">
+														{{ images.singleImg(image, 150, {'ratio': 1}, 'w-full h-full object-cover') }}
+													</div>
+												{% endif %}
+											{% endfor %}
+										</div>
+									</div>
+								{% elseif productImages|length == 1 %}
+									<div class="gallery">
+										<a class="group relative block gallery-item overflow-hidden rounded-3xl cursor-pointer aspect-square w-full shadow-2xl border-4 border-white dark:border-slate-800" href="{{ productImages[0].url }}">
+											<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-2xl">
+												<i class="ti ti-zoom-in text-3xl text-white transform scale-90 group-hover:scale-100 transition-transform duration-300"></i>
+											</div>
+											<div class="overflow-hidden rounded-2xl w-full h-full">
+												{{ images.singleImg(productImages[0], 600, {'ratio': 1}, 'w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500') }}
+											</div>
+										</a>
+									</div>
+								{% endif %}
+							</div>
+						</div>
+
+						{# Right Column: Details & Actions #}
+						<div class="col-span-12 lg:col-span-7 flex flex-col justify-center">
+							{% if category %}
+								<div class="mb-2">
+									<span class="inline-block px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 dark:bg-primary/20 dark:text-primary-light rounded-md">
+										{{ category.title }}
+									</span>
+								</div>
+							{% endif %}
+
+							<h1 class="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2">{{ product.title }}</h1>
+
+							{# Rating Card Widget #}
+							<div class="flex items-center bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 rounded-xl p-2.5 px-4 shadow-sm max-w-sm mb-4">
+								<div class="flex items-center gap-1.5 pe-4 border-e border-slate-200 dark:border-slate-700">
+									<div class="text-warning scale-100">{{ ratings.stars(averageRating, '18px') }}</div>
+									<span class="text-sm font-bold text-slate-900 dark:text-white ms-1">{{ averageRating }}</span>
+								</div>
+								<div class="ps-4">
+									<a href="#reviews-section" data-scroll data-scroll-offset="80" class="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-primary transition-colors underline">
+										{{ '({0} reviews)'|t(reviewCount) }}
+									</a>
+								</div>
+							</div>
+
+							{# Metadata Chips Grid #}
+							<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+								{% if author %}
+									<div class="flex items-center gap-3 p-2.5 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50">
+										{% set authorImg = author.image.one() ?? null %}
+										{% if authorImg %}
+											{{ images.singleImg(authorImg, 36, {'ratio': 1}, 'w-9 h-9 rounded-full object-cover shadow-sm') }}
+										{% else %}
+											<div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-sm">
+												<i class="ti ti-user text-lg"></i>
+											</div>
+										{% endif %}
+										<div>
+											<div class="text-[9px] uppercase font-bold tracking-wider text-slate-400">{{ 'Author'|t }}</div>
+											<div class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[100px]">{{ author.title }}</div>
+										</div>
+									</div>
+								{% elseif category %}
+									<div class="flex items-center gap-3 p-2.5 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50">
+										<div class="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shadow-sm">
+											<i class="ti ti-folder text-lg"></i>
+										</div>
+										<div>
+											<div class="text-[9px] uppercase font-bold tracking-wider text-slate-400">{{ 'Category'|t }}</div>
+											<div class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[100px]">{{ category.title }}</div>
+										</div>
+									</div>
+								{% endif %}
+
+								{% if product.publishDate %}
+									<div class="flex items-center gap-3 p-2.5 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50">
+										<div class="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shadow-sm">
+											<i class="ti ti-calendar text-lg"></i>
+										</div>
+										<div>
+											<div class="text-[9px] uppercase font-bold tracking-wider text-slate-400">{{ 'Published'|t }}</div>
+											<div class="text-xs font-bold text-slate-900 dark:text-white">{{ product.publishDate|date('Y') }}</div>
+										</div>
+									</div>
+								{% elseif product.tags|length %}
+									<div class="flex items-center gap-3 p-2.5 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50">
+										<div class="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shadow-sm">
+											<i class="ti ti-tag text-lg"></i>
+										</div>
+										<div>
+											<div class="text-[9px] uppercase font-bold tracking-wider text-slate-400">{{ 'Tag'|t }}</div>
+											<div class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[100px]">{{ product.tags[0].title }}</div>
+										</div>
+									</div>
+								{% endif %}
+
+								{% if product.publisher %}
+									<div class="flex items-center gap-3 p-2.5 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50">
+										<div class="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shadow-sm">
+											<i class="ti ti-book text-lg"></i>
+										</div>
+										<div>
+											<div class="text-[9px] uppercase font-bold tracking-wider text-slate-400">{{ 'Publisher'|t }}</div>
+											<div class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[100px]">{{ product.publisher }}</div>
+										</div>
+									</div>
+								{% endif %}
+							</div>
+
+							{# Description Paragraph #}
+							<div class="prose prose-slate dark:prose-invert max-w-none text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+								{{ product.productDiscription|raw|nl2br }}
+							</div>
+
+							{# CTA Action row #}
+							<div class="flex flex-wrap gap-4 items-center pt-4 pb-4 border-t border-b border-slate-200/60 dark:border-slate-800/80 mb-4">
+								{% if productButton|length %}
+									<div class="btn-group-custom shrink-0">
+										{{ buttons.renderButton(productButton) }}
+									</div>
+								{% endif %}
+
+								{% if product.switchOn %}
+									<button class="flex items-center justify-center w-11 h-11 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-primary transition-all duration-300 shadow-sm" aria-label="Share" onclick="if(navigator.share){ navigator.share({ title: '{{ product.title|escape('js') }}', url: window.location.href }); } else { navigator.clipboard.writeText(window.location.href); alert('Link copied!'); }">
+										<i class="ti ti-share text-lg"></i>
+									</button>
+								{% endif %}
+							</div>
+
+							{# Product Specifications / Highlights (featureItemTable) #}
+							{% if featureItems|length %}
+								<div class="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 rounded-xl p-4 shadow-sm">
+									<h4 class="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 border-b border-slate-100 dark:border-slate-700/50 pb-1.5 flex items-center gap-2">
+										<i class="ti ti-list text-primary text-xs"></i>
+										{{ author or product.publisher ? 'Book Specifications'|t : 'Product Specifications'|t }}
+									</h4>
+									<div class="space-y-2">
+										{% for row in featureItems %}
+											<div class="flex justify-between items-center text-xs pb-1.5 border-b border-slate-50 dark:border-slate-700/30 last:border-0 last:pb-0">
+												<span class="text-slate-500 dark:text-slate-400 font-medium">{{ row.item ?? row.col1 ?? '' }}</span>
+												<span class="text-slate-900 dark:text-white font-bold text-right">{{ row.quantity ?? row.col2 ?? '' }}</span>
+											</div>
+										{% endfor %}
+									</div>
+								</div>
+							{% endif %}
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{# About the Author Showcase Section #}
+			{% if author %}
+				<section class="author-section py-10 md:py-12 lg:py-16 bg-slate-50 dark:bg-slate-900/50 border-t border-b border-slate-200/50 dark:border-slate-800/50">
+					<div class="container mx-auto px-4 max-w-4xl">
+						<h3 class="text-2xl font-bold mb-6 text-slate-900 dark:text-white text-center">{{ 'About the Author'|t }}</h3>
+						<div class="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-8 shadow-md border border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row gap-6 md:gap-8 items-center">
+							{% set authorImg = author.image.one() ?? null %}
+							<div class="shrink-0">
+								{% if authorImg %}
+									<a href="{{ author.url }}" class="block hover:scale-105 transition-transform duration-300">
+										{{ images.singleImg(authorImg, 120, {'ratio': 1}, 'rounded-full border-4 border-slate-100 dark:border-slate-700 shadow-md') }}
+									</a>
+								{% else %}
+									<div class="rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center shadow-md w-[120px] h-[120px]">
+										<i class="ti ti-user text-6xl text-slate-400 dark:text-slate-500"></i>
+									</div>
+								{% endif %}
+							</div>
+							<div class="flex-1 text-center md:text-left">
+								<h4 class="text-xl font-bold mb-2 text-slate-900 dark:text-white">
+									<a href="{{ author.url }}" class="hover:text-primary transition-colors">{{ author.title }}</a>
+								</h4>
+								{% if author.shortDescription is defined %}
+									<p class="text-slate-600 dark:text-slate-300 leading-relaxed text-base mb-4">{{ author.shortDescription }}</p>
+								{% endif %}
+								<div>
+									<a href="{{ author.url }}" class="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline">
+										{{ 'View Profile & Books'|t }}
+										<i class="ti ti-arrow-right"></i>
+									</a>
+								</div>
+							</div>
+						</div>
+					</div>
+				</section>
+			{% endif %}
+
+			{# Matrix Content (Includes Video) #}
+			<section class="bg-white dark:bg-slate-900">
+				{% include "_includes/matrix-container" with {
+					entry: product,
+					cache_key: 'entry-' ~ product.id
+				} %}
+			</section>
+
+			{# Reviews Section #}
+			<section id="reviews-section" class="py-10 md:py-12 lg:py-16 bg-slate-50 dark:bg-slate-900/50">
+				<div class="container mx-auto py-2 md:py-6">
+					{% if generalEntry.displayProductReview is defined and generalEntry.displayProductReview|length %}
+						{% set activeUserReply = generalEntry.activeUserReplyProduct %}
+						{% include "_components/comments.twig" with { commentHandler: 'productReview', activeUserReply: activeUserReply, pageStyle: pageStyle } %}
+					{% endif %}
+				</div>
+			</section>
+
+
+
+			{# Quote Section #}
+			{% if product.highlightQuote|length %}
+				{% set quoteBgImg = product.image.one() ?? null %}
+				<section
+					class="quote-section py-10 md:py-16 lg:py-20 relative overflow-hidden">
+					{# Background Image Layer #}
+					{% if quoteBgImg %}
+						<div class="absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat bg-fixed" style="background-image: url({{ images.bgImageUrl(quoteBgImg)|trim }});"></div>
+					{% endif %}
+
+					{# Dark Tint Overlay Layer #}
+					<div class="absolute inset-0 z-0 opacity-90 bg-gradient-to-r from-slate-900 to-slate-950"></div>
+
+					<div class="container mx-auto py-10 md:py-12 lg:py-16 relative z-10 text-center text-white flex justify-center">
+						<div class="w-full lg:w-2/3 px-4 max-w-3xl">
+							<i class="ti ti-quote text-5xl text-primary opacity-50 mb-6 inline-block"></i>
+							<div class="text-2xl md:text-3xl font-medium mb-0 leading-relaxed italic">
+								"{{ product.highlightQuote }}"
+							</div>
+							<div class="text-primary font-bold tracking-wider uppercase text-sm mt-4 border-0">—
+								{{ product.title }}</div>
+						</div>
+					</div>
+				</section>
+			{% endif %}
+
+			{# Related Products #}
+			{% cache %}
+			<section class="py-10 md:py-12 lg:py-16 bg-slate-50 dark:bg-slate-900/50">
+				<div class="container mx-auto py-2 md:py-6">
+					<h3 class="font-bold mb-6 text-slate-900 dark:text-white">{{ 'Related Books'|t }}</h3>
+					{% include "_components/_products/relatedProductCarousel.twig" with { product: product } %}
+				</div>
+			</section>
+			{% endcache %}
+		</div>
+	{% endif %}
+{% endblock %}

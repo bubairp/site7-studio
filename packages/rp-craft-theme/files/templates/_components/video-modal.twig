@@ -1,0 +1,46 @@
+{# Alpine.js Video Modal using global store #}
+<div x-data="smoothModal('{{ modalId }}')"
+	x-show="$store.modal.active === '{{ modalId }}'" @keydown.escape.window="$store.modal.close()" class="tw-modal" role="dialog" aria-modal="true" style="display: none;">
+
+	{# Modal Backdrop #}
+	<div x-show="$store.modal.active === '{{ modalId }}'" x-transition.opacity.duration.300ms class="tw-modal__backdrop" aria-hidden="true"></div>
+
+	{# Scroll Container #}
+	<div class="tw-modal__scroll-container" x-ref="scrollWrapper">
+		{# Flex Wrapper #}
+		<div class="tw-modal__dialog-wrapper">
+			<div
+				class="tw-modal__dialog max-w-4xl" @click.away="$store.modal.close()" x-show="$store.modal.active === '{{ modalId }}'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-95 translate-y-4">
+
+				{# Floating Close Button Above Video #}
+				<div class="flex justify-end mb-3 mr-2">
+					<button @click="$store.modal.close()" type="button" class="tw-modal__close" aria-label="Close">
+						<i class="ti ti-x text-xl"></i>
+					</button>
+				</div>
+
+				<div
+					class="tw-modal__content bg-black border border-white/10 overflow-hidden shadow-2xl rounded-2xl">
+
+					{# Video Content #}
+					<div class="tw-modal__body p-0">
+						<div class="aspect-video relative w-full">
+							<template x-if="$store.modal.active === '{{ modalId }}'">
+								{% if theVideo is defined and theVideo %}
+									{% set embedded = craft.embeddedAssets.get(theVideo) %}
+									{% if theVideo.kind == 'json' %}
+										{{ embedded ? embedded.getIframeCode(['autoplay=1', 'class=w-full h-full absolute inset-0'])|raw }}
+									{% else %}
+										<video class="w-full h-full absolute inset-0" controls autoplay>
+											<source src="{{ theVideo.getUrl() }}" type="video/mp4">
+										</video>
+									{% endif %}
+								{% endif %}
+							</template>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

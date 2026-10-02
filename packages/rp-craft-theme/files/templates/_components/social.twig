@@ -1,0 +1,20 @@
+{% import "_macros/images" as images %}
+
+{% if generalEntry.socialMedia %}
+    {% set socialWrapperClass = sizeClass ?? 'w-9 h-9' %}
+    {% set socialIconSize = iconSize ?? 20 %}
+	{% cache using key "social_media_cache_" ~ socialWrapperClass|replace(' ', '_') %}
+        {% set socialMedia = generalEntry.socialMedia.all() %}
+        <div class="flex justify-center">
+            {% for media in socialMedia %}
+                <a class="{{media.elementClass}} {{ socialWrapperClass }} rounded-full border border-solid border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-primary hover:text-white hover:border-primary flex items-center justify-center transition-all duration-300 mx-1 no-underline" href="{{ media.linkUrl ?? media.plainText ?? '#' }}" aria-label="{{media.title}}" style="text-decoration: none !important;">
+                    {% if media.iconImageOrClass == 'iconClass' %}
+                        <i class="{{ media.iconClass }}" {% if iconSize is defined %}style="font-size: {{ iconSize }}px;"{% endif %}></i>
+                    {% elseif media.iconImageOrClass == 'iconImage' %}
+                        {{ images.singleImg(media.iconImage.0, socialIconSize) }}
+                    {% endif %}
+                </a>
+            {% endfor %}
+        </div>
+	{% endcache %}
+{% endif %}

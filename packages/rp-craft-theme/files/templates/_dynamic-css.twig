@@ -1,0 +1,80 @@
+{# =========================================
+   Dynamic CSS
+   Rendered by modules\theme\controllers\CssController
+   ========================================= #}
+
+{% set themeSettings = craft.entries.section('themeSettings').one() %}
+
+{# ---------- Global Colors ---------- #}
+{% set allPrimaryColor   = themeSettings.colorPrimary.one().colorcode ?? null %}
+{% set allSecondaryColor = themeSettings.colorSecondary.one().colorcode ?? null %}
+{% set allInfoColor      = themeSettings.colorInfo.one().colorcode ?? null %}
+{% set allSuccessColor   = themeSettings.colorSuccess.one().colorcode ?? null %}
+{% set allWarningColor   = themeSettings.colorWarning.one().colorcode ?? null %}
+{% set allDangerColor    = themeSettings.colorDanger.one().colorcode ?? null %}
+{% set allLightColor     = themeSettings.colorLight.one().colorcode ?? null %}
+{% set allDarkColor      = themeSettings.colorDark.one().colorcode ?? null %}
+
+{# RGB Versions #}
+{% set allPrimaryColorRgb   = allPrimaryColor ? allPrimaryColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+{% set allSecondaryColorRgb = allSecondaryColor ? allSecondaryColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+{% set allInfoColorRgb      = allInfoColor ? allInfoColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+{% set allSuccessColorRgb   = allSuccessColor ? allSuccessColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+{% set allWarningColorRgb   = allWarningColor ? allWarningColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+{% set allDangerColorRgb    = allDangerColor ? allDangerColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+{% set allLightColorRgb     = allLightColor ? allLightColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+{% set allDarkColorRgb      = allDarkColor ? allDarkColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+
+{# ---------- Body ---------- #}
+{% set fullBodyBgColor        = themeSettings.colorBgBody.one().colorcode ?? null %}
+{% set fullBodyTextColor      = themeSettings.colorTextBody.one().colorcode ?? null %}
+{% set fullBodyLinkColor      = themeSettings.colorLink.one().colorcode ?? null %}
+{% set fullBodyLinkHoverColor = themeSettings.colorLinkHover.one().colorcode ?? null %}
+
+{# Body RGB Versions #}
+{% set fullBodyBgColorRgb        = fullBodyBgColor ? fullBodyBgColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+{% set fullBodyTextColorRgb      = fullBodyTextColor ? fullBodyTextColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+{% set fullBodyLinkColorRgb      = fullBodyLinkColor ? fullBodyLinkColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+{% set fullBodyLinkHoverColorRgb = fullBodyLinkHoverColor ? fullBodyLinkHoverColor.getRgb()|replace({'rgb(': '', ')': ''}) : null %}
+
+{% set fullBodyFontFamily        = themeSettings.fontBody.one().fontFamily ?? '' %}
+{% set fullBodyTextSize          = themeSettings.fontSizeBody ?? '' %}
+{% set fullBodyHeadingFontFamily = themeSettings.fontHeading.one().fontFamily ?? '' %}
+{% set fullBodyButtonFontFamily  = themeSettings.fontButton.one().fontFamily ?? '' %}
+
+{# ---------- Button Shape ---------- #}
+{% set buttonShapeKey = themeSettings.buttonShape.value ?? 'default' %}
+{% set buttonShapeMap = {
+    default: '',
+    softRoundedButton: '0.7rem !important',
+    fullyRoundedButton: '50px !important',
+    squareButton: '0px !important'
+} %}
+{% set fullBodyButtonShape = buttonShapeMap[buttonShapeKey] ?? '' %}
+
+{#  ==== ROOT VARIABLES ==== #}
+
+{% apply replace({"\n": "", "\r": "", "\t": ""})|raw %}
+:root, [data-theme=light] {
+{% if allPrimaryColor %}--primary:{{ allPrimaryColor }};--primary-rgb:{{ allPrimaryColorRgb }};--swiper-theme-color:{{ allPrimaryColor }};{% endif %}
+{% if allSecondaryColor %}--secondary:{{ allSecondaryColor }};--secondary-rgb:{{ allSecondaryColorRgb }};{% endif %}
+{% if allInfoColor %}--info:{{ allInfoColor }};--info-rgb:{{ allInfoColorRgb }};{% endif %}
+{% if allSuccessColor %}--success:{{ allSuccessColor }};--success-rgb:{{ allSuccessColorRgb }};{% endif %}
+{% if allWarningColor %}--warning:{{ allWarningColor }};--warning-rgb:{{ allWarningColorRgb }};{% endif %}
+{% if allDangerColor %}--danger:{{ allDangerColor }};--danger-rgb:{{ allDangerColorRgb }};{% endif %}
+{% if allLightColor %}--light:{{ allLightColor }};--light-rgb:{{ allLightColorRgb }};{% endif %}
+{% if allDarkColor %}--dark:{{ allDarkColor }};--dark-rgb:{{ allDarkColorRgb }};{% endif %}
+{% if fullBodyFontFamily %}--body-font-family:{{ fullBodyFontFamily }};{% endif %}
+{% if fullBodyTextSize %}--body-font-size:{{ fullBodyTextSize }};{% endif %}
+{% if fullBodyHeadingFontFamily %}--heading-font-family:{{ fullBodyHeadingFontFamily }};{% endif %}
+{% if fullBodyButtonFontFamily %}--btn-font-family:{{ fullBodyButtonFontFamily }};{% endif %}
+{% if fullBodyTextColor %}--body-color:{{ fullBodyTextColor }};{% endif %}
+{% if fullBodyBgColor %}--body-bg:{{ fullBodyBgColor }};{% endif %}
+{% if fullBodyLinkColor %}--link-color:{{ fullBodyLinkColor }};{% endif %}
+{% if fullBodyLinkColorRgb %}--link-color-rgb:{{ fullBodyLinkColorRgb }};{% endif %}
+{% if fullBodyLinkHoverColor %}--link-hover-color:{{ fullBodyLinkHoverColor }};{% endif %}
+{% if fullBodyLinkHoverColorRgb %}--link-hover-color-rgb:{{ fullBodyLinkHoverColorRgb }};{% endif %}
+{% if fullBodyButtonShape %}--btn-border-radius:{{ fullBodyButtonShape }};{% endif %}
+}
+{% if fullBodyHeadingFontFamily %}h1,.h1,h2,.h2,h3,.h3,h4,.h4,h5,.h5,h6,.h6,.block-heading-title{font-family:{{ fullBodyHeadingFontFamily }};}{% endif %}
+{% endapply %}

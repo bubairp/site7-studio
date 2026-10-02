@@ -1,0 +1,40 @@
+{% import '_macros/images' as images %}
+
+{% set casestudy = casestudy ?? caseStudy ?? null %}
+
+<div class="swiper-slide h-auto pb-1">
+	<article class="masonry-grid-item h-full">
+		<div class="tw-card card-hover flex flex-col h-full group relative">
+			{% if casestudy.image|length %}
+				<a href="{{ casestudy.url }}" class="block overflow-hidden rounded-t-2xl md:rounded-t-3xl">
+					<div>{{ images.singleImg(casestudy.image.0, 420, {'ratio': 1.55}, 'shrink-0 w-full object-cover transition-transform duration-500 group-hover:scale-105') }}</div>
+				</a>
+			{% endif %}
+			<div class="tw-card-body flex-grow p-6">
+				<h3 class="text-xl font-bold mb-3">
+					<a href="{{ casestudy.url }}" class="text-inherit no-underline hover:text-primary transition-colors">{{ casestudy.title }}</a>
+				</h3>
+				
+				<div class="flex items-center no-underline mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+					<span class="text-slate-900 dark:text-slate-300 mr-1.5">Industry:</span> {{ casestudy.industry }}
+				</div>
+
+				{% if casestudy.tags|length %}
+				<div class="flex flex-wrap items-center mb-4 gap-1.5">
+					<span class="text-xs text-slate-900 dark:text-slate-300 font-bold mr-1">Skills:</span>
+					{% for tag in casestudy.tags.all() %}
+					<span class="tw-badge text-[11px] border border-gray-100 dark:border-gray-800 px-2 py-0.5 rounded-full">{{ tag.title }}</span>
+					{% endfor %}
+				</div>
+				{% endif %}
+				
+				<p class="tw-card-text text-sm leading-relaxed">{{ casestudy.shortDescription }}</p>
+			</div>
+			
+			<div class="mt-auto px-6 pb-6 pt-4 flex justify-between items-center text-primary group-hover:text-dark dark:group-hover:text-white transition-colors border-t border-gray-50 dark:border-gray-800/40">
+				<span class="text-xs font-bold uppercase tracking-wider">Read Case Study</span>
+				<i class="ti ti-arrow-right text-lg transform group-hover:translate-x-1 transition-transform"></i>
+			</div>
+		</div>
+	</article>
+</div>

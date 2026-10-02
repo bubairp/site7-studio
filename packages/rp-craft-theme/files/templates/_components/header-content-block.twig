@@ -1,0 +1,16 @@
+{% if headingAndContent and (headingAndContent.heading|length or headingAndContent.Description|length or headingAndContent.badgeText|length) %}
+	{% set alignMap = {'left': 'text-left', 'center': 'text-center', 'right': 'text-right', 'start': 'text-left', 'end': 'text-right'} %}
+	{% set alignClass = alignMap[headingAndContent.align ?? 'center'] ?? 'text-center' %}
+
+	<div class="header-content-block pb-4 lg:pb-8 {{ alignClass }} {{ blockCssClasses ?? '' }} {{ (blockType is defined and blockType and blockType != 'headingContent') ? blockType ~ '-style' : '' }}" data-theme="{{ themeSwitche ?? null ? 'dark' : 'light' }}">
+		{% if headingAndContent.switchOff and headingAndContent.badgeText|length %}
+			<span class="inline-block px-3 py-1 rounded-full text-sm font-semibold text-primary bg-primary/10 mb-4 smallText-badge">{{ headingAndContent.badgeText }}</span>
+		{% endif %}
+		{% if headingAndContent.heading|length %}
+			<{{headingAndContent.headingTags|default('h2')}} class="block-heading-title mb-2">{{ headingAndContent.heading|raw }}</{{headingAndContent.headingTags|default('h2')}}>
+		{% endif %}
+		{% if headingAndContent.Description|length %}
+			<div class="block-description tw-rich-text">{{ headingAndContent.Description|raw }}</div>
+		{% endif %}
+	</div>
+{% endif %}

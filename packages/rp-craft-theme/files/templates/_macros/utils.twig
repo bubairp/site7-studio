@@ -1,0 +1,28 @@
+{% macro formatTime24Hour(time) %}
+	{{ time|date('H:i') }}
+{% endmacro %}
+
+{% macro swiperConfig(itemsPerRow, spaceBetween = 32, autoplay = false, loop = false) %}
+	{% set itemsPerRow = itemsPerRow|default(3) %}
+	{% set config = {
+		"spaceBetween": spaceBetween,
+		"pagination": { "el": ".swiper-pagination", "clickable": true },
+		"breakpoints": {
+			"576": { "slidesPerView": 2 },
+			"992": { "slidesPerView": itemsPerRow }
+		}
+	} %}
+	
+	{% if autoplay %}
+		{% set config = config|merge({
+			"autoplay": { "delay": 5000, "disableOnInteraction": false },
+			"speed": 800
+		}) %}
+	{% endif %}
+	
+	{% if loop %}
+		{% set config = config|merge({ "loop": true }) %}
+	{% endif %}
+	
+	{{ config|json_encode|raw }}
+{% endmacro %}

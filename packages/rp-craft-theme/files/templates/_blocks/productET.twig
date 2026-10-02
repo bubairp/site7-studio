@@ -1,0 +1,11 @@
+{% cache %}
+{% set productEntries = craft.entries()
+	.section('products')
+	.all()
+%}
+{% for product in productEntries %}
+	{% set productTitle = product.title %}
+	{% set productData = product.productMatrix %}
+	{{ productData }}
+{% endfor %}
+{% endcache %}

@@ -1,0 +1,45 @@
+{# Trending Card Component #}
+{# Expected variables: product (entry), rank (number) #}
+
+{# Pre-calculate rating info #}
+{% set reviewQuery = craft.entries().section('productReview').relatedTo({ targetElement: product.id, field: 'singleSelect' }).status('live') %}
+{% set reviewCount = reviewQuery.count() %}
+{% set allReviews = reviewQuery.all() %}
+{% set totalRate = 0 %}
+	{% for r in allReviews %}
+{% set totalRate = totalRate + (r.rate ?? 0) %}
+{% endfor %}
+{% set avgRating = reviewCount > 0 ? (totalRate / reviewCount)|number_format(1) : '0.0' %}
+
+{% set category = product.productCategory.one() %}
+{% set author = product.selectAuthor.one() %}
+
+	<a href="{{ product.url }}" class="flex flex-row gap-4 items-center p-4 lg:p-6 no-underline h-full tw-card group relative">
+	<div class="w-20 h-20 lg:w-24 lg:h-24 shrink-0 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+		{% if product.image|length %}
+			{{ images.singleImg(product.image.one(), 120, {'ratio': 1}, 'w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 motion-reduce:transform-none') }}
+		{% endif %}
+	</div>
+	
+	<div class="flex flex-col grow justify-center overflow-hidden w-full">
+		<div class="flex justify-between items-center mb-1">
+			{% if category %}
+				<span class="inline-block px-2 py-1 text-[10px] font-bold tracking-wider uppercase rounded-full text-primary bg-primary/10">{{ category.title }}</span>
+			{% endif %}
+
+			<div class="flex items-center gap-1 font-bold text-gray-900 dark:text-white text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-full">
+				<i class="ti ti-star-filled text-warning text-xs"></i>
+				<span>{{ avgRating }}</span>
+			</div>
+		</div>
+
+		<h3 class="text-base lg:text-lg font-bold text-gray-900 dark:text-white mb-1 truncate">{{ product.title }}</h3>
+
+		{% if product.publishDate %}
+			<div class="flex items-center mt-1 text-gray-500 dark:text-gray-400">
+				<i class="ti ti-calendar text-primary mr-1 text-xs"></i>
+				<span class="text-xs font-medium">{{ 'Published:'|t }} {{ product.publishDate|date('Y') }}</span>
+			</div>
+		{% endif %}
+	</div>
+</a>

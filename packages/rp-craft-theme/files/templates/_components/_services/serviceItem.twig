@@ -1,0 +1,26 @@
+{% import "_macros/images" as images %}
+
+{# Design Config (Passed from parent or defaults) #}
+{% set align = cardAlignClass ?? 'text-left' %}
+{% set styleClass = serviceBackgroundColorClass ? 'service-item' : 'bg-gray-100 dark:bg-gray-800' %}
+
+{# Card Base #}
+<a class="relative flex flex-col h-full no-underline {{ align|replace({'text-start': 'text-left', 'text-end': 'text-right', 'text-center': 'text-center'}) }} {{ styleClass }} service-card rounded-2xl md:rounded-3xl p-6 lg:p-8 border border-gray-100 dark:border-gray-700 shadow-sm card-hover group" href="{{ item.url }}">
+	<div class="flex-grow">
+		{% if item.image|length %}
+			<div class="block {{ ('center' in align) ? 'mx-auto' : (('right' in align or 'end' in align) ? 'ms-auto me-0' : 'ms-0 me-auto') }} mb-6" style="width: 56px;">{{ images.singleImg(item.image.0, 56, {'ratio': 1}, 'shrink-0 w-full h-full object-contain') }}</div>
+		{% endif %}
+
+		<h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3">{{ item.title }}</h3>
+
+		{% if item.shortDescription|length %}
+			<div class="text-gray-600 dark:text-gray-300 font-light tw-rich-text">{{ item.shortDescription }}</div>
+		{% endif %}
+	</div>
+
+	{# Footer Arrow #}
+	<div class="mt-8 flex justify-between items-center text-primary group-hover:text-dark dark:group-hover:text-white transition-colors">
+		<span class="text-sm font-bold uppercase tracking-wider">{{ 'Learn More'|t }}</span>
+		<i class="ti ti-arrow-right text-xl transform group-hover:translate-x-1 transition-transform"></i>
+	</div>
+</a>

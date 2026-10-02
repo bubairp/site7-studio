@@ -1,0 +1,110 @@
+{% import "_macros/images" as images %}
+{% set footerLayout = footerEntry.footerLayout %}
+{% set footerButton = footerEntry.button ?? null %}
+{% set footerContainerWidth = footerEntry.containerWidth.value ?? null %}
+
+{% set footerDescription = footerEntry.description ?? null %}
+{% set footerVerticalAlign = footerEntry.verticalAlign %}
+{% set footerDisplayLogo = footerEntry.displayLogo %}
+{% set footerDisplayContactInfo = footerEntry.displayContactInfo %}
+{% set footerDisplaySocial = footerEntry.displaySocial %}
+{% set footerDisplayCTA = footerEntry.displayCTA %}
+{% set footerDisplaySubscribe = footerEntry.displaySubscribe %}
+{% set footerDisplayOfficeTiming = footerEntry.displayOfficeTiming %}
+{% set footerDisplayDownloadApp = footerEntry.displayDownloadApp %}
+{% set footerSpacingData = footerEntry.spacing.one() ?? null %}
+{% set footerClasses = footerEntry.footerClasses %}
+{% set footerPositioning = footerEntry.positioning %}
+{% set footerBackground = footerEntry.background.one() ?? null %}
+{% set footerBackgroundColorData = footerBackground.colorLibrary.one() ?? null %}
+{% set footerBackgroundColor = footerBackgroundColorData.plainText ?? null %}
+{% set footerBackgroundColorCode = footerBackgroundColorData.colorcode ?? null %}
+{% set footerBackgroundImage = footerBackground.image.one() ?? null %}
+{% set footerClasses = footerEntry.footerClasses %}
+{% set footerStyles = '' %}
+{% set footerStyles = footerBackgroundColorCode ? 'background-color: ' ~ footerBackgroundColorCode ~ ' !important;' : '' %}
+{% set footerStyles = (footerBackgroundImage and footerBackgroundImage.url) ? footerStyles ~ 'background-image: url(\'' ~ images.bgImageUrl(footerBackgroundImage)|trim ~ '\'); background-size: cover; ' : footerStyles %}
+
+{% set footerBackgroundColor = footerBackground.colorLibrary.one().colorcode.getRgb() ?? null %}
+{% set footerBackgroundImage = footerBackground.image.one() ? images.bgImageUrl(footerBackground.image.one())|trim : null %}
+
+{% set themeSwitche = footerEntry.background.one().themeDark ?? null  %}
+
+{% if footerSpacingData.mediaScreen is defined %}
+	{% set mediaScreen = footerSpacingData.mediaScreen ?? null %}
+{% endif %}
+
+{% set officeTiming = generalEntry.timing ?? null %}
+{% set padding = footerSpacingData.padding ?? null %}
+{% set topPadding = padding[0].top ?? null %}
+{% set rightPadding = padding[0].right ?? null %}
+{% set bottomPadding = padding[0].bottom ?? null %}
+{% set leftPadding = padding[0].left ?? null %}
+
+{% set margin = footerSpacingData.margin ?? null %}
+{% set topMargin = margin[0].top ?? null %}
+{% set rightMargin = margin[0].right ?? null %}
+{% set bottomMargin = margin[0].bottom ?? null %}
+{% set leftMargin = margin[0].left ?? null %}
+
+{% set paddingTab = footerSpacingData.paddingTab ?? null %}
+{% set topPaddingTab = paddingTab[0].top ?? null %}
+{% set rightPaddingTab = paddingTab[0].right ?? null %}
+{% set bottomPaddingTab = paddingTab[0].bottom ?? null %}
+{% set leftPaddingTab = paddingTab[0].left ?? null %}
+
+{% set marginTab = footerSpacingData.marginTab ?? null %}
+{% set topMarginTab = marginTab[0].top ?? null %}
+{% set rightMarginTab = marginTab[0].right ?? null %}
+{% set bottomMarginTab = marginTab[0].bottom ?? null %}
+{% set leftMarginTab = marginTab[0].left ?? null %}
+
+{% set paddingMob = footerSpacingData.paddingMob ?? null %}
+{% set topPaddingMob = paddingMob[0].top ?? null %}
+{% set rightPaddingMob = paddingMob[0].right ?? null %}
+{% set bottomPaddingMob = paddingMob[0].bottom ?? null %}
+{% set leftPaddingMob = paddingMob[0].left ?? null %}
+
+{% set marginMob = footerSpacingData.marginMob ?? null %}
+{% set topMarginMob = marginMob[0].top ?? null %}
+{% set rightMarginMob = marginMob[0].right ?? null %}
+{% set bottomMarginMob = marginMob[0].bottom ?? null %}
+{% set leftMarginMob = marginMob[0].left ?? null %}
+
+{# Handle container width #}
+{% import "_macros/layout" as layout %}
+{% if footerEntry.containerWidth is defined and footerEntry.containerWidth.value is not empty %}
+	{% set footerContainerWidth = layout.getContainerClass(footerEntry.containerWidth.value) %}
+{% else %}
+	{% set footerContainerWidth = 'container mx-auto px-4' %}
+{% endif %}
+
+{# Handle container Vertical Align #}
+{% if footerEntry.verticalAlign is defined and footerEntry.verticalAlign.value is not empty %}
+	{% set footerVerticalAlignMap = {
+		'default': '',
+		'top': 'items-start',
+		'middle': 'items-center',
+		'bottom': 'items-end',
+	} %}
+	{% set footerVerticalAlign = footerVerticalAlignMap[footerEntry.verticalAlign.value] ?? '' %}
+{% else %}
+	{% set footerVerticalAlign = '' %}
+{% endif %}
+
+{% if footerDisplaySubscribe %}
+	{% include "_includes/footer/newsletter" %}
+{% endif %}
+
+{% if footerLayout %}
+	{% set folder = "_includes/footer" %}
+	{% set filePath = folder ~ '/' ~ footerLayout %}
+	{% set folderAbs = absolutePath ~ "/_includes/footer" %}
+	{% set filePathAbs = folderAbs ~ '/' ~ footerLayout ~ '.twig' %}
+	{% set fallbackFilePath = folder ~ '/basicFooter' %}
+	{% include [filePath, fallbackFilePath] ignore missing %}
+{% endif %}
+
+
+{% import "_macros/spacing" as spacingHelper %}
+{{ spacingHelper.boxSpacingStyle('#footer .footer-main', footerSpacingData, footerBackgroundColorCode, footerBackgroundImage) }}

@@ -1,0 +1,159 @@
+/* =========================================
+   GLOBAL DEFAULT VARIABLES
+   ========================================= */
+:root {
+  /* Core Colors */
+  --primary: #d80101;
+  --secondary: #edf1f5;
+  --success: #019245;
+  --info: #3f7fca;
+  --warning: #ffb834;
+  --danger: #dc2626;    /* Fixed: was identical to --primary; now distinct red */
+  --dark: #1e2939;
+  --light: #ffffff;
+
+  /* Body */
+  --body-bg: #ffffff;
+  --body-color: #1e2939;
+  --link-color: #d80101;
+  --link-hover-color: #b00101;
+
+  /* Typography */
+  --body-font-family: "Noto Sans Bengali", sans-serif;
+  --heading-font-family: "Hind Siliguri", sans-serif;
+  --btn-font-family: "Noto Sans Bengali", sans-serif;
+  --body-font-size: 16px;
+
+  /* Border Radius Scale */
+  --radius-sm: 0.375rem;    /* 6px  — form inputs */
+  --radius-base: 0.75rem;   /* 12px — small cards/badges */
+  --radius-card: 1rem;      /* 16px — tw-card, modals */
+  --radius-card-lg: 1.5rem; /* 24px — large cards */
+  --radius-pill: 9999px;    /* full — pills, avatars */
+  --btn-border-radius: 0.5rem; /* 8px — buttons */
+  --form-border-radius: 0.5rem; /* 8px — inputs, selects */
+
+  /* Z-Index Stack */
+  --z-base: 1;
+  --z-dropdown: 30;
+  --z-sticky: 40;
+  --z-menu: 45;
+  --z-header: 50;
+  --z-overlay: 55;
+  --z-modal: 60;
+  --z-toast: 70;
+
+  /* Swiper Variables */
+  --swiper-bullet-size: 0.5rem;
+  --swiper-bullet-bg: rgba(0, 0, 0, 0.7);
+  --swiper-bullet-active-bg: var(--primary);
+  --swiper-bullet-spacer: 0.375rem;
+
+  /* Header Menu Variables */
+  --menu-primary: var(--primary);
+  --menu-text: #475569;
+  --menu-mob-text: #334155;
+  --menu-bg: transparent;
+  --menu-hover-color: var(--menu-primary);
+  --menu-hover-bg: color-mix(in srgb, var(--menu-primary) 5%, transparent);
+  --menu-sub-hover-color: var(--menu-primary);
+  --menu-sub-hover-bg: color-mix(in srgb, var(--dark) 4%, transparent);
+  --menu-dropdown-bg: #ffffff;
+  --menu-dropdown-border: color-mix(in srgb, var(--dark) 8%, transparent);
+
+  /* Desktop Menu */
+  --menu-font-size: 15px;
+  --menu-item-gap: 0;
+  --menu-link-gap: 4px;
+  --menu-item-padding-y: 5px;
+  --menu-item-padding-x: 14px;
+  --menu-sub-font-size: 0.85rem;
+  --menu-sub-item-gap: 8px;
+  --menu-sub-item-padding-y: 10px;
+  --menu-sub-item-padding-x: 12px;
+
+  /* Mobile Menu */
+  --menu-mob-hover-color: var(--menu-primary);
+  --menu-mob-hover-bg: color-mix(in srgb, var(--menu-primary) 5%, transparent);
+  --menu-mob-sub-text: #475569;
+  --menu-mob-sub-hover-color: var(--menu-primary);
+  --menu-mob-sub-hover-bg: color-mix(in srgb, var(--dark) 4%, transparent);
+  --menu-mob-dropdown-bg: color-mix(in srgb, var(--dark) 1.5%, transparent);
+  --menu-mob-panel-bg: rgba(255, 255, 255, 0.92);
+  --menu-hamburger-color: #0f172a;
+  --menu-mob-font-size: 1rem;
+  --menu-mob-item-gap: 2px;
+  --menu-mob-item-padding-y: 10px;
+  --menu-mob-item-padding-x: 16px;
+
+  /* Laptop Menu */
+  --menu-laptop-font-size: 0.8rem;
+  --menu-laptop-item-padding-y: 6px;
+  --menu-laptop-item-padding-x: 10px;
+
+  /* Global Menu */
+  --menu-radius: 0.875rem;
+  --menu-dropdown-w: 220px;
+  --menu-z-index: 45;
+  --menu-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --menu-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --menu-transition-fast: 0.2s var(--menu-ease-spring);
+  --menu-transition-medium: 0.3s var(--menu-ease-spring);
+}
+
+/* =========================================
+   TAILWIND GLOBAL THEME VARIABLES
+   ========================================= */
+
+@theme {
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--success);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-dark: var(--dark);
+  --color-light: var(--light);
+  --color-bodyBg: var(--body-bg);
+  --color-bodyText: var(--body-color);
+  --color-link: var(--link-color);
+  --color-linkHover: var(--link-hover-color);
+  --font-sans: var(--body-font-family);
+  --font-heading: var(--heading-font-family);
+  --font-button: var(--btn-font-family);
+  --text-bodySize: var(--body-font-size);
+}
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* =========================================
+   DARK MODE OVERRIDES
+   ========================================= */
+[data-theme="dark"] {
+  /* Dark Body */
+  --body-bg: var(--dark);
+  --body-color: #f8fafc;
+
+  /* Dark Menu Variables */
+  --menu-dropdown-bg: #1e2939; /* matches --dark */
+  --menu-dropdown-border: color-mix(in srgb, #ffffff 12%, transparent);
+
+  --menu-text: #e2e8f0;
+  --menu-hover-color: #ffffff;
+  --menu-hover-bg: color-mix(in srgb, #ffffff 10%, transparent);
+
+  --menu-sub-hover-color: #ffffff;
+  --menu-sub-hover-bg: color-mix(in srgb, #ffffff 8%, transparent);
+
+  --menu-mob-text: #e2e8f0;
+  --menu-mob-hover-color: #ffffff;
+  --menu-mob-hover-bg: color-mix(in srgb, #ffffff 10%, transparent);
+  --menu-mob-sub-text: #cbd5e1;
+  --menu-mob-sub-hover-color: #ffffff;
+  --menu-mob-sub-hover-bg: color-mix(in srgb, #ffffff 8%, transparent);
+
+  --menu-mob-dropdown-bg: color-mix(in srgb, #ffffff 5%, transparent);
+  --menu-mob-panel-bg: rgba(30, 41, 57, 0.98);
+  --menu-hamburger-color: #f8fafc;
+}

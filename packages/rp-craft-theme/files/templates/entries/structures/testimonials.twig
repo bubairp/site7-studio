@@ -1,0 +1,32 @@
+{% extends "_layouts/matrix-content" %}
+{% set testimonials = craft.entries()
+  .section('testimonials')
+  .slug(craft.app.request.segment(2))
+  .one() %}
+{% block content %}
+
+  {% if testimonials %}
+    {{ testimonials.title }}
+
+    {% if testimonials.featureImage|length %}
+        {% import "_macros/images" as images %}{{ images.singleImg(testimonials.featureImage.one(), 800, {}, '', { alt: testimonials.title }) }}
+    {% endif %}
+
+    {{ testimonials.authorName }}
+
+    {# Author Image #}
+    {% if testimonials.image|length %}
+        {{ images.singleImg(testimonials.image.one(), 800, {}, '', { alt: testimonials.title }) }}
+    {% endif %}
+
+    {{ testimonials.authorRole }}
+    {{ testimonials.comment }}
+    {{ testimonials.ratings }}
+
+    {% include "_includes/matrix-container" with {
+      entry: testimonials,
+      cache_key: 'entry-' ~ testimonials.id
+    } 
+  %}
+  {% endif %}
+{% endblock %}

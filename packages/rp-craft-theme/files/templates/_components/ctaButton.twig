@@ -1,0 +1,77 @@
+{% macro renderButton(buttons, styles = {}, customClasses = '', attributes = {}) %}
+	{% for button in buttons %}
+
+		{% set link = button.linkUrl %}
+
+		{% if link %}
+
+			{# URL + Suffix #}
+			{% set href = link.url ~ (link.urlSuffix ?? '') %}
+
+			{# Color maps using clean component classes #}
+			{% set colorMap = {
+				'primary': 'tw-btn-primary',
+				'secondary': 'tw-btn-secondary',
+				'danger': 'tw-btn-danger',
+				'error': 'tw-btn-danger',
+				'success': 'tw-btn-success',
+				'warning': 'tw-btn-warning',
+				'info': 'tw-btn-info',
+				'outline': 'tw-btn-outline',
+				'ghost': 'tw-btn-ghost',
+				'light': 'tw-btn-light',
+				'dark': 'tw-btn-dark'
+			} %}
+
+			{# Extract string values from CMS OptionData objects safely #}
+			{% set bColor = 'primary' %}
+			{% if button.colorPalette is defined and button.colorPalette %}
+				{% set bColor = button.colorPalette.value ?? button.colorPalette %}
+			{% endif %}
+			{% set buttonColorClass = colorMap[bColor ~ ''] ?? 'tw-btn-primary' %}
+
+			{# We remove automatic size mapping because the CMS field does not exist, preventing Reflection errors #}
+			{# Authors can use tw-btn-sm or tw-btn-lg in the 'cssClasses' field #}
+			{% set buttonSizeClass = 'tw-btn-md' %}
+
+			{% set classes = [
+				'tw-btn',
+				buttonColorClass,
+				buttonSizeClass,
+				button.cssClasses ?? '',
+				link.class ?? '',
+				customClasses
+			]|join(' ')|trim %}
+
+				<a href="{{ href }}" class="{{ classes }}" {% if link.target %} target="{{ link.target }}" {% endif %} {% if link.title %} title="{{ link.title }}" {% endif %} {% if link.id %} id="{{ link.id }}" {% endif %} {% if link.rel %} rel="{{ link.rel }}" {% endif %} {% if link.ariaLabel %} aria-label="{{ link.ariaLabel }}" {% endif %} {% if link.download %} download {% endif %} {{ attr(attributes) }}> {% set tAlign = 'center' %}
+				{% if button.textAlign is defined and button.textAlign %}
+					{% set tAlign = button.textAlign.value ?? button.textAlign %}
+				{% endif %}
+				{% set tAlign = tAlign ~ '' %}
+
+				{# Icon – Left #}
+				{% if button.displayIcon and tAlign == 'start' %}
+					<i class="{{ button.buttonIconClasses }} text-xl me-2 -ms-1"></i>
+				{% endif %}
+
+				{# Label #}
+				{% if link.label is not empty and tAlign != 'center' %}
+					<span>{{ link.label }}</span>
+				{% endif %}
+
+				{# Icon – Right #}
+				{% if button.displayIcon and tAlign == 'end' %}
+					<i class="{{ button.buttonIconClasses }} text-xl ms-2"></i>
+				{% endif %}
+
+				{# Icon – Only #}
+				{% if button.displayIcon and tAlign == 'center' %}
+					<i class="{{ button.buttonIconClasses }} text-xl"></i>
+				{% endif %}
+
+			</a>
+
+		{% endif %}
+
+	{% endfor %}
+{% endmacro %}

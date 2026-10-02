@@ -1,0 +1,73 @@
+{% extends "_layouts/matrix-content" %}
+{% set service = craft.entries()
+  .section('services')
+  .slug(craft.app.request.segment(2))
+  .one() %}
+
+{% block structured_data %}
+	{% if service %}
+		{% set feature = service.featureImage|length ? service.featureImage.one() : null %}
+		{% set logo    = generalEntry.logo|length ? generalEntry.logo.one() : null %}
+
+		{% set data = {
+		"@context": "https://schema.org",
+		"@type": "Article",
+		"mainEntityOfPage": {
+			"@type": "WebPage",
+			"@id": service.url
+		},
+		"name": service.title,
+		} %}
+
+		{% if feature %}
+			{% set data = data|merge({
+			"image": [ feature.url ]
+		}) %}
+		{% endif %}
+
+		{% if logo %}
+			{% set data = data|merge({
+			"publisher": {
+				"@type": "Organization",
+				"name": generalEntry.companyName ?? 'Site Name',
+				"logo": {
+					"@type": "ImageObject",
+					"url": logo.url
+				}
+			}
+		}) %}
+		{% endif %}
+		<script type="application/ld+json">
+			{{ data|json_encode(constant('JSON_UNESCAPED_SLASHES'))|raw }}
+		</script>
+	{% endif %}
+{% endblock %}
+
+{% block content %}
+
+	{% set wrapperClass = 'bg-primary' %}
+{% import "_macros/images" as images %}
+	{% set blockTypeUid = '' %}
+	{% set blockCssClasses = '' %}
+
+	{% if service %}
+
+		{% if service.featureImage|length %}
+			{% include "_includes/page-banner/service-banner.twig" %}
+			{% include "_components/breadcrumbs" %}
+		{% else %}
+			{% include "_components/breadcrumbs" %}
+			<div class="container mx-auto px-4 py-2 lg:py-4 overflow-hidden">
+				<div>
+					<h1 class="block-heading-title mb-0">{{ service.title }}</h1>
+				</div>
+			</div>
+		{% endif %}
+
+		{% include "_includes/matrix-container" with {
+      entry: service,
+      cache_key: 'entry-' ~ service.id
+    } 
+  %}
+	{% endif %}
+{% endblock %}

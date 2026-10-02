@@ -1,0 +1,13 @@
+{# templates/_macros/layout.twig #}
+
+{% macro getContainerClass(sizeKey) %}
+    {% set containerWidthMap = {
+        'default': 'container mx-auto px-4',
+        'flatMinimalAccordion': 'container mx-auto px-4',
+        'fullWidth': 'w-full px-4',
+        'boxedLg': 'container mx-auto max-w-[1400px] px-4',
+        'boxedSm': 'container mx-auto max-w-[960px] px-4'
+    } %}
+    
+    {{- containerWidthMap[sizeKey] ?? 'container mx-auto px-4' -}}
+{% endmacro %}

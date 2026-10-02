@@ -1,0 +1,361 @@
+{% import "_macros/ratings" as ratings %}
+
+{% macro renderChildren(parent, commentHandler, activeUserReply ) %}
+	{% set kids = craft.entries()
+.section(commentHandler)
+.status('live')
+.parentId(parent.id)
+.orderBy('postDate asc')
+.all() %}
+
+	{% for k in kids %}
+		<div class="mt-4 p-4 bg-gray-100er rounded-xl">
+			<div class="flex items-start mb-2">
+				<div class="shrink-0 me-2">
+					<div class="rounded-full flex items-center justify-center text-white font-bold shadow-sm" style="width: 38px; height: 38px; background: linear-gradient(135deg, #af6129 0%, #5d7c36 100%); font-size: 1rem;">{{ (k.reviewerName|slice(0, 1))|upper }}</div>
+				</div>
+				<div>
+					<h6 class="mb-0 text-sm font-bold">{{ k.reviewerName ?? 'Anonymous' }}</h6>
+					<span class="text-xs tw-text-muted">{{ craft.app.formatter.asRelativeTime(k.postDate) ?? k.postDate|date('F j, Y \\a\\t g:i a') }}</span>
+				</div>
+			</div>
+			<p class="mb-2 text-sm text-dark opacity-85 leading-normal" style="text-align: justify;">{{ k.comment }}</p>
+
+			{% if activeUserReply %}
+				<div class="flex items-center mt-2 pt-2 border-t border-gray-200">{{ _self.renderReplyBtn(k, activeUserReply) }}</div>
+			{% endif %}
+
+			{# Recurse #}
+			<div class="ms-4 md:ms-6">{{ _self.renderChildren(k, commentHandler, activeUserReply) }}</div>
+		</div>
+	{% endfor %}
+{% endmacro %}
+
+{% macro renderReplyBtn(data, activeUserReply ) %}
+	{% if activeUserReply %}
+		<button class="nav-link text-sm font-semibold px-0 py-1 text-primary replyComment" type="button" id="replyComment{{ data.id }}" data-comment-id="{{ data.id }}">
+			<i class="ti ti-arrow-back-up text-lg me-1"></i>{{ 'Reply'|t }}</button>
+	{% endif %}
+{% endmacro %}
+
+{% set commentsQuery = craft.entries()
+.section(commentHandler)
+.relatedTo({
+	targetElement: entry.id,
+	field: 'singleSelect'
+})
+.status('live')
+.parentId(0) %}
+
+{% paginate commentsQuery.limit(5) as pageInfo, comments %}
+
+	<div
+		class="pt-2" id="comments">
+		{# Calculate Average Rating #}
+		{% set allReviews = craft.entries().section(commentHandler).relatedTo({ targetElement: entry.id, field: 'singleSelect' }).status('live').all() %}
+		{% set totalRate = 0 %}
+		{% set reviewCount = allReviews|length %}
+		{% for r in allReviews %}
+			{% set totalRate = totalRate + (r.rate ?? 0) %}
+		{% endfor %}
+		{% set avgRating = reviewCount >0 ? (totalRate / reviewCount)|number_format(1) : '0.0' %}<div class="flex flex-col md:flex-row justify-between mb-6">
+			<div>
+				<h2 class="text-2xl font-bold font-bold mb-1 flex items-center">{{ 'Reader Feedback'|t }}</h2>
+				<div class="flex items-center">
+					{% set displayAvg = avgRating|number_format(0) %}
+					<div class="me-2">{{ ratings.stars(avgRating, '22px') }}</div>
+					<span class="font-bold text-xl">{{ avgRating }}</span>
+					<span class="tw-text-muted ms-2 text-sm">{{ 'out of 5 stars'|t }}</span>
+				</div>
+			</div>
+			<div class="mt-4 md:mt-0">
+				<a href="#guestComment" data-scroll data-scroll-offset="160" class="tw-btn tw-btn-outline-primary tw-btn-sm px-6">
+					<i class="ti ti-edit me-2"></i>{{ 'Leave a Review'|t }}</a>
+			</div>
+		</div>
+
+		{% for c in comments %}
+			<div class="tw-card mb-6">
+				<div class="tw-card-body p-6">
+					<div class="flex items-start justify-between mb-4">
+						<div class="flex items-center">
+							<div class="shrink-0 me-4">
+								<div class="rounded-full flex items-center justify-center text-white font-bold shadow-sm" style="width: 54px; height: 54px; background: linear-gradient(135deg, #af6129 0%, #5d7c36 100%); font-size: 1.2rem;">{{ (c.reviewerName|slice(0, 1))|upper }}</div>
+							</div>
+							<div>
+								<h6 class="mb-0 font-bold">{{ c.reviewerName ?? 'Anonymous' }}</h6>
+								<span class="text-xs tw-text-muted">{{ c.postDate|date('j F, Y')|t }}</span>
+							</div>
+						</div>
+
+						{% if c.rate is defined and c.rate|length %}
+							{% set currentRate = c.rate|number_format(0) %}
+							<div class="ms-auto">{{ ratings.stars(c.rate, '16px') }}</div>
+						{% endif %}
+					</div>
+
+					<div class="mb-0 text-dark opacity-85 leading-normal" style="text-align: justify;">{{ c.comment }}</div>
+
+
+					{% if activeUserReply %}
+						<div class="user-reply flex items-center mt-4 pt-2 border-t border-gray-200 gap-4">{{ _self.renderReplyBtn(c, activeUserReply) }}</div>
+					{% endif %}
+
+					{# Admin Reply #}
+					{% if c.reply is defined and c.reply|length %}
+						<div class="ml-12 md:ml-16 mt-5 p-5 rounded-2xl rounded-tl-none bg-gray-50 border border-gray-100 relative before:absolute before:top-0 before:-left-2 before:w-2 before:h-2 before:bg-gray-50 before:border-l before:border-t before:border-gray-100">
+							<div class="flex items-center mb-3">
+								<div class="bg-primary text-white rounded-md px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-widest mr-3 flex items-center shadow-sm">
+									<i class="ti ti-shield-check mr-1 text-base"></i>Admin</div>
+								<span class="text-xs text-gray-500 font-medium">{{ craft.app.formatter.asRelativeTime(c.dateUpdated) }}</span>
+							</div>
+							<div class="text-sm text-gray-700 leading-relaxed" style="text-align: justify;">{{ c.reply }}</div>
+						</div>
+					{% endif %}
+
+					{% if activeUserReply %}
+						<div class="ms-4 md:ms-6">{{ _self.renderChildren(c, commentHandler, activeUserReply) }}</div>
+					{% endif %}
+				</div>
+			</div>
+		{% else %}
+			<div class="text-center py-12 ">
+				<i class="ti ti-messages text-4xl tw-text-muted opacity-25 mb-4 block"></i>
+				<p class="tw-text-muted">{{ 'No comments yet — be the first to comment.'|t }}</p>
+			</div>
+		{% endfor %}
+
+		{% if pageInfo.totalPages >1 %}<nav class="flex justify-between items-center pb-12 lg:mb-1 xl:mb-4">
+				{% if pageInfo.prevUrl %}
+					<a class="tw-btn tw-btn-link px-0" href="{{ pageInfo.prevUrl }}">
+						<i class="ti ti-chevron-left text-lg me-1"></i>{{ 'Newer'|t }}</a>
+				{% else %}
+					<span></span>
+				{% endif %}
+
+				{% if pageInfo.nextUrl %}
+					<a class="tw-btn tw-btn-link px-0" href="{{ pageInfo.nextUrl }}">{{ 'Older'|t }}<i class="ti ti-chevron-right text-lg ms-1"></i>
+					</a>
+				{% endif %}
+			</nav>
+		{% endif %}
+
+		<!-- Compact Comment form -->
+		<div class="tw-card overflow-hidden">
+			<div class="tw-card-body p-6">
+				<div class="flex items-center mb-4">
+					<i class="ti ti-edit text-primary text-xl me-2 xl:me-4 mb-1"></i>
+					<h2 class="text-xl font-bold font-bold mb-0">{{ 'Leave a Review'|t }}</h2>
+				</div>
+
+				{% set reviewsSection = craft.app.entries.getSectionByHandle(commentHandler) %}
+				{% set reviewsType = reviewsSection.entryTypes|first %}
+				<form class="grid grid-cols-12 gap-4 custom-validation" novalidate method="post" id="guestComment">{{ csrfInput() }}
+					{{ actionInput('guest-entries/save') }}
+					{{ redirectInput(entry.url ~ '#comments') }}
+					{{ hiddenInput('sectionId', reviewsSection.id) }}
+					{{ hiddenInput('typeId', reviewsType.id) }}
+					{{ hiddenInput('title','Comment on ' ~ entry.title) }}
+					{{ hiddenInput('slug', ('comment-' ~ entry.id ~ '-' ~ now|date('YmdHis'))) }}
+					{{ hiddenInput('fields[singleSelect][]', entry.id) }}<input type="hidden" name="fields[parentId]" id="parentId" value="0">
+
+					<div class="col-span-12 sm:col-span-6">
+						<label class="form-label small font-semibold mb-1" for="userName">{{ 'Name'|t }}</label>
+						<input class="tw-form-control py-1.5 text-sm" type="text" id="userName" placeholder="{{ 'Your name'|t }}" name="fields[reviewerName]" required>
+						<div class="tw-form-error">{{ 'Please enter your name!'|t }}</div>
+					</div>
+
+					<div class="col-span-12 sm:col-span-6">
+						<label class="form-label small font-semibold mb-1" for="userEmail">{{ 'Email'|t }}</label>
+						<input class="tw-form-control py-1.5 text-sm" type="email" id="userEmail" placeholder="{{ 'Your email'|t }}" name="fields[email]" required>
+						<div class="tw-form-error">{{ 'Please provide a valid email address!'|t }}</div>
+					</div>
+
+					<div class="col-span-12">
+						<label class="form-label small font-semibold mb-1" for="c-comment">{{ 'Comment'|t }}</label><textarea class="tw-form-control py-1.5 text-sm" rows="3" placeholder="{{ 'Type your comment here...'|t }}" name="fields[comment]" required id="c-comment"></textarea><div class="tw-form-error">{{ 'Please enter a comment message!'|t }}</div>
+					</div>
+
+					<div class="col-span-12">
+						<div class="flex items-center gap-2" id="ratingWrapper">
+							<label class="form-label small font-semibold mb-1" for="rating">{{ 'Your Rating'|t }}</label>
+							<div class="flex flex-row-reverse justify-end [&_input]:sr-only [&_label]:cursor-pointer [&_label]:text-3xl [&_label]:text-gray-300 [&_label]:transition-colors [&_input:checked~label]:text-yellow-400 hover:[&_input:checked~label]:text-gray-300 [&_label:hover]:!text-yellow-500 [&_label:hover~label]:!text-yellow-500">
+								<input type="radio" id="star5" name="fields[rate]" value="5"/>
+								<label for="star5" title="5">★<span class="sr-only">5
+										{{ 'stars'|t }}</span>
+								</label>
+
+								<input type="radio" id="star4" name="fields[rate]" value="4"/>
+								<label for="star4" title="4">★<span class="sr-only">4
+										{{ 'stars'|t }}</span>
+								</label>
+
+								<input type="radio" id="star3" name="fields[rate]" value="3"/>
+								<label for="star3" title="3">★<span class="sr-only">3
+										{{ 'stars'|t }}</span>
+								</label>
+
+								<input type="radio" id="star2" name="fields[rate]" value="2"/>
+								<label for="star2" title="2">★<span class="sr-only">2
+										{{ 'stars'|t }}</span>
+								</label>
+
+								<input type="radio" id="star1" name="fields[rate]" value="1"/>
+								<label for="star1" title="1">★<span class="sr-only">1
+										{{ 'star'|t }}</span>
+								</label>
+							</div>
+						</div>
+						<div class="mt-4">
+							<button class="tw-btn tw-btn-{{ pageStyle ? pageStyle.buttonColor.value : 'primary' }} px-6 font-bold" type="submit" id="submitComment">{{ 'Post a comment'|t }}</button>
+						</div>
+					</form>
+					<div class="bg-green-100 text-green-800 border border-green-200 rounded mt-4 py-2 px-4 small hidden" id="success-message"></div>
+					<div class="bg-red-100 text-red-800 border border-red-200 rounded mt-4 py-2 px-4 small hidden" id="error-message"></div>
+				</div>
+			</div>
+
+		</div>
+
+		<script>
+			(function () {
+const form = document.getElementById('guestComment');
+const submitBtn = document.getElementById('submitComment');
+
+if (! form || form.dataset.handlerAttached) 
+return;
+
+
+
+form.dataset.handlerAttached = "true";
+
+// Reply functionality
+document.querySelectorAll('.replyComment').forEach(button => {
+button.addEventListener('click', (e) => {
+const commentId = e.currentTarget.getAttribute('data-comment-id');
+const parentIdInput = document.getElementById('parentId');
+const commentTextarea = document.getElementById('c-comment');
+const ratingWrapper = document.getElementById('ratingWrapper');
+const submitBtn = document.getElementById('submitComment');
+
+if (parentIdInput) 
+parentIdInput.value = commentId;
+
+
+
+if (commentTextarea) {
+commentTextarea.placeholder = "{{ 'Type your reply here...'|t|escape('js') }}";
+commentTextarea.focus();
+}
+if (ratingWrapper) 
+ratingWrapper.classList.add('hidden');
+
+
+
+if (submitBtn) 
+submitBtn.textContent = '{{ 'Post a reply'|t|escape('js') }}';
+
+
+
+});
+});
+
+// Form submission
+form.addEventListener('submit', async (e) => {
+e.preventDefault();
+e.stopPropagation();
+
+// Double submission guard using dataset
+if (form.dataset.isSubmitting === "true") 
+return;
+
+
+
+// Basic validation check
+if (! form.checkValidity()) {
+form.classList.add('was-validated');
+return;
+}
+
+form.dataset.isSubmitting = "true";
+if (submitBtn) 
+submitBtn.disabled = true;
+
+
+
+const body = new FormData(form);
+const action = form.getAttribute('action') || '{{ actionUrl("guest-entries/save") }}';
+
+try {
+const res = await fetch(action, {
+method: 'POST',
+body,
+headers: {
+'Accept': 'application/json',
+'X-Requested-With': 'XMLHttpRequest'
+},
+credentials: 'same-origin'
+});
+
+const data = await res.json();
+const successMsg = document.getElementById('success-message');
+const errorMsg = document.getElementById('error-message');
+
+if (res.ok) {
+if (successMsg) {
+successMsg.classList.remove('hidden');
+successMsg.textContent = '{{ 'Thanks! Your comment was posted.'|t|escape('js') }}';
+}
+if (errorMsg) 
+errorMsg.classList.add('hidden');
+
+
+
+form.reset();
+form.classList.remove('was-validated');
+} else {
+if (errorMsg) {
+errorMsg.classList.remove('hidden');
+errorMsg.textContent = data.message || '{{ 'An error occurred while submitting the form.'|t|escape('js') }}';
+}
+if (successMsg) 
+successMsg.classList.add('hidden');
+
+
+
+}
+} catch (err) {
+console.error('Submission error:', err);
+} finally {
+form.dataset.isSubmitting = "false";
+if (submitBtn) 
+submitBtn.disabled = false;
+
+
+
+const parentIdInput = document.getElementById('parentId');
+if (parentIdInput) 
+parentIdInput.value = "0";
+
+
+
+const ratingWrapper = document.getElementById('ratingWrapper');
+if (ratingWrapper) 
+ratingWrapper.classList.remove('hidden');
+
+
+
+if (submitBtn) 
+submitBtn.textContent = '{{ 'Post a comment'|t|escape('js') }}';
+
+
+
+const commentTextarea = document.getElementById('c-comment');
+if (commentTextarea) 
+commentTextarea.placeholder = "{{ 'Type your comment here...'|t|escape('js') }}";
+
+
+
+}
+});
+})();
+		</script>

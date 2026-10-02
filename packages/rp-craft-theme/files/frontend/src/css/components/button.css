@@ -1,0 +1,123 @@
+@layer components {
+  .tw-btn {
+    /* Base structural styles */
+    @apply px-6 py-3 text-sm inline-flex items-center justify-center font-medium transition-colors duration-200 ease-in-out no-underline cursor-pointer;
+    border-radius: var(--btn-border-radius, 0.5rem);
+    /* Focus ring — WCAG 2.1 AA 2.4.7 */
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  }
+
+  /* ── Size Variants ─────────────────────────────────────────────── */
+  .tw-btn-sm {
+    @apply px-4 py-2 text-xs;
+  }
+
+  .tw-btn-lg {
+    @apply px-8 py-4 text-base font-semibold;
+  }
+
+  .tw-btn-icon {
+    @apply p-2 aspect-square;
+  }
+
+  /* ── Disabled State (WCAG 2.1 — applies to all variants) ─────── */
+  .tw-btn:disabled,
+  .tw-btn[disabled],
+  .tw-btn[aria-disabled="true"] {
+    @apply opacity-50 cursor-not-allowed pointer-events-none;
+  }
+
+  /* ── Loading State ───────────────────────────────────────────── */
+  .tw-btn-loading {
+    @apply pointer-events-none relative;
+  }
+
+  .tw-btn-loading > :not(.tw-spinner-border) {
+    @apply opacity-0;
+  }
+
+  .tw-btn-loading > .tw-spinner-border {
+    @apply absolute inset-0 m-auto;
+  }
+
+  /* ── Solid Variants ──────────────────────────────────────────── */
+  .tw-btn-primary {
+    @apply bg-primary text-white hover:opacity-90 hover:shadow-md hover:text-white;
+  }
+
+  .tw-btn-secondary {
+    @apply bg-secondary text-gray-900 hover:opacity-90 hover:text-gray-900;
+  }
+
+  .tw-btn-danger {
+    @apply bg-danger text-white hover:opacity-90 hover:text-white;
+  }
+
+  .tw-btn-white {
+    @apply bg-white text-gray-900 hover:opacity-90 hover:text-gray-900;
+  }
+
+  .tw-btn-success {
+    @apply bg-success text-white hover:opacity-90 hover:text-white;
+  }
+
+  .tw-btn-warning {
+    @apply bg-warning text-gray-900 hover:opacity-90 hover:text-gray-900;
+  }
+
+  .tw-btn-info {
+    @apply bg-info text-white hover:opacity-90 hover:text-white;
+  }
+
+  .tw-btn-light {
+    @apply bg-light text-gray-900 hover:bg-gray-100 hover:text-gray-900;
+  }
+
+  .tw-btn-dark {
+    @apply bg-dark text-white hover:opacity-90 hover:text-white;
+  }
+
+  /* ── Outline Variants ────────────────────────────────────────── */
+  .tw-btn-outline-primary {
+    @apply bg-transparent border border-solid border-primary text-primary hover:bg-primary hover:text-white;
+  }
+
+  .tw-btn-outline-secondary {
+    @apply bg-transparent border border-solid border-secondary text-secondary hover:bg-secondary hover:text-gray-900;
+  }
+
+  .tw-btn-outline-success {
+    @apply bg-transparent border border-solid border-success text-success hover:bg-success hover:text-white;
+  }
+
+  .tw-btn-outline-danger {
+    @apply bg-transparent border border-solid border-danger text-danger hover:bg-danger hover:text-white;
+  }
+
+  .tw-btn-outline-warning {
+    @apply bg-transparent border border-solid border-warning text-warning hover:bg-warning hover:text-gray-900;
+  }
+
+  .tw-btn-outline-info {
+    @apply bg-transparent border border-solid border-info text-info hover:bg-info hover:text-white;
+  }
+
+  /*
+   * USAGE NOTE: tw-btn-outline-light is ONLY for use on dark or image
+   * backgrounds (e.g. hero banners, dark sections). It will be invisible
+   * on light backgrounds. Prefer tw-btn-outline-dark on light backgrounds.
+   */
+  .tw-btn-outline-light {
+    @apply bg-transparent border border-solid border-light text-light hover:bg-light hover:text-gray-900;
+  }
+
+  .tw-btn-outline-dark {
+    @apply bg-transparent border border-solid border-dark text-dark hover:bg-dark hover:text-white;
+  }
+
+  /* ── Ghost ───────────────────────────────────────────────────── */
+  .tw-btn-ghost {
+    @apply bg-transparent text-primary hover:bg-gray-100 hover:text-primary dark:hover:bg-slate-800;
+  }
+}
+

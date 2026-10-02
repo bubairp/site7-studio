@@ -1,0 +1,80 @@
+{% import "_macros/images" as images %}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+
+{% set headingAndContent = block.headingAndContent.one() ?? null %}
+{% set selectedAuthors = block.selectAuthor.all() %}
+{% set authors = selectedAuthors|length ? selectedAuthors : craft.entries().section('authors').with(['image', 'featureImage']).all() %}
+{% set blockStyle = block.blockStyle ?? [] %}
+{% set blockType = block.type.handle ?? '' %}
+{% set blockTypeUid = block.uid ?? '' %}
+{% set scopedSel = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+{% set containerWidth = bsContainer(blockStyle, 'container mx-auto px-0 lg:px-4') %}
+{% set themeSwitche = null %}
+
+{% if blockStyle is defined and blockStyle|length %}
+	{% set blockStyleData = blockStyle.one() %}
+	{% if blockStyleData.background is defined %}
+		{% set backgroundEntry = blockStyleData.background.one() %}
+		{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+	{% endif %}
+{% endif %}
+
+{{ bsResponsive(blockStyle, scopedSel) }}
+<section class="author-spotlight-section relative overflow-hidden text-white font-sans {{ blockType }}{{blockTypeUid}}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="background: linear-gradient(262.09deg, #1C1917 13.82%, #1C1917 45.77%); {{ bsStyle(blockStyle) }}">
+
+	<div class="{{ containerWidth }}">
+		{% if authors|length %}
+			<div class="swiper author-spotlight-swiper h-full" data-swiper-options='{"effect": "fade","fadeEffect": {"crossFade": true},"spaceBetween": 0,"loop": true,"speed": 1000,"autoplay": {"delay": 7000,"disableOnInteraction": false},"pagination": {"el": ".author-spotlight-pagination","clickable": true}}'>
+				<div class="swiper-wrapper items-stretch">
+					{% for author in authors %}
+						{% set authorPortrait = author.featureImage.one() ?? author.image.one() ?? null %}
+						<div class="swiper-slide h-auto flex flex-col">
+							<div
+								class="grid grid-cols-1 lg:grid-cols-2 items-center relative min-h-[500px] lg:min-h-[650px] flex-1">
+								{# Left Content Column #}
+								<div class="col-span-1 py-10 md:py-12 lg:py-16 lg:py-0 lg:pr-12 relative z-10">
+									<div class="px-4 py-6">
+										{% set badgeText = (headingAndContent and headingAndContent.badgeText) ? headingAndContent.badgeText : 'Author Spotlight'|t %}
+										<span class="tracking-wider text-gray-400 text-sm mb-3 xl:mb-4 block font-semibold">{{ badgeText }}</span>
+
+										<h2 class="text-4xl lg:text-6xl leading-tight font-bold text-white mb-2">{{ author.title }}</h2>
+
+										{% set designation = author.highlightText ?? '' %}
+										{% if designation %}
+											<p class="text-xl mb-4 text-warning">{{ designation }}</p>
+										{% endif %}
+
+										<div class="text-base lg:text-lg mb-8 lg:mb-12 opacity-75">{{ author.shortDescription|raw }}</div>
+
+										<a href="{{ author.url }}" class="tw-btn tw-btn-primary tw-btn-lg px-6 inline-flex items-center gap-2">{{ 'Learn More'|t }}<i class="ti ti-arrow-narrow-right text-2xl"></i>
+										</a>
+									</div>
+								</div>
+
+								{# Image Column #}
+								<div class="absolute lg:relative inset-0 lg:inset-auto col-span-1 h-full w-full z-0">
+									<div class="h-full relative overflow-hidden">
+										{% if authorPortrait %}
+											{{ images.singleImg(authorPortrait, 700, {'ratio': 700/590, 'mode': 'crop', 'pictureClasses': 'h-full! block!'}, 'w-full! h-full! min-h-full! object-cover! grayscale') }}
+
+											{# Figma Overlays #}
+											<div class="absolute inset-0 mix-blend-saturation bg-white opacity-25"></div>
+											<div class="absolute inset-0 bg-[linear-gradient(rgba(28,25,23,0.85),rgba(28,25,23,0.95))] lg:bg-[linear-gradient(to_right,#1C1917_0%,transparent_40%,transparent_60%,#1C1917_100%)]"></div>
+										{% endif %}
+									</div>
+								</div>
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+
+				{# Custom Pagination #}
+				<div class="author-spotlight-pagination swiper-pagination swiper-pagination-overlay mb-4 pb-4" data-theme="dark"></div>
+			</div>
+		{% else %}
+			<div class="py-12 text-center text-white opacity-50">
+				<p>{{ 'No authors selected.'|t }}</p>
+			</div>
+		{% endif %}
+	</div>
+</section>

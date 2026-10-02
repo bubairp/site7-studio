@@ -1,0 +1,52 @@
+{% extends "_layouts/entry" %}
+
+{# Provide entry fallback for layout dependency #}
+{% set entry = entry ?? craft.entries.section('general').one() %}
+{% set isFree = gateway == 'Free Plan' or gateway == 'free' %}
+
+{% block content %}
+	<div class="container mx-auto py-12  mt-12">
+		<div class="flex justify-center">
+			<div class="w-full md:w-1/2 text-center">
+				<div class="tw-card p-12 text-center max-w-2xl mx-auto mt-12">
+					{% if success %}
+						<div class="mb-6">
+							<i class="ti ti-circle-check text-success" style="font-size: 80px;"></i>
+						</div>
+						{% if isFree %}
+							<h1 class="font-bold mb-4">Plan Activated!</h1>
+							<p class="tw-text-muted mb-6 tw-text-lead">Your Free plan has been activated successfully. Welcome aboard!</p>
+							<div class="bg-light p-4 rounded mb-6 text-left">
+								<p class="text-sm mb-0">
+									<strong>Plan:</strong>
+									Free Plan</p>
+							</div>
+						{% else %}
+							<h1 class="font-bold mb-4">Payment Successful!</h1>
+							<p class="tw-text-muted mb-6 tw-text-lead">Thank you for your purchase. Your plan has been activated.</p>
+							<div class="bg-light p-4 rounded mb-6 text-left">
+								<p class="text-sm mb-1">
+									<strong>Gateway:</strong>
+									{{ gateway|capitalize }}</p>
+								<p class="text-sm mb-0">
+									<strong>Transaction ID:</strong>
+									{{ orderId }}</p>
+							</div>
+						{% endif %}
+						<a href="/" class="tw-btn tw-btn-primary tw-btn-lg px-12 font-bold">Back to Home</a>
+					{% else %}
+						<div class="mb-6">
+							<i class="ti ti-circle-x text-danger" style="font-size: 80px;"></i>
+						</div>
+						<h1 class="font-bold mb-4">Verification Failed</h1>
+						<p class="tw-text-muted mb-6 tw-text-lead">{{ message ?? 'We could not verify your payment. Please try again or contact support if the issue persists.' }}</p>
+						<div class="flex justify-center gap-4">
+							<a href="/" class="tw-btn tw-btn-outline-dark tw-btn-lg px-6 font-bold">Back to Home</a>
+							<a href="/price" class="tw-btn tw-btn-primary tw-btn-lg px-6 font-bold">Try Again</a>
+						</div>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}

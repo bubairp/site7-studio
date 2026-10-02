@@ -1,0 +1,163 @@
+{#
+    ================================================================
+    spacing.twig – shared responsive box-spacing <style> generator
+    ================================================================
+    Replaces the near-identical hand-rolled <style> blocks that used
+    to be duplicated separately in header/index.twig and
+    footer/index.twig. Preserves their exact output (raw !important
+    CSS scoped to a selector) rather than switching to the CSS-var
+    technique blockStyleMacro.twig uses for Matrix blocks — header
+    and footer aren't Matrix blocks, so this keeps their existing,
+    already-working technique instead of introducing a new one.
+
+    USAGE
+    ─────────────────────────────────────────────────────────────────
+    {% import "_macros/spacing" as spacingHelper %}
+    {{ spacingHelper.boxSpacingStyle('.header-main', headerSpacingData, headerBackgroundColor, headerBackgroundImage) }}
+    ================================================================
+#}
+{% macro boxSpacingStyle(selector, spacingData, bgColor, bgImage) %}
+	{% set padding = spacingData.padding ?? null %}
+	{% set topPadding = padding[0].top ?? null %}
+	{% set rightPadding = padding[0].right ?? null %}
+	{% set bottomPadding = padding[0].bottom ?? null %}
+	{% set leftPadding = padding[0].left ?? null %}
+
+	{% set margin = spacingData.margin ?? null %}
+	{% set topMargin = margin[0].top ?? null %}
+	{% set rightMargin = margin[0].right ?? null %}
+	{% set bottomMargin = margin[0].bottom ?? null %}
+	{% set leftMargin = margin[0].left ?? null %}
+
+	{% set paddingTab = spacingData.paddingTab ?? null %}
+	{% set topPaddingTab = paddingTab[0].top ?? null %}
+	{% set rightPaddingTab = paddingTab[0].right ?? null %}
+	{% set bottomPaddingTab = paddingTab[0].bottom ?? null %}
+	{% set leftPaddingTab = paddingTab[0].left ?? null %}
+
+	{% set marginTab = spacingData.marginTab ?? null %}
+	{% set topMarginTab = marginTab[0].top ?? null %}
+	{% set rightMarginTab = marginTab[0].right ?? null %}
+	{% set bottomMarginTab = marginTab[0].bottom ?? null %}
+	{% set leftMarginTab = marginTab[0].left ?? null %}
+
+	{% set paddingMob = spacingData.paddingMob ?? null %}
+	{% set topPaddingMob = paddingMob[0].top ?? null %}
+	{% set rightPaddingMob = paddingMob[0].right ?? null %}
+	{% set bottomPaddingMob = paddingMob[0].bottom ?? null %}
+	{% set leftPaddingMob = paddingMob[0].left ?? null %}
+
+	{% set marginMob = spacingData.marginMob ?? null %}
+	{% set topMarginMob = marginMob[0].top ?? null %}
+	{% set rightMarginMob = marginMob[0].right ?? null %}
+	{% set bottomMarginMob = marginMob[0].bottom ?? null %}
+	{% set leftMarginMob = marginMob[0].left ?? null %}
+
+	<style>
+		{% if bgColor or bgImage or topPaddingMob or rightPaddingMob or bottomPaddingMob or leftPaddingMob or topMarginMob or rightMarginMob or bottomMarginMob or leftMarginMob %}
+			{{ selector }} {
+				{% if bgColor %}
+					background-color: {{ bgColor }} !important;
+				{% endif %}
+				{% if bgImage %}
+					background-image: url({{ bgImage }}) !important;
+				{% endif %}
+				background-repeat: no-repeat;
+				background-size: cover;
+				{% if topPadding is not null and topPadding is not empty %}
+					padding-top: {{ topPadding }}px !important;
+				{% endif %}
+				{% if rightPadding is not null and rightPadding is not empty %}
+					padding-right: {{ rightPadding }}px !important;
+				{% endif %}
+				{% if bottomPadding is not null and bottomPadding is not empty %}
+					padding-bottom: {{ bottomPadding }}px !important;
+				{% endif %}
+				{% if leftPadding is not null and leftPadding is not empty %}
+					padding-left: {{ leftPadding }}px !important;
+				{% endif %}
+
+				{% if topMargin is not null and topMargin is not empty %}
+					margin-top: {{ topMargin }}px !important;
+				{% endif %}
+				{% if rightMargin is not null and rightMargin is not empty %}
+					margin-right: {{ rightMargin }}px !important;
+				{% endif %}
+				{% if bottomMargin is not null and bottomMargin is not empty %}
+					margin-bottom: {{ bottomMargin }}px !important;
+				{% endif %}
+				{% if leftMargin is not null and leftMargin is not empty %}
+					margin-left: {{ leftMargin }}px !important;
+				{% endif %}
+			}
+		{% endif %}
+
+		@media(min-width: 768px) and (max-width: 1199px) {
+			{% if topPaddingTab or rightPaddingTab or bottomPaddingTab or leftPaddingTab or topMarginTab or rightMarginTab or bottomMarginTab or leftMarginTab %}
+				{{ selector }} {
+					{% if topPaddingTab is not null and topPaddingTab is not empty %}
+						padding-top: {{ topPaddingTab }}px !important;
+					{% endif %}
+					{% if rightPaddingTab is not null and rightPaddingTab is not empty %}
+						padding-right: {{ rightPaddingTab }}px !important;
+					{% endif %}
+					{% if bottomPaddingTab is not null and bottomPaddingTab is not empty %}
+						padding-bottom: {{ bottomPaddingTab }}px !important;
+					{% endif %}
+					{% if leftPaddingTab is not null and leftPaddingTab is not empty %}
+						padding-left: {{ leftPaddingTab }}px !important;
+					{% endif %}
+
+					{% if topMarginTab is not null and topMarginTab is not empty %}
+						margin-top: {{ topMarginTab }}px !important;
+					{% endif %}
+					{% if rightMarginTab is not null and rightMarginTab is not empty %}
+						margin-right: {{ rightMarginTab }}px !important;
+					{% endif %}
+					{% if bottomMarginTab is not null and bottomMarginTab is not empty %}
+						margin-bottom: {{ bottomMarginTab }}px !important;
+					{% endif %}
+					{% if leftMarginTab is not null and leftMarginTab is not empty %}
+						margin-left: {{ leftMarginTab }}px !important;
+					{% endif %}
+				}
+			{% endif %}
+		}
+
+		@media(max-width: 767px) {
+			{# NB: this condition intentionally mirrors the original header/footer
+			   files, which gate the mobile block on the DESKTOP padding/margin
+			   variables rather than the mobile ones — preserved as-is rather than
+			   "fixed", since this pass must not change existing behavior. #}
+			{% if topPadding or rightPadding or bottomPadding or leftPadding or topMargin or rightMargin or bottomMargin or leftMargin %}
+				{{ selector }} {
+					{% if topPaddingMob is not null and topPaddingMob is not empty %}
+						padding-top: {{ topPaddingMob }}px !important;
+					{% endif %}
+					{% if rightPaddingMob is not null and rightPaddingMob is not empty %}
+						padding-right: {{ rightPaddingMob }}px !important;
+					{% endif %}
+					{% if bottomPaddingMob is not null and bottomPaddingMob is not empty %}
+						padding-bottom: {{ bottomPaddingMob }}px !important;
+					{% endif %}
+					{% if leftPaddingMob is not null and leftPaddingMob is not empty %}
+						padding-left: {{ leftPaddingMob }}px !important;
+					{% endif %}
+
+					{% if topMarginMob is not null and topMarginMob is not empty %}
+						margin-top: {{ topMarginMob }}px !important;
+					{% endif %}
+					{% if rightMarginMob is not null and rightMarginMob is not empty %}
+						margin-right: {{ rightMarginMob }}px !important;
+					{% endif %}
+					{% if bottomMarginMob is not null and bottomMarginMob is not empty %}
+						margin-bottom: {{ bottomMarginMob }}px !important;
+					{% endif %}
+					{% if leftMarginMob is not null and leftMarginMob is not empty %}
+						margin-left: {{ leftMarginMob }}px !important;
+					{% endif %}
+				}
+			{% endif %}
+		}
+	</style>
+{% endmacro %}

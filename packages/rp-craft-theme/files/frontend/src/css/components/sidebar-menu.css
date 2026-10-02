@@ -1,0 +1,285 @@
+@layer components {
+  [x-cloak] {
+    display: none !important;
+  }
+
+  /* ==========================================================================
+   SIDEBAR MENU — Independent from headerMain
+   Uses explicit colors & CSS custom properties from theme.css
+   ========================================================================== */
+
+  /* ---------- Overlay ---------- */
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    background-color: rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.3s ease,
+      visibility 0.3s ease;
+  }
+
+  .sidebar-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* ---------- Panel ---------- */
+  .sidebar-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 1050;
+    height: 100dvh;
+    width: 320px;
+    max-width: 85vw;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--dark, #1e2939);
+    color: #fff;
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.3);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .sidebar-panel.is-open {
+    transform: translateX(0);
+  }
+
+  /* ---------- Header ---------- */
+  .sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+  }
+
+  .sidebar-header img {
+    height: 2rem;
+    width: auto;
+  }
+
+  /* ---------- Close button ---------- */
+  .sidebar-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition:
+      color 0.2s,
+      background-color 0.2s;
+  }
+
+  .sidebar-close:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* ---------- Body (scrollable area) ---------- */
+  .sidebar-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+  }
+
+  /* ---------- Menu inside sidebar ---------- */
+  .sidebar-menu .menu-ul {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+  }
+
+  .sidebar-menu .menu-ul > li {
+    position: relative !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding-bottom: 0.25rem !important;
+  }
+
+  .sidebar-menu .menu-ul > li:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+
+  .sidebar-menu :is(a, span).nav-link:not(.dropdown-toggle) {
+    display: flex !important;
+    width: 100% !important;
+    align-items: center !important;
+    padding: 0.75rem 1rem !important;
+    color: #d1d5db !important;
+    text-decoration: none !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s !important;
+    background-color: transparent !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .sidebar-menu :is(a, span).nav-link:not(.dropdown-toggle):hover {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, 0.04) !important;
+  }
+
+  /* ---------- Dropdown (accordion) ---------- */
+  .sidebar-menu .dropdown {
+    position: relative !important;
+  }
+
+  .sidebar-menu .dropdown-toggle {
+    position: absolute !important;
+    right: 0.25rem !important;
+    top: 0.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: #6b7280 !important;
+    transition: color 0.3s, background-color 0.3s !important;
+    border-radius: 0.5rem !important;
+    box-shadow: none !important;
+  }
+
+  .sidebar-menu .dropdown-toggle:hover {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, 0.04) !important;
+  }
+
+  .sidebar-menu .is-open > .dropdown-toggle {
+    color: #fff !important;
+  }
+
+  .sidebar-menu .ddarow {
+    width: 0.5rem !important;
+    height: 0.5rem !important;
+    border-right: 2px solid currentColor !important;
+    border-bottom: 2px solid currentColor !important;
+    transform: translateY(-2px) rotate(45deg) !important;
+    transition: transform 0.3s ease-in-out !important;
+  }
+
+  .sidebar-menu .is-open > .dropdown-toggle .ddarow {
+    transform: translateY(2px) rotate(-135deg) !important;
+  }
+
+  /* Sub-menu: accordion hidden → open */
+  .sidebar-menu li.dropdown > .dropdown-menu,
+  .sidebar-menu li.dropdown > .sub-menu-ul {
+    display: flex !important;
+    flex-direction: column !important;
+    list-style: none !important;
+    padding: 0 !important;
+    padding-left: 0.75rem !important;
+    margin: 0 !important;
+    border: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    position: static !important;
+    width: auto !important;
+    min-width: 0 !important;
+    pointer-events: auto !important;
+    gap: 0.125rem !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    transition: max-height 0.35s ease, opacity 0.3s ease !important;
+  }
+
+  .sidebar-menu li.is-open > .dropdown-menu,
+  .sidebar-menu li.is-open > .sub-menu-ul {
+    max-height: 1000px !important;
+    opacity: 1 !important;
+    margin-top: 0.25rem !important;
+    margin-left: 0.5rem !important;
+    padding-left: 0.5rem !important;
+    border-left: 2px solid rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(0, 0, 0, 0.1) !important;
+    border-top-right-radius: 0.75rem !important;
+    border-bottom-right-radius: 0.75rem !important;
+  }
+
+  .sidebar-menu .sub-menu-ul :is(a, span).nav-link:not(.dropdown-toggle) {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    color: #9ca3af !important;
+    border-radius: 0 !important;
+  }
+
+  .sidebar-menu .sub-menu-ul :is(a, span).nav-link:not(.dropdown-toggle):hover {
+    color: #fff !important;
+    background-color: transparent !important;
+  }
+
+  .sidebar-menu li.dropdown > a:not(.dropdown-toggle),
+  .sidebar-menu li.dropdown > span {
+    padding-right: 3rem !important;
+  }
+
+  /* ---------- Contact items ---------- */
+  .sidebar-contact {
+    display: flex;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.7);
+    transition: color 0.2s;
+  }
+
+  .sidebar-contact:hover {
+    color: #fff;
+  }
+
+  .sidebar-contact i {
+    margin-right: 0.75rem;
+    font-size: 1.125rem;
+    color: var(--primary, #d80101);
+    flex-shrink: 0;
+  }
+
+  .sidebar-contact a {
+    color: inherit;
+    text-decoration: none;
+    font-size: 0.875rem;
+  }
+
+  .sidebar-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* ---------- Scroll lock ---------- */
+  body.sidebar-open,
+  html.sidebar-open {
+    overflow: hidden !important;
+  }
+
+  /* ---------- Sidebar Hamburger Toggle Animation ---------- */
+  #sidebarMenuToggle[aria-expanded="true"] .bar-1 {
+    top: 50% !important;
+    transform: translateY(-50%) rotate(45deg) !important;
+  }
+
+  #sidebarMenuToggle[aria-expanded="true"] .bar-2 {
+    opacity: 0 !important;
+    transform: translateY(-50%) scaleX(0) !important;
+  }
+
+  #sidebarMenuToggle[aria-expanded="true"] .bar-3 {
+    bottom: 50% !important;
+    transform: translateY(50%) rotate(-45deg) !important;
+  }
+}

@@ -1,0 +1,5 @@
+{% import "_macros/images" as images %}
+{% set appLinks = appLinksEntry.all() %}
+{% for link in appLinks %}
+	<a class="inline-flex items-center justify-center rounded-xl border border-solid tw-border-base-content/20 tw-bg-base-content/5 px-3 py-2 mt-3 me-2 hover:border-primary hover:tw-bg-base-content/10 transition-all duration-300" href="{{link.linkUrl}}">{{ images.singleImg(link.image.0, 90, {ratio: 3.6}) }}</a>
+{% endfor %}

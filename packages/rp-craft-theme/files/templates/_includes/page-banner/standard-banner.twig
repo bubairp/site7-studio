@@ -1,0 +1,69 @@
+{% import '_components/ctaButton' as buttons %}
+{% import "_macros/images" as images %}
+
+{% if standardBannerSliders | length  >0 %}<section
+		class="relative top-0 start-0 py-0 w-full" data-theme="dark">
+		<!-- Background image slider -->
+		<div class="swiper swiper-scale-effect min-vh-100x" data-swiper-options='{"effect": "fade","speed": 800,"autoplay": {"delay": 7000,"disableOnInteraction": false},"pagination": {"el": ".swiper-pagination","clickable": true}}'>
+			<div class="swiper-wrapper">
+				{% for standardBannerSlider in standardBannerSliders %}
+					{% set heroBannerSliderHeading = standardBannerSlider.plainText %}
+					{% set heroBannerSliderDisplayTitle = standardBannerSlider.displayTitle %}
+					{% set heroBannerSliderSubtitle = standardBannerSlider.subtitle %}
+					{% set heroBannerSliderSwitchOffDes = standardBannerSlider.switchOffDes %}
+					{% set heroBannerSliderDescription = standardBannerSlider.shortDescription %}
+					{% set heroBannerSliderImageVideo = standardBannerSlider.imageVideo %}
+
+					{% set heroBannerSliderImageVideoMob = standardBannerSlider.imageVideoMobile %}
+
+					{% if standardBannerSlider.image is defined and standardBannerSlider.image is not empty %}
+						{% set heroBannerSliderImage = standardBannerSlider.image.one() %}
+					{% endif %}
+
+					{% set heroBannerSliderColorData = standardBannerSlider.colorLibrary.one() %}
+					{% set heroBannerSliderBgColor = heroBannerSliderColorData.colorcode ?? null %}
+
+					<div class="swiper-slide py-12  jarallax h-fill-available" {% if heroBannerSliderBgColor %} style="background-color: {{ heroBannerSliderBgColor }} !important;" {% endif %}>
+						{% set heroBannerSliderImageVideoFile = heroBannerSliderImageVideo.one() %}
+						{% set heroBannerSliderImageVideoFileMob = heroBannerSliderImageVideoMob.one() %}
+
+						{% if heroBannerSliderImageVideoFile %}
+							<div class="swiper-slide-coverx jarallax-img bg-position-center-center hidden lg:block" style="background-image: url('{{ images.bgImageUrl(heroBannerSliderImageVideoFile)|trim }}');">
+								<div class="absolute top-0 start-0 w-full h-full z-20 bg-black opacity-60"></div>
+							</div>
+						{% endif %}
+
+						{% if heroBannerSliderImageVideoFileMob %}
+							<div class="swiper-slide-coverx jarallax-img bg-position-center-center lg:hidden" style="background-image: url('{{ images.bgImageUrl(heroBannerSliderImageVideoFileMob, 768)|trim }}');">
+								<div class="absolute top-0 start-0 w-full h-full z-20 bg-black opacity-60"></div>
+							</div>
+						{% elseif heroBannerSliderImageVideoFile %}
+							<div class="swiper-slide-coverx jarallax-img bg-position-center-center lg:hidden" style="background-image: url('{{ images.bgImageUrl(heroBannerSliderImageVideoFile)|trim }}');">
+								<div class="absolute top-0 start-0 w-full h-full z-20 bg-black opacity-60"></div>
+							</div>
+						{% endif %}
+
+						<div
+							class="container mx-auto relative z-20 pt-6 md:pb-2 lg:pb-2 xl:pb-4 2xl:pb-6 text-{{ standardBannerSlider.textAlign.value }} text-white">
+							<!-- Page title -->
+							<div class="hidden 2xl:block" style="height: 5px;"></div>
+							<div class="hidden lg:block 2xl:hidden" style="height: 5px;"></div>
+							<div class="hidden md:block lg:hidden" style="height: 5px;"></div>
+							<div class="md:hidden" style="height: 5px;"></div>
+							{# First slide is the page's primary heading -> force h1 so every hero page has exactly one h1; later slides keep their configured tag (fallback h2). #}
+							{% set bannerHeadingTag = loop.first ? 'h1' : (standardBannerSlider.bannerHeadingTags.value ?? 'h2') %}
+							<{{ bannerHeadingTag }} class="mb-2 leading-none text-white">{{ heroBannerSliderHeading }}</{{ bannerHeadingTag }}>
+							{% if heroBannerSliderDescription|length %}
+								<div class="mb-0 text-white opacity-90">{{ heroBannerSliderDescription }}</div>
+							{% endif %}
+						</div>
+					</div>
+
+				{% endfor %}
+			</div>
+			<div class="swiper-pagination swiper-pagination-overlay mb-4 lg:mb-8"></div>
+		</div>
+
+	</section>
+
+{% endif %}

@@ -1,0 +1,80 @@
+@layer components {
+
+  /* Main sitemap card wrapper */
+  .sitemap-listing {
+    @apply bg-white dark:bg-dark border border-gray-100 dark:border-gray-800 rounded-3xl p-6 lg:p-8 shadow-sm;
+  }
+
+  /* Sitemap Main Wrapper */
+  .sitemaps {
+    @apply w-full;
+  }
+
+  /* Root List - Column Flow */
+  .sitemaps>.list {
+    column-count: 1;
+    column-gap: 1.5rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 768px) {
+    .sitemaps>.list {
+      column-count: 2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .sitemaps>.list {
+      column-count: 3;
+    }
+  }
+
+  /* Root List Items - prevent breaking columns */
+  .sitemaps>.list>.list-item {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    margin-bottom: 1rem;
+    list-style: none;
+  }
+
+  /* Root Links (headers of each section) */
+  .sitemaps>.list>.list-item>.link {
+    @apply block text-[15px] font-bold text-gray-900 dark:text-white no-underline pb-1.5 mb-2.5 border-b border-gray-100 dark:border-gray-800/50 hover:text-primary transition-colors duration-200;
+  }
+
+  /* Nested list containers under first level */
+  .sitemaps .list-item .list {
+    @apply pl-2 list-none border-l border-gray-200 dark:border-gray-800;
+    margin-top: 0.15rem;
+  }
+
+  /* Deeper level list items */
+  .sitemaps .list-item .list-item {
+    @apply relative py-1 pl-3 list-none;
+  }
+
+  /* Subtle branch line for deeper levels */
+  .sitemaps .list-item .list-item::before {
+    content: "";
+    position: absolute;
+    top: 0.85rem;
+    left: -0.5rem;
+    width: 0.75rem;
+    height: 1px;
+    background-color: #d1d5db;
+    /* gray-300 */
+  }
+
+  .tw-dark .sitemaps .list-item .list-item::before,
+  [data-theme="dark"] .sitemaps .list-item .list-item::before {
+    background-color: #4b5563;
+    /* gray-600 */
+  }
+
+  /* Deeper level links */
+  .sitemaps .list-item .list-item .link {
+    @apply text-sm font-medium text-gray-600 dark:text-gray-400 no-underline leading-tight transition-all duration-200 hover:text-primary hover:pl-1;
+  }
+}

@@ -1,0 +1,47 @@
+{% if pageInfo.totalPages >1 %}<nav class="pagination-nav mt-12" aria-label="Pagination">
+		<ul class="flex flex-wrap gap-1.5 py-2.5 justify-center items-center list-none m-0 p-0 max-sm:gap-1">
+
+			{% set linkBaseClasses = 'inline-flex items-center justify-center w-11 h-11 p-0 text-[0.95rem] font-semibold border rounded-xl transition-all duration-300 ease-out no-underline shadow-sm max-sm:w-[38px] max-sm:h-[38px] max-sm:text-[0.85rem] max-sm:rounded-lg' %}
+			{% set linkNormalClasses = 'text-gray-800 bg-white border-gray-200 hover:text-primary hover:border-primary hover:shadow-md hover:-translate-y-0.5' %}
+			{% set linkActiveClasses = 'text-white bg-primary border-primary shadow-lg' %}
+			{% set linkDisabledClasses = 'opacity-50 text-gray-500 bg-gray-50 border-gray-200 cursor-not-allowed pointer-events-none' %}
+			{% set iconClasses = 'text-[1.2rem] transition-transform duration-200 group-hover:scale-110' %}
+
+			<li class="m-0 list-none">
+				{% if pageInfo.prevUrl %}
+					<a class="{{ linkBaseClasses }} {{ linkNormalClasses }} group" href="{{ pageInfo.prevUrl }}" aria-label="Previous">
+						<i class="ti ti-chevron-left {{ iconClasses }}"></i>
+					</a>
+				{% else %}
+					<span class="{{ linkBaseClasses }} {{ linkDisabledClasses }}" aria-hidden="true">
+						<i class="ti ti-chevron-left text-[1.2rem]"></i>
+					</span>
+				{% endif %}
+			</li>
+
+			{% for page in 1..pageInfo.totalPages %}
+				{% set url = pageInfo.getPageUrl(page) %}
+				<li class="m-0 list-none">
+					{% if url %}
+						<a class="{{ linkBaseClasses }} {{ page == pageInfo.currentPage ? linkActiveClasses : linkNormalClasses }}" href="{{ url }}">{{ page }}</a>
+					{% else %}
+						<span class="{{ linkBaseClasses }} {{ linkDisabledClasses }}">{{ page }}</span>
+					{% endif %}
+				</li>
+			{% endfor %}
+
+			<li class="m-0 list-none">
+				{% if pageInfo.nextUrl %}
+					<a class="{{ linkBaseClasses }} {{ linkNormalClasses }} group" href="{{ pageInfo.nextUrl }}" aria-label="Next">
+						<i class="ti ti-chevron-right {{ iconClasses }}"></i>
+					</a>
+				{% else %}
+					<span class="{{ linkBaseClasses }} {{ linkDisabledClasses }}" aria-hidden="true">
+						<i class="ti ti-chevron-right text-[1.2rem]"></i>
+					</span>
+				{% endif %}
+			</li>
+
+		</ul>
+	</nav>
+{% endif %}

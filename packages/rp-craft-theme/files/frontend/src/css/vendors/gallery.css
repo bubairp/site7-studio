@@ -1,0 +1,24 @@
+@layer components {
+  /*
+    Gallery
+    based on https://github.com/sachinchoolur/lightgallery.js
+  */
+
+  .lg-backdrop { z-index: 1045; }
+
+  .lg-outer {
+    z-index: 1055;
+  }
+
+  .lg-outer .lg-thumb-item:hover,
+  .lg-outer .lg-thumb-item.active {
+    border-color: var(--color-primary);
+  }
+
+  .lg-on { overflow: hidden; }
+
+  .lg-item:focus,
+  .lg:focus,
+  .lg-outer:focus,
+  .lg-inner:focus { outline: none; }
+}

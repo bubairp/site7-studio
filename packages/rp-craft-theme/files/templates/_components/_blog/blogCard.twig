@@ -1,0 +1,38 @@
+{% import '_macros/images' as images %}
+<div class="group relative flex flex-col h-full tw-card card-hover">
+	{# CARD-03: aspect-[16/10] replaces inline style="aspect-ratio: 16/10" #}
+	{% if blog.image|length %}
+		<a href="{{ blog.url }}" class="block overflow-hidden rounded-t-2xl md:rounded-t-3xl aspect-[16/10]" tabindex="-1" aria-hidden="true">
+			{{ images.singleImg(blog.image.0, 420, {'ratio': 1.6}, 'w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transform-none', { alt: blog.title }) }}
+		</a>
+	{% endif %}
+	<div class="flex flex-col flex-1 p-5 md:p-6">
+		<div class="flex items-center flex-wrap gap-2 mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+			<span>{{ (blog.date ?? blog.postDate)|date('M d, Y') }}</span>
+			{% set blogCats = blog.blogCategories.all() %}
+			{% if blogCats|length %}
+				<span class="opacity-30">&bull;</span>
+				{% for cat in blogCats %}
+					{# RADIUS-03: tw-badge-category for unified badge styling #}
+					<a href="{{ siteUrl(craft.app.request.pathInfo) }}?category={{ cat.slug }}" class="text-primary hover:underline relative z-20">{{ cat.title }}</a>
+				{% endfor %}
+			{% endif %}
+		</div>
+		<h3 class="text-xl lg:text-2xl font-bold mb-3 text-gray-900 dark:text-white line-clamp-2">
+			{# A11Y-04: Full title as accessible label on title link #}
+			<a href="{{ blog.url }}" class="text-inherit no-underline hover:text-primary transition-colors after:absolute after:inset-0" aria-label="{{ blog.title }} — Read Blog">{{ blog.title }}</a>
+		</h3>
+		<p class="text-gray-600 dark:text-gray-300 line-clamp-3 mb-6 font-light text-sm leading-relaxed">
+			{{ blog.shortDescription|striptags }}
+		</p>
+	</div>
+	{# CARD-04: unified border-gray-100 dark:border-gray-800 #}
+	<div class="mt-auto px-5 md:px-6 pb-5 md:pb-6 pt-4 flex justify-between items-center text-gray-500 border-t border-gray-100 dark:border-gray-800">
+		<span class="text-xs font-semibold">By {{ blog.authorName }}</span>
+		{# A11Y-04 / ANIM-02: motion-reduce on arrow, aria-hidden since title link covers it #}
+		<span class="text-primary flex items-center gap-1 group-hover:text-dark dark:group-hover:text-white transition-colors" aria-hidden="true">
+			<span class="text-xs font-bold uppercase tracking-wider">Read Blog</span>
+			<i class="ti ti-arrow-right text-base transform group-hover:translate-x-1 motion-reduce:transform-none transition-transform"></i>
+		</span>
+	</div>
+</div>

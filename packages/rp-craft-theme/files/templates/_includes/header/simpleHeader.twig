@@ -1,0 +1,91 @@
+{% import "_macros/images" as images %}
+{% import '_components/ctaButton' as buttons %}
+
+<!-- Navbar -->
+<div x-data="{ searchOpen: false }" class="headerMain {{ headerClasses }} {{ headerPositioning }} sticky w-full z-[1030] bg-white/95 dark:bg-dark/95 backdrop-blur-xl transition-all duration-300" {% if themeSwitche %} data-theme="dark" {% else %} data-theme="light" {% endif %}>
+	{% if headerDisplayThinbar %}
+		<div class="header-top bg-primary py-1 text-white">
+			<div class="container text-center text-sm font-semibold tracking-wide">{{ generalEntry.headerNotification }}</div>
+		</div>
+	{% endif %}
+	<div class="header-main flex flex-wrap bg-transparent py-2 lg:py-3">
+		<div
+			class="{{ headerContainerWidth }} flex flex-wrap lg:flex-nowrap items-center justify-between w-full">
+			<!-- Navbar brand (Logo) -->
+			<a class="menu-brand lg:pe-3 shrink-0 lg:flex-1 lg:flex" href="/">
+				<span class="logo text-primary shrink-0 lg:me-2">
+					<img src="{{ generalEntry.logo.0.url }}" alt="logo" class="w-auto h-10 lg:h-auto lg:max-h-none">
+				</span>
+			</a>
+
+			<!-- Right-side utility group -->
+			<div
+				class="flex items-center gap-2 lg:gap-4 ms-auto order-2 lg:order-last lg:flex-1 lg:justify-end">
+
+				<!-- Phone -->
+				{% if headerDisplayPhone and generalEntry.phoneNumber %}
+					<div class="hidden sm:block">
+						<a class="tw-btn tw-btn-ghost tw-btn-sm font-normal" href="tel:{{ generalEntry.phoneNumber }}">{{ generalEntry.phoneNumber }}</a>
+					</div>
+				{% endif %}
+
+				<!-- Social -->
+				{% if headerDisplaySocial %}
+					<div class="social-items hidden md:flex">{% include '_components/social' with { sizeClass: 'w-7 h-7', iconSize: 14 } %}</div>
+				{% endif %}
+
+				<!-- Search -->
+				{% if headerDisplaySearch %}
+					<button @click="searchOpen = !searchOpen" type="button" class="flex text-xl text-[var(--menu-text)] hover:text-[var(--menu-hover-color)] cursor-pointer border-none bg-transparent p-0 transition-colors" aria-label="Search">
+						<i class="ti ti-search"></i>
+					</button>
+				{% endif %}
+
+				<!-- CTA Button -->
+				{% if headerDisplayCTA is defined and headerButton is defined and headerDisplayCTA and headerButton %}
+					{% set customClasses = "tw-btn-sm text-sm hidden sm:inline-flex" %}
+					{{ buttons.renderButton(headerButton, {}, customClasses) }}
+				{% endif %}
+
+				<!-- Mobile menu toggler (Hamburger) -->
+				<button id="mobileMenuToggle" class="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-800 transition-colors border-none bg-transparent lg:hidden cursor-pointer p-0" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="menuNav">
+					<span class="hamburger-icon" aria-hidden="true">
+						<span class="bar bar-1"></span>
+						<span class="bar bar-2"></span>
+						<span class="bar bar-3"></span>
+					</span>
+				</button>
+			</div>
+
+			<!-- Navbar collapse (Main navigation) -->
+			<nav class="sm:order-2 lg:flex lg:items-center lg:justify-center w-full lg:w-auto" id="menuNav" role="navigation" aria-label="Main navigation">{{ craft.simplerpmenu.getRpMenuHTML('headerMenu',{ 
+					'menu-id': 'headerMenu',
+					'menu-class':'simple-rp-menu ms-auto',
+					'ul-class':'menu-ul flex flex-col lg:flex-row p-0 m-0',
+					'li-class':'',
+					'sub-menu-ul-class':'sub-menu-ul',
+					'link-class':'menu-link', }) 
+				}}<div class="sm:hidden p-3 -mt-3">
+					{% if headerDisplayCTA  and headerButton %}
+						{{ buttons.renderButton(headerButton) }}
+					{% endif %}
+				</div>
+			</nav>
+		</div>
+
+		<div x-show="searchOpen" x-collapse class="search-field w-full">
+			<div class="container mx-auto px-4" style="max-width: 600px;">
+				<form action="/search?" method="get" class="block py-4 pb-3">
+					<div class="tw-input h-10 min-h-10 md:h-12 md:min-h-12 border border-solid border-gray-200 dark:border-gray-700 flex items-center gap-2 rounded-full w-full bg-white dark:bg-slate-800 px-4 focus-within:outline-hidden focus-within:ring-0">
+						<i class="ti ti-search text-gray-400 dark:text-gray-400 text-lg md:text-xl"></i>
+						<input class="grow border-0 bg-transparent focus:outline-hidden focus:ring-0 text-sm md:text-base placeholder-gray-400 dark:placeholder-gray-500 dark:text-white" placeholder="Search..." required="" name="term" id="searchField" x-ref="searchInput" x-effect="if(searchOpen) $nextTick(() =>$refs.searchInput.focus())">
+						<button type="button" @click="searchOpen = false" class="tw-btn tw-btn-ghost tw-btn-circle tw-btn-sm text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary bg-transparent border-none ml-auto" aria-label="Close Search">
+							<i class="ti ti-x text-lg md:text-xl"></i>
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="header-height" style="min-height: var(--header-height, 100px);"></div>

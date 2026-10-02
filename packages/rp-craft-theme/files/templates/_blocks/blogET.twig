@@ -1,0 +1,11 @@
+{% cache %}
+{% set blogEntries = craft.entries()
+            .section('blogs')
+            .all() 
+%}
+{% for blog in blogEntries %}
+	{% set blogTitle = blog.title %}
+	{% set blogData = blog.blogMatrix %}
+	{{ blogData }}
+{% endfor %}
+{% endcache %}

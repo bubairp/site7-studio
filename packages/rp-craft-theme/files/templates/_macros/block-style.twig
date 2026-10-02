@@ -1,0 +1,342 @@
+{#
+    ================================================================
+    blockStyleMacro.twig  –  Tailwind-first block style macros
+    ================================================================
+
+    WHY MACROS INSTEAD OF INCLUDE?
+    Twig's {% include %} does not propagate {% set %} variables back
+    to the parent template. Macros output their content directly into
+    the calling template, so {{ bsClasses(blockStyle) }} works perfectly.
+
+    USAGE
+    ─────────────────────────────────────────────────────────────────
+    {% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+
+    <section class="py-12 {{ bsClasses(blockStyle) }}"
+             style="{{ bsStyle(blockStyle) }}">{{ bsResponsive(blockStyle, scopedSel) }}<div class="{{ bsContainer(blockStyle, 'container mx-auto px-4') }}">
+    ================================================================
+#}
+
+{# ── 1. CLASS STRING ─────────────────────────────────────────────
+   Outputs space-separated Tailwind classes resolved from blockStyle.
+   All arbitrary-value classes reference CSS vars set by bsStyle().
+──────────────────────────────────────────────────────────────────── #}
+{% macro bsClasses(blockStyle) %}{% apply spaceless %}
+{% if blockStyle is defined and blockStyle|length %}
+{% set bs = blockStyle.one() ?? null %}
+{% if bs %}
+
+{# Background color #}
+{% if bs.background is defined and bs.background|length %}
+{% set _bg = bs.background.one() ?? null %}
+{% if _bg %}
+{% if _bg.colorLibrary is defined and _bg.colorLibrary|length %}bg-[var(--cms-bg)] {% endif %}
+{% if _bg.image is defined and _bg.image|length %}bg-[image:var(--cms-bg-img)] bg-cover bg-center bg-no-repeat {% endif %}
+{% endif %}
+{% endif %}
+
+{# Typography text-align (static class — JIT safe) #}
+{% if bs.typography is defined and bs.typography|length %}
+{% set _typ = bs.typography.one() ?? null %}
+{% if _typ %}
+{% set _align = _typ.align.value ?? null %}
+{% if _align %}{{ {'left':'text-left','center':'text-center','right':'text-right','justify':'text-justify'}[_align] ?? '' }} {% endif %}
+{% endif %}
+{% endif %}
+
+{# Desktop padding/margin (arbitrary vars — resolved at runtime) #}
+{% set _spacingMode = bs.spacingMode.value ?? 'custom' %}
+{% if _spacingMode == 'preset' %}
+{% if bs.spacingPreset is defined and bs.spacingPreset|length %}
+{% set _pre = bs.spacingPreset.one() ?? null %}
+{% if _pre %}
+{% set _tw = {'none':'0', 'sm':'4', 'md':'8', 'lg':'12', 'xl':'20'} %}
+{% set _pM = _pre.paddingMobDD is not empty ? _pre.paddingMobDD[0] : {} %}
+{% if _pM.top is defined and _pM.top != 'default' %}pt-{{ _tw[_pM.top] }} {% endif %}
+{% if _pM.right is defined and _pM.right != 'default' %}pr-{{ _tw[_pM.right] }} {% endif %}
+{% if _pM.bottom is defined and _pM.bottom != 'default' %}pb-{{ _tw[_pM.bottom] }} {% endif %}
+{% if _pM.left is defined and _pM.left != 'default' %}pl-{{ _tw[_pM.left] }} {% endif %}
+{% set _pT = _pre.paddingTabDD is not empty ? _pre.paddingTabDD[0] : {} %}
+{% if _pT.top is defined and _pT.top != 'default' %}md:pt-{{ _tw[_pT.top] }} {% endif %}
+{% if _pT.right is defined and _pT.right != 'default' %}md:pr-{{ _tw[_pT.right] }} {% endif %}
+{% if _pT.bottom is defined and _pT.bottom != 'default' %}md:pb-{{ _tw[_pT.bottom] }} {% endif %}
+{% if _pT.left is defined and _pT.left != 'default' %}md:pl-{{ _tw[_pT.left] }} {% endif %}
+{% set _pD = _pre.PaddingDD is not empty ? _pre.PaddingDD[0] : {} %}
+{% if _pD.top is defined and _pD.top != 'default' %}lg:pt-{{ _tw[_pD.top] }} {% endif %}
+{% if _pD.right is defined and _pD.right != 'default' %}lg:pr-{{ _tw[_pD.right] }} {% endif %}
+{% if _pD.bottom is defined and _pD.bottom != 'default' %}lg:pb-{{ _tw[_pD.bottom] }} {% endif %}
+{% if _pD.left is defined and _pD.left != 'default' %}lg:pl-{{ _tw[_pD.left] }} {% endif %}
+{% set _mM = _pre.marginMobDD is not empty ? _pre.marginMobDD[0] : {} %}
+{% if _mM.top is defined and _mM.top != 'default' %}mt-{{ _tw[_mM.top] }} {% endif %}
+{% if _mM.right is defined and _mM.right != 'default' %}mr-{{ _tw[_mM.right] }} {% endif %}
+{% if _mM.bottom is defined and _mM.bottom != 'default' %}mb-{{ _tw[_mM.bottom] }} {% endif %}
+{% if _mM.left is defined and _mM.left != 'default' %}ml-{{ _tw[_mM.left] }} {% endif %}
+{% set _mT = _pre.marginTabDD is not empty ? _pre.marginTabDD[0] : {} %}
+{% if _mT.top is defined and _mT.top != 'default' %}md:mt-{{ _tw[_mT.top] }} {% endif %}
+{% if _mT.right is defined and _mT.right != 'default' %}md:mr-{{ _tw[_mT.right] }} {% endif %}
+{% if _mT.bottom is defined and _mT.bottom != 'default' %}md:mb-{{ _tw[_mT.bottom] }} {% endif %}
+{% if _mT.left is defined and _mT.left != 'default' %}md:ml-{{ _tw[_mT.left] }} {% endif %}
+{% set _mD = _pre.marginDD is not empty ? _pre.marginDD[0] : {} %}
+{% if _mD.top is defined and _mD.top != 'default' %}lg:mt-{{ _tw[_mD.top] }} {% endif %}
+{% if _mD.right is defined and _mD.right != 'default' %}lg:mr-{{ _tw[_mD.right] }} {% endif %}
+{% if _mD.bottom is defined and _mD.bottom != 'default' %}lg:mb-{{ _tw[_mD.bottom] }} {% endif %}
+{% if _mD.left is defined and _mD.left != 'default' %}lg:ml-{{ _tw[_mD.left] }} {% endif %}
+{% endif %}
+{% endif %}
+{% else %}
+{% if bs.spacing is defined and bs.spacing|length %}
+{% set _sp = bs.spacing.one() ?? null %}
+{% if _sp %}
+{% set _pad = _sp.padding is not empty ? _sp.padding[0] : {} %}
+{% if _pad.top    is defined and _pad.top|length    %}!pt-[var(--cms-pt)] {% endif %}
+{% if _pad.right  is defined and _pad.right|length  %}!pr-[var(--cms-pr)] {% endif %}
+{% if _pad.bottom is defined and _pad.bottom|length %}!pb-[var(--cms-pb)] {% endif %}
+{% if _pad.left   is defined and _pad.left|length   %}!pl-[var(--cms-pl)] {% endif %}
+{% set _mar = _sp.margin is not empty ? _sp.margin[0] : {} %}
+{% if _mar.top    is defined and _mar.top|length    %}!mt-[var(--cms-mt)] {% endif %}
+{% if _mar.right  is defined and _mar.right|length  %}!mr-[var(--cms-mr)] {% endif %}
+{% if _mar.bottom is defined and _mar.bottom|length %}!mb-[var(--cms-mb)] {% endif %}
+{% if _mar.left   is defined and _mar.left|length   %}!ml-[var(--cms-ml)] {% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
+
+{# Divider border #}
+{% if bs.divider is defined and bs.divider|length %}
+{% set _div = bs.divider.one() ?? null %}
+{% if _div and _div.switchOff %}
+{% if (_div.dividerPosition.value ?? 'bottom') == 'top' %}border-t border-[var(--cms-divider)] {% else %}border-b border-[var(--cms-divider)] {% endif %}
+{% endif %}
+{% endif %}
+
+{# Custom CSS classes from CMS #}
+{{ bs.cssClasses ?? '' }}
+
+{% endif %}
+{% endif %}
+{% endapply %}{% endmacro %}
+
+
+{# ── 2. INLINE STYLE STRING ──────────────────────────────────────
+   Outputs CSS custom properties for the style="" attribute.
+   These feed all the *-[var(--cms-*)] classes above at runtime.
+──────────────────────────────────────────────────────────────────── #}
+{% macro bsStyle(blockStyle) %}{% apply spaceless %}
+{% if blockStyle is defined and blockStyle|length %}
+{% set bs = blockStyle.one() ?? null %}
+{% if bs %}
+
+{# Background color & image #}
+{% if bs.background is defined and bs.background|length %}
+{% set _bg = bs.background.one() ?? null %}
+{% if _bg %}
+{% set _bgColor = _bg.colorLibrary is defined and _bg.colorLibrary|length ? (_bg.colorLibrary.one().colorcode ?? null) : null %}
+{% if _bgColor %}--cms-bg:{{ _bgColor }};{% endif %}
+{% import "_macros/images" as images %}
+{% set _bgImage = _bg.image is defined and _bg.image|length ? (_bg.image.one() ? images.bgImageUrl(_bg.image.one())|trim : null) : null %}
+{% if _bgImage %}--cms-bg-img:url('{{ _bgImage }}');{% endif %}
+{% endif %}
+{% endif %}
+
+{# Typography colors #}
+{% if bs.typography is defined and bs.typography|length %}
+{% set _typ = bs.typography.one() ?? null %}
+{% if _typ %}
+{% set _c = _typ.colorLibrary is defined and _typ.colorLibrary|length ? (_typ.colorLibrary.one().colorcode ?? null) : null %}
+{% if _c %}--cms-heading:{{ _c }};{% endif %}
+{% set _c = _typ.colorLibraryText is defined and _typ.colorLibraryText|length ? (_typ.colorLibraryText.one().colorcode ?? null) : null %}
+{% if _c %}--cms-text:{{ _c }};{% endif %}
+{% set _c = _typ.colorLibraryLink is defined and _typ.colorLibraryLink|length ? (_typ.colorLibraryLink.one().colorcode ?? null) : null %}
+{% if _c %}--cms-link:{{ _c }};{% endif %}
+{% set _c = _typ.colorLibraryLinkHover is defined and _typ.colorLibraryLinkHover|length ? (_typ.colorLibraryLinkHover.one().colorcode ?? null) : null %}
+{% if _c %}--cms-link-hover:{{ _c }};{% endif %}
+{% set _c = _typ.colorLibraryBadge is defined and _typ.colorLibraryBadge|length ? (_typ.colorLibraryBadge.one().colorcode ?? null) : null %}
+{% if _c %}--cms-badge:{{ _c }};{% endif %}
+{% endif %}
+{% endif %}
+
+{# Desktop spacing #}
+{% set _spacingMode = bs.spacingMode.value ?? 'custom' %}
+{% if _spacingMode != 'preset' %}
+{% if bs.spacing is defined and bs.spacing|length %}
+{% set _sp = bs.spacing.one() ?? null %}
+{% if _sp %}
+{% set _pad = _sp.padding is not empty ? _sp.padding[0] : {} %}
+{% if _pad.top    is defined and _pad.top|length    %}--cms-pt:{{ _pad.top    }}px;{% endif %}
+{% if _pad.right  is defined and _pad.right|length  %}--cms-pr:{{ _pad.right  }}px;{% endif %}
+{% if _pad.bottom is defined and _pad.bottom|length %}--cms-pb:{{ _pad.bottom }}px;{% endif %}
+{% if _pad.left   is defined and _pad.left|length   %}--cms-pl:{{ _pad.left   }}px;{% endif %}
+{% set _mar = _sp.margin is not empty ? _sp.margin[0] : {} %}
+{% if _mar.top    is defined and _mar.top|length    %}--cms-mt:{{ _mar.top    }}px;{% endif %}
+{% if _mar.right  is defined and _mar.right|length  %}--cms-mr:{{ _mar.right  }}px;{% endif %}
+{% if _mar.bottom is defined and _mar.bottom|length %}--cms-mb:{{ _mar.bottom }}px;{% endif %}
+{% if _mar.left   is defined and _mar.left|length   %}--cms-ml:{{ _mar.left   }}px;{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
+
+{# Divider color #}
+{% if bs.divider is defined and bs.divider|length %}
+{% set _div = bs.divider.one() ?? null %}
+{% if _div and _div.switchOff %}--cms-divider:{{ _div.colorLibrary.one().colorcode ?? 'currentColor' }};{% endif %}
+{% endif %}
+
+{% endif %}
+{% endif %}
+{% endapply %}{% endmacro %}
+
+
+{# ── 3. RESPONSIVE <style> TAG ───────────────────────────────────
+   Outputs a <style> block ONLY when tab/mob spacing or child element
+   colors are configured. This is the only thing that needs a <style>
+   tag — @media queries and child selectors can't use inline style="".
+──────────────────────────────────────────────────────────────────── #}
+{% macro bsResponsive(blockStyle, scopedSel) %}
+{% if blockStyle is defined and blockStyle|length %}
+{% set bs = blockStyle.one() ?? null %}
+{% if bs %}
+
+{% set _tabRules = [] %}
+{% set _mobRules = [] %}
+{% set _hasTyp   = false %}
+
+{% set _spacingMode = bs.spacingMode.value ?? 'custom' %}
+{% if _spacingMode != 'preset' %}
+{% if bs.spacing is defined and bs.spacing|length %}
+{% set _sp = bs.spacing.one() ?? null %}
+{% if _sp %}
+{% set _pT = _sp.paddingTab is not empty ? _sp.paddingTab[0] : {} %}
+{% set _mT = _sp.marginTab  is not empty ? _sp.marginTab[0]  : {} %}
+{% if _pT.top    is defined and _pT.top|length    %}{% set _tabRules = _tabRules|merge(['padding-top:'    ~ _pT.top    ~ 'px!important;']) %}{% endif %}
+{% if _pT.right  is defined and _pT.right|length  %}{% set _tabRules = _tabRules|merge(['padding-right:'  ~ _pT.right  ~ 'px!important;']) %}{% endif %}
+{% if _pT.bottom is defined and _pT.bottom|length %}{% set _tabRules = _tabRules|merge(['padding-bottom:' ~ _pT.bottom ~ 'px!important;']) %}{% endif %}
+{% if _pT.left   is defined and _pT.left|length   %}{% set _tabRules = _tabRules|merge(['padding-left:'   ~ _pT.left   ~ 'px!important;']) %}{% endif %}
+{% if _mT.top    is defined and _mT.top|length    %}{% set _tabRules = _tabRules|merge(['margin-top:'     ~ _mT.top    ~ 'px!important;']) %}{% endif %}
+{% if _mT.right  is defined and _mT.right|length  %}{% set _tabRules = _tabRules|merge(['margin-right:'   ~ _mT.right  ~ 'px!important;']) %}{% endif %}
+{% if _mT.bottom is defined and _mT.bottom|length %}{% set _tabRules = _tabRules|merge(['margin-bottom:'  ~ _mT.bottom ~ 'px!important;']) %}{% endif %}
+{% if _mT.left   is defined and _mT.left|length   %}{% set _tabRules = _tabRules|merge(['margin-left:'    ~ _mT.left   ~ 'px!important;']) %}{% endif %}
+{% set _pM = _sp.paddingMob is not empty ? _sp.paddingMob[0] : {} %}
+{% set _mM = _sp.marginMob  is not empty ? _sp.marginMob[0]  : {} %}
+{% if _pM.top    is defined and _pM.top|length    %}{% set _mobRules = _mobRules|merge(['padding-top:'    ~ _pM.top    ~ 'px!important;']) %}{% endif %}
+{% if _pM.right  is defined and _pM.right|length  %}{% set _mobRules = _mobRules|merge(['padding-right:'  ~ _pM.right  ~ 'px!important;']) %}{% endif %}
+{% if _pM.bottom is defined and _pM.bottom|length %}{% set _mobRules = _mobRules|merge(['padding-bottom:' ~ _pM.bottom ~ 'px!important;']) %}{% endif %}
+{% if _pM.left   is defined and _pM.left|length   %}{% set _mobRules = _mobRules|merge(['padding-left:'   ~ _pM.left   ~ 'px!important;']) %}{% endif %}
+{% if _mM.top    is defined and _mM.top|length    %}{% set _mobRules = _mobRules|merge(['margin-top:'     ~ _mM.top    ~ 'px!important;']) %}{% endif %}
+{% if _mM.right  is defined and _mM.right|length  %}{% set _mobRules = _mobRules|merge(['margin-right:'   ~ _mM.right  ~ 'px!important;']) %}{% endif %}
+{% if _mM.bottom is defined and _mM.bottom|length %}{% set _mobRules = _mobRules|merge(['margin-bottom:'  ~ _mM.bottom ~ 'px!important;']) %}{% endif %}
+{% if _mM.left   is defined and _mM.left|length   %}{% set _mobRules = _mobRules|merge(['margin-left:'    ~ _mM.left   ~ 'px!important;']) %}{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% set _typCss = [] %}
+{% if bs.typography is defined and bs.typography|length %}
+{% set _typ = bs.typography.one() ?? null %}
+{% if _typ %}
+  {% set _c1 = _typ.colorLibrary is defined and _typ.colorLibrary|length ? (_typ.colorLibrary.one().colorcode ?? null) : null %}
+  {% if _c1 %}{% set _typCss = _typCss|merge([scopedSel ~ ' .block-heading-title{color:var(--cms-heading,inherit)!important;}']) %}{% endif %}
+
+  {% set _c2 = _typ.colorLibraryText is defined and _typ.colorLibraryText|length ? (_typ.colorLibraryText.one().colorcode ?? null) : null %}
+  {% if _c2 %}{% set _typCss = _typCss|merge([scopedSel ~ ' .block-description{color:var(--cms-text,inherit)!important;}']) %}{% endif %}
+
+  {% set _c3 = _typ.colorLibraryLink is defined and _typ.colorLibraryLink|length ? (_typ.colorLibraryLink.one().colorcode ?? null) : null %}
+  {% if _c3 %}{% set _typCss = _typCss|merge([scopedSel ~ ' a{color:var(--cms-link,inherit);}']) %}{% endif %}
+
+  {% set _cHover = _typ.colorLibraryLinkHover is defined and _typ.colorLibraryLinkHover|length ? (_typ.colorLibraryLinkHover.one().colorcode ?? null) : null %}
+  {% if _cHover %}{% set _typCss = _typCss|merge([scopedSel ~ ' a:hover{color:var(--cms-link-hover,var(--cms-link,inherit));}']) %}{% endif %}
+
+  {% set _c4 = _typ.colorLibraryBadge is defined and _typ.colorLibraryBadge|length ? (_typ.colorLibraryBadge.one().colorcode ?? null) : null %}
+  {% if _c4 %}{% set _typCss = _typCss|merge([scopedSel ~ ' .smallText-badge { color: var(--cms-badge, var(--color-primary)) !important; background-color: color-mix(in srgb, var(--cms-badge, var(--color-primary)) 10%, transparent) !important; }']) %}{% endif %}
+{% endif %}
+{% endif %}
+
+{% if _tabRules|length or _mobRules|length or _typCss|length %}
+<style>
+{% if _tabRules|length %}
+@media (min-width:768px) and (max-width:1199px){
+  {{ scopedSel }}{{'{'}}{{ _tabRules|join(' ')|raw }}{{'}'}}
+}
+{% endif %}
+{% if _mobRules|length %}
+@media (max-width:767.98px){
+  {{ scopedSel }}{{'{'}}{{ _mobRules|join(' ')|raw }}{{'}'}}
+}
+{% endif %}
+{% if _typCss|length %}
+{{ _typCss|join('\n')|raw }}
+{% endif %}
+</style>
+{% endif %}
+
+{% endif %}
+{% endif %}
+{% endmacro %}
+
+{# 
+   ================================================================
+   TAILWIND JIT SAFELIST FOR DYNAMIC SPACING CLASSES
+   Since we dynamically concatenate spacing classes (e.g. pt-{{ twScale }}),
+   Tailwind's scanner cannot detect them. We explicitly list them here
+   so they are always included in the CSS bundle.
+   ================================================================
+   
+   Padding Mobile:
+   pt-0 pr-0 pb-0 pl-0
+   pt-4 pr-4 pb-4 pl-4
+   pt-8 pr-8 pb-8 pl-8
+   pt-12 pr-12 pb-12 pl-12
+   pt-20 pr-20 pb-20 pl-20
+   
+   Margin Mobile:
+   mt-0 mr-0 mb-0 ml-0
+   mt-4 mr-4 mb-4 ml-4
+   mt-8 mr-8 mb-8 ml-8
+   mt-12 mr-12 mb-12 ml-12
+   mt-20 mr-20 mb-20 ml-20
+   
+   Padding Tablet:
+   md:pt-0 md:pr-0 md:pb-0 md:pl-0
+   md:pt-4 md:pr-4 md:pb-4 md:pl-4
+   md:pt-8 md:pr-8 md:pb-8 md:pl-8
+   md:pt-12 md:pr-12 md:pb-12 md:pl-12
+   md:pt-20 md:pr-20 md:pb-20 md:pl-20
+   
+   Margin Tablet:
+   md:mt-0 md:mr-0 md:mb-0 md:ml-0
+   md:mt-4 md:mr-4 md:mb-4 md:ml-4
+   md:mt-8 md:mr-8 md:mb-8 md:ml-8
+   md:mt-12 md:mr-12 md:mb-12 md:ml-12
+   md:mt-20 md:mr-20 md:mb-20 md:ml-20
+
+   Padding Desktop:
+   lg:pt-0 lg:pr-0 lg:pb-0 lg:pl-0
+   lg:pt-4 lg:pr-4 lg:pb-4 lg:pl-4
+   lg:pt-8 lg:pr-8 lg:pb-8 lg:pl-8
+   lg:pt-12 lg:pr-12 lg:pb-12 lg:pl-12
+   lg:pt-20 lg:pr-20 lg:pb-20 lg:pl-20
+   
+   Margin Desktop:
+   lg:mt-0 lg:mr-0 lg:mb-0 lg:ml-0
+   lg:mt-4 lg:mr-4 lg:mb-4 lg:ml-4
+   lg:mt-8 lg:mr-8 lg:mb-8 lg:ml-8
+   lg:mt-12 lg:mr-12 lg:mb-12 lg:ml-12
+   lg:mt-20 lg:mr-20 lg:mb-20 lg:ml-20
+#}
+
+
+{# ── 4. CONTAINER WIDTH ──────────────────────────────────────────
+   Returns the correct Tailwind container class from the CMS setting.
+──────────────────────────────────────────────────────────────────── #}
+{% macro bsContainer(blockStyle, default) %}{% apply spaceless %}
+{% if blockStyle is defined and blockStyle|length %}
+{% set bs = blockStyle.one() ?? null %}
+{% if bs and bs.containerWidth is defined and bs.containerWidth|length %}
+{% import '_macros/layout' as _layout %}
+{{ _layout.getContainerClass(bs.containerWidth.value) }}
+{% else %}
+{{ default ?? 'container mx-auto px-4' }}
+{% endif %}
+{% else %}
+{{ default ?? 'container mx-auto px-4' }}
+{% endif %}
+{% endapply %}{% endmacro %}

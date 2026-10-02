@@ -1,0 +1,10 @@
+/* components/newsletter.css */
+
+@layer components {
+    .newsletter-pattern {
+        background-image: url('../../../images/newsletter-bg-shape.png');
+        background-size: cover;
+        background-position: center;
+        opacity: 0.85;
+    }
+}

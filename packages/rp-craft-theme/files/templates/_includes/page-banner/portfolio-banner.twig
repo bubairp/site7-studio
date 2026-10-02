@@ -1,0 +1,12 @@
+{% import "_macros/images" as images %}
+{% set featureImages = portfolio.featureImage.all() %}
+{% if featureImages|length %}
+	{% for image in featureImages %}
+		{{ images.singleImg(
+            image,
+            1200,
+            {'ratio': 1.94},
+            'block w-full rounded-3xl mb-4 xl:mb-6 2xl:mb-12'
+        ) }}
+	{% endfor %}
+{% endif %}

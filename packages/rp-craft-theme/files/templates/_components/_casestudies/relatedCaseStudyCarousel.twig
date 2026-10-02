@@ -1,0 +1,36 @@
+
+{% if generalEntry.relatedCaseStudies | length %}
+	{% set relatedCaseStudies = craft.entries().section('casestudies').id('not ' ~ entry.id).with(['image', 'tags']).orderBy('postDate DESC').limit(12).all() %}
+	{% if relatedCaseStudies | length %}
+		<div class="flex items-center pb-4 mb-4 lg:mb-6 mt-2 2xl:mt-4">
+			<h2 class="w-full text-3xl font-bold mb-0 text-{{ generalEntry.caseStudytextAlign.value|replace({'start': 'left', 'end': 'right'}) }}" style="color: {{ generalEntry.caseStudyTitleColor.one().colorcode ?? '' }}">Related Case Studies</h2>
+		</div>
+
+		<div class="swiper" data-swiper-options='
+				{
+				"spaceBetween": 24,
+				"pagination": {
+					"el": ".swiper-pagination",
+					"clickable": true
+				},
+				"breakpoints": {
+					"576": { "slidesPerView": 2 },
+					"992": { "slidesPerView": {{ generalEntry.caseStudiesColumnPerRow.value }} }
+				},
+				"autoplay": {
+					"delay": 3000,
+					"disableOnInteraction": false
+				},
+				"speed": 1000,
+				"loop": true
+				}
+			'>
+			<div class="swiper-wrapper">
+				{% for caseStudy in relatedCaseStudies %}
+					{% include "_components/_casestudies/singleCaseStudyInSlider.twig" with { casestudy: caseStudy } %}
+				{% endfor %}
+			</div>
+			<div class="swiper-pagination relative bottom-0 mt-4 pt-2"></div>
+		</div>
+	{% endif %}
+{% endif %}

@@ -1,0 +1,200 @@
+{% if form_id | length %}
+	{% macro errorList(errors) %}
+		{% if errors %}
+			<ul class="errors">
+				{% for error in errors %}
+					<li>{{ error }}</li>
+				{% endfor %}
+			</ul>
+		{% endif %}
+	{% endmacro %}
+	{% from _self import errorList %}
+
+	{# Dynamic Button Labels #}
+	{% set submitButtonLabel = "Send Message" %}
+	{% set submitButtonLoadingLabel = "Sending..." %}
+
+	{% set form = wheelform.form({
+        id: form_id,
+        redirect: 'thanks',
+        submitButton: {
+            "type": "button",
+            "label": "Submit",
+            "html": "<div class=\"col-span-1 md:col-span-2 text-center pt-4\"><button class=\"tw-btn tw-btn-primary w-full wf-submit-btn\"><span class=\"button-text\">" ~ submitButtonLabel ~ "</span><span class=\"tw-spinner-border hidden ms-2\" role=\"status\" aria-hidden=\"true\"></span></button></div>", 
+        }
+    }) %}
+	{% set allFieldErrors = [] %}
+
+	{# Dynamic Column Mapping #}
+	{% set columnMapping = {
+		'name': 'col-span-1',
+		'email': 'col-span-1',
+		'phone': 'col-span-1 md:col-span-2',
+		'message': 'col-span-1 md:col-span-2'
+	} %}
+
+	{% css %}
+		/* Hide the honeypot field */
+		.wf-rp_field-1,
+		[name="rp_field"] {
+			display: none !important;
+		}
+	{% endcss %}
+
+	<div id="form-response-wrapper" class="hidden text-center py-12">
+		<div class="mb-6">
+			<i class="text-success">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-circle-check w-16 h-16 mx-auto"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17 3.34a10 10 0 1 1 -14.995 8.984l-.005 -.324l.005 -.324a10 10 0 0 1 14.995 -8.336zm-1.293 5.953a1 1 0 0 0 -1.32 -.083l-.094 .083l-3.293 3.292l-1.293 -1.292l-.094 -.083a1 1 0 0 0 -1.403 1.403l.083 .094l2 2l.094 .083a1 1 0 0 0 1.226 0l.094 -.083l4 -4l.083 -.094a1 1 0 0 0 -.083 -1.32z"/></svg>
+			</i>
+		</div>
+		<h3 id="form-response-title" class="text-xl font-semibold mb-4">Thank You!</h3>
+		<p id="form-response-message" class="text-gray-500 mb-0"></p>
+		<div class="mt-6">
+			<button class="tw-btn tw-btn-primary" onclick="location.reload()">Send another message</button>
+		</div>
+	</div>
+
+	{{ form.open("", {
+        'novalidate': 'novalidate',
+        'id':'contact-form',
+        'class': 'needs-validation',
+        'data-ajax': 'true',
+        'data-success-wrapper': 'form-response-wrapper',
+        'data-loading-text': submitButtonLoadingLabel,
+        'data-recaptcha-key': getenv('RECAPTCHA_SITE_KEY'),
+    }, "POST") }}
+	{{ wheelform.getRecaptchaV3() }}
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+		{% for field in form.fields %}
+			{% set isRequired = field.required ?? false %}
+			{% set fieldId = "wf-field-" ~ field.name %}
+
+			{# Use mapping or default to col-12 #}
+			{% set columnClass = columnMapping[field.name] ?? 'col-span-1 md:col-span-2' %}
+
+			{# Skip rendering if it's the honeypot handle redundantly #}
+			{% if field.name == 'rp_field' %}
+				<div style="display:none;">
+					<input type="text" name="{{ field.name }}" value="" autocomplete="off" tabindex="-1">
+				</div>
+			{% else %}
+				<div class="{{ columnClass }}">
+					{% switch field.type %}
+						{% case "hidden" %}
+							<input type="hidden" name="{{ field.name }}" value="{{ values[field.name] ?? '' }}">
+						{% case "honeypot" %}
+							{# Render nothing or a hidden input depending on Wheelform version, but definitely hide it from the user. #}
+							<div style="display:none;">
+								<input type="text" name="{{ field.name }}" value="" autocomplete="off" tabindex="-1">
+							</div>
+						{% case "checkbox" %}
+							<label class="tw-form-label">{{field.label}}
+								{% if isRequired %}
+									<span class="text-danger">*</span>
+								{% endif %}
+							</label>
+							<div class="flex flex-wrap gap-3 mt-1">
+								{% for item in field.items %}
+									{% set itemId = fieldId ~ "-" ~ loop.index %}
+									<div class="flex items-center gap-2">
+										<input class="checkbox tw-form-checkbox" type="checkbox" value="{{ item }}" {{values[field.name] is defined and item in values[field.name] ? ' checked="checked"' : '' }} name="{{field.name}}[]" id="{{ itemId }}"/>
+										<label class="tw-form-check-label" for="{{ itemId }}">{{item}}</label>
+									</div>
+								{% endfor %}
+							</div>
+							<div class="tw-form-error wf-error" data-field="{{ field.name }}"></div>
+							{% if isRequired %}
+								<div class="tw-form-error">Please select at least one option.</div>
+							{% endif %}
+
+						{% case "radio" %}
+							<label class="tw-form-label">{{field.label}}
+								{% if isRequired %}
+									<span class="text-danger">*</span>
+								{% endif %}
+							</label>
+							<div class="flex flex-wrap gap-3 mt-1">
+								{% for item in field.items %}
+									{% set itemId = fieldId ~ "-" ~ loop.index %}
+									<div class="flex items-center gap-2">
+										<input class="radio tw-form-radio" type="radio" value="{{ item }}" {{values[field.name] is defined and item == values[field.name] ? ' checked="checked"' : '' }} name="{{field.name}}" id="{{ itemId }}"/>
+										<label class="tw-form-check-label" for="{{ itemId }}">{{item}}</label>
+									</div>
+								{% endfor %}
+							</div>
+							<div class="tw-form-error wf-error" data-field="{{ field.name }}"></div>
+							{% if isRequired %}
+								<div class="tw-form-error">Please select an option.</div>
+							{% endif %}
+
+						{% case "select" %}
+							<label for="{{ fieldId }}" class="tw-form-label">{{field.label}}
+								{% if isRequired %}
+									<span class="text-danger">*</span>
+								{% endif %}
+							</label>
+							<select id="{{ fieldId }}" name="{{field.name}}" class="tw-form-select {{field.fieldClass}}" {{ isRequired ? 'required' : '' }}>
+								<option value="">Choose...</option>
+								{% for item in field.items %}
+									<option value="{{ item }}" {{values[field.name] is defined and item == values[field.name] ? 'selected="selected"' : '' }}>{{item}}</option>
+								{% endfor %}
+							</select>
+							<div class="tw-form-error wf-error" data-field="{{ field.name }}"></div>
+							{% if isRequired %}
+								<div class="tw-form-error">Please select a valid option.</div>
+							{% endif %}
+
+						{% case "file" %}
+							<label for="{{ fieldId }}" class="tw-form-label">{{field.label}}
+								{% if isRequired %}
+									<span class="text-danger">*</span>
+								{% endif %}
+							</label>
+							<input type="file" id="{{ fieldId }}" name="{{field.name}}" class="tw-form-control" {{ isRequired ? 'required' : '' }}/>
+							<div class="tw-form-error wf-error" data-field="{{ field.name }}"></div>
+							{% if isRequired %}
+								<div class="tw-form-error">Please upload a file.</div>
+							{% endif %}
+
+						{% case "textarea" %}
+							<label for="{{ fieldId }}" class="tw-form-label">{{field.label}}
+								{% if isRequired %}
+									<span class="text-danger">*</span>
+								{% endif %}
+							</label>
+							<textarea id="{{ fieldId }}" placeholder="{{field.placeholder}}" class="tw-form-control" rows="5" name="{{field.name}}" {{ isRequired ? 'required' : '' }}>{{ values[field.name] ?? '' }}</textarea>
+							<div class="tw-form-error wf-error" data-field="{{ field.name }}"></div>
+							{% if isRequired %}
+								<div class="tw-form-error">This field is required.</div>
+							{% endif %}
+
+						{% case "list" %}
+							<label for="{{ fieldId }}" class="tw-form-label">{{field.label}}
+								{% if isRequired %}
+									<span class="text-danger">*</span>
+								{% endif %}
+							</label>
+							<input type="text" name="{{field.name}}[]" id="{{ fieldId }}" class="tw-form-control {{field.fieldClass}}" {{ isRequired ? 'required' : '' }}/>
+							<div class="tw-form-error wf-error" data-field="{{ field.name }}"></div>
+							{% if isRequired %}
+								<div class="tw-form-error">This field is required.</div>
+							{% endif %}
+
+						{% default %}
+							<label for="{{ fieldId }}" class="tw-form-label">{{field.label}}
+								{% if isRequired %}
+									<span class="text-danger">*</span>
+								{% endif %}
+							</label>
+							<input class="tw-form-control {{field.fieldClass}}" id="{{ fieldId }}" placeholder="{{field.placeholder}}" type="{{field.type}}" value="{{ values[field.name] ?? '' }}" name="{{field.name}}" {{ isRequired ? 'required' : '' }}/>
+							<div class="tw-form-error wf-error" data-field="{{ field.name }}"></div>
+							{% if isRequired %}
+								<div class="tw-form-error">This field is required.</div>
+							{% endif %}
+					{% endswitch %}
+				</div>
+			{% endif %}
+		{% endfor %}
+	</div>
+	{{ form.close() }}
+{% endif %}
