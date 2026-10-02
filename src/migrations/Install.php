@@ -47,6 +47,7 @@ class Install extends Migration
             m260802_000000_create_website_import_sources_table::class,
             m260813_142335_add_package_version_archive_path::class,
             m260817_150000_create_installed_files_table::class,
+            m261002_000000_store_matrix_field_uid::class,
         ];
     }
 

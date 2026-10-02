@@ -5,6 +5,7 @@ namespace site7\studio\controllers;
 use Craft;
 use craft\web\Controller;
 use site7\studio\Site7Studio;
+use site7\studio\models\Settings;
 use craft\fields\Matrix;
 
 class SetupController extends Controller
@@ -57,7 +58,7 @@ class SetupController extends Controller
         if ($fieldId) {
             Craft::$app->getPlugins()->savePluginSettings(
                 Site7Studio::getInstance(),
-                ['matrixFieldId' => $fieldId]
+                Settings::mergeWithStored(['matrixFieldUid' => $fieldsService->getFieldById($fieldId)?->uid])
             );
             Craft::$app->getSession()->setNotice('Setup complete!');
             return $this->redirect('site7-studio/setup/complete');

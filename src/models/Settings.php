@@ -2,14 +2,53 @@
 
 namespace site7\studio\models;
 
+use Craft;
 use craft\base\Model;
 
 /**
  * Site7 Studio Settings Model
+ *
+ * @property-read int|null $matrixFieldId
  */
 class Settings extends Model
 {
-    public ?int $matrixFieldId = null;
+    /**
+     * UID of the Site7 Components Matrix field. Stored instead of the field's
+     * ID because project config travels between environments and IDs don't
+     * (see m261002_000000_store_matrix_field_uid). Read the ID through
+     * $matrixFieldId.
+     */
+    public ?string $matrixFieldUid = null;
+
+    /**
+     * $changes merged onto the settings stored in project config, for
+     * savePluginSettings(). That call replaces the whole settings node with
+     * just the keys it's given, so passing only $changes would wipe every
+     * other setting. The base is the stored config, not getAttributes():
+     * the model also carries config/site7-studio.php overrides (API keys
+     * from .env), which must never be written into project config - so
+     * overridden keys are dropped even when submitted, since the config
+     * file wins over project config anyway.
+     */
+    public static function mergeWithStored(array $changes): array
+    {
+        $stored = Craft::$app->getProjectConfig()->get('plugins.site7-studio.settings') ?? [];
+        $overridden = Craft::$app->getConfig()->getConfigFromFile('site7-studio');
+
+        return array_diff_key(array_merge($stored, $changes), $overridden);
+    }
+
+    /**
+     * This site's ID for $matrixFieldUid - every caller works with the ID.
+     */
+    public function getMatrixFieldId(): ?int
+    {
+        if ($this->matrixFieldUid === null || Craft::$app === null) {
+            return null;
+        }
+
+        return Craft::$app->getFields()->getFieldByUid($this->matrixFieldUid)?->id;
+    }
 
     /**
      * The package to fall back to when a user has no active subscription
@@ -96,8 +135,7 @@ class Settings extends Model
     protected function defineRules(): array
     {
         $rules = parent::defineRules();
-        $rules[] = [['matrixFieldId'], 'integer'];
-        $rules[] = [['defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment'], 'string'];
+        $rules[] = [['matrixFieldUid', 'defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment'], 'string'];
         $rules[] = [
             ['defaultPackageAuthor', 'defaultPackageLicense', 'defaultPackageVersion'],
             'string',

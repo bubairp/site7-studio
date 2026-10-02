@@ -86,15 +86,10 @@ class SettingsController extends Controller
             $submitted['packageCategories'] = array_values(array_filter(array_map('trim', explode("\n", $submitted['packageCategories']))));
         }
 
-        // Craft's savePluginSettings() only ever persists the keys present in
-        // the array it's handed - internally it does
-        // $settings->toArray(array_keys($given)), then replaces the plugin's
-        // *entire* project config settings node with just that. Since the
-        // Commerce tab only ever submits its own 7 fields, passing $submitted
-        // alone would silently wipe every other setting (matrixFieldId
-        // included) out of project config. Merging onto the full current
-        // attribute set means only what's actually in this form changes.
-        $data = array_merge($plugin->getSettings()->getAttributes(), $submitted);
+        // The Commerce tab only submits its own fields; see
+        // Settings::mergeWithStored() for why they're merged onto the stored
+        // settings (not getAttributes(), which carries .env overrides).
+        $data = \site7\studio\models\Settings::mergeWithStored($submitted);
 
         if (!Craft::$app->getPlugins()->savePluginSettings($plugin, $data)) {
             Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Couldn’t save the settings.'));

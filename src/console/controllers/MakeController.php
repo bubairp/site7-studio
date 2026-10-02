@@ -86,7 +86,7 @@ class MakeController extends Controller
 
         Craft::$app->getPlugins()->savePluginSettings(
             Site7Studio::getInstance(),
-            ['matrixFieldId' => $fieldId]
+            \site7\studio\models\Settings::mergeWithStored(['matrixFieldUid' => $fieldsService->getFieldById($fieldId)?->uid])
         );
         $this->stdout("Setup complete - matrixFieldId set to {$fieldId}.\n", Console::FG_GREEN);
 
