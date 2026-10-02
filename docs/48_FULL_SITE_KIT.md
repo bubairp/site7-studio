@@ -32,7 +32,17 @@ files/templates/  files/modules/  files/frontend/ (no node_modules)  files/web/a
 
 `site-kit.json`: `schemaVersion`, `handle`, `name`, `builtAt`, `craftVersion`, `plugins` (handles in the kit's project config), `removedStalePlugins`, `pathRepositories`, `configFiles`, `fileCounts`, `envKeys` (names only — values never leave the source).
 
-## 5. Console
+## 5. CP screen and console
+
+**CP: Site7 Studio → Site Kits** (`site7-studio/site-kits`, `SiteKitsController`, admins only; installing also needs `allowAdminChanges`):
+- *Build a kit from this site* — name + "Include content", starts a background build.
+- *Kits on this server* — every zip in `storage/site7-studio/site-kits/` with its manifest summary; Download; **Check** (shown on a fresh site) runs `validateKit()` and shows errors/warnings, then **Install**.
+- *Install a kit on this site* — upload (capped by PHP's upload limit, shown on the page; larger kits are copied into `storage/site7-studio/site-kits/`), only on a fresh site.
+- Build and install run as background jobs (`SiteKitJobs`): the same console command, started detached with `nohup` (HOME/COMPOSER_HOME set, since web server processes may lack them), output in `storage/site7-studio/site-kit-jobs/<id>.log`. The job page polls `site-kits/job-status` every 2 s and shows the log live; polls failing while composer replaces vendor/ are retried.
+
+Verified 2026-10-02 by driving the screens as an admin on a fresh DDEV site: page → Check ("Ready to install: Craft 5.10.8.1, 21 plugins, 599 entries") → Install → job page showed every step → done in ~51 s → rp-craft's pages served.
+
+**Console:**
 
 - `php craft site7-studio/site-kit/build "<Name>"` — on the source site. Writes only the zip.
 - `php craft site7-studio/site-kit/validate <kit.zip>` — on the target; changes nothing.

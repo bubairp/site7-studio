@@ -1,0 +1,128 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+{% set title = "Site Kits" %}
+{% set selectedSubnavItem = 'site-kits' %}
+
+{% set content %}
+<p class="light">A Full Site Kit turns a fresh Craft install into a copy of a whole site: structure, plugins, templates, frontend and content. Build one here on the source site, then install it from this screen on a fresh site.</p>
+
+{# ---------------------------------------------------------- build #}
+<div class="pane">
+    <h2>Build a kit from this site</h2>
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ actionInput('site7-studio/site-kits/build') }}
+        {{ forms.textField({
+            label: 'Kit name',
+            name: 'name',
+            value: craft.app.sites.primarySite.name,
+            required: true,
+        }) }}
+        {{ forms.lightswitchField({
+            label: 'Include content',
+            instructions: 'Pages, assets with their files, categories, tags, menus and forms. Users, payments and form submissions are never included.',
+            name: 'includeContent',
+            on: true,
+        }) }}
+        <button type="submit" class="btn submit">Build kit</button>
+    </form>
+</div>
+
+{# ---------------------------------------------------------- kits #}
+<div class="pane">
+    <h2>Kits on this server</h2>
+    {% if kits is empty %}
+        <p class="light">No kits yet. Build one above, or upload one below.</p>
+    {% else %}
+        <table class="data fullwidth">
+            <thead><tr><th>Kit</th><th>Built from</th><th>Contents</th><th>Size</th><th></th></tr></thead>
+            <tbody>
+            {% for kit in kits %}
+                {% set m = kit.manifest %}
+                <tr>
+                    <td><strong>{{ m.name ?? kit.file }}</strong><br><span class="light">{{ kit.file }}</span></td>
+                    <td>{% if m %}Craft {{ m.craftVersion }}<br><span class="light">{{ m.builtAt|date('short') }}</span>{% else %}<span class="error">Not a site kit</span>{% endif %}</td>
+                    <td>
+                        {% if m %}
+                            {{ m.plugins|length }} plugins, {{ m.fileCounts.templates ?? 0 }} templates<br>
+                            {% if m.content %}
+                                <span class="light">{{ m.content.counts.entries ?? 0 }} entries, {{ m.content.counts.assets ?? 0 }} assets, {{ m.content.counts.simplerpmenu_items ?? 0 }} menu items</span>
+                            {% else %}
+                                <span class="light">Structure only</span>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>{{ kit.size|filesize }}</td>
+                    <td class="thin nowrap">
+                        <a class="btn small" href="{{ actionUrl('site7-studio/site-kits/download', {kit: kit.file}) }}">Download</a>
+                        {% if isFresh %}
+                            <form method="post" class="inline">
+                                {{ csrfInput() }}
+                                {{ actionInput('site7-studio/site-kits/validate') }}
+                                {{ hiddenInput('kit', kit.file) }}
+                                <button type="submit" class="btn small">Check</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+
+{# ---------------------------------------------------------- install #}
+<div class="pane">
+    <h2>Install a kit on this site</h2>
+    {% if not isFresh %}
+        <p>This site already has sections or entries. A Full Site Kit replaces the whole site structure, so it only installs on a <strong>fresh</strong> Craft install with Site7 Studio.</p>
+    {% else %}
+        <p>This is a fresh site. Upload a kit (or use one listed above), check it, then install.</p>
+        <form method="post" accept-charset="UTF-8" enctype="multipart/form-data">
+            {{ csrfInput() }}
+            {{ actionInput('site7-studio/site-kits/upload') }}
+            <input type="file" name="kit" accept=".zip">
+            <button type="submit" class="btn">Upload</button>
+        </form>
+        {% set uploadLimit = craft.app.controller.uploadLimit() %}
+        <p class="light">Upload limit on this server: {{ uploadLimit|filesize }}. For a larger kit, copy the .zip into <code>storage/site7-studio/site-kits/</code> on this server — it then appears in the list above.</p>
+
+        {% if validation %}
+            <hr>
+            <h3>Check: {{ validatedKit }}</h3>
+            {% if validation.errors %}
+                <ul class="errors">{% for e in validation.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+            {% else %}
+                <p class="success">✓ Ready to install: Craft {{ validation.manifest.craftVersion }}, {{ validation.manifest.plugins|length }} plugins{% if validation.manifest.content %}, {{ validation.manifest.content.counts.entries ?? 0 }} entries{% endif %}.</p>
+            {% endif %}
+            {% for w in validation.warnings %}<p class="warning">{{ w }}</p>{% endfor %}
+            {% if not validation.errors %}
+                <form method="post" accept-charset="UTF-8">
+                    {{ csrfInput() }}
+                    {{ actionInput('site7-studio/site-kits/install') }}
+                    {{ hiddenInput('kit', validatedKit) }}
+                    <button type="submit" class="btn submit">Install {{ validatedKit }}</button>
+                    <span class="light">Replaces this site's plugins, structure, templates and frontend. A backup is kept in storage/site7-studio/site-kit-backups/.</span>
+                </form>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+</div>
+
+{% if jobs %}
+<div class="pane">
+    <h2>Recent jobs</h2>
+    <table class="data fullwidth">
+        <tbody>
+        {% for job in jobs %}
+            <tr>
+                <td><a href="{{ cpUrl('site7-studio/site-kits/job/' ~ job.id) }}">{{ job.label }}</a></td>
+                <td>{{ job.startedAt|datetime('short') }}</td>
+                <td>{% if not job.done %}<span class="status pending"></span>Running{% elseif job.exitCode == 0 %}<span class="status green"></span>Done{% else %}<span class="status red"></span>Failed{% endif %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endset %}

@@ -1,0 +1,48 @@
+{% extends "_layouts/cp" %}
+{% set title = job.label %}
+{% set selectedSubnavItem = 'site-kits' %}
+{% set crumbs = [{label: 'Site Kits', url: cpUrl('site7-studio/site-kits')}] %}
+
+{% set content %}
+<div class="pane">
+    <p id="s7-job-state">
+        {% if not job.done %}<span class="status pending"></span>Running…{% elseif job.exitCode == 0 %}<span class="status green"></span>Done{% else %}<span class="status red"></span>Failed{% endif %}
+    </p>
+    <pre id="s7-job-log" style="max-height: 60vh; overflow: auto; padding: 12px; background: var(--gray-050); border-radius: 4px; white-space: pre-wrap;">{{ job.lines|join("\n") }}</pre>
+    <p id="s7-job-next" {% if not job.done %}hidden{% endif %}>
+        <a class="btn" href="{{ cpUrl('site7-studio/site-kits') }}">Back to Site Kits</a>
+        <a class="btn submit" href="{{ siteUrl() }}" target="_blank">View site</a>
+    </p>
+</div>
+{% endset %}
+
+{% js %}
+(function () {
+    var done = {{ job.done ? 'true' : 'false' }};
+    var log = document.getElementById('s7-job-log');
+    var state = document.getElementById('s7-job-state');
+    function poll() {
+        if (done) { return; }
+        // During an install vendor/ is being replaced, so a poll may fail -
+        // keep trying.
+        Craft.sendActionRequest('GET', 'site7-studio/site-kits/job-status', {params: {id: {{ job.id|json_encode|raw }}}})
+            .then(function (response) {
+                var job = response.data;
+                if (!job || job.error) { return; }
+                log.textContent = job.lines.join('\n');
+                log.scrollTop = log.scrollHeight;
+                if (job.done) {
+                    done = true;
+                    state.innerHTML = job.exitCode === 0
+                        ? '<span class="status green"></span>Done'
+                        : '<span class="status red"></span>Failed (exit code ' + job.exitCode + ')';
+                    document.getElementById('s7-job-next').hidden = false;
+                }
+            })
+            .catch(function () {})
+            .finally(function () { if (!done) { setTimeout(poll, 2000); } });
+    }
+    log.scrollTop = log.scrollHeight;
+    setTimeout(poll, 1500);
+})();
+{% endjs %}

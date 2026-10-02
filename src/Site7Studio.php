@@ -67,6 +67,7 @@ use site7\studio\providers\PublishingServiceProvider;
  * @property-read \site7\studio\services\sitekit\SiteKitBuilder $siteKitBuilder
  * @property-read \site7\studio\services\sitekit\SiteKitContent $siteKitContent
  * @property-read \site7\studio\services\sitekit\SiteKitInstaller $siteKitInstaller
+ * @property-read \site7\studio\services\sitekit\SiteKitJobs $siteKitJobs
  * @property-read \site7\studio\services\installation\InstallationPlanner $installationPlanner
  * @property-read \site7\studio\services\installation\InstallationValidator $installationValidator
  * @property-read \site7\studio\services\installation\InstallationExecutor $installationExecutor
@@ -270,6 +271,9 @@ class Site7Studio extends Plugin
                 // Synchronization & Update Engine (Phase 8) - same convention as Phase 7's wizard above.
                 $event->rules['site7-studio/update'] = 'site7-studio/update-wizard/index';
                 $event->rules['site7-studio/update/summary/<sessionUid:[\w-]+>'] = 'site7-studio/update-wizard/summary';
+                // Full Site Kit (docs/48 §11) - POST actions use the action param.
+                $event->rules['site7-studio/site-kits'] = 'site7-studio/site-kits/index';
+                $event->rules['site7-studio/site-kits/job/<id:[\w\-]+>'] = 'site7-studio/site-kits/job';
             }
         );
     }

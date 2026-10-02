@@ -69,6 +69,7 @@ class CpSubscriber implements EventSubscriberInterface
                 'library' => ['label' => 'Library', 'url' => 'site7-studio/library'],
                 'install' => ['label' => 'Install', 'url' => 'site7-studio/install'],
                 'update' => ['label' => 'Update', 'url' => 'site7-studio/update'],
+                'site-kits' => ['label' => 'Site Kits', 'url' => 'site7-studio/site-kits'],
                 'marketplace' => ['label' => 'Marketplace', 'url' => 'site7-studio/marketplace'],
                 'commerce' => ['label' => 'Commerce & Licensing', 'url' => 'site7-studio/commerce'],
                 'publishing' => ['label' => 'Publishing', 'url' => 'site7-studio/publishing'],

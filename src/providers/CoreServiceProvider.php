@@ -20,6 +20,7 @@ use site7\studio\services\StarterKitBuilder;
 use site7\studio\services\sitekit\SiteKitBuilder;
 use site7\studio\services\sitekit\SiteKitContent;
 use site7\studio\services\sitekit\SiteKitInstaller;
+use site7\studio\services\sitekit\SiteKitJobs;
 use site7\studio\services\installation\InstallationPlanner;
 use site7\studio\services\installation\InstallationValidator;
 use site7\studio\services\installation\InstallationExecutor;
@@ -144,6 +145,10 @@ class CoreServiceProvider implements ServiceProviderInterface
 
         $plugin->set('siteKitInstaller', [
             'class' => SiteKitInstaller::class,
+        ]);
+
+        $plugin->set('siteKitJobs', [
+            'class' => SiteKitJobs::class,
         ]);
 
         $plugin->set('installationPlanner', [
