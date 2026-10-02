@@ -53,6 +53,9 @@ class ResourceImportValidator extends Component
 
             switch ($classification) {
                 case \site7\studio\services\import\ResourceClassifierService::PLUGIN_DEPENDENCY:
+                case \site7\studio\services\import\ResourceClassifierService::EXTERNAL_DEPENDENCY:
+                case \site7\studio\services\import\ResourceClassifierService::REVIEW_REQUIRED:
+                // Deprecated predecessor of REVIEW_REQUIRED, still read back from old manifests.
                 case \site7\studio\services\import\ResourceClassifierService::UNKNOWN_RESOURCE:
                     $warnings[] = $message;
                     break;

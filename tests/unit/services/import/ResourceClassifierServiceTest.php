@@ -129,14 +129,15 @@ class ResourceClassifierServiceTest extends Unit
         $this->assertSame('import', $result['action']);
     }
 
-    public function testUnsupportedFieldWithNoSignalIsUnknownResource()
+    public function testUnsupportedFieldWithNoSignalIsReviewRequired()
     {
         $result = $this->classifier->classifyField(
             ['handle' => 'weirdField', 'name' => 'Weird', 'type' => 'SomeExoticType', 'supported' => false, 'fieldClass' => \craft\fields\PlainText::class],
             ['fanOut' => 1]
         );
 
-        $this->assertSame(ResourceClassifierService::UNKNOWN_RESOURCE, $result['classification']);
+        // UNKNOWN_RESOURCE is deprecated; classifyField() returns REVIEW_REQUIRED instead.
+        $this->assertSame(ResourceClassifierService::REVIEW_REQUIRED, $result['classification']);
         $this->assertSame('report-dependency', $result['action']);
     }
 

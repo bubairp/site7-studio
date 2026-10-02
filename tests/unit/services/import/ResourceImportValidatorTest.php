@@ -3,6 +3,7 @@
 namespace site7\studio\tests\unit\services\import;
 
 use Codeception\Test\Unit;
+use site7\studio\services\import\ResourceClassifierService;
 use site7\studio\services\import\ResourceImportValidator;
 
 /**
@@ -29,27 +30,38 @@ class ResourceImportValidatorTest extends Unit
         $this->validator = new ResourceImportValidator();
     }
 
+    /**
+     * validateImport() reads each field's classification, so run fields
+     * through the real classifier first, as every import flow does.
+     */
+    private function classified(array $fields): array
+    {
+        $classifier = new ResourceClassifierService();
+        return array_map(fn(array $field) => $classifier->classifyField($field, ['fanOut' => 1]), $fields);
+    }
+
     public function testFlagsUnsupportedFieldsAsWarnings()
     {
         $result = $this->validator->validateImport('matrix-entry-type', [
-            'detectedFields' => [
-                ['handle' => 'heading', 'type' => 'PlainText', 'supported' => true],
-                ['handle' => 'ranking', 'type' => 'Table', 'supported' => false],
-            ],
+            'detectedFields' => $this->classified([
+                ['handle' => 'heading', 'name' => 'Heading', 'type' => 'PlainText', 'supported' => true, 'fieldClass' => \craft\fields\PlainText::class],
+                ['handle' => 'ranking', 'name' => 'Ranking', 'type' => 'SomeExoticType', 'supported' => false, 'fieldClass' => \craft\fields\PlainText::class],
+            ]),
             'hasCapturableContent' => true,
         ]);
 
         $this->assertEmpty($result['errors']);
         $this->assertCount(1, $result['warnings']);
         $this->assertStringContainsString('ranking', $result['warnings'][0]);
+        $this->assertStringContainsString('Review Required', $result['warnings'][0]);
     }
 
     public function testFlagsAssetsFieldsAsWarning()
     {
         $result = $this->validator->validateImport('page', [
-            'detectedFields' => [
-                ['handle' => 'heroImage', 'type' => 'Assets', 'supported' => true],
-            ],
+            'detectedFields' => $this->classified([
+                ['handle' => 'heroImage', 'name' => 'Hero Image', 'type' => 'Assets', 'supported' => true, 'fieldClass' => \craft\fields\Assets::class],
+            ]),
             'hasCapturableContent' => true,
         ]);
 
