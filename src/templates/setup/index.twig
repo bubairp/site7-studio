@@ -29,28 +29,8 @@
                 <hr>
 
                 <h3>Matrix Field Configuration</h3>
-                
-                <div class="field">
-                    <label>
-                        <input type="radio" name="matrixOption" value="create" checked> 
-                        <strong>Option A (Recommended)</strong>: Create a new Matrix field automatically. (Name: Site7 Components)
-                    </label>
-                </div>
-                
-                <div class="field">
-                    <label>
-                        <input type="radio" name="matrixOption" value="select"> 
-                        <strong>Option B</strong>: Select an existing Matrix field.
-                    </label>
-                    <div class="select" style="margin-left: 24px; margin-top: 10px;">
-                        <select name="matrixFieldId">
-                            <option value="">-- Select a field --</option>
-                            {% for field in matrixFields %}
-                                <option value="{{ field.id }}">{{ field.name }} ({{ field.handle }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
+
+                <p>Setup will use the <strong>Site7 Components</strong> Matrix field (<code>site7Components</code>), creating it if it doesn't exist yet.</p>
 
                 <hr>
                 

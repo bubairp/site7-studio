@@ -50,10 +50,10 @@ class MakeController extends Controller
     }
 
     /**
-     * Console equivalent of SetupController::actionSave()'s "create" option -
-     * creates the site7Components Matrix field and points the plugin's
-     * matrixFieldId setting at it. Same effect as running the CP's
-     * Site7 Studio Setup wizard with "Option A", just scriptable.
+     * Console equivalent of SetupController::actionSave() - creates the
+     * site7Components Matrix field and points the plugin's matrixFieldId
+     * setting at it. Same effect as running the CP's Site7 Studio Setup
+     * wizard, just scriptable.
      * Usage: php craft site7-studio/make/setup-matrix-field
      */
     public function actionSetupMatrixField(): int
