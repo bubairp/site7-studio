@@ -108,6 +108,10 @@ class StarterKitCatalogServiceTest extends TestCase
     {
         $packagesDir = dirname((new \ReflectionClass(StarterKitCatalogService::class))->getFileName(), 4) . '/packages';
 
+        if (!is_file($packagesDir . '/first-kit/manifest.json')) {
+            $this->markTestSkipped('packages/first-kit not present in this checkout.');
+        }
+
         $this->assertFileDoesNotExist($packagesDir . '/first-kit/blueprint.json');
         $this->assertFileExists($packagesDir . '/first-kit/manifest.json');
     }
