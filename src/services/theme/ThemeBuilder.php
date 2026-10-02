@@ -109,11 +109,17 @@ class ThemeBuilder extends Component
         copy("{$root}/composer.json", "{$dir}/files/composer.json");
         copy("{$root}/composer.lock", "{$dir}/files/composer.lock");
 
-        // Settings content: Singles without URLs.
+        // Settings and data content: sections without URLs (header, footer,
+        // pricing plans, colour options...), except sections visitors post
+        // into (reviews) - that's demo content for a Starter Kit.
+        $visitorSections = self::visitorSectionUids($projectConfig->get('plugins.guest-entries.settings') ?? []);
         $settingsSections = [];
         foreach ($projectConfig->get('sections') ?? [] as $uid => $section) {
-            $siteSettings = reset($section['siteSettings']) ?: [];
-            if (($section['type'] ?? null) === 'single' && empty($siteSettings['hasUrls'])) {
+            $hasUrls = false;
+            foreach ($section['siteSettings'] ?? [] as $siteSettings) {
+                $hasUrls = $hasUrls || !empty($siteSettings['hasUrls']);
+            }
+            if (!$hasUrls && !isset($visitorSections[$uid])) {
                 $settingsSections[$uid] = $section['handle'];
             }
         }
@@ -155,6 +161,24 @@ class ThemeBuilder extends Component
         }
 
         return ['path' => $dir, 'meta' => $meta];
+    }
+
+    /**
+     * Sections Guest Entries lets visitors post into.
+     *
+     * @return array<string, true> section UID => true
+     */
+    public static function visitorSectionUids(array $guestEntriesSettings): array
+    {
+        $sections = \craft\helpers\ProjectConfig::unpackAssociativeArrays(['x' => $guestEntriesSettings['sections'] ?? []])['x'];
+        $uids = [];
+        foreach ((array)$sections as $key => $settings) {
+            if (is_array($settings) && !empty($settings['allowGuestSubmissions'])) {
+                $uids[(string)($settings['sectionUid'] ?? $key)] = true;
+            }
+        }
+
+        return $uids;
     }
 
     /**

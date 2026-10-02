@@ -24,9 +24,15 @@ A Theme is not a Full Site Kit (`48`): a kit replaces a site's project config an
 | `files/` | `composer.json`/`composer.lock`, templates (minus the page-builder blocks' `_blocks/<handle>.twig`, which belong to Section packages), modules, frontend, `web/assets`, config files except `db.php`, license, `project/` and `site7-studio.php` |
 | `content/` | Settings content in the `SiteKitContent` format (`48` §10) |
 
-**Structure.** Includes everything reachable from the roots (filesystems, volumes, sections, category groups, tag groups, global sets), following any UID in a config plus volumes' filesystem handles. The page-builder field is captured **with no entry types**, so each Section package links its own block in when installed.
+**Structure.** Includes everything reachable from the roots, following any UID in a config plus volumes' filesystem handles. The roots are filesystems, volumes, sections, category groups, tag groups, global sets, **every field and every entry type**. So the theme carries the site's whole structure (rp-craft: 170 fields, 104 entry types).
 
-**Settings content.** Covers the entries of Singles without URLs (header, footer, general, themeSettings...), with their nested entries and related assets/categories/tags (`SiteKitContent::export($zip, $sectionUids, ThemeBuilder::SETTINGS_PLUGIN_TABLES)`), plus wheelform forms (`wheelform_forms`, `wheelform_form_fields`). Page content is not included.
+Fields and entry types are roots because templates read fields by handle. `entry.formBorderRadius ?? false` is safe in Craft only while some field or field layout has that handle; otherwise the page 500s ("Calling unknown method"). rp-craft's sitemap template reads handles that exist only on the `contact` block's layout.
+
+**Blocks stay separate.** The page-builder field is captured **with no entry types**, and block templates (`_blocks/<handle>.twig`) are left out. A Section package is what adds its block to the page builder and installs its template; it reuses the entry type and fields that are already there (same UID).
+
+**Settings content links.** Relations from settings content to pages (header/footer links) travel as links (`50` §4) and connect once the pages are installed.
+
+**Settings content.** Covers the entries of every section without URLs: settings Singles (header, footer, general, themeSettings...) and data sections (pricing packages, colour options, fonts, category-like structures). Sections that Guest Entries accepts visitor submissions into (reviews) are left out, because that's demo content (`ThemeBuilder::visitorSectionUids()`). The entries come with their nested entries and related assets/categories/tags (`SiteKitContent::export($zip, $sectionUids, ThemeBuilder::SETTINGS_PLUGIN_TABLES)`), plus wheelform forms (`wheelform_forms`, `wheelform_form_fields`). Page content is not included.
 
 **Secrets.** Never copied. Plugin settings keep their `$ENV_VAR` references, and `.env` keys are listed by name only.
 
@@ -49,7 +55,7 @@ php craft site7-studio/theme/install rp-craft-theme
 1. Backup composer files, `config/`, `templates/`.
 2. Copy `files/`, then `composer install` and `migrate/all` (shared with `SiteKitInstaller`).
 3. `plugin/install` each plugin.
-4. **Structure** (`apply`, subprocess). `ThemeSchemaService::install`: `forThisSite()` swaps the source site/site-group UIDs for the target's primary ones; items are `set` in dependency order, then `set` again with force so cycles resolve. An existing item at the same path is reused and never modified, and a different item with the same handle stops the install before anything changes. Then plugin settings, element sources, and Site7's `matrixFieldUid` (page-builder field) are saved, and the package record is set to enabled.
+4. **Structure** (`apply`, subprocess). First `SiteKitContent::reserveLibraryIds()`: this site's own new rows get IDs from 10,000,000 up, so the Library's content never collides with them (`50` §3). Then `ThemeSchemaService::install`: `forThisSite()` swaps the source site/site-group UIDs for the target's primary ones; items are `set` in dependency order, then `set` again with force so cycles resolve. An existing item at the same path is reused and never modified, and a different item with the same handle stops the install before anything changes. Then plugin settings, element sources, and Site7's `matrixFieldUid` (page-builder field) are saved, and the package record is set to enabled.
 5. **Singles** (`ensureSingles`, subprocess). `Entries::saveSection()` for every Single.
 6. **Settings content** (`site-kit/import-content`, subprocess), in merge mode (`48` §10).
 7. `npm run build`.
@@ -65,15 +71,17 @@ Steps after `composer install` run as subprocesses because the installing proces
 ## 6. Verified (site7-fresh, rp-craft-theme)
 
 - Install takes about 1m10s.
-- 241/241 structure items are identical to rp-craft.
+- First version: 241/241 structure items identical to rp-craft. Since fields and entry types became roots, the fresh site has all 170 fields and 104 entry types, the same as rp-craft.
 - All 27 Section packages install on top, and the page builder gets the same 27-block set.
 - Each Single has exactly one entry.
-- `/` and `/sitemap` return 200, and the 404 page renders rp-craft's template.
+- With the Template packages on top, all 68 pages return 200 (`50` §7).
 - rp-craft is unchanged by the build.
 
 ## 7. Known limitations
 
-- **Contact returns 500 with the theme alone.** `entries/singles/contact.twig` reads `entry.selectForm.id`, which is page content and arrives with Template packages / Starter Kit (steps 4–5).
+- **Pages need their Template packages.** For example, `entries/singles/contact.twig` reads `entry.selectForm.id`, which is page content (`50`).
+- **Visitor content travels with the Starter Kit, not the Theme.** That's sections Guest Entries accepts submissions into (reviews).
+- **Guest Entries' author setting names a source-site user.** Users don't travel, so set it on the new site.
 - **Fresh installs only.** There is no theme update or uninstall.
 - **Exact Craft version required.** Installing on another version fails validation.
 - **Settings content needs MySQL.**

@@ -32,8 +32,17 @@ class ThemeSchemaService extends Component
     /** Project config paths whose children are structure, keyed by UID (fs: by handle). */
     public const KINDS = ['fs', 'volumes', 'sections', 'entryTypes', 'fields', 'categoryGroups', 'tagGroups', 'globalSets', 'ckeditor.configs'];
 
-    /** Kinds a theme starts from; everything else is pulled in through references. */
-    private const ROOT_KINDS = ['fs', 'volumes', 'sections', 'categoryGroups', 'tagGroups', 'globalSets'];
+    /**
+     * Kinds a theme starts from; everything else is pulled in through
+     * references. Fields and entry types are roots too: templates read
+     * fields by handle (`entry.formBorderRadius ?? false`), and in Craft
+     * that's only safe while some field or layout has that handle - rp-craft's
+     * sitemap reads handles of the contact block's layout. Blocks still
+     * come from Section packages: the page-builder field ships without
+     * them, and a Section package links its block in (reusing the entry
+     * type and fields already here, same UID) and installs its template.
+     */
+    private const ROOT_KINDS = ['fs', 'volumes', 'sections', 'categoryGroups', 'tagGroups', 'globalSets', 'fields', 'entryTypes'];
 
     private const UID_PATTERN = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/';
 

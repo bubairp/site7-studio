@@ -124,6 +124,9 @@ class ThemeInstaller extends SiteKitInstaller
     public function apply(string $handle): array
     {
         $dir = $this->packageDir($handle);
+        // Before anything creates elements: this site's own rows start
+        // above the Library's (Template packages keep the dev site's IDs).
+        \site7\studio\services\sitekit\SiteKitContent::reserveLibraryIds();
         $schemaService = new ThemeSchemaService();
         $schema = json_decode((string)file_get_contents("{$dir}/" . ThemeSchemaService::FILE), true);
         $result = $schemaService->install($schema);

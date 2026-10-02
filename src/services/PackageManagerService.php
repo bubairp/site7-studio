@@ -10,6 +10,7 @@ use site7\studio\records\PackageRecord;
 use site7\studio\records\PackageVersionRecord;
 use site7\studio\services\support\PackageArchiveHelper;
 use site7\studio\services\synchronization\PackageUpdatePlanner;
+use site7\studio\services\template\TemplateInstaller;
 use site7\studio\Site7Studio;
 use Craft;
 
@@ -210,6 +211,12 @@ class PackageManagerService extends Component
         // A required Pattern's own installPackage() call below already cascades into
         // its required Sections, so this achieves full transitive installation.
         if ($record->type === 'template') {
+            // Format v2 (docs/50): the page's content is installed below,
+            // once its blocks are - check what it needs first.
+            if (TemplateInstaller::isFormatV2($this->getPackagePath($handle))
+                && ($errors = (new TemplateInstaller())->preflight($record))) {
+                throw new \Exception(implode(' ', $errors));
+            }
             $manifest = $record->getManifest();
             if ($manifest) {
                 foreach (['patterns' => 'pattern', 'sections' => 'section'] as $requiresKey => $requiredKind) {
@@ -312,6 +319,10 @@ class PackageManagerService extends Component
             // from Step 8.1 install behavior.
             if (is_dir($packagePath)) {
                 $this->installOwnedFiles($record, $packagePath);
+            }
+
+            if ($record->type === 'template' && TemplateInstaller::isFormatV2($packagePath)) {
+                (new TemplateInstaller())->installContent($packagePath);
             }
 
             // NOTE: Install does NOT link to Matrix. User must click "Enable" to do that.

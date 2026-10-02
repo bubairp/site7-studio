@@ -85,6 +85,16 @@ class SiteKitContent extends Component
 
     private const BATCH = 500;
 
+    /**
+     * Library content (Theme, Template packages) keeps the dev site's row
+     * IDs, which stay below this; a site set up from a Theme creates its
+     * own rows from here up, so the two never collide (docs/50).
+     */
+    public const LIBRARY_ID_LIMIT = 10_000_000;
+
+    /** Relations between an exported element and a live one outside the export (subset exports). */
+    public const LINKS_FILE = 'content/links.json';
+
     // -------------------------------------------------------------- export
 
     /**
@@ -99,17 +109,25 @@ class SiteKitContent extends Component
      *   (a Theme's settings singles); null = all live content
      * @param bool|string[] $pluginTables true = all PLUGIN_TABLES, false = none,
      *   or a list (a Theme takes the forms but not the menus, which point at pages)
+     * @param int[]|null $entryIds like $sectionUids, but these entries (a
+     *   Template package's page)
      */
-    public function export(\ZipArchive $zip, ?array $sectionUids = null, bool|array $pluginTables = true): array
+    public function export(\ZipArchive $zip, ?array $sectionUids = null, bool|array $pluginTables = true, ?array $entryIds = null): array
     {
         $db = Craft::$app->getDb();
         if ($db->getIsPgsql()) {
             throw new \Exception('Exporting content is supported on MySQL only.');
         }
 
-        $ids = $this->liveElementIds();
-        if ($sectionUids !== null) {
-            $ids = $this->subset($ids, $sectionUids);
+        $liveIds = $this->liveElementIds();
+        $ids = $liveIds;
+        if ($sectionUids !== null || $entryIds !== null) {
+            $sectionIds = $sectionUids ? (new Query())->select(['id'])->from('{{%sections}}')->where(['uid' => $sectionUids])->column() : [];
+            $roots = array_merge(
+                $sectionIds ? (new Query())->select(['id'])->from('{{%entries}}')->where(['sectionId' => $sectionIds])->column() : [],
+                $entryIds ?? []
+            );
+            $ids = $this->subset($liveIds, $roots);
         }
         $idSet = array_flip($ids);
         $uidMaps = [];
@@ -148,6 +166,12 @@ class SiteKitContent extends Component
             }
             $zip->addFromString("content/tables/{$table}.json", json_encode($kept, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
             $counts[$table] = count($kept);
+        }
+
+        if (count($ids) < count($liveIds)) {
+            $links = $this->links($idSet, array_flip($liveIds), $uidMaps);
+            $zip->addFromString(self::LINKS_FILE, json_encode($links, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+            $counts['links'] = count($links);
         }
 
         $exportTables = match (true) {
@@ -250,21 +274,17 @@ class SiteKitContent extends Component
     }
 
     /**
-     * Live entries of the given sections, plus - repeatedly, until nothing
-     * new is found - entries nested in what's included, and the assets,
-     * categories and tags it relates to. Relations to other entries (pages)
-     * are not followed.
+     * The given live entries, plus - repeatedly, until nothing new is found -
+     * entries nested in what's included, and the assets, categories and tags
+     * it relates to. Relations to other entries (pages) are not followed;
+     * they travel as links().
      *
      * @return int[]
      */
-    private function subset(array $liveIds, array $sectionUids): array
+    private function subset(array $liveIds, array $rootIds): array
     {
         $live = array_flip($liveIds);
-        $sectionIds = (new Query())->select(['id'])->from('{{%sections}}')->where(['uid' => $sectionUids])->column();
-        $set = array_flip(array_filter(
-            (new Query())->select(['id'])->from('{{%entries}}')->where(['sectionId' => $sectionIds])->column(),
-            fn($id) => isset($live[$id])
-        ));
+        $set = array_flip(array_filter($rootIds, fn($id) => isset($live[$id])));
 
         do {
             $ids = array_keys($set);
@@ -284,6 +304,87 @@ class SiteKitContent extends Component
         } while (count($set) > $before);
 
         return array_map('intval', array_keys($set));
+    }
+
+    /**
+     * Relations with one end in the export and the other a live element
+     * outside it (a page linking to another page), with both ends' UIDs.
+     * Both packages carry the row; whichever installs second adds it.
+     */
+    private function links(array $idSet, array $liveSet, array &$uidMaps): array
+    {
+        $ids = array_keys($idSet);
+        $rows = (new Query())->from('{{%relations}}')->where(['or', ['sourceId' => $ids], ['targetId' => $ids]])->all();
+        $links = [];
+        foreach ($rows as $row) {
+            if (!self::isLink($row, $idSet, $liveSet)) {
+                continue;
+            }
+            try {
+                foreach (self::CORE_TABLES['relations']['structural'] as $column => $source) {
+                    $row[$column] = $this->toPortable($row[$column] ?? null, $source, $uidMaps);
+                }
+            } catch (DeletedReference) {
+                continue;
+            }
+            $links[] = $row;
+        }
+        $elementUids = (new Query())->select(['id', 'uid'])->from('{{%elements}}')
+            ->where(['id' => array_merge(array_column($links, 'sourceId'), array_column($links, 'targetId'))])->pairs();
+
+        return array_map(fn($row) => [
+            'sourceUid' => $elementUids[$row['sourceId']],
+            'targetUid' => $elementUids[$row['targetId']],
+            'row' => $row,
+        ], $links);
+    }
+
+    /** One end in the export, the other live content outside it. */
+    public static function isLink(array $relation, array $idSet, array $liveSet): bool
+    {
+        $inside = isset($idSet[$relation['sourceId']]) + isset($idSet[$relation['targetId']]);
+
+        return $inside === 1 && isset($liveSet[$relation['sourceId']], $liveSet[$relation['targetId']]);
+    }
+
+    /**
+     * Moves this site's own new rows (elements, element sites, relations,
+     * structure nodes) above LIBRARY_ID_LIMIT. Run when a Theme sets up a
+     * fresh site, before anything creates elements.
+     */
+    public static function reserveLibraryIds(): void
+    {
+        $db = Craft::$app->getDb();
+        foreach (array_keys(self::CORE_TABLES) as $table) {
+            $next = self::nextId($table);
+            if ($next !== null && $next < self::LIBRARY_ID_LIMIT) {
+                $db->createCommand('ALTER TABLE ' . $db->quoteTableName("{{%{$table}}}") . ' AUTO_INCREMENT = ' . self::LIBRARY_ID_LIMIT)->execute();
+            }
+        }
+    }
+
+    public static function libraryIdsReserved(): bool
+    {
+        $next = self::nextId('elements');
+
+        return $next !== null && $next >= self::LIBRARY_ID_LIMIT;
+    }
+
+    /** The table's next AUTO_INCREMENT value; null if it has none. */
+    private static function nextId(string $table): ?int
+    {
+        $db = Craft::$app->getDb();
+        try {
+            // MySQL 8 caches table stats (AUTO_INCREMENT) for a day by default.
+            $db->createCommand('SET SESSION information_schema_stats_expiry = 0')->execute();
+        } catch (\Throwable) {
+            // MariaDB: no such cache
+        }
+        $value = (new Query())->select(['AUTO_INCREMENT'])->from('information_schema.tables')
+            ->where(['table_schema' => $db->createCommand('SELECT DATABASE()')->queryScalar(), 'table_name' => $db->getSchema()->getRawTableName("{{%{$table}}}")])
+            ->scalar();
+
+        return $value === null || $value === false ? null : (int)$value;
     }
 
     private function rowsFor(string $table, array $filterColumns, array $idSet): array
@@ -461,6 +562,19 @@ class SiteKitContent extends Component
             throw new \Exception('Element IDs already used on this site by other content: ' . implode(', ', array_slice($clashes, 0, 10)));
         }
 
+        // Structure nodes keep the source's tree positions, so they can only
+        // join a tree that came from the same source (same root node).
+        foreach ($rowsByTable['structureelements'] as $row) {
+            if ($row['elementId'] !== null || !is_string($row['structureId'])) {
+                continue;
+            }
+            $structureId = $resolveUid('structures', substr($row['structureId'], 5));
+            $rootUid = (new Query())->select(['uid'])->from('{{%structureelements}}')->where(['structureId' => $structureId, 'elementId' => null])->scalar();
+            if ($rootUid !== false && $rootUid !== $row['uid']) {
+                throw new \Exception("Structure #{$structureId} already has entries created on this site; its tree can't take the incoming entries' positions.");
+            }
+        }
+
         $transaction = $db->beginTransaction();
         $counts = [];
         try {
@@ -503,6 +617,8 @@ class SiteKitContent extends Component
                 $rows = $this->withoutExisting($table, $rowsByTable[$table], $rules['filter'][0], $skipIds);
                 $counts[$table] = $this->insertRows($table, $rows, array_keys($rules['structural']), $resolve, $resolveUid);
             }
+
+            $counts['links'] = $this->importLinks("{$kitDir}/" . self::LINKS_FILE, $resolve, $resolveUid);
 
             foreach (self::PLUGIN_TABLES as $table => $structural) {
                 $file = "{$contentDir}/plugin-tables/{$table}.json";
@@ -575,6 +691,70 @@ class SiteKitContent extends Component
         }
 
         return $map;
+    }
+
+    /**
+     * Structure the content needs that this site doesn't have (sections,
+     * entry types, fields...), checked before importing.
+     *
+     * @return string[] e.g. "entrytypes a0d2318d-..."
+     */
+    public function missingStructure(string $kitDir): array
+    {
+        $needed = [];
+        foreach (self::CORE_TABLES as $table => $rules) {
+            $file = "{$kitDir}/content/tables/{$table}.json";
+            foreach (is_file($file) ? (json_decode((string)file_get_contents($file), true) ?: []) : [] as $row) {
+                foreach (array_keys($rules['structural']) as $column) {
+                    $value = $row[$column] ?? null;
+                    if (is_string($value) && str_starts_with($value, '@uid:')) {
+                        $needed[self::sourceTable($table, $column)][substr($value, 5)] = true;
+                    }
+                }
+            }
+        }
+
+        $missing = [];
+        foreach ($needed as $source => $uids) {
+            if ($source === 'sites') {
+                continue; // falls back to the primary site
+            }
+            $query = (new Query())->select(['uid'])->from("{{%{$source}}}")->where(['uid' => array_keys($uids)]);
+            if (Craft::$app->getDb()->columnExists("{{%{$source}}}", 'dateDeleted')) {
+                $query->andWhere(['dateDeleted' => null]);
+            }
+            foreach (array_diff(array_keys($uids), $query->column()) as $uid) {
+                $missing[] = "{$source} {$uid}";
+            }
+        }
+
+        return $missing;
+    }
+
+    /**
+     * Adds the relations of links() whose both ends are now on this site
+     * (same IDs and UIDs) and that aren't here yet.
+     */
+    private function importLinks(string $file, callable $resolve, callable $resolveUid): int
+    {
+        $links = is_file($file) ? (json_decode((string)file_get_contents($file), true) ?: []) : [];
+        if (!$links) {
+            return 0;
+        }
+
+        $here = (new Query())->select(['id', 'uid'])->from('{{%elements}}')
+            ->where(['id' => array_merge(array_column(array_column($links, 'row'), 'sourceId'), array_column(array_column($links, 'row'), 'targetId'))])
+            ->pairs();
+        $rows = [];
+        foreach ($links as $link) {
+            $row = $link['row'];
+            if (($here[$row['sourceId']] ?? null) === $link['sourceUid'] && ($here[$row['targetId']] ?? null) === $link['targetUid']) {
+                $rows[] = $row;
+            }
+        }
+        $rows = $this->withoutExisting('relations', $rows, 'sourceId', []);
+
+        return $this->insertRows('relations', $rows, array_keys(self::CORE_TABLES['relations']['structural']), $resolve, $resolveUid);
     }
 
     /**
