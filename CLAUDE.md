@@ -38,6 +38,7 @@ Read what's relevant to the task, not the whole set.
 | Package signing (Ed25519, Commerce24 key) | `47` |
 | Events / Controllers / CP / Console / Security | `27`, `28`, `29`, `30`, `31` |
 | Starter Kit (separate parallel system — don't conflate with `19`) | `32` |
+| Full Site Kit (fresh install from a whole site) | `48` |
 | Testing | `33` |
 | Reference | `34`–`42` |
 | Known issues (read before ANY architecture change) | `43` |
