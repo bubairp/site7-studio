@@ -164,6 +164,11 @@ class LibraryController extends Controller
             'publishHistory' => $publishHistory,
             'versionHistory' => $versionHistory,
             'isWebsiteImportedStarterKit' => $isWebsiteImportedStarterKit,
+            // Format v2 Templates and Library Starter Kits (docs/50, 51)
+            // install through the package manager / Install screen; the
+            // v1 "Create Page from Template" / blueprint buttons don't apply.
+            'isLibraryV2' => \site7\studio\services\template\TemplateInstaller::isFormatV2(Site7Studio::getInstance()->packageManager->getPackagePath($handle))
+                || \site7\studio\services\starterkit\KitInstaller::isFormatV2(Site7Studio::getInstance()->packageManager->getPackagePath($handle)),
         ]);
     }
 

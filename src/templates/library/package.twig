@@ -43,15 +43,19 @@
             data-image-url="{{ url('site7-studio/library/package/' ~ package.handle ~ '/preview-image') }}"
         >{{ "Preview"|t('site7-studio') }}</button>
 
-        {% if package.type|lower == 'template' and package.status == 'enabled' %}
+        {% if package.type|lower == 'template' and package.status == 'enabled' and not (isLibraryV2 ?? false) %}
             <button type="button" class="btn submit" id="site7-create-from-template-btn" data-handle="{{ package.handle }}">{{ "Create Page from Template"|t('site7-studio') }}</button>
         {% endif %}
 
-        {% if package.type|lower == 'starter-kit' and package.status == 'enabled' %}
+        {% if package.type|lower == 'starter-kit' and (isLibraryV2 ?? false) and package.status != 'enabled' %}
+            <a class="btn submit" href="{{ cpUrl('site7-studio/install') }}">{{ "Install from the Install screen"|t('site7-studio') }}</a>
+        {% endif %}
+
+        {% if package.type|lower == 'starter-kit' and package.status == 'enabled' and not (isLibraryV2 ?? false) %}
             <button type="button" class="btn submit" id="site7-install-starter-kit-btn" data-handle="{{ package.handle }}">{{ "Install Starter Kit"|t('site7-studio') }}</button>
         {% endif %}
 
-        {% if package.type|lower == 'starter-kit' and isDevMode and not isWebsiteImportedStarterKit %}
+        {% if package.type|lower == 'starter-kit' and isDevMode and not isWebsiteImportedStarterKit and not (isLibraryV2 ?? false) %}
             {% set skPackageTags = package.tags is iterable ? package.tags|join(',') : package.tags|default('') %}
             <button type="button" class="btn" id="site7-update-starter-kit-btn"
                 data-handle="{{ package.handle }}"

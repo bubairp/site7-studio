@@ -10,6 +10,7 @@ use site7\studio\records\PackageRecord;
 use site7\studio\records\PackageVersionRecord;
 use site7\studio\services\support\PackageArchiveHelper;
 use site7\studio\services\synchronization\PackageUpdatePlanner;
+use site7\studio\services\starterkit\KitInstaller;
 use site7\studio\services\template\TemplateInstaller;
 use site7\studio\Site7Studio;
 use Craft;
@@ -250,6 +251,12 @@ class PackageManagerService extends Component
         // triggered by the separate "Install Starter Kit" action once this package
         // (the Starter Kit's own library entry) is enabled.
         if ($record->type === 'starter-kit') {
+            // Library Starter Kit (docs/51): its Templates install below;
+            // its own content once they have. Same checks as a Template.
+            if (KitInstaller::isFormatV2($this->getPackagePath($handle))
+                && ($errors = (new TemplateInstaller())->preflight($record))) {
+                throw new \Exception(implode(' ', $errors));
+            }
             $manifest = $record->getManifest();
             if ($manifest) {
                 foreach ($manifest->requires['templates'] ?? [] as $requiredHandle) {
@@ -323,6 +330,9 @@ class PackageManagerService extends Component
 
             if ($record->type === 'template' && TemplateInstaller::isFormatV2($packagePath)) {
                 (new TemplateInstaller())->installContent($packagePath);
+            }
+            if ($record->type === 'starter-kit' && KitInstaller::isFormatV2($packagePath)) {
+                (new KitInstaller())->installContent($record, $packagePath);
             }
 
             // NOTE: Install does NOT link to Matrix. User must click "Enable" to do that.

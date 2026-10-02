@@ -7,6 +7,7 @@ use craft\web\Controller;
 use site7\studio\Site7Studio;
 use site7\studio\jobs\InstallStarterKitJob;
 use site7\studio\models\installation\InstallationSession;
+use site7\studio\services\starterkit\KitInstaller;
 
 /**
  * The Fresh-Install Setup Wizard's CP presentation layer (Website Starter
@@ -22,11 +23,74 @@ class InstallWizardController extends Controller
     /** Step 1 - list available Starter Kits. */
     public function actionIndex()
     {
-        $kits = Site7Studio::getInstance()->starterKitCatalog->listAvailable();
+        return $this->renderIndex();
+    }
 
-        return $this->renderTemplate('site7-studio/install-wizard/index', [
-            'kits' => $kits,
+    /** Library Starter Kits (docs/51): check one against this site. */
+    public function actionCheckLibraryKit()
+    {
+        $this->requirePostRequest();
+        $this->requireAdmin();
+
+        $handle = (string)Craft::$app->getRequest()->getRequiredBodyParam('handle');
+
+        return $this->renderIndex(['handle' => $handle] + (new KitInstaller())->validateKit($handle));
+    }
+
+    /**
+     * Library Starter Kits: install one as a background job (it installs
+     * the Theme with Composer and npm, far longer than a web request).
+     */
+    public function actionInstallLibraryKit()
+    {
+        $this->requirePostRequest();
+        $this->requireAdmin();
+
+        $handle = (string)Craft::$app->getRequest()->getRequiredBodyParam('handle');
+        $validation = (new KitInstaller())->validateKit($handle);
+        if ($validation['errors']) {
+            $this->setFailFlash("This Starter Kit can't be installed here: " . $validation['errors'][0]);
+            return $this->redirect('site7-studio/install');
+        }
+
+        $name = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle)?->name ?? $handle;
+        $id = Site7Studio::getInstance()->siteKitJobs->start("Install {$name}", ['site7-studio/starter-kit/install', $handle], [
+            'label' => 'Install',
+            'url' => 'site7-studio/install',
         ]);
+
+        return $this->redirect("site7-studio/site-kits/job/{$id}");
+    }
+
+    private function renderIndex(?array $kitCheck = null)
+    {
+        return $this->renderTemplate('site7-studio/install-wizard/index', [
+            'kits' => Site7Studio::getInstance()->starterKitCatalog->listAvailable(),
+            'libraryKits' => $this->libraryKits(),
+            'kitCheck' => $kitCheck,
+        ]);
+    }
+
+    /** @return array[] handle, name, description, version, status, meta (starter-kit.json) */
+    private function libraryKits(): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $kits = [];
+        foreach ($packageManager->getAllPackages() as $record) {
+            $path = $record->type === 'starter-kit' ? $packageManager->getPackagePath($record->handle) : null;
+            if (KitInstaller::isFormatV2($path)) {
+                $kits[] = [
+                    'handle' => $record->handle,
+                    'name' => $record->name,
+                    'description' => $record->getManifest()?->description,
+                    'version' => $record->version,
+                    'status' => $record->status,
+                    'meta' => json_decode((string)file_get_contents("{$path}/" . \site7\studio\services\starterkit\KitBuilder::META_FILE), true),
+                ];
+            }
+        }
+
+        return $kits;
     }
 
     /**

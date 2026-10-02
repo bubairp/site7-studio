@@ -48,6 +48,10 @@ class StarterKitCatalogService extends Component
             if (!is_dir($packagePath) || !is_file($packagePath . '/manifest.json')) {
                 continue;
             }
+            // Library Starter Kits (docs/51) install through their own flow.
+            if (\site7\studio\services\starterkit\KitInstaller::isFormatV2($packagePath)) {
+                continue;
+            }
 
             try {
                 $package = $this->reader->readPackage($packagePath);

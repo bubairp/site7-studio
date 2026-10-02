@@ -4,6 +4,63 @@
 {% do view.registerAssetBundle("site7\\studio\\assetbundles\\InstallWizardBundle") %}
 
 {% set content %}
+{# ---------------------------------------------------- Library Starter Kits (docs/51) #}
+<div class="pane">
+    <h2>Library Starter Kits</h2>
+    <p class="light">A Library Starter Kit sets up the whole site on a fresh Craft install: its Theme (structure, templates, frontend, plugins, settings), every page with its blocks, menus and demo content.</p>
+    {% if libraryKits is empty %}
+        <p>No Library Starter Kit in this site's Library.</p>
+    {% else %}
+        <table class="data fullwidth">
+            <thead><tr><th>Starter Kit</th><th>Includes</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for kit in libraryKits %}
+                <tr>
+                    <td><strong>{{ kit.name }}</strong> <span class="light">v{{ kit.version }}</span><br><span class="light">{{ kit.description }}</span></td>
+                    <td>
+                        Theme <code>{{ kit.meta.theme }}</code><br>
+                        {{ kit.meta.templates }} pages, {{ kit.meta.content.counts.simplerpmenu_items ?? 0 }} menu items, {{ kit.meta.content.counts.entries ?? 0 }} demo entries
+                    </td>
+                    <td>{% if kit.status == 'enabled' %}<span class="status green"></span>Installed{% else %}<span class="status"></span>Not installed{% endif %}</td>
+                    <td class="thin nowrap">
+                        {% if kit.status != 'enabled' %}
+                            <form method="post" class="inline">
+                                {{ csrfInput() }}
+                                {{ actionInput('site7-studio/install-wizard/check-library-kit') }}
+                                {{ hiddenInput('handle', kit.handle) }}
+                                <button type="submit" class="btn">Check</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    {% if kitCheck %}
+        <hr>
+        <h3>Check: {{ kitCheck.handle }}</h3>
+        {% if kitCheck.errors %}
+            <ul class="errors">{% for e in kitCheck.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% else %}
+            <p class="success">✓ Ready to install: {{ kitCheck.themeInstalled ? 'the Theme ' ~ kitCheck.theme ~ ' is already installed' : 'installs the Theme ' ~ kitCheck.theme ~ ' first (Composer packages, plugins, structure, frontend build)' }}, then {{ kitCheck.meta.templates }} pages, menus and demo content.</p>
+        {% endif %}
+        {% for w in kitCheck.warnings %}<p class="warning">{{ w }}</p>{% endfor %}
+        {% if not kitCheck.errors %}
+            <form method="post" accept-charset="UTF-8">
+                {{ csrfInput() }}
+                {{ actionInput('site7-studio/install-wizard/install-library-kit') }}
+                {{ hiddenInput('handle', kitCheck.handle) }}
+                <button type="submit" class="btn submit">Install</button>
+                {% if not kitCheck.themeInstalled %}<span class="light">Takes a few minutes. Composer files, config/ and templates/ are backed up to storage/site7-studio/site-kit-backups/ first.</span>{% endif %}
+            </form>
+        {% endif %}
+    {% endif %}
+</div>
+
+{% if kits is not empty %}
+<h2>Blueprint Starter Kits</h2>
 <div id="s7-install-wizard" data-summary-url-template="{{ url('site7-studio/install/summary/__UID__') }}">
 
     <ol class="s7-wizard-steps">
@@ -77,4 +134,5 @@
     </section>
 
 </div>
+{% endif %}
 {% endset %}

@@ -22,11 +22,20 @@ class SiteKitJobs extends Component
 {
     private const EXIT_MARKER = '__EXIT__';
 
-    public function start(string $label, array $craftArgs): string
+    /**
+     * @param array{label: string, url: string}|null $back the CP screen the
+     *   job page links back to (default: Site Kits)
+     */
+    public function start(string $label, array $craftArgs, ?array $back = null): string
     {
         $dir = $this->dir();
         $id = date('Ymd-His') . '-' . StringHelper::randomString(6);
-        file_put_contents("{$dir}/{$id}.json", json_encode(['id' => $id, 'label' => $label, 'startedAt' => date(DATE_ATOM)]));
+        file_put_contents("{$dir}/{$id}.json", json_encode([
+            'id' => $id,
+            'label' => $label,
+            'startedAt' => date(DATE_ATOM),
+            'back' => $back ?? ['label' => 'Site Kits', 'url' => 'site7-studio/site-kits'],
+        ]));
 
         $root = rtrim(Craft::getAlias('@root'), '/');
         $command = implode(' ', array_map('escapeshellarg', array_merge([App::phpExecutable() ?? 'php', "{$root}/craft"], $craftArgs)));

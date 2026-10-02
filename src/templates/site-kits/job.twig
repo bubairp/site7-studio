@@ -1,7 +1,8 @@
 {% extends "_layouts/cp" %}
 {% set title = job.label %}
-{% set selectedSubnavItem = 'site-kits' %}
-{% set crumbs = [{label: 'Site Kits', url: cpUrl('site7-studio/site-kits')}] %}
+{% set back = job.back ?? {label: 'Site Kits', url: 'site7-studio/site-kits'} %}
+{% set selectedSubnavItem = back.url == 'site7-studio/install' ? 'install' : 'site-kits' %}
+{% set crumbs = [{label: back.label, url: cpUrl(back.url)}] %}
 
 {% set content %}
 <div class="pane">
@@ -10,7 +11,7 @@
     </p>
     <pre id="s7-job-log" style="max-height: 60vh; overflow: auto; padding: 12px; background: var(--gray-050); border-radius: 4px; white-space: pre-wrap;">{{ job.lines|join("\n") }}</pre>
     <p id="s7-job-next" {% if not job.done %}hidden{% endif %}>
-        <a class="btn" href="{{ cpUrl('site7-studio/site-kits') }}">Back to Site Kits</a>
+        <a class="btn" href="{{ cpUrl(back.url) }}">Back to {{ back.label }}</a>
         <a class="btn submit" href="{{ siteUrl() }}" target="_blank">View site</a>
     </p>
 </div>

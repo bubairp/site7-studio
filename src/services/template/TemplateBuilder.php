@@ -46,7 +46,7 @@ class TemplateBuilder extends Component
         if (!$pageBuilderUid) {
             throw new \Exception('Configure the page-builder field in Site7 Studio Setup first.');
         }
-        $themeHandle ??= $this->libraryTheme();
+        $themeHandle ??= self::libraryTheme();
         $section = $entry->getSection();
         $handle = self::handleFor($entry);
         $name = $section->type === 'single' ? (string)$entry->title : "{$section->name}: {$entry->title}";
@@ -187,7 +187,7 @@ class TemplateBuilder extends Component
     }
 
     /** The Library's Theme package; there must be exactly one unless one is named. */
-    private function libraryTheme(): string
+    public static function libraryTheme(): string
     {
         $themes = [];
         foreach (glob(dirname(Craft::getAlias('@site7/studio')) . '/packages/*/manifest.json') ?: [] as $file) {

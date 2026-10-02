@@ -12,6 +12,8 @@ Captures an entire Craft site's structure (or a curated subset) into a portable 
 
 **Implemented** — build, install (with subprocess orchestration), and whole-site sync are all live. See `15_IMPORT_EXISTING_PAGE_AND_WEBSITE.md` §14 for confirmed real-world capture gaps in the underlying Website import step.
 
+**Not the Library Starter Kit:** a `starter-kit` package with a `starter-kit.json` is a Library Starter Kit (format v2, `51`). It installs through the package manager and the Install screen's own pane. This system's catalog (`StarterKitCatalogService::listAvailable()`) skips it, and this system is otherwise unchanged.
+
 **Important scoping note**: this document covers ONE of three structurally separate "Starter Kit" code paths that exist in the plugin's CP/console surface. The Build→Install→Sync pipeline documented here is the only one that produces a `blueprint.json` and uses `DependencyAnalyzer`/subprocess orchestration — and it is also the only one of the three with **no CP entry point at all**. See §14.
 
 ## 4. Architecture

@@ -60,21 +60,27 @@ class CpSubscriber implements EventSubscriberInterface
      */
     public function onRegisterSite7Navigation(RegisterNavigationEvent $event): void
     {
+        $subnav = [
+            'dashboard' => ['label' => 'Dashboard', 'url' => 'site7-studio'],
+            'library' => ['label' => 'Library', 'url' => 'site7-studio/library'],
+            'install' => ['label' => 'Install', 'url' => 'site7-studio/install'],
+            'update' => ['label' => 'Update', 'url' => 'site7-studio/update'],
+            'site-kits' => ['label' => 'Site Kits', 'url' => 'site7-studio/site-kits'],
+            'marketplace' => ['label' => 'Marketplace', 'url' => 'site7-studio/marketplace'],
+            'commerce' => ['label' => 'Commerce & Licensing', 'url' => 'site7-studio/commerce'],
+            'publishing' => ['label' => 'Publishing', 'url' => 'site7-studio/publishing'],
+            'settings' => ['label' => 'Settings', 'url' => 'site7-studio/settings'],
+        ];
+        // Full Site Kits are an internal tool (docs/48); sites are set up
+        // from Library Starter Kits on the Install screen (docs/51).
+        if (!\Craft::$app->getConfig()->getGeneral()->devMode) {
+            unset($subnav['site-kits']);
+        }
         $event->registry->registerNavItem([
             'url' => 'site7-studio',
             'label' => 'Site7 Studio',
             'icon' => 'layer-group',
-            'subnav' => [
-                'dashboard' => ['label' => 'Dashboard', 'url' => 'site7-studio'],
-                'library' => ['label' => 'Library', 'url' => 'site7-studio/library'],
-                'install' => ['label' => 'Install', 'url' => 'site7-studio/install'],
-                'update' => ['label' => 'Update', 'url' => 'site7-studio/update'],
-                'site-kits' => ['label' => 'Site Kits', 'url' => 'site7-studio/site-kits'],
-                'marketplace' => ['label' => 'Marketplace', 'url' => 'site7-studio/marketplace'],
-                'commerce' => ['label' => 'Commerce & Licensing', 'url' => 'site7-studio/commerce'],
-                'publishing' => ['label' => 'Publishing', 'url' => 'site7-studio/publishing'],
-                'settings' => ['label' => 'Settings', 'url' => 'site7-studio/settings'],
-            ],
+            'subnav' => $subnav,
         ]);
     }
 

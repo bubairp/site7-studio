@@ -38,9 +38,10 @@ Read what's relevant to the task, not the whole set.
 | Package signing (Ed25519, Commerce24 key) | `47` |
 | Events / Controllers / CP / Console / Security | `27`, `28`, `29`, `30`, `31` |
 | Starter Kit (separate parallel system — don't conflate with `19`) | `32` |
-| Full Site Kit (fresh install from a whole site) | `48` |
+| Full Site Kit (fresh install from a whole site; internal tool, Dev Mode only) | `48` |
 | Theme package (structure, code, plugins, settings content — base layer of a Library site) | `49` |
 | Template package format v2 (one page's exact content; Library ID range, links between pages) | `50` |
+| Library Starter Kit (Theme + Templates + menus/demo content; CP Install screen) — not the blueprint kit `32` | `51` |
 | Testing | `33` |
 | Reference | `34`–`42` |
 | Known issues (read before ANY architecture change) | `43` |

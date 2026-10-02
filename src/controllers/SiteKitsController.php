@@ -12,7 +12,7 @@ use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 /**
- * CP Site Kits screen (docs/48_FULL_SITE_KIT.md §11): build a Full Site Kit
+ * CP Site Kits screen (docs/48_FULL_SITE_KIT.md §11, Dev Mode only): build a Full Site Kit
  * from this site, or install one onto this fresh site. Building and
  * installing run as background jobs (SiteKitJobs) with a live progress page.
  * Admins only; installing also needs allowAdminChanges, since it replaces
@@ -20,6 +20,19 @@ use yii\web\Response;
  */
 class SiteKitsController extends Controller
 {
+    /**
+     * Full Site Kits are an internal tool (docs/48): Dev Mode only. The job
+     * pages stay open - Library Starter Kit installs (docs/51) use them.
+     */
+    public function beforeAction($action): bool
+    {
+        if (!in_array($action->id, ['job', 'job-status'], true) && !Craft::$app->getConfig()->getGeneral()->devMode) {
+            throw new \yii\web\ForbiddenHttpException('Site Kits are available in Dev Mode only. Set up a site from a Library Starter Kit on the Install screen.');
+        }
+
+        return parent::beforeAction($action);
+    }
+
     public function actionIndex(): Response
     {
         $this->requireAdmin(false);

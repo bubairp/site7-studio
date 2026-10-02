@@ -4,6 +4,8 @@
 
 Turn a fresh Craft install into a copy of an existing site (e.g. rp-craft). The Starter Kit (`32`) can't: it adds pages to a site that already has the same schema, and carries no fields, entry types, sections, templates or frontend sources (`32` §14.3).
 
+**Internal tool since 2026-10-02.** Sites are set up and sold through the Library: Theme (`49`) + Templates (`50`) + Library Starter Kit (`51`). The Site Kits CP screen and its actions are Dev Mode only (menu item hidden otherwise). The job progress pages stay open because Library Starter Kit installs use them. The engine (`SiteKitContent`, `SiteKitInstaller`, `SiteKitJobs`) is the base of all three Library layers.
+
 ## 2. What It Does
 
 `SiteKitBuilder` packs everything structural from the source site into one zip; `SiteKitInstaller` applies it to a fresh install using Craft's own mechanisms (Composer, migrations, `project-config/apply`) and builds the frontend.
