@@ -132,15 +132,20 @@ class MatrixEntryTypeImportService extends Component
 
         $packageManager = Site7Studio::getInstance()->packageManager;
         $packageManager->discoverPackages();
-        $packageManager->installPackage($handle);
-        $packageManager->enablePackage($handle);
 
         $record = $packageManager->getPackageByHandle($handle);
         if (!$record) {
             throw new \Exception('Section was imported but could not be registered.');
         }
-        $record->creatorId = Craft::$app->getUser()->getId();
+        // Marked as created on this site before installing, so the licence
+        // gate (commerce PackageService::canInstallOrEnable()) sees it. The
+        // console has no logged-in user, so fall back to the first admin.
+        $record->creatorId = Craft::$app->getUser()->getId()
+            ?? \craft\elements\User::find()->admin(true)->status(null)->ids()[0] ?? null;
         $record->save();
+
+        $packageManager->installPackage($handle);
+        $packageManager->enablePackage($handle);
 
         (new SectionImportSourceRepository())->record($record->id, $entryType->uid, 'matrix-entry-type', $entryType->handle, $sourceHash);
 

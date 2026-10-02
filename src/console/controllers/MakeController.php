@@ -22,10 +22,16 @@ class MakeController extends Controller
     public $starterKitCategory = '';
     public $starterKitTags = '';
 
+    /** setup-matrix-field: handle of an existing Matrix field to use instead of site7Components. */
+    public $field = '';
+
     public function options($actionID)
     {
         if ($actionID === 'starter-kit') {
             return ['entryIds', 'globalSetIds', 'starterKitVersion', 'starterKitCategory', 'starterKitTags'];
+        }
+        if ($actionID === 'setup-matrix-field') {
+            return ['field'];
         }
         return ['packageName', 'packageType', 'packageDescription'];
     }
@@ -54,16 +60,22 @@ class MakeController extends Controller
      * site7Components Matrix field and points the plugin's matrixFieldId
      * setting at it. Same effect as running the CP's Site7 Studio Setup
      * wizard, just scriptable.
-     * Usage: php craft site7-studio/make/setup-matrix-field
+     * With --field, uses that existing Matrix field instead (Setup's Option B).
+     * Usage: php craft site7-studio/make/setup-matrix-field [--field=matrixContent]
      */
     public function actionSetupMatrixField(): int
     {
         $fieldsService = Craft::$app->getFields();
-        $existing = $fieldsService->getFieldByHandle('site7Components');
+        $existing = $fieldsService->getFieldByHandle($this->field ?: 'site7Components');
+
+        if ($this->field && !$existing instanceof Matrix) {
+            $this->stderr("Error: '{$this->field}' is not a Matrix field.\n", Console::FG_RED);
+            return 1;
+        }
 
         if ($existing) {
             $fieldId = $existing->id;
-            $this->stdout("Field 'site7Components' already exists (id {$fieldId}).\n", Console::FG_YELLOW);
+            $this->stdout("Using existing field '{$existing->handle}' (id {$fieldId}).\n", Console::FG_YELLOW);
         } else {
             $matrixField = new Matrix([
                 'handle' => 'site7Components',

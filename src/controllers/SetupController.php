@@ -17,12 +17,16 @@ class SetupController extends Controller
 
         return $this->renderTemplate('site7-studio/setup/index', [
             'isComplete' => $isComplete,
+            'matrixFields' => array_filter(Craft::$app->getFields()->getAllFields(), fn($field) => $field instanceof Matrix),
+            'currentFieldId' => $settings->matrixFieldId,
         ]);
     }
 
     /**
-     * Always uses the site7Components Matrix field, creating it if needed.
-     * (Picking an arbitrary existing Matrix field was removed from Setup.)
+     * Option A: the site7Components field, created if needed. Option B: the
+     * site's own page-builder Matrix field (e.g. rp-craft's matrixContent),
+     * so its existing block types can be imported into the Library and
+     * Section packages install into the field its pages already render.
      */
     public function actionSave()
     {
@@ -31,8 +35,14 @@ class SetupController extends Controller
         $fieldId = null;
         $fieldsService = Craft::$app->getFields();
 
-        $existing = $fieldsService->getFieldByHandle('site7Components');
-        if ($existing) {
+        if ($this->request->getBodyParam('matrixOption') === 'select') {
+            $selected = $fieldsService->getFieldById((int)$this->request->getBodyParam('matrixFieldId'));
+            if (!$selected instanceof Matrix) {
+                Craft::$app->getSession()->setError('Choose a Matrix field.');
+                return null;
+            }
+            $fieldId = $selected->id;
+        } elseif ($existing = $fieldsService->getFieldByHandle('site7Components')) {
             $fieldId = $existing->id;
         } else {
             $matrixField = new Matrix([
