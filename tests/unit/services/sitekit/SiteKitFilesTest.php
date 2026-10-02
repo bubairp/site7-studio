@@ -71,6 +71,22 @@ class SiteKitFilesTest extends Unit
         $this->assertTrue(SiteKitFiles::isTravellingConfigFile('htmlpurifier'));
     }
 
+    public function testSiteIdsInReferenceTagsRoundTrip(): void
+    {
+        $uid = '7cffd3cf-93a1-487d-85d3-87c804278253';
+        $json = '{"a":{"value":"{entry:5014@1:url}","type":"entry"},"b":"{asset:12@1}","c":"mail@1:x","d":"{entry:9@3:url}"}';
+
+        $portable = SiteKitFiles::portableSiteRefs($json, [1 => $uid]);
+
+        $this->assertStringContainsString('{entry:5014@{site:' . $uid . '}:url}', $portable);
+        $this->assertStringContainsString('{asset:12@{site:' . $uid . '}}', $portable);
+        $this->assertStringContainsString('"mail@1:x"', $portable, 'not a reference tag');
+        $this->assertStringContainsString('{entry:9@3:url}', $portable, 'unknown site left alone');
+
+        $resolved = SiteKitFiles::resolveSiteRefs($portable, [$uid => 2]);
+        $this->assertSame(str_replace(['5014@1', '12@1'], ['5014@2', '12@2'], $json), $resolved);
+    }
+
     public function testAddTreeSkipsNodeModules(): void
     {
         $root = sys_get_temp_dir() . '/site7_sitekit_' . uniqid();

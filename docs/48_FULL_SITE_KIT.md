@@ -10,9 +10,9 @@ Turn a fresh Craft install into a copy of an existing site (e.g. rp-craft). The 
 
 ## 3. Current Status
 
-**Phase 1 implemented** (2026-10-02): structure, code and frontend. Console only.
+**Phases 1 and 2 implemented** (2026-10-02): structure, code, frontend and content (§10). Console only.
 
-- **Phase 2 (not started):** content — entries incl. nested Matrix entries, categories, tags, globals, asset files, simple-rp-menu menus and Wheelform forms. Never transactional data (payments, form submissions, AI chat logs, users).
+- **Phase 2 (implemented):** content — entries incl. nested Matrix entries, categories, tags, assets + their files, simple-rp-menu menus, Wheelform forms, htmlsitemap settings. Never transactional data (payments, form submissions, AI chat logs, users). Global sets: not yet (rp-craft has none in project config).
 - **Phase 3 (not started):** CP build/install screens, large kits (asset files), distribution through Commerce24 + signing (`47`).
 
 Verified 2026-10-02: kit built from rp-craft (1.4 MB), installed on a fresh DDEV Craft 5.10.8.1 in one command (~40 s). Result matched rp-craft exactly — 34 sections, 104 entry types, 170 fields, 1 volume, 2 category groups, 1 tag group, same site UID, 138 templates, no pending project config, `npm run build` output in `web/themes/front`. Pages that need content (header logo, contact form) error until Phase 2.
@@ -55,11 +55,33 @@ Composer **path** repositories (`plugins/ai-chat`, `plugins/payment-gateway`, `p
 ## 8. Important Classes
 
 - `services/sitekit/SiteKitFiles` — pure helpers (stale plugins, target-owned settings, path repositories, env keys, zip tree); unit-tested in `tests/unit/services/sitekit/SiteKitFilesTest.php`.
-- `services/sitekit/SiteKitBuilder` (`siteKitBuilder`), `services/sitekit/SiteKitInstaller` (`siteKitInstaller`), `console/controllers/SiteKitController`.
+- `services/sitekit/SiteKitBuilder` (`siteKitBuilder`), `services/sitekit/SiteKitInstaller` (`siteKitInstaller`), `services/sitekit/SiteKitContent` (`siteKitContent`), `console/controllers/SiteKitController`.
+
+## 10. Content (phase 2)
+
+**Approach: copy live rows, keep element IDs.** Re-saving every element through Craft's API would need per-field-type conversion (CKEditor, SEO, Matrix Extended, plugin fields) and lose exactness. Instead `SiteKitContent::export()` copies the live rows of the core content tables (`elements`, `elements_sites`, `elements_owners`, `entries`, `entries_authors`, `contentblocks`, `categories`, `tags`, `assets`, `assets_sites`, `structureelements`, `relations`) plus whole plugin tables (`simplerpmenu`, `simplerpmenu_items`, `wheelform_forms`, `wheelform_form_fields`, `sitemaps`). It's sound only because the target is fresh and already has the source's project config:
+
+- **Element IDs are kept**, so nested entries, relations, structure nodes and plugin rows that point at elements (menu items, sitemap rows) stay connected with no remapping. The importer refuses if any incoming element ID is taken.
+- **Structural IDs differ per install** (sites, sections, entry types, fields, field layouts, volumes, groups, structures) but their UIDs come from project config, so those columns travel as `@uid:<uid>` and are resolved on the target. Author/uploader columns point at the target's first admin (`@user`); asset folder IDs are remapped (`@folder:<id>`), nested folders created with the source's UIDs.
+- **What travels:** live elements (not drafts, revisions or soft-deleted) of Entry/Asset/Category/Tag/ContentBlock, minus nested elements whose primary owner chain doesn't reach a live element (rp-craft: 599 of 1,057 live entries are reachable from live pages; the rest are leftovers of deleted pages and old drafts).
+- **Leftovers pointing at soft-deleted structural rows** (e.g. a tree node in a structure deleted in 2025) are left out of `structureelements`/`relations`/site rows and counted in `content/meta.json` `skipped`; anywhere else they're an error.
+- **JSON columns:** values read back as JSON strings must be decoded before inserting — Yii JSON-encodes whatever goes into a JSON column, and a double-encoded `elements_sites.content` makes every field read as empty (on rp-craft that sent the header template into an endless include).
+- **Asset files** are read through each asset's own filesystem (`Asset::getStream()`) into `content/assets/<assetId>` and written on the target with `$volume->getFs()->writeFileFromStream()`.
+- Craft's auto-created Single entries on the target are deleted first; the kit's own replace them.
+- The import runs in one transaction with foreign key checks off, as a subprocess after `project-config/apply` (`site-kit/import-content`).
+
+- **Site IDs inside text:** reference tags store a numeric site ID (Link fields: `{entry:5014@1:url}` — 33 values on rp-craft). Every exported text value has them rewritten to `@{site:<uid>}` and resolved to the target's site ID on import (`SiteKitFiles::portableSiteRefs()`/`resolveSiteRefs()`). Missing this blanked every "Contact" link label on the fresh site.
+
+`site-kit/build --no-content` builds a structure-only kit.
+
+**Verified 2026-10-02** — kit with content built from rp-craft (158 MB: 599 entries, 124 assets, 7 categories, 8 tags, 397 relations, 8 menus / 62 items, 2 forms, 121 asset files; 2 leftover tree nodes skipped), installed on a fresh DDEV Craft 5.10.8.1 in one command (~40 s). 13 pages compared with rp-craft: all 200 (the 404 page 404); 11 identical in visible text character for character; the blog post has the same words with two related posts swapped (identical title and date, so their order is not fixed); the 404 page differs only by web server name and a dev-mode debug line. First views are slower on the fresh site while image transforms are generated (gallery: 41 s once).
 
 ## 9. Known Limitations
 
-- No content yet (Phase 2), so content-dependent templates fail on the fresh site.
+- Content import is MySQL-only (it relies on keeping element IDs and on `SET FOREIGN_KEY_CHECKS`).
+- Global set content, users, drafts and revisions don't travel; neither does the search index (rebuild with `craft resave/entries --update-search-index` if site search matters).
+- Kits with content are large (rp-craft: 158 MB, nearly all asset files) - Phase 3.
+- Plugin data beyond the tables in `SiteKitContent::PLUGIN_TABLES` doesn't travel; a plugin that stores structural IDs in its own tables needs adding there with its site/section columns.
 - Not a package type: kits aren't in the Library, not exportable as `.s7pkg`, not signed — deliberately kept out of the package engine for Phase 1.
 - `site7/studio` itself must resolve on the target the same way as on the source (a path repository in rp-craft).
 - Installing over a failed install isn't supported; restore the backup (or start from a fresh install).

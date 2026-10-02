@@ -70,6 +70,10 @@ class SiteKitInstaller extends Component
             }
         }
 
+        if (!empty($manifest['content']) && !Craft::$app->getDb()->getIsMysql()) {
+            $result['errors'][] = 'This kit contains content, which can only be imported into a MySQL database.';
+        }
+
         if (!(new ExecutableFinder())->find('npm')) {
             $result['warnings'][] = 'npm was not found - the frontend will not be built.';
         }
@@ -163,7 +167,13 @@ class SiteKitInstaller extends Component
             return $result;
         }
 
-        // 5. Frontend.
+        // 5. Content, in a process that has the kit's project config loaded.
+        if (!empty($validation['manifest']['content'])
+            && !$this->run([$php, "{$root}/craft", 'site7-studio/site-kit/import-content', $validation['dir']], $root, 'import content', $result, $log)) {
+            return $result;
+        }
+
+        // 6. Frontend.
         $npm = (new ExecutableFinder())->find('npm');
         $frontend = "{$root}/frontend";
         if ($npm && is_file("{$frontend}/package.json")) {

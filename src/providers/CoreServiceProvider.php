@@ -18,6 +18,7 @@ use site7\studio\services\DependencyAnalyzer;
 use site7\studio\services\BlueprintBuilder;
 use site7\studio\services\StarterKitBuilder;
 use site7\studio\services\sitekit\SiteKitBuilder;
+use site7\studio\services\sitekit\SiteKitContent;
 use site7\studio\services\sitekit\SiteKitInstaller;
 use site7\studio\services\installation\InstallationPlanner;
 use site7\studio\services\installation\InstallationValidator;
@@ -135,6 +136,10 @@ class CoreServiceProvider implements ServiceProviderInterface
 
         $plugin->set('siteKitBuilder', [
             'class' => SiteKitBuilder::class,
+        ]);
+
+        $plugin->set('siteKitContent', [
+            'class' => SiteKitContent::class,
         ]);
 
         $plugin->set('siteKitInstaller', [

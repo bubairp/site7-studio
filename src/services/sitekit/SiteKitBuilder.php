@@ -11,8 +11,8 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Builds a Full Site Kit: everything a fresh Craft install needs to become a
  * structural copy of this site - project config, exact Composer packages,
- * templates, modules, config files and frontend sources. Content isn't
- * included yet (Phase 2). See docs/48_FULL_SITE_KIT.md.
+ * templates, modules, config files and frontend sources - plus, unless
+ * left out, its content (SiteKitContent). See docs/48_FULL_SITE_KIT.md.
  *
  * Output: storage/site7-studio/site-kits/<handle>.zip
  *   site-kit.json   - manifest (see build())
@@ -24,7 +24,7 @@ class SiteKitBuilder extends Component
      * @return array{path: string, manifest: array}
      * @throws \Exception
      */
-    public function build(string $name): array
+    public function build(string $name, bool $withContent = true): array
     {
         $root = rtrim(Craft::getAlias('@root'), '/');
         $handle = StringHelper::toKebabCase($name);
@@ -73,6 +73,8 @@ class SiteKitBuilder extends Component
             $fileCounts[$directory] = SiteKitFiles::addTree($zip, $root, $directory);
         }
 
+        $content = $withContent ? (new SiteKitContent())->export($zip) : null;
+
         $manifest = [
             'schemaVersion' => SiteKitFiles::SCHEMA_VERSION,
             'handle' => $handle,
@@ -85,9 +87,18 @@ class SiteKitBuilder extends Component
             'configFiles' => $configFiles,
             'fileCounts' => $fileCounts,
             'envKeys' => is_file("{$root}/.env") ? SiteKitFiles::envKeys((string)file_get_contents("{$root}/.env")) : [],
+            'content' => $content ? ['counts' => $content['counts'], 'skipped' => $content['skipped'], 'assetFiles' => $content['assetFiles']] : null,
         ];
         $zip->addFromString('site-kit.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         $zip->close();
+
+        // Asset files are added from temp copies, which must outlive close().
+        foreach ($content['tempFiles'] ?? [] as $tempFile) {
+            @unlink($tempFile);
+        }
+        if (!empty($content['tempFiles'])) {
+            @rmdir(dirname($content['tempFiles'][0]));
+        }
 
         return ['path' => $zipPath, 'manifest' => $manifest];
     }

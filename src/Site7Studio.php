@@ -65,6 +65,7 @@ use site7\studio\providers\PublishingServiceProvider;
  * @property-read \site7\studio\services\BlueprintBuilder $blueprintBuilder
  * @property-read \site7\studio\services\StarterKitBuilder $starterKitBuilder
  * @property-read \site7\studio\services\sitekit\SiteKitBuilder $siteKitBuilder
+ * @property-read \site7\studio\services\sitekit\SiteKitContent $siteKitContent
  * @property-read \site7\studio\services\sitekit\SiteKitInstaller $siteKitInstaller
  * @property-read \site7\studio\services\installation\InstallationPlanner $installationPlanner
  * @property-read \site7\studio\services\installation\InstallationValidator $installationValidator

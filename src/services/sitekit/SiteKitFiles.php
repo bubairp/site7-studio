@@ -112,6 +112,36 @@ class SiteKitFiles
     }
 
     /**
+     * Reference tags carry a numeric site ID - `{entry:5014@1:url}`, as Link
+     * fields store them - and site IDs differ per install. Rewrites them to
+     * `{entry:5014@{site:<uid>}:url}`; IDs not in the map are left alone.
+     *
+     * @param array<int|string, string> $siteIdToUid
+     */
+    public static function portableSiteRefs(string $text, array $siteIdToUid): string
+    {
+        return preg_replace_callback(
+            '/(\{[A-Za-z\\\\]+:[^@{}:]+)@(\d+)(?=[:}])/',
+            fn(array $m) => isset($siteIdToUid[$m[2]]) ? "{$m[1]}@{site:{$siteIdToUid[$m[2]]}}" : $m[0],
+            $text
+        );
+    }
+
+    /**
+     * Reverses portableSiteRefs() with the target's site IDs.
+     *
+     * @param array<string, int> $siteUidToId
+     */
+    public static function resolveSiteRefs(string $text, array $siteUidToId): string
+    {
+        return preg_replace_callback(
+            '/@\{site:([0-9a-f\-]{36})\}/',
+            fn(array $m) => isset($siteUidToId[$m[1]]) ? '@' . $siteUidToId[$m[1]] : $m[0],
+            $text
+        );
+    }
+
+    /**
      * Adds every file under $root/$relative to $zip under "files/$relative",
      * skipping EXCLUDED_DIRECTORY_NAMES at any depth.
      */
