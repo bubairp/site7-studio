@@ -1,0 +1,70 @@
+{
+    "schemaVersion": "1",
+    "handle": "demo-fresh-site",
+    "name": "Demo Fresh Site",
+    "type": "starter-kit",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "",
+    "category": null,
+    "tags": [],
+    "requires": {
+        "templates": [
+            "demo-home-page"
+        ]
+    },
+    "pages": [
+        {
+            "title": "Demo Home Page",
+            "slug": "demo-home-page",
+            "sectionHandle": "demoPages",
+            "entryTypeHandle": "demoPage",
+            "templateHandle": "demo-home-page",
+            "parentSlug": null
+        }
+    ],
+    "globals": [],
+    "craftSections": [
+        {
+            "handle": "demoPages",
+            "name": "Demo Pages",
+            "type": "channel",
+            "propagationMethod": "all",
+            "enableVersioning": true,
+            "maxLevels": null,
+            "defaultPlacement": "end",
+            "siteSettings": [
+                {
+                    "siteHandle": "default",
+                    "enabledByDefault": true,
+                    "hasUrls": true,
+                    "uriFormat": "demo-pages/{slug}",
+                    "template": "demo-pages/_entry"
+                }
+            ]
+        }
+    ],
+    "assetVolumes": [],
+    "categoryGroups": [],
+    "tagGroups": [],
+    "navigation": [],
+    "dependencies": {
+        "sharedResources": [],
+        "pluginDependencies": [],
+        "plugins": [],
+        "npmPackages": [],
+        "frontendTooling": {
+            "system": null,
+            "configFiles": []
+        }
+    },
+    "importedFrom": {
+        "sourceType": "website",
+        "sourceId": null,
+        "sourceHandle": null,
+        "sourceUid": null,
+        "sourceHash": null,
+        "importedAt": "2026-08-21T06:21:41-07:00",
+        "importedBy": null
+    }
+}

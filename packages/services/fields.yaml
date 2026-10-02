@@ -1,0 +1,35 @@
+name: 'Services Fields'
+fields:
+    -
+        handle: selectServices
+        name: 'Services from Library'
+        type: Entries
+        instructions: 'Select services already created in the Services section.'
+        settings:
+            sectionHandles: [services]
+            maxRelations: null
+            minRelations: null
+            selectionLabel: 'Add Service from Library'
+    -
+        handle: customItems
+        name: 'Custom Items'
+        type: Matrix
+        instructions: 'Use this if you want to add an item that is not in the main list.'
+        settings:
+            entryTypeHandles: [customItem]
+            viewMode: blocks
+            maxEntries: null
+    -
+        handle: itemsPerRow
+        name: 'Items Per Row'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: serviceStyle
+        name: 'Service Style'
+        type: Matrix
+        instructions: ''
+        settings:
+            entryTypeHandles: [serviceStyle]
+            viewMode: cards
+            maxEntries: 1

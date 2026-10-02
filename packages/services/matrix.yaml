@@ -1,0 +1,10 @@
+name: 'Services Matrix'
+blocks:
+    -
+        handle: services
+        name: Services
+        fields:
+            - selectServices
+            - customItems
+            - itemsPerRow
+            - serviceStyle

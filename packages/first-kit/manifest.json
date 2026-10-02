@@ -1,0 +1,198 @@
+{
+    "schemaVersion": "1",
+    "handle": "first-kit",
+    "name": "First Kit",
+    "type": "starter-kit",
+    "version": "1.0.0",
+    "author": "admin",
+    "description": "",
+    "category": "",
+    "tags": [],
+    "requires": {
+        "templates": [
+            "page-about-us",
+            "page-home"
+        ]
+    },
+    "pages": [
+        {
+            "title": "About Us",
+            "slug": "about-us",
+            "sectionHandle": "standardPages",
+            "entryTypeHandle": "standardPages",
+            "templateHandle": "page-about-us"
+        },
+        {
+            "title": "Home",
+            "slug": "home",
+            "sectionHandle": "home",
+            "entryTypeHandle": "home",
+            "templateHandle": "page-home"
+        }
+    ],
+    "siteStructure": [
+        {
+            "sectionHandle": "additionalCssJs",
+            "entryTypeHandle": "codeMedia",
+            "title": "Additional CSS & JS",
+            "fields": []
+        },
+        {
+            "sectionHandle": "footer",
+            "entryTypeHandle": "footer",
+            "title": "Footer",
+            "fields": {
+                "footerLayout": "basicFooter",
+                "verticalAlign": "default",
+                "displayLogo": true,
+                "displayContactInfo": true,
+                "displaySocial": true,
+                "displayCTA": true,
+                "displaySubscribe": true,
+                "displayDownloadApp": true,
+                "displayOfficeTiming": true,
+                "footerClasses": null
+            }
+        },
+        {
+            "sectionHandle": "general",
+            "entryTypeHandle": "general",
+            "title": "General",
+            "fields": {
+                "favicon": {
+                    "__site7Type": "assets",
+                    "items": [
+                        {
+                            "filename": "Development.png",
+                            "file": "preview/assets/10445-Development.png",
+                            "volumeHandle": "publicAsset",
+                            "folderPath": "",
+                            "altText": null,
+                            "title": "Development",
+                            "kind": "image"
+                        }
+                    ]
+                },
+                "logo": {
+                    "__site7Type": "assets",
+                    "items": [
+                        {
+                            "filename": "logo-new.png",
+                            "file": "preview/assets/9743-logo-new.png",
+                            "volumeHandle": "publicAsset",
+                            "folderPath": "",
+                            "altText": null,
+                            "title": "Logo new",
+                            "kind": "image"
+                        }
+                    ]
+                },
+                "acceptedCards": {
+                    "__site7Type": "assets",
+                    "items": [
+                        {
+                            "filename": "cards2.png",
+                            "file": "preview/assets/5317-cards2.png",
+                            "volumeHandle": "publicAsset",
+                            "folderPath": "",
+                            "altText": null,
+                            "title": "Footer cards",
+                            "kind": "image"
+                        }
+                    ]
+                },
+                "companyName": "RP",
+                "phoneNumber": "+152 6220 0444",
+                "headerNotification": "<p><strong>Lorem Ipsum</strong> is simply dummy text of the printing and typesetting industry.</p>",
+                "showBreadcrumbsDefault": true,
+                "displayBlogReview": true,
+                "activeUserReplyBlog": true,
+                "displayProductReview": true,
+                "activeUserReplyProduct": false,
+                "relatedBlogs": true,
+                "blogColumnPerRow": "3",
+                "blogTextAlign": "start",
+                "relatedCaseStudies": true,
+                "caseStudiesColumnPerRow": "3",
+                "caseStudytextAlign": "start",
+                "relatedProducts": true,
+                "productColumnPerRow": "4",
+                "productTextAlign": "start"
+            }
+        },
+        {
+            "sectionHandle": "googleStructureData",
+            "entryTypeHandle": "googleLocalBusinessData",
+            "title": "Google Structure Data",
+            "fields": {
+                "businessName": "Remote Programmer",
+                "businessType": "RealEstateAgent",
+                "telephone": "+913323456789",
+                "imageUrl": "https://remoteprogrammer.com/files/_190x40_crop_center-center_none/logo_2024-09-07-084341_phss.svg",
+                "streetAddress": "705 Kalikapur Road, Prince Anwar Shah Rd",
+                "addressLocality": "Kolkata",
+                "addressRegion": "WB",
+                "addressCountry": "IN",
+                "postalCode": "700099",
+                "latitude": "22.5021571",
+                "longitude": "88.3013959"
+            }
+        },
+        {
+            "sectionHandle": "header",
+            "entryTypeHandle": "header",
+            "title": "Header",
+            "fields": {
+                "headerLayout": "simpleHeader",
+                "displaySearch": true,
+                "displaySocial": false,
+                "displayCTA": true,
+                "displayPhone": false,
+                "displayEmail": false,
+                "displayThinbar": false,
+                "positioning": "fixed",
+                "headerClasses": "header"
+            }
+        },
+        {
+            "sectionHandle": "llmsText",
+            "entryTypeHandle": "llmsText",
+            "title": "LLMs Text",
+            "fields": []
+        },
+        {
+            "sectionHandle": "pageError",
+            "entryTypeHandle": "pageMainteanance",
+            "title": "Page error",
+            "fields": []
+        },
+        {
+            "sectionHandle": "pageMaintenance",
+            "entryTypeHandle": "pageMainteanance",
+            "title": "Page Maintenance",
+            "fields": []
+        },
+        {
+            "sectionHandle": "pageNotFound",
+            "entryTypeHandle": "pageMainteanance",
+            "title": "Page Not Found",
+            "fields": []
+        },
+        {
+            "sectionHandle": "sitemap",
+            "entryTypeHandle": "sitemap",
+            "title": "Sitemap",
+            "fields": []
+        },
+        {
+            "sectionHandle": "themeSettings",
+            "entryTypeHandle": "theme",
+            "title": "Theme Settings",
+            "fields": {
+                "fontSizeBody": null,
+                "buttonShape": "default"
+            }
+        }
+    ],
+    "dependencies": []
+}

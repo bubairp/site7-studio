@@ -1,0 +1,10 @@
+name: 'Image with Text Matrix'
+blocks:
+    -
+        handle: imageWithText
+        name: 'Image with Text'
+        fields:
+            - imageBorderRounded
+            - sideSwitch
+            - titleTags
+            - textContent

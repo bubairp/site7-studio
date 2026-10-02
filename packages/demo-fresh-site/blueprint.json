@@ -1,0 +1,137 @@
+{
+    "schemaVersion": "1",
+    "packageHandle": "demo-fresh-site",
+    "packageName": "Demo Fresh Site",
+    "resources": {
+        "craftSections": [
+            {
+                "handle": "demoPages",
+                "name": "Demo Pages",
+                "type": "channel",
+                "propagationMethod": "all",
+                "enableVersioning": true,
+                "maxLevels": null,
+                "defaultPlacement": "end",
+                "siteSettings": [
+                    {
+                        "siteHandle": "default",
+                        "enabledByDefault": true,
+                        "hasUrls": true,
+                        "uriFormat": "demo-pages/{slug}",
+                        "template": "demo-pages/_entry"
+                    }
+                ]
+            }
+        ],
+        "assetVolumes": [],
+        "categoryGroups": [],
+        "tagGroups": [],
+        "globalSets": [],
+        "pages": [
+            {
+                "title": "Demo Home Page",
+                "slug": "demo-home-page",
+                "templateHandle": "demo-home-page"
+            }
+        ],
+        "navigation": []
+    },
+    "dependencyRelationships": [
+        {
+            "from": {
+                "type": "section",
+                "key": "f5052662-4b30-4149-88f3-9958f111396c",
+                "handle": "demoPages",
+                "label": "Demo Pages"
+            },
+            "to": {
+                "type": "entryType",
+                "key": "63bfd596-4a27-42c7-a4f9-666f35d832b6",
+                "handle": "demoPage",
+                "label": "Demo Page"
+            }
+        },
+        {
+            "from": {
+                "type": "entryType",
+                "key": "63bfd596-4a27-42c7-a4f9-666f35d832b6",
+                "handle": "demoPage",
+                "label": "Demo Page"
+            },
+            "to": {
+                "type": "field",
+                "key": "1278ee6b-6df0-4c50-9977-329938329cc1",
+                "handle": "demoSummary",
+                "label": "Demo Summary"
+            }
+        }
+    ],
+    "installationOrder": [
+        {
+            "name": "plugins",
+            "items": []
+        },
+        {
+            "name": "schema",
+            "items": [
+                {
+                    "type": "field",
+                    "key": "1278ee6b-6df0-4c50-9977-329938329cc1",
+                    "handle": "demoSummary",
+                    "label": "Demo Summary"
+                },
+                {
+                    "type": "entryType",
+                    "key": "63bfd596-4a27-42c7-a4f9-666f35d832b6",
+                    "handle": "demoPage",
+                    "label": "Demo Page"
+                },
+                {
+                    "type": "section",
+                    "key": "f5052662-4b30-4149-88f3-9958f111396c",
+                    "handle": "demoPages",
+                    "label": "Demo Pages"
+                }
+            ]
+        },
+        {
+            "name": "content",
+            "items": [
+                {
+                    "type": "page",
+                    "key": "demo-home-page",
+                    "handle": "demo-home-page",
+                    "label": "Demo Home Page"
+                }
+            ]
+        },
+        {
+            "name": "frontend",
+            "items": []
+        }
+    ],
+    "requiredPlugins": [],
+    "frontendRequirements": {
+        "npmPackages": [],
+        "frontendTooling": {
+            "system": null,
+            "configFiles": []
+        }
+    },
+    "buildRequirements": {
+        "packageManager": "npm",
+        "system": null,
+        "scripts": []
+    },
+    "platformConfiguration": {
+        "categories": [],
+        "fields": []
+    },
+    "validation": {
+        "valid": true,
+        "errors": [],
+        "warnings": [
+            "No frontend tooling detected - this package includes no frontend build configuration."
+        ]
+    }
+}

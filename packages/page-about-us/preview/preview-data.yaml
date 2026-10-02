@@ -1,0 +1,4 @@
+block:
+    services:
+        displayView: default
+        itemsPerRow: default

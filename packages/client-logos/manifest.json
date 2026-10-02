@@ -1,0 +1,31 @@
+{
+    "schemaVersion": "1",
+    "handle": "client-logos",
+    "name": "Client Logos",
+    "type": "section",
+    "version": "1.0.0",
+    "author": "admin",
+    "description": "Imported from the Craft Entry Type \"Client Logos\".",
+    "category": null,
+    "tags": [],
+    "requires": [],
+    "demoContent": [],
+    "dependencies": {
+        "sharedResources": [
+            "headingAndContent",
+            "blockStyle"
+        ],
+        "pluginDependencies": []
+    },
+    "excludedFields": [],
+    "ownedFiles": [],
+    "importedFrom": {
+        "sourceType": "matrix-entry-type",
+        "sourceId": 53,
+        "sourceUid": "7bb1f63d-7b20-4449-bb07-f14fc0bec893",
+        "sourceHandle": "clientLogos",
+        "sourceHash": "db76161a36b65db5b69f9dc71b9c7f75fa92e7d0b60842edc5a22b8be929247c",
+        "importedAt": "2026-08-18T07:57:16-07:00",
+        "importedBy": "admin"
+    }
+}

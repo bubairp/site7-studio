@@ -1,0 +1,34 @@
+{# headingContent.twig — Heading + Content matrix block #}
+{% from '_macros/block-style' import bsClasses, bsStyle, bsResponsive, bsContainer %}
+
+{% set heading     = block.heading ?? '' %}
+{% set headingTags = block.headingTags ?? 'h2' %}
+{% set align       = block.align ?? 'left' %}
+{% set contentData = block.contentdata ?? '' %}
+{% set blockStyle  = block.blockStyle ?? [] %}
+{% set blockType   = block.type.handle ?? 'headingContent' %}
+{% set blockTypeUid = block.uid ?? '' %}
+{% set scopedSel   = '.' ~ blockType ~ blockTypeUid ~ '-style' %}
+
+{# Container: CMS override takes priority, then parent override, then default #}
+{% set containerWidth = bsContainer(blockStyle, returnVars.containerWidth ?? 'container mx-auto px-4') %}
+
+{# Responsive spacing + child element color rules (only emitted when needed) #}
+{{ bsResponsive(blockStyle, scopedSel) }}
+
+{% set themeSwitche = null %}
+{% if blockStyle is defined and blockStyle|length %}
+	{% set blockStyleData = blockStyle.one() ?? null %}
+	{% if blockStyleData and blockStyleData.background is defined and blockStyleData.background|length %}
+		{% set backgroundEntry = blockStyleData.background.one() ?? null %}
+		{% set themeSwitche = backgroundEntry.themeDark ?? null %}
+	{% endif %}
+{% endif %}
+
+<div class="header-content-block py-10 md:py-12 lg:py-16 text-slate-900 dark:text-white {{ blockType }}{{ blockTypeUid }}-style {{ bsClasses(blockStyle) }}" data-theme="{{ themeSwitche ? 'dark' : 'light' }}" style="{{ bsStyle(blockStyle) }}">
+	<div class="{{ containerWidth }} flex flex-col items-center justify-center">
+		<{{headingTags}} class="font-bold tracking-tight mb-4 block-heading-title w-full" style="text-align:{{ align }}">{{ heading|raw }}</{{headingTags}}>
+
+		<div class="block-description tw-rich-text w-full {{ align == 'center' ? 'mx-auto' : (align == 'right' ? 'ml-auto' : 'mr-auto') }}" style="text-align:{{ align }}">{{ contentData|raw }}</div>
+	</div>
+</div>

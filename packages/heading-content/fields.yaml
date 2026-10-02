@@ -1,0 +1,22 @@
+name: 'Heading + Content Fields'
+fields:
+    -
+        handle: heading
+        name: Heading
+        type: PlainText
+        instructions: ''
+    -
+        handle: headingTags
+        name: 'Heading Tags'
+        type: Dropdown
+        instructions: ''
+    -
+        handle: align
+        name: Align
+        type: Dropdown
+        instructions: ''
+    -
+        handle: contentdata
+        name: Content
+        type: Ckeditor
+        instructions: ''

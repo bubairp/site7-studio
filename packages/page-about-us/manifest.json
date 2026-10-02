@@ -1,0 +1,41 @@
+{
+    "schemaVersion": "1",
+    "handle": "page-about-us",
+    "name": "Page: About Us",
+    "type": "template",
+    "version": "1.0.0",
+    "author": "admin",
+    "description": "",
+    "category": "",
+    "tags": [],
+    "sourceEntryType": "standardPages",
+    "sourceSection": "standardPages",
+    "sourceSectionType": "channel",
+    "requires": {
+        "sections": [
+            "services"
+        ]
+    },
+    "demoContent": {
+        "services": {
+            "displayView": "default",
+            "itemsPerRow": "default"
+        }
+    },
+    "entryFields": {
+        "h1Title": null,
+        "hideTitleHere": false,
+        "titleAlign": "start",
+        "titleContainerWidth": "container"
+    },
+    "dependencies": [],
+    "importedFrom": {
+        "sourceType": "entry",
+        "sourceId": 6254,
+        "sourceHandle": "standardPages",
+        "importedAt": "2026-08-19T01:31:11+00:00",
+        "importedBy": "admin",
+        "sourceUid": "4f9a9fc3-f249-4386-b699-45189299ee01",
+        "sourceHash": "a82011b32c9d61790f8bd9925b0d8626ef2976ec9586c3f2fea950e0dec81c0c"
+    }
+}
