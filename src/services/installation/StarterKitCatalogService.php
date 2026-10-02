@@ -104,13 +104,6 @@ class StarterKitCatalogService extends Component
     private function describe(\site7\studio\models\packages\PackageManifest $manifest, string $packagePath): array
     {
         $blueprint = $this->getBlueprint($manifest->handle);
-        $notes = [];
-
-        if ($blueprint === null) {
-            $notes[] = 'No blueprint.json found - this package was not built by the Starter Kit pipeline and cannot be installed by this wizard.';
-        } elseif (($blueprint['validation']['valid'] ?? true) === false) {
-            $notes[] = 'This package failed validation when it was built: ' . implode('; ', $blueprint['validation']['errors'] ?? []);
-        }
 
         return [
             'handle' => $manifest->handle,
@@ -121,8 +114,45 @@ class StarterKitCatalogService extends Component
             'minimumPhpVersion' => InstallationValidator::MIN_PHP_VERSION,
             'requiredPlugins' => $blueprint['requiredPlugins'] ?? ($manifest->dependencies['plugins'] ?? []),
             'path' => $packagePath,
-            'installable' => $blueprint !== null && ($blueprint['validation']['valid'] ?? true) !== false,
-            'notes' => $notes,
+            'installable' => self::isInstallable($blueprint),
+            'notes' => self::installabilityNotes($blueprint),
         ];
+    }
+
+    /**
+     * Whether a package's own parsed blueprint.json (or null, if the file
+     * doesn't exist) qualifies it to be installed through the Install
+     * Wizard: it must have been built by the actual Starter Kit pipeline
+     * (StarterKitBuilder -> BlueprintBuilder, the only thing that writes
+     * blueprint.json - see docs/32_STARTER_KIT_SYSTEM.md §14) and that
+     * build must not have recorded a validation failure. Pure/static (no
+     * filesystem or Craft app access) so it's directly unit-testable - see
+     * tests/unit/services/installation/StarterKitCatalogServiceTest.php.
+     *
+     * @param array|null $blueprint The decoded blueprint.json, or null if the file is missing/unreadable.
+     */
+    public static function isInstallable(?array $blueprint): bool
+    {
+        return $blueprint !== null && ($blueprint['validation']['valid'] ?? true) !== false;
+    }
+
+    /**
+     * User-facing explanation(s) for why a package is/isn't installable -
+     * mirrors isInstallable()'s exact logic so the two can never disagree.
+     *
+     * @param array|null $blueprint The decoded blueprint.json, or null if the file is missing/unreadable.
+     * @return string[]
+     */
+    public static function installabilityNotes(?array $blueprint): array
+    {
+        if ($blueprint === null) {
+            return ['No blueprint.json found - this package was not built by the Starter Kit pipeline and cannot be installed by this wizard.'];
+        }
+
+        if (($blueprint['validation']['valid'] ?? true) === false) {
+            return ['This package failed validation when it was built: ' . implode('; ', $blueprint['validation']['errors'] ?? [])];
+        }
+
+        return [];
     }
 }
