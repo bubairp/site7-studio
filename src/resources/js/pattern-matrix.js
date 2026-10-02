@@ -75,14 +75,19 @@
             // "blockStyle" for those nested fields, never "site7Components" -
             // so an exact match against it is reliable regardless of nesting
             // depth.
-            if (window.site7Studio && window.site7Studio.matrixFieldHandle) {
-                const searchHandle = window.site7Studio.matrixFieldHandle.toLowerCase();
-                const $fieldParent = $matrixContainer.closest('.field');
-                const fieldAttr = ($fieldParent.attr('data-attribute') || '').toLowerCase();
+            //
+            // No configured field (Setup not run, so matrixFieldId is empty)
+            // means no injection at all - skipping the check instead turned
+            // EVERY Matrix field on the page into Add Section/Insert Pattern.
+            const configuredHandle = (window.site7Studio && window.site7Studio.matrixFieldHandle) || '';
+            if (!configuredHandle) {
+                return;
+            }
+            const $fieldParent = $matrixContainer.closest('.field');
+            const fieldAttr = ($fieldParent.attr('data-attribute') || '').toLowerCase();
 
-                if (fieldAttr !== searchHandle) {
-                    return;
-                }
+            if (fieldAttr !== configuredHandle.toLowerCase()) {
+                return;
             }
 
             // Wait until the button container is created in the DOM. Must be
