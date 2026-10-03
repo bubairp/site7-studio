@@ -140,8 +140,9 @@ class PackageService extends Component implements PackageProviderInterface
             return true;
         }
 
-        $plan = Site7Studio::getInstance()->plan->getCurrentPlan();
-        return $plan !== null && $this->isCurrentlyAllowed($handle, $plan);
+        // isEntitled() covers free, purchased and current-plan packages, so a
+        // free Library package installs without a plan too (it used to need one).
+        return $this->isEntitled($handle);
     }
 
     /**

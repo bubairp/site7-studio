@@ -70,6 +70,8 @@ class Commerce24PublishTarget implements PackagePublishTargetInterface
             // archive's bytes travel base64-encoded inside the JSON body,
             // not as a raw upload stream.
             $response = $this->client->request('POST', '/marketplace/publish', [
+                // A page Template with its images is tens of MB.
+                'timeout' => 600,
                 'json' => [
                     'handle' => $bundle->rootHandle,
                     // The package's actual kind (section/pattern/template/

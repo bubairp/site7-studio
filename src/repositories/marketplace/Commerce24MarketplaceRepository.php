@@ -99,21 +99,13 @@ class Commerce24MarketplaceRepository implements MarketplaceRepositoryInterface
         FileHelper::createDirectory($cacheDir);
         $destination = $cacheDir . '/' . $handle . ($version ? "-{$version}" : '') . '.s7pkg';
 
+        // download(), not request(): request() caches GET responses, which
+        // put whole archives into Craft's cache and could serve a stale one.
         try {
-            $binary = $this->client->request('GET', "/marketplace/download/{$handle}" . ($version ? "?version={$version}" : ''));
+            $this->client->download("/marketplace/download/{$handle}" . ($version ? "?version={$version}" : ''), $destination);
         } catch (CommerceApiException $e) {
             throw new \Exception("Could not download '{$handle}' from the Commerce24 Repository: " . $e->getMessage(), 0, $e);
         }
-
-        // Commerce24 is expected to return the archive's bytes base64-encoded
-        // inside a JSON envelope (like every other endpoint this client
-        // calls) rather than a raw binary stream, to keep CommerceClient's
-        // request() -> decoded-JSON contract uniform across every endpoint.
-        if (empty($binary['contentsBase64'])) {
-            throw new \Exception("Commerce24 did not return archive contents for '{$handle}'.");
-        }
-
-        file_put_contents($destination, base64_decode($binary['contentsBase64']));
 
         return $destination;
     }

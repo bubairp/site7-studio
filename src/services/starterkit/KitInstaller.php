@@ -5,6 +5,7 @@ namespace site7\studio\services\starterkit;
 use Craft;
 use craft\helpers\App;
 use site7\studio\records\PackageRecord;
+use site7\studio\services\library\LibraryDistribution;
 use site7\studio\services\sitekit\SiteKitContent;
 use site7\studio\services\theme\ThemeInstaller;
 use site7\studio\Site7Studio;
@@ -29,9 +30,12 @@ class KitInstaller extends ThemeInstaller
      */
     public function validateKit(string $handle): array
     {
-        $result = ['errors' => [], 'warnings' => [], 'meta' => null, 'theme' => null, 'themeInstalled' => false];
+        $result = ['errors' => [], 'warnings' => [], 'meta' => null, 'theme' => null, 'themeInstalled' => false, 'remote' => false, 'download' => [], 'downloadSize' => 0];
         $packageManager = Site7Studio::getInstance()->packageManager;
         $dir = $packageManager->getPackagePath($handle);
+        if (!$dir) {
+            return $this->validateRemoteKit($handle, $result);
+        }
         $manifest = $dir ? json_decode((string)@file_get_contents("{$dir}/manifest.json"), true) : null;
         if (!self::isFormatV2($dir) || ($manifest['type'] ?? null) !== 'starter-kit') {
             $result['errors'][] = "'{$handle}' is not a Library Starter Kit.";
@@ -63,6 +67,33 @@ class KitInstaller extends ThemeInstaller
     }
 
     /**
+     * A kit Commerce24 offers that isn't in this site's Library yet
+     * (docs/52): its packages, their entitlements and this site's
+     * freshness are checked before anything is downloaded; the Theme's
+     * own checks run after download, in installKit().
+     */
+    private function validateRemoteKit(string $handle, array $result): array
+    {
+        $check = (new LibraryDistribution())->check($handle);
+        $result['remote'] = true;
+        $result['errors'] = $check['errors'];
+        $result['warnings'] = $check['warnings'];
+        $result['download'] = $check['download'];
+        $result['downloadSize'] = $check['downloadSize'];
+        if ($check['kit']) {
+            $result['meta'] = $check['kit']['metadata']['library'] ?? null;
+            $result['theme'] = $check['kit']['requires']['themes'][0] ?? null;
+        }
+        $result['themeInstalled'] = $result['theme'] !== null
+            && Site7Studio::getInstance()->packageManager->getPackageByHandle($result['theme'])?->status === 'enabled';
+        if (!$result['themeInstalled'] && count(Craft::$app->getEntries()->getAllSections()) > 0) {
+            $result['errors'][] = 'This site already has content structure. A Starter Kit sets up a fresh Craft install.';
+        }
+
+        return $result;
+    }
+
+    /**
      * @return array{errors: string[], warnings: string[], backup: string|null}
      */
     public function installKit(string $handle, ?callable $log = null): array
@@ -72,6 +103,20 @@ class KitInstaller extends ThemeInstaller
         $result = ['errors' => $validation['errors'], 'warnings' => $validation['warnings'], 'backup' => null];
         if ($result['errors']) {
             return $result;
+        }
+
+        if ($validation['remote']) {
+            $log(sprintf('Downloading %d packages (%s) from Commerce24…', count($validation['download']), Craft::$app->getFormatter()->asShortSize($validation['downloadSize'])));
+            if ($errors = (new LibraryDistribution())->download($validation['download'], $log)) {
+                $result['errors'] = $errors;
+                return $result;
+            }
+            $validation = $this->validateKit($handle);
+            $result['errors'] = $validation['errors'];
+            $result['warnings'] = array_values(array_unique(array_merge($result['warnings'], $validation['warnings'])));
+            if ($result['errors']) {
+                return $result;
+            }
         }
 
         if (!$validation['themeInstalled']) {

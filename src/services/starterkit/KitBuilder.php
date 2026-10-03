@@ -68,6 +68,7 @@ class KitBuilder extends Component
         $demoSections = ThemeBuilder::visitorSectionUids($projectConfig->get('plugins.guest-entries.settings') ?? []);
 
         $dir = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
+        $pricingType = ThemeBuilder::existingPricingType($dir);
         if (is_dir($dir)) {
             FileHelper::removeDirectory($dir);
         }
@@ -102,7 +103,7 @@ class KitBuilder extends Component
             'author' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? 'Site7',
             'description' => "The whole {$name} site on a fresh Craft install: the {$themeHandle} Theme, " . count($templates) . ' pages with their blocks, menus and demo content.',
             'requires' => ['themes' => [$themeHandle], 'templates' => $templates],
-            'pricingType' => 'free',
+            'pricingType' => $pricingType,
         ]));
         file_put_contents("{$dir}/README.md", "# {$name}\n\nLibrary Starter Kit built with `site7-studio/starter-kit/build`. See docs/51_LIBRARY_STARTER_KIT.md.\n");
 

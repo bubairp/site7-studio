@@ -40,7 +40,7 @@ LocalMarketplaceRepository        Commerce24MarketplaceRepository
 2. `getCatalog()` — calls `listAvailablePackages()` on every registered repository, merges results. Commerce24's call returns `[]` immediately if `CommerceClient::isConfigured()` is false — this is how "Commerce not set up" is handled, not by hiding the repository entirely.
 3. `installFromRepository($repositoryHandle, $handle)` — resolves the repository by handle, calls `fetchPackage()`, then routes into the same `PackageImportService::importPackage()` used by manual `.s7pkg` upload (`10_PACKAGE_IMPORT.md`) — the marketplace is a package-acquisition FRONT END, not a separate install mechanism.
 4. Local repository's `fetchPackage()` reads directly from its own `storage/site7-studio/marketplace-repo/` directory (no network).
-5. Commerce24's `fetchPackage()` calls `CommerceClient` → `GET /marketplace/download/{handle}`, expects a `contentsBase64` JSON envelope, decodes and caches to `storage/site7-studio/commerce24-cache/`.
+5. Commerce24's `fetchPackage()` calls `CommerceClient::download()` → `GET /marketplace/download/{handle}`, which writes the archive to `storage/site7-studio/commerce24-cache/`. It accepts a raw `application/zip` response or the `contentsBase64` JSON envelope. Since 2026-10-03 the download is uncached and streamed with a long timeout. It used to go through `request()`, which cached every GET in Craft's cache, whole archives included, with the 10 s API timeout. Library packages use this path through `LibraryDistribution` (`52`).
 
 ## 6. Important Classes
 

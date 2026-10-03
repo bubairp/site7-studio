@@ -39,6 +39,8 @@ It also lists the `.env` keys to add.
 
 The blueprint wizard below the pane only appears when blueprint kits exist. In the Library, a v2 kit's page points to the Install screen, and v1-only buttons ("Install Starter Kit", "Create Page from Template") are hidden for v2 packages.
 
+**From Commerce24 (`52`).** The pane also lists Commerce24's Library kits that this site's Library doesn't have. Check and Install work the same; the install job first downloads and verifies every package the kit needs.
+
 ## 5. Install (`KitInstaller::installKit`)
 
 1. **Theme**, if it isn't enabled yet: `ThemeInstaller::installTheme()`. That covers backup, code, Composer, plugins, structure, Singles, settings content and the frontend build (`49` §4).
@@ -63,7 +65,7 @@ Fresh DDEV Craft 5.10.8.1 with only Site7 Studio installed. Installed through th
 - **Fresh sites only.** The Theme step needs a fresh install. A kit whose Theme is already installed only adds pages and content.
 - **No update or uninstall of a kit.**
 - **Users don't travel.** Reviews' authors become the first admin, and Guest Entries' author setting must be set on the new site (`49` §7).
-- **The Library must already hold the kit's packages.** About 250 MB of Template packages are copied in for now. Distribution through Commerce24 (download, licences, signing) is roadmap step 6.
+- **The kit's packages come from this site's Library or from Commerce24** (`52`).
 - **The `.env` keys** the Theme lists (API keys, Commerce24) must be added by hand. Values never travel.
 
 ## 8. Important classes

@@ -53,7 +53,8 @@ class InstallWizardController extends Controller
             return $this->redirect('site7-studio/install');
         }
 
-        $name = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle)?->name ?? $handle;
+        $name = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle)?->name
+            ?? ($validation['remote'] ? ((new \site7\studio\services\library\LibraryDistribution())->catalog()[$handle]['name'] ?? $handle) : $handle);
         $id = Site7Studio::getInstance()->siteKitJobs->start("Install {$name}", ['site7-studio/starter-kit/install', $handle], [
             'label' => 'Install',
             'url' => 'site7-studio/install',
@@ -67,6 +68,7 @@ class InstallWizardController extends Controller
         return $this->renderTemplate('site7-studio/install-wizard/index', [
             'kits' => Site7Studio::getInstance()->starterKitCatalog->listAvailable(),
             'libraryKits' => $this->libraryKits(),
+            'remoteKits' => (new \site7\studio\services\library\LibraryDistribution())->remoteKits(),
             'kitCheck' => $kitCheck,
         ]);
     }

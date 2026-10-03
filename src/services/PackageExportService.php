@@ -147,12 +147,13 @@ class PackageExportService extends Component
                     break;
                 case 'template':
                     $requiredHandles = array_merge(
+                        $manifest->requires['themes'] ?? [],
                         $manifest->requires['patterns'] ?? [],
                         $manifest->requires['sections'] ?? []
                     );
                     break;
                 case 'starter-kit':
-                    $requiredHandles = $manifest->requires['templates'] ?? [];
+                    $requiredHandles = array_merge($manifest->requires['themes'] ?? [], $manifest->requires['templates'] ?? []);
                     foreach ($manifest->pages as $page) {
                         if (!empty($page['templateHandle'])) {
                             $requiredHandles[] = $page['templateHandle'];

@@ -52,6 +52,7 @@ class TemplateBuilder extends Component
         $name = $section->type === 'single' ? (string)$entry->title : "{$section->name}: {$entry->title}";
 
         $dir = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
+        $pricingType = \site7\studio\services\theme\ThemeBuilder::existingPricingType($dir);
         if (is_dir($dir)) {
             FileHelper::removeDirectory($dir);
         }
@@ -129,7 +130,7 @@ class TemplateBuilder extends Component
             'sourceSectionType' => $section->type,
             'sourceEntryType' => $entry->getType()->handle,
             'requires' => ['themes' => [$themeHandle], 'sections' => $requiredSections],
-            'pricingType' => 'free',
+            'pricingType' => $pricingType,
         ]));
         file_put_contents("{$dir}/README.md", "# {$name}\n\nTemplate package built with `site7-studio/template/build`. See docs/50_TEMPLATE_PACKAGE.md.\n");
 

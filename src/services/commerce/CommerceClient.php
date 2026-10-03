@@ -87,6 +87,47 @@ class CommerceClient extends Component implements CommerceClientInterface
     }
 
     /**
+     * Downloads a package archive to $destination: never cached (request()
+     * caches every GET, which would put whole archives in Craft's cache),
+     * streamed to disk, with a long timeout - a page Template with its
+     * images is tens of MB. Accepts the archive as raw bytes (application/zip)
+     * or in the JSON envelope {"contentsBase64": "..."} every endpoint has
+     * used so far.
+     *
+     * @throws CommerceApiException
+     */
+    public function download(string $endpoint, string $destination, int $timeout = 900): void
+    {
+        if (!$this->isConfigured()) {
+            throw new CommerceApiException('Commerce24 is not configured yet.');
+        }
+
+        $temp = $destination . '.part';
+        try {
+            $response = $this->getHttpClient()->request('GET', ltrim($endpoint, '/'), [
+                'sink' => $temp,
+                'timeout' => $timeout,
+                'headers' => ['Accept' => 'application/zip, application/json'],
+            ]);
+        } catch (GuzzleException $e) {
+            @unlink($temp);
+            throw new CommerceApiException('Could not download from Commerce24: ' . $e->getMessage(), 0, $e);
+        }
+
+        if (str_contains(strtolower($response->getHeaderLine('Content-Type')), 'json')) {
+            $data = json_decode((string)file_get_contents($temp), true);
+            @unlink($temp);
+            if (empty($data['contentsBase64'])) {
+                throw new CommerceApiException('Commerce24 did not return archive contents' . (isset($data['error']) ? ": {$data['error']}" : '.'));
+            }
+            file_put_contents($destination, base64_decode($data['contentsBase64']));
+            return;
+        }
+
+        rename($temp, $destination);
+    }
+
+    /**
      * @throws CommerceApiException
      */
     private function send(string $method, string $endpoint, array $options): array

@@ -48,6 +48,7 @@ class ThemeBuilder extends Component
         }
 
         $dir = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
+        $pricingType = self::existingPricingType($dir);
         if (is_dir($dir)) {
             FileHelper::removeDirectory($dir);
         }
@@ -148,7 +149,7 @@ class ThemeBuilder extends Component
             'version' => $version,
             'author' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? 'Site7',
             'description' => "Structure, templates, frontend and settings of {$name}: " . count($schema['items']) . ' structure items, ' . count($pluginConfigs) . ' plugins. Blocks come as Section packages.',
-            'pricingType' => 'free',
+            'pricingType' => $pricingType,
         ]));
         file_put_contents("{$dir}/README.md", "# {$name}\n\nTheme package built with `site7-studio/theme/build`. See docs/49_THEME_PACKAGE.md.\n");
 
@@ -161,6 +162,17 @@ class ThemeBuilder extends Component
         }
 
         return ['path' => $dir, 'meta' => $meta];
+    }
+
+    /**
+     * The pricingType of the package already at $dir, so a rebuild keeps a
+     * price set on it (site7-studio/library/pricing); "free" for a new one.
+     */
+    public static function existingPricingType(string $dir): string
+    {
+        $manifest = json_decode((string)@file_get_contents("{$dir}/manifest.json"), true);
+
+        return is_string($manifest['pricingType'] ?? null) && $manifest['pricingType'] !== '' ? $manifest['pricingType'] : 'free';
     }
 
     /**
