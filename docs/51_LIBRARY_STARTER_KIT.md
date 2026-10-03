@@ -13,7 +13,7 @@ The kit itself holds only what no page owns, plus the list of what to install. T
 | File | Content |
 |---|---|
 | `manifest.json` | `type: "starter-kit"`, `requires: {themes: [<theme>], templates: [<every page>]}`, `pricingType: "free"` |
-| `starter-kit.json` | `formatVersion: 2`, `craftVersion`, `theme`, `templates` count, `pages` (URIs), `demoSections`, `pluginTables`, content counts, `builtAt` |
+| `starter-kit.json` | `formatVersion: 2`, `craftVersion`, `theme`, `templates` count, `pages` (URIs), `demoSections`, `pluginTables`, content counts (no build date, so an unchanged rebuild is identical, `53` §3) |
 | `content/` | `SiteKitContent` format (`48` §10). Plugin tables (`KitBuilder::PLUGIN_TABLES`): menus (`simplerpmenu`, `simplerpmenu_items`) and the HTML sitemap (`sitemaps`). Visitor content as demo content: entries of the sections Guest Entries accepts submissions into (reviews, `ThemeBuilder::visitorSectionUids()`). `links.json` connects the reviews to their pages (`50` §4). |
 
 For rp-craft the kit is 136 KB (8 menus / 62 items, 79 sitemap rows, 3 reviews), so it is committed. The Template packages it requires are build output (`50` §2).

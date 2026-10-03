@@ -67,29 +67,53 @@ class LibraryDistribution extends Component
     }
 
     /**
-     * @param string[] $handles packages to publish (default: libraryHandles())
-     * @return array{published: string[], errors: string[]}
+     * Publishes what changed since its last publish from this site (by the
+     * package directory's checksum), raising its version first; a package
+     * never published from here goes out at its current version.
+     *
+     * @param string[] $handles packages to consider (default: libraryHandles())
+     * @param string $bump patch|minor|major
+     * @param bool $force publish unchanged packages too, without a version bump
+     * @return array{published: string[], unchanged: string[], errors: string[]}
      */
-    public function publish(array $handles = [], ?callable $log = null): array
+    public function publish(array $handles = [], ?callable $log = null, string $bump = 'patch', bool $force = false, ?string $releaseNotes = null): array
     {
         $log ??= fn(string $line) => null;
         $plugin = Site7Studio::getInstance();
         $target = new Commerce24PublishTarget();
         if (!$target->supportsPublish()) {
-            return ['published' => [], 'errors' => ['Commerce24 is not configured (Settings > Commerce).']];
+            return ['published' => [], 'unchanged' => [], 'errors' => ['Commerce24 is not configured (Settings > Commerce).']];
         }
 
-        $result = ['published' => [], 'errors' => []];
+        $state = $this->publishState();
+        $result = ['published' => [], 'unchanged' => [], 'errors' => []];
         foreach ($handles ?: $this->libraryHandles() as $handle) {
             try {
+                $dir = (string)$plugin->packageManager->getPackagePath($handle);
+                $checksum = \site7\studio\services\support\PackageArchiveHelper::computeDirectoryChecksum($dir);
+                $last = $state[$handle] ?? null;
+                if ($last !== null && $last['checksum'] === $checksum && !$force) {
+                    $result['unchanged'][] = $handle;
+                    continue;
+                }
+                if ($last !== null && $last['checksum'] !== $checksum) {
+                    $version = self::bumpVersion($this->manifestVersion($dir), $bump);
+                    $this->setManifestVersion($dir, $version);
+                    $plugin->packageManager->discoverPackages();
+                    $checksum = \site7\studio\services\support\PackageArchiveHelper::computeDirectoryChecksum($dir);
+                }
+
                 // Each package alone: its requirements are separate listings,
                 // so a site downloads each package once, only if it needs it.
                 $path = (new PackageExportService())->exportPackage($handle, false);
                 $bundle = $this->bundleManifest($path);
-                $target->publishPackage($path, $bundle, $this->metadata($handle));
-                $plugin->publishHistory->recordPublish($handle, 'commerce24', $bundle->getRootEntry()['version'] ?? '0.0.0', 'published');
+                $version = $bundle->getRootEntry()['version'] ?? '0.0.0';
+                $target->publishPackage($path, $bundle, $this->metadata($handle) + array_filter(['releaseNotes' => $releaseNotes]));
+                $plugin->publishHistory->recordPublish($handle, 'commerce24', $version, 'published', $releaseNotes);
+                $state[$handle] = ['version' => $version, 'checksum' => $checksum, 'publishedAt' => date(DATE_ATOM)];
+                $this->savePublishState($state);
                 $result['published'][] = $handle;
-                $log(sprintf('Published %s (%s)', $handle, Craft::$app->getFormatter()->asShortSize(filesize($path))));
+                $log(sprintf('Published %s %s (%s)', $handle, $version, Craft::$app->getFormatter()->asShortSize(filesize($path))));
             } catch (\Throwable $e) {
                 $result['errors'][] = "{$handle}: {$e->getMessage()}";
                 $log("FAILED {$handle}: {$e->getMessage()}");
@@ -97,6 +121,49 @@ class LibraryDistribution extends Component
         }
 
         return $result;
+    }
+
+    /** 1.2.3 + patch = 1.2.4, + minor = 1.3.0, + major = 2.0.0 */
+    public static function bumpVersion(string $version, string $bump): string
+    {
+        [$major, $minor, $patch] = array_map('intval', array_pad(explode('.', $version), 3, 0));
+
+        return match ($bump) {
+            'major' => ($major + 1) . '.0.0',
+            'minor' => "{$major}." . ($minor + 1) . '.0',
+            default => "{$major}.{$minor}." . ($patch + 1),
+        };
+    }
+
+    private function manifestVersion(string $dir): string
+    {
+        return ThemeBuilder::existingVersion($dir);
+    }
+
+    private function setManifestVersion(string $dir, string $version): void
+    {
+        $manifest = json_decode((string)file_get_contents("{$dir}/manifest.json"), true);
+        $manifest['version'] = $version;
+        file_put_contents("{$dir}/manifest.json", json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    }
+
+    /** What this site last published: handle => {version, checksum, publishedAt}. */
+    private function publishState(): array
+    {
+        return json_decode((string)@file_get_contents($this->publishStateFile()), true) ?: [];
+    }
+
+    private function savePublishState(array $state): void
+    {
+        file_put_contents($this->publishStateFile(), json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function publishStateFile(): string
+    {
+        $dir = Craft::getAlias('@storage') . '/site7-studio';
+        \craft\helpers\FileHelper::createDirectory($dir);
+
+        return "{$dir}/library-published.json";
     }
 
     /**

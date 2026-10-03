@@ -43,6 +43,8 @@ flowchart TD
     X -.->|"Rollback only, post-classify() reconcile"| N["treated as already-satisfied"]
 ```
 
+**Also used by Library updates (`53`):** `LibraryUpdater::decide()` calls `classify()` for files, project config items (config hashes) and content elements (row hashes). There the baseline is the installed package's Library copy rather than a `site7_installed_files` row, and a CONFLICT where LIVE == INCOMING counts as already done.
+
 ## 5. Execution Flow
 
 1. `PackageUpdatePlanner::plan($package, $targetVersion)` — for every file the target version ships (Twig via `_blocks/` mapping, or owned files via `resolveArchiveEntryName()`), gathers BASELINE (`InstalledFileBaselineService::getBaseline()`), LIVE (read current file + checksum), INCOMING (read from the target version's archive + checksum).

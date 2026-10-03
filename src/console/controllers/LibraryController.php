@@ -5,6 +5,7 @@ namespace site7\studio\console\controllers;
 use Craft;
 use craft\console\Controller;
 use site7\studio\services\library\LibraryDistribution;
+use site7\studio\services\library\LibraryUpdater;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
@@ -13,14 +14,36 @@ use yii\helpers\Console;
  */
 class LibraryController extends Controller
 {
+    /** @var string patch|minor|major - how changed packages' versions are raised */
+    public string $bump = 'patch';
+
+    /** @var bool publish unchanged packages too */
+    public bool $force = false;
+
+    /** @var string|null release notes for this publish */
+    public ?string $notes = null;
+
+    /** @var bool update every Library package that has an update */
+    public bool $all = false;
+
+    public function options($actionID): array
+    {
+        return array_merge(parent::options($actionID), match ($actionID) {
+            'publish' => ['bump', 'force', 'notes'],
+            'update' => ['all'],
+            default => [],
+        });
+    }
+
     /**
-     * Publishes Library packages to Commerce24, each as its own archive.
-     * Usage: php craft site7-studio/library/publish [handle,handle...]   (default: the whole Library)
+     * Publishes the Library packages that changed since their last publish
+     * to Commerce24, each as its own archive, with a raised version.
+     * Usage: php craft site7-studio/library/publish [handle,handle...] [--bump=minor] [--notes="..."] [--force]
      */
     public function actionPublish(array $handles = []): int
     {
-        $result = (new LibraryDistribution())->publish($handles, fn(string $line) => $this->stdout("  {$line}\n"));
-        $this->stdout('Published ' . count($result['published']) . " packages\n", Console::FG_GREEN);
+        $result = (new LibraryDistribution())->publish($handles, fn(string $line) => $this->stdout("  {$line}\n"), $this->bump, $this->force, $this->notes);
+        $this->stdout('Published ' . count($result['published']) . ' packages, ' . count($result['unchanged']) . " unchanged\n", Console::FG_GREEN);
         foreach ($result['errors'] as $error) {
             $this->stderr("Error: {$error}\n", Console::FG_RED);
         }
@@ -57,6 +80,41 @@ class LibraryController extends Controller
         }
 
         return ExitCode::OK;
+    }
+
+    /**
+     * Lists installed Library packages that Commerce24 has a newer version of.
+     * Usage: php craft site7-studio/library/updates
+     */
+    public function actionUpdates(): int
+    {
+        $updates = (new LibraryUpdater())->availableUpdates();
+        $this->stdout(count($updates) . " updates available\n");
+        foreach ($updates as $update) {
+            $this->stdout(sprintf("  %-40s %-10s %s -> %s%s%s\n", $update['handle'], $update['type'], $update['from'], $update['to'],
+                $update['supported'] ? '' : '  (not supported yet)', $update['releaseNotes'] ? "  - {$update['releaseNotes']}" : ''));
+        }
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Updates installed Library packages from Commerce24, keeping whatever was edited on this site.
+     * Usage: php craft site7-studio/library/update <handle,handle...> | --all
+     */
+    public function actionUpdate(array $handles = []): int
+    {
+        if (!$handles && !$this->all) {
+            $this->stderr("Name the packages to update, or pass --all.\n", Console::FG_RED);
+            return ExitCode::USAGE;
+        }
+        $result = (new LibraryUpdater())->update($this->all ? [] : $handles, fn(string $line) => $this->stdout("  {$line}\n"));
+        $this->stdout('Updated ' . count($result['updated']) . ' packages, skipped ' . count($result['skipped']) . "\n", Console::FG_GREEN);
+        foreach ($result['errors'] as $error) {
+            $this->stderr("Error: {$error}\n", Console::FG_RED);
+        }
+
+        return $result['errors'] ? ExitCode::UNSPECIFIED_ERROR : ExitCode::OK;
     }
 
     /**

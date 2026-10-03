@@ -5,6 +5,44 @@
 {% do view.registerAssetBundle("site7\\studio\\assetbundles\\UpdateWizardBundle") %}
 
 {% set content %}
+{# ---------------------------------------------------- Library updates (docs/53) #}
+<div class="pane">
+    <h2>Library updates</h2>
+    <p class="light">Newer versions of the blocks and pages installed from the Site7 Library. Whatever was changed on this site is kept: an update only changes fields, templates and content that are still as they were installed. The database is backed up first.</p>
+    {% if libraryUpdates is empty %}
+        <p>Everything installed from the Library is up to date.</p>
+    {% else %}
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ actionInput('site7-studio/update-wizard/update-library') }}
+            <table class="data fullwidth">
+                <thead><tr><th class="thin"></th><th>Package</th><th>Version</th><th>Release notes</th></tr></thead>
+                <tbody>
+                {% for u in libraryUpdates %}
+                    <tr>
+                        <td class="thin">
+                            {% if u.supported and u.entitled %}
+                                <input type="checkbox" name="handles[]" value="{{ u.handle }}" checked>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ u.name }}</strong> <span class="light">{{ u.type|title }}</span><br><code>{{ u.handle }}</code></td>
+                        <td>{{ u.from }} → <strong>{{ u.to }}</strong></td>
+                        <td>
+                            {{ u.releaseNotes ?: '–' }}
+                            {% if not u.supported %}<br><span class="warning">{{ u.type|title }} updates aren't supported yet.</span>{% endif %}
+                            {% if not u.entitled %}<br><span class="error">Not in your plan.</span>{% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="btn submit">Update selected</button>
+        </form>
+    {% endif %}
+</div>
+
+{% if updates is not empty %}
+<h2>Blueprint Starter Kit updates</h2>
 <div id="s7-update-wizard" data-summary-url-template="{{ url('site7-studio/update/summary/__UID__') }}">
 
     <ol class="s7-wizard-steps">
@@ -66,4 +104,5 @@
     </section>
 
 </div>
+{% endif %}
 {% endset %}

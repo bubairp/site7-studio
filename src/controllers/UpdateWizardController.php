@@ -25,7 +25,32 @@ class UpdateWizardController extends Controller
 
         return $this->renderTemplate('site7-studio/update-wizard/index', [
             'updates' => $updates,
+            'libraryUpdates' => (new \site7\studio\services\library\LibraryUpdater())->availableUpdates(),
         ]);
+    }
+
+    /**
+     * Library updates (docs/53): run library/update as a background job with
+     * the live progress page - it downloads, backs up the database and
+     * applies each package.
+     */
+    public function actionUpdateLibrary()
+    {
+        $this->requirePostRequest();
+        $this->requireAdmin();
+
+        $handles = array_values(array_filter((array)$this->request->getBodyParam('handles', [])));
+        if (!$handles) {
+            $this->setFailFlash('Select the packages to update.');
+            return $this->redirect('site7-studio/update');
+        }
+        $id = Site7Studio::getInstance()->siteKitJobs->start(
+            'Update ' . count($handles) . ' Library package' . (count($handles) === 1 ? '' : 's'),
+            ['site7-studio/library/update', implode(',', $handles)],
+            ['label' => 'Update', 'url' => 'site7-studio/update']
+        );
+
+        return $this->redirect("site7-studio/site-kits/job/{$id}");
     }
 
     /**

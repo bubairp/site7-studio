@@ -36,7 +36,7 @@ class TemplateBuilder extends Component
      * @return array{handle: string, path: string, meta: array}
      * @throws \Exception
      */
-    public function build(Entry $entry, ?string $themeHandle = null, string $version = '1.0.0'): array
+    public function build(Entry $entry, ?string $themeHandle = null, ?string $version = null): array
     {
         if ($entry->getIsDraft() || $entry->getIsRevision() || $entry->getPrimaryOwnerId() !== null || !$entry->getSection()) {
             throw new \Exception("Entry #{$entry->id} isn't a page (a live entry of a section).");
@@ -53,6 +53,7 @@ class TemplateBuilder extends Component
 
         $dir = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
         $pricingType = \site7\studio\services\theme\ThemeBuilder::existingPricingType($dir);
+        $version ??= \site7\studio\services\theme\ThemeBuilder::existingVersion($dir);
         if (is_dir($dir)) {
             FileHelper::removeDirectory($dir);
         }

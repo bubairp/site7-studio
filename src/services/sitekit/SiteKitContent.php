@@ -339,6 +339,104 @@ class SiteKitContent extends Component
         ], $links);
     }
 
+    /**
+     * Exports content into $dir/content (the layout import() reads), via a
+     * temporary zip.
+     *
+     * @return array{counts: array, skipped: array, assetFiles: int}
+     */
+    public function exportToDir(string $dir, ?array $sectionUids = null, bool|array $pluginTables = true, ?array $entryIds = null): array
+    {
+        $zipPath = Craft::$app->getRuntimePath() . '/site7-content-' . \craft\helpers\StringHelper::randomString(8) . '.zip';
+        $zip = new \ZipArchive();
+        $zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $result = $this->export($zip, $sectionUids, $pluginTables, $entryIds);
+        $zip->close();
+        foreach ($result['tempFiles'] as $tempFile) {
+            @unlink($tempFile);
+        }
+        $zip->open($zipPath);
+        $zip->extractTo($dir);
+        $zip->close();
+        @unlink($zipPath);
+
+        return ['counts' => $result['counts'], 'skipped' => $result['skipped'], 'assetFiles' => $result['assetFiles']];
+    }
+
+    /** Columns that differ between sites or change by themselves, left out of signatures(). */
+    private const VOLATILE_COLUMNS = ['dateCreated', 'dateUpdated', 'dateLastMerged', 'folderId', 'siteId', 'sourceSiteId'];
+
+    /**
+     * One hash per element of a content directory, over its rows in every
+     * core table except structure nodes (tree positions shift as a site adds
+     * entries). Comparable between the dev site's export and the same
+     * content exported from a site it was installed on: site IDs and site
+     * references in text are normalised (a Theme maps the source site to
+     * the target's primary site), folder IDs and timestamps are left out.
+     *
+     * @return array<int, string> element ID => hash
+     */
+    public static function signatures(string $contentDir): array
+    {
+        $rowsByElement = [];
+        foreach (self::CORE_TABLES as $table => $rules) {
+            if ($table === 'structureelements') {
+                continue;
+            }
+            $file = "{$contentDir}/tables/{$table}.json";
+            foreach (is_file($file) ? (json_decode((string)file_get_contents($file), true) ?: []) : [] as $row) {
+                $elementId = (int)$row[$rules['filter'][0]];
+                unset($row['id']);
+                foreach (self::VOLATILE_COLUMNS as $column) {
+                    unset($row[$column]);
+                }
+                foreach ($row as $column => $value) {
+                    if (is_string($value) && str_contains($value, '@{site:')) {
+                        $value = preg_replace('/@\{site:[0-9a-f\-]{36}\}/', '@{site}', $value);
+                    }
+                    // JSON text (elements_sites.content): MySQL's JSON
+                    // column stores its own formatting and key order, so
+                    // compare the value, not the text.
+                    if (is_string($value) && ($value[0] ?? '') === '{' && is_array($decoded = json_decode($value, true))) {
+                        $value = self::canonicalJson($decoded);
+                    }
+                    $row[$column] = $value;
+                }
+                ksort($row);
+                $rowsByElement[$elementId][$table][] = json_encode($row, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            }
+        }
+
+        $signatures = [];
+        foreach ($rowsByElement as $elementId => $tables) {
+            ksort($tables);
+            foreach ($tables as &$rows) {
+                sort($rows);
+            }
+            unset($rows);
+            $signatures[$elementId] = md5(json_encode($tables));
+        }
+
+        return $signatures;
+    }
+
+    private static function canonicalJson(array $data): string
+    {
+        $sort = function(array &$array) use (&$sort): void {
+            if (!array_is_list($array)) {
+                ksort($array);
+            }
+            foreach ($array as &$value) {
+                if (is_array($value)) {
+                    $sort($value);
+                }
+            }
+        };
+        $sort($data);
+
+        return json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
     /** One end in the export, the other live content outside it. */
     public static function isLink(array $relation, array $idSet, array $liveSet): bool
     {
@@ -507,10 +605,14 @@ class SiteKitContent extends Component
      * Imports content/ from an extracted kit. Run in a process that loaded
      * the kit's project config (the installer runs it as a subprocess).
      *
+     * @param int[]|null $onlyIds Library updates (docs/53): import only these
+     *   elements' rows (no plugin tables)
+     * @param int[] $replaceIds elements already here whose rows are replaced
+     *   by the incoming ones (their structure nodes are kept)
      * @return array<string, int> rows imported per table
      * @throws \Exception
      */
-    public function import(string $kitDir): array
+    public function import(string $kitDir, ?array $onlyIds = null, array $replaceIds = []): array
     {
         $db = Craft::$app->getDb();
         if ($db->getIsPgsql()) {
@@ -543,6 +645,16 @@ class SiteKitContent extends Component
             $file = "{$contentDir}/tables/{$table}.json";
             $rowsByTable[$table] = is_file($file) ? (json_decode((string)file_get_contents($file), true) ?: []) : [];
         }
+        $replaceSet = array_flip($replaceIds);
+        if ($onlyIds !== null) {
+            $onlySet = array_flip($onlyIds);
+            foreach (self::CORE_TABLES as $table => $rules) {
+                $key = $rules['filter'][0];
+                $rowsByTable[$table] = array_values(array_filter($rowsByTable[$table], fn($row) => $table === 'structureelements'
+                    ? ($row['elementId'] === null || (isset($onlySet[$row['elementId']]) && !isset($replaceSet[$row['elementId']])))
+                    : isset($onlySet[$row[$key]])));
+            }
+        }
 
         // Content can arrive in parts (a Theme's settings, then a Starter
         // Kit's pages). An element already here with the same UID came with
@@ -553,7 +665,9 @@ class SiteKitContent extends Component
         $clashes = [];
         foreach ((new Query())->select(['id', 'uid'])->from('{{%elements}}')->where(['id' => array_keys($incomingUids)])->pairs() as $id => $uid) {
             if ($incomingUids[$id] === $uid) {
-                $skipIds[$id] = true;
+                if (!isset($replaceSet[$id])) {
+                    $skipIds[$id] = true;
+                }
             } else {
                 $clashes[] = $id;
             }
@@ -597,6 +711,17 @@ class SiteKitContent extends Component
 
             $db->createCommand('SET FOREIGN_KEY_CHECKS = 0')->execute();
 
+            // Replaced elements: their own rows go (foreign key checks are
+            // off, so nothing cascades to the entries nested in them or to
+            // relations pointing at them); the incoming rows go in below.
+            if ($replaceIds) {
+                foreach (self::CORE_TABLES as $table => $rules) {
+                    if ($table !== 'structureelements' && $db->tableExists("{{%{$table}}}")) {
+                        $db->createCommand()->delete("{{%{$table}}}", [$rules['filter'][0] => $replaceIds])->execute();
+                    }
+                }
+            }
+
             $resolve = function(?string $value) use ($resolveUid, $adminId, $folderMap) {
                 if ($value === null) {
                     return null;
@@ -622,7 +747,7 @@ class SiteKitContent extends Component
 
             foreach (self::PLUGIN_TABLES as $table => $structural) {
                 $file = "{$contentDir}/plugin-tables/{$table}.json";
-                if (!is_file($file) || !$db->tableExists("{{%{$table}}}")) {
+                if ($onlyIds !== null || !is_file($file) || !$db->tableExists("{{%{$table}}}")) {
                     continue;
                 }
                 $db->createCommand()->delete("{{%{$table}}}")->execute();
@@ -637,7 +762,7 @@ class SiteKitContent extends Component
             throw $e;
         }
 
-        $counts['assetFiles'] = $this->importAssetFiles("{$contentDir}/assets");
+        $counts['assetFiles'] = $this->importAssetFiles("{$contentDir}/assets", $onlyIds);
         Craft::$app->getElements()->invalidateAllCaches();
 
         return $counts;
@@ -837,14 +962,18 @@ class SiteKitContent extends Component
         return self::CORE_TABLES[$table]['structural'][$column] ?? self::PLUGIN_TABLES[$table][$column];
     }
 
-    private function importAssetFiles(string $dir): int
+    private function importAssetFiles(string $dir, ?array $onlyIds = null): int
     {
-        if (!is_dir($dir)) {
+        if (!is_dir($dir) || $onlyIds === []) {
             return 0;
         }
 
         $written = 0;
-        foreach (Asset::find()->status(null)->each(50) as $asset) {
+        $query = Asset::find()->status(null);
+        if ($onlyIds !== null) {
+            $query->id($onlyIds);
+        }
+        foreach ($query->each(50) as $asset) {
             /** @var Asset $asset */
             $file = "{$dir}/{$asset->id}";
             if (!is_file($file)) {

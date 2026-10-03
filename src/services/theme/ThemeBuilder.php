@@ -37,7 +37,7 @@ class ThemeBuilder extends Component
      * @return array{path: string, meta: array}
      * @throws \Exception
      */
-    public function build(string $name, string $version = '1.0.0'): array
+    public function build(string $name, ?string $version = null): array
     {
         $root = rtrim(Craft::getAlias('@root'), '/');
         $handle = StringHelper::toKebabCase($name);
@@ -49,6 +49,7 @@ class ThemeBuilder extends Component
 
         $dir = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
         $pricingType = self::existingPricingType($dir);
+        $version ??= self::existingVersion($dir);
         if (is_dir($dir)) {
             FileHelper::removeDirectory($dir);
         }
@@ -173,6 +174,17 @@ class ThemeBuilder extends Component
         $manifest = json_decode((string)@file_get_contents("{$dir}/manifest.json"), true);
 
         return is_string($manifest['pricingType'] ?? null) && $manifest['pricingType'] !== '' ? $manifest['pricingType'] : 'free';
+    }
+
+    /**
+     * The version of the package already at $dir, so a rebuild keeps it -
+     * library/publish raises it when the content changed (docs/53).
+     */
+    public static function existingVersion(string $dir): string
+    {
+        $manifest = json_decode((string)@file_get_contents("{$dir}/manifest.json"), true);
+
+        return is_string($manifest['version'] ?? null) && $manifest['version'] !== '' ? $manifest['version'] : '1.0.0';
     }
 
     /**

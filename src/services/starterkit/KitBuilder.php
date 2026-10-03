@@ -37,7 +37,7 @@ class KitBuilder extends Component
      * @return array{handle: string, path: string, meta: array}
      * @throws \Exception
      */
-    public function build(string $name, ?string $themeHandle = null, bool $buildTemplates = true, string $version = '1.0.0'): array
+    public function build(string $name, ?string $themeHandle = null, bool $buildTemplates = true, ?string $version = null): array
     {
         $plugin = Site7Studio::getInstance();
         $themeHandle ??= TemplateBuilder::libraryTheme();
@@ -69,6 +69,7 @@ class KitBuilder extends Component
 
         $dir = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
         $pricingType = ThemeBuilder::existingPricingType($dir);
+        $version ??= ThemeBuilder::existingVersion($dir);
         if (is_dir($dir)) {
             FileHelper::removeDirectory($dir);
         }
@@ -90,7 +91,6 @@ class KitBuilder extends Component
             'demoSections' => array_values(array_map(fn($uid) => $projectConfig->get("sections.{$uid}.handle"), array_keys($demoSections))),
             'pluginTables' => self::PLUGIN_TABLES,
             'content' => $content,
-            'builtAt' => date(DATE_ATOM),
         ];
         file_put_contents("{$dir}/" . self::META_FILE, $this->json($meta));
 

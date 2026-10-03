@@ -115,8 +115,8 @@ ddev exec "nohup php -d memory_limit=-1 -S 0.0.0.0:8090 mock-commerce24/router.p
 
 ## 8. Known limitations
 
-- **No updates.** A newer version of an installed package isn't applied to installed sites (`MarketplaceService::checkForUpdates()` predates the Library and doesn't handle Library kinds).
-- **Publishes always send the full archive** (no delta), and the archive versions recorded on publish keep piling up under `exports/`.
+- **Updates** of Section and Template packages: see `53`. Theme and kit updates come later.
+- **Publishes always send the full archive** (no delta), and the archive versions recorded on publish keep piling up under `exports/`. Only changed packages are published (`53` §3).
 - **No retries.** The first failed download stops the install; packages already downloaded stay in the Library, so running the install again only downloads the rest.
 - **The real Laravel Commerce24** must implement §5. The mock is not a security reference.
 
