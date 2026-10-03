@@ -157,26 +157,28 @@ class LibraryUpdater extends Component
             FileHelper::removeDirectory($baseline);
         }
         FileHelper::copyDirectory($dir, $baseline);
-
-        $path = (new Commerce24MarketplaceRepository())->fetchPackage($handle);
-        $importer = new PackageImportService();
-        $validation = $importer->validatePackage($path, true);
-        if (!$validation->valid) {
-            throw new \Exception('The new version failed validation: ' . implode(' ', $validation->errors));
-        }
-        $summary = $importer->importPackage($validation, ['install' => false, 'overwriteConflicts' => true]);
-        @unlink($path);
-        if ($summary['errors']) {
-            throw new \Exception(implode(' ', $summary['errors']));
-        }
-        $log("Downloaded {$handle} {$update['to']} (signature {$validation->signature?->keyId})");
-
-        $record = $packageManager->getPackageByHandle($handle);
-        if (!in_array($record?->status, ['installed', 'enabled'], true)) {
-            return self::emptyReport();
-        }
+        // Other packages' Library copies change as this run updates them.
+        $this->libraryConfigIndex = null;
 
         try {
+            $path = (new Commerce24MarketplaceRepository())->fetchPackage($handle);
+            $importer = new PackageImportService();
+            $validation = $importer->validatePackage($path, true);
+            if (!$validation->valid) {
+                throw new \Exception('The new version failed validation: ' . implode(' ', $validation->errors));
+            }
+            $summary = $importer->importPackage($validation, ['install' => false, 'overwriteConflicts' => true]);
+            @unlink($path);
+            if ($summary['errors']) {
+                throw new \Exception(implode(' ', $summary['errors']));
+            }
+            $log("Downloaded {$handle} {$update['to']} (signature {$validation->signature?->keyId})");
+
+            $record = $packageManager->getPackageByHandle($handle);
+            if (!in_array($record?->status, ['installed', 'enabled'], true)) {
+                return self::emptyReport();
+            }
+
             return match ($update['type']) {
                 'section' => $this->applySection($record, $baseline, $dir),
                 'template' => $this->applyTemplate($baseline, $dir),
@@ -358,7 +360,7 @@ class LibraryUpdater extends Component
         $liveSignatures = [];
         $liveTables = [];
         if ($live !== null) {
-            (new SiteKitContent())->exportToDir($liveDir, $live['sectionUids'] ?? null, $pluginTables ?: false, $live['entryIds'] ?? null);
+            (new SiteKitContent())->exportToDir($liveDir, $live['sectionUids'] ?? null, $pluginTables ?: false, $live['entryIds'] ?? null, false);
             $liveSignatures = SiteKitContent::signatures("{$liveDir}/content");
             $liveTables = SiteKitContent::pluginTableSignatures("{$liveDir}/content", $pluginTables);
             FileHelper::removeDirectory($liveDir);

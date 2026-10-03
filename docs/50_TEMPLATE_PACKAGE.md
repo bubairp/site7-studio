@@ -15,7 +15,9 @@ Format v1 Template packages (`15`, `PageImportService` / `TemplateGeneratorServi
 | `content/` | `SiteKitContent` format (`48` §10): the page entry, every entry nested in it, and the assets/categories/tags they relate to, with asset files |
 | `content/links.json` | Relations between this page's content and other live pages: `{sourceUid, targetUid, row}` |
 
-**Handle:** `template-<single section>` (`template-contact`), otherwise `template-<section>-<slug>` (`template-services-web-development`).
+**Handle:** `template-<single section>` (`template-contact`), otherwise `template-<section>-<slug>` (`template-services-web-development`). If that handle already belongs to another page (same slug under another parent in a tree section), the page's URI is used: `template-<section>-<uri with / as ->`.
+
+**Builds are staged:** each builder (Template, Theme, kit) writes `packages/<handle>.building/` and swaps it in only when the build succeeds. A failed rebuild leaves the package, with its version and price, as it was.
 
 **`requires.sections`:** the Section packages of the blocks the page uses, found by matching entry type UIDs against the Library's v2 `schema.json` files:
 - Every page-builder block must be in the Library, or the build fails.
@@ -61,6 +63,8 @@ php craft site7-studio/template/install template-contact
 4. The package becomes `enabled`. Removing it doesn't delete the page.
 
 **Structure sections:** nodes keep the source's tree positions (`lft`/`rgt`) and share the source's root node. Import refuses a structure whose root was created on this site, meaning entries were added there before the Template.
+
+Pages of one source tree can arrive in any order, since nesting is fine. A node whose position this site's tree can't take is placed with Craft's Structures service instead (`SiteKitContent::nodesToPlace()`): outside the root's range, the same `lft` or `rgt` as another node, or a crossing range (a page the dev site added between existing ones). It is appended under its parent page (exported as `_parentUid`) or at the end of the root.
 
 ## 7. Verified
 

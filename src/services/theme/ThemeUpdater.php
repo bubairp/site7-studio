@@ -38,21 +38,26 @@ class ThemeUpdater extends ThemeInstaller
         $php = App::phpExecutable() ?? 'php';
         $result = ['errors' => [], 'warnings' => []];
 
-        [$report, $changed] = $this->applyFiles("{$baseline}/files", "{$dir}/files", $root);
+        // $arrived: files the Theme changed that this site now has as the new
+        // version has them - written by this run, or by an earlier run that
+        // failed after writing them, so the steps below are redone on a retry.
+        [$report, $arrived] = $this->applyFiles("{$baseline}/files", "{$dir}/files", $root);
         $log('Code files: ' . LibraryUpdater::summary($report));
 
-        $composerChanged = (bool)array_intersect($changed, ['composer.json', 'composer.lock']);
-        if ($composerChanged) {
-            $composerPhar = Craft::$app->getRuntimePath() . '/composer.phar';
-            copy(Craft::getAlias('@lib/composer.phar'), $composerPhar);
-            if (!$this->run([$php, $composerPhar, 'install', '--no-interaction', '--no-scripts', "--working-dir={$root}"], $root, 'composer install', $result, $log)
-                || !$this->run([$php, "{$root}/craft", 'migrate/all', '--interactive=0'], $root, 'craft migrate/all', $result, $log)) {
+        // installPackages() copies both Composer files from the Theme, so only
+        // when neither is the customer's own.
+        $composerKept = (bool)array_intersect($report['kept'], ['file composer.json', 'file composer.lock']);
+        if (array_intersect($arrived, ['composer.json', 'composer.lock']) && !$composerKept) {
+            if (!$this->installPackages("{$dir}/files", $root, $result, $log)) {
                 throw new \Exception(implode(' ', $result['errors']));
             }
-        } elseif (array_intersect($report['kept'], ['file composer.json', 'file composer.lock'])) {
+        } elseif ($composerKept) {
             $report['notes'][] = 'composer.json/lock were changed on this site, so the Theme\'s new Composer packages were not installed - merge them and run composer install.';
         }
         foreach (array_diff($new['plugins'] ?? [], $old['plugins'] ?? []) as $pluginHandle) {
+            if (Craft::$app->getPlugins()->isPluginInstalled($pluginHandle)) {
+                continue;
+            }
             if (!$this->run([$php, "{$root}/craft", 'plugin/install', $pluginHandle], $root, "plugin {$pluginHandle}", $result, $log)) {
                 throw new \Exception(implode(' ', $result['errors']));
             }
@@ -74,7 +79,7 @@ class ThemeUpdater extends ThemeInstaller
         $log('Structure, plugin settings and settings content: ' . LibraryUpdater::summary($applied));
         $report = LibraryUpdater::mergeReports($report, $applied);
 
-        $rebuild = array_filter($changed, fn($path) => preg_match('#^(frontend|templates)/#', $path));
+        $rebuild = array_filter($arrived, fn($path) => preg_match('#^(frontend|templates)/#', $path));
         if ($rebuild) {
             $this->buildFrontend($root, $result, $log);
             $report['notes'] = array_merge($report['notes'], $result['warnings']);
@@ -87,7 +92,8 @@ class ThemeUpdater extends ThemeInstaller
      * Every code file the installed or the new version ships, mapped
      * files/<path> -> <site root>/<path> as ThemeInstaller copied it.
      *
-     * @return array{0: array, 1: string[]} report, paths written or removed
+     * @return array{0: array, 1: string[]} report, and the paths the Theme
+     *   changed that this site now has as the new version has them
      */
     public function applyFiles(string $baselineFiles, string $newFiles, string $root): array
     {
@@ -123,6 +129,11 @@ class ThemeUpdater extends ThemeInstaller
                 $report['kept'][] = "file {$path}";
             } else {
                 $report['unchanged']++;
+                // Changed upstream and already here (an earlier, failed run).
+                $incomingSum = PackageArchiveHelper::computeFileChecksum($incoming);
+                if ($incomingSum !== PackageArchiveHelper::computeFileChecksum($base) && $incomingSum === PackageArchiveHelper::computeFileChecksum($live)) {
+                    $changed[] = $path;
+                }
             }
         }
 

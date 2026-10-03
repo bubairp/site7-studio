@@ -5,3 +5,4 @@
 # Template packages (page content + images, ~250 MB for rp-craft) are build
 # output: rebuild with php craft site7-studio/template/build-all (docs/50).
 /packages/template-*/
+/packages/*.building/

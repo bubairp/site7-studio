@@ -109,10 +109,12 @@ class SiteKitContent extends Component
      *   (a Theme's settings singles); null = all live content
      * @param bool|string[] $pluginTables true = all PLUGIN_TABLES, false = none,
      *   or a list (a Theme takes the forms but not the menus, which point at pages)
+     * @param bool $assetFiles false: rows only (a Library update reading this
+     *   site's state compares rows, never files)
      * @param int[]|null $entryIds like $sectionUids, but these entries (a
      *   Template package's page)
      */
-    public function export(\ZipArchive $zip, ?array $sectionUids = null, bool|array $pluginTables = true, ?array $entryIds = null): array
+    public function export(\ZipArchive $zip, ?array $sectionUids = null, bool|array $pluginTables = true, ?array $entryIds = null, bool $assetFiles = true): array
     {
         $db = Craft::$app->getDb();
         if ($db->getIsPgsql()) {
@@ -141,6 +143,12 @@ class SiteKitContent extends Component
             }
             $kept = [];
             foreach ($rows as $row) {
+                if ($table === 'structureelements' && $row['elementId'] !== null) {
+                    // The parent page, by UID: a site whose tree already has
+                    // other nodes at these positions places the node under
+                    // its parent instead (import()).
+                    $row['_parentUid'] = $this->parentElementUid($row);
+                }
                 foreach (self::OPTIONAL_ELEMENT_REFS[$table] ?? [] as $column) {
                     if ($row[$column] !== null && !isset($idSet[$row[$column]])) {
                         $row[$column] = null;
@@ -206,7 +214,7 @@ class SiteKitContent extends Component
         }
         $zip->addFromString('content/folders.json', json_encode($folders, JSON_UNESCAPED_SLASHES));
 
-        [$assetFiles, $tempFiles] = $this->exportAssetFiles($zip, $ids);
+        [$assetFiles, $tempFiles] = $assetFiles ? $this->exportAssetFiles($zip, $ids) : [0, []];
 
         $zip->addFromString('content/meta.json', json_encode(['counts' => $counts, 'skipped' => $skipped, 'assetFiles' => $assetFiles], JSON_PRETTY_PRINT));
 
@@ -345,12 +353,12 @@ class SiteKitContent extends Component
      *
      * @return array{counts: array, skipped: array, assetFiles: int}
      */
-    public function exportToDir(string $dir, ?array $sectionUids = null, bool|array $pluginTables = true, ?array $entryIds = null): array
+    public function exportToDir(string $dir, ?array $sectionUids = null, bool|array $pluginTables = true, ?array $entryIds = null, bool $assetFiles = true): array
     {
         $zipPath = Craft::$app->getRuntimePath() . '/site7-content-' . \craft\helpers\StringHelper::randomString(8) . '.zip';
         $zip = new \ZipArchive();
         $zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
-        $result = $this->export($zip, $sectionUids, $pluginTables, $entryIds);
+        $result = $this->export($zip, $sectionUids, $pluginTables, $entryIds, $assetFiles);
         $zip->close();
         foreach ($result['tempFiles'] as $tempFile) {
             @unlink($tempFile);
@@ -534,6 +542,82 @@ class SiteKitContent extends Component
         }
 
         return $rows;
+    }
+
+    private function parentElementUid(array $node): ?string
+    {
+        if ((int)$node['level'] <= 1) {
+            return null;
+        }
+        $parentId = (new Query())->select(['elementId'])->from('{{%structureelements}}')
+            ->where(['structureId' => $node['structureId'], 'level' => (int)$node['level'] - 1])
+            ->andWhere(['<', 'lft', $node['lft']])
+            ->andWhere(['>', 'rgt', $node['rgt']])
+            ->scalar();
+
+        return $parentId ? ((new Query())->select(['uid'])->from('{{%elements}}')->where(['id' => $parentId])->scalar() ?: null) : null;
+    }
+
+    /**
+     * Incoming structure nodes whose source positions can't go into this
+     * site's tree as they are: outside its root's range, or overlapping a
+     * node of another element (a page the dev site added between existing
+     * ones). They're placed with Craft's Structures service instead.
+     *
+     * @return array[] the rows to place
+     */
+    private function nodesToPlace(array &$rows, callable $resolveUid): array
+    {
+        $place = [];
+        foreach ($rows as $key => $row) {
+            if ($row['elementId'] === null || !is_string($row['structureId'])) {
+                continue;
+            }
+            $structureId = $resolveUid('structures', substr($row['structureId'], 5));
+            $root = (new Query())->select(['lft', 'rgt'])->from('{{%structureelements}}')->where(['structureId' => $structureId, 'elementId' => null])->one();
+            if (!$root) {
+                continue; // a new tree: it comes in whole, positions and all
+            }
+            $collides = (int)$row['lft'] <= (int)$root['lft'] || (int)$row['rgt'] >= (int)$root['rgt']
+                || (new Query())->from('{{%structureelements}}')
+                    ->where(['structureId' => $structureId])
+                    ->andWhere(['not', ['elementId' => null]])
+                    ->andWhere(['not', ['elementId' => $row['elementId']]])
+                    // Same position, or ranges that cross. Nesting is fine:
+                    // pages of one source tree arrive in any order.
+                    ->andWhere(['or',
+                        ['lft' => $row['lft']],
+                        ['rgt' => $row['rgt']],
+                        ['and', ['<', 'lft', $row['lft']], ['>', 'rgt', $row['lft']], ['<', 'rgt', $row['rgt']]],
+                        ['and', ['>', 'lft', $row['lft']], ['<', 'lft', $row['rgt']], ['>', 'rgt', $row['rgt']]],
+                    ])
+                    ->exists();
+            if ($collides) {
+                $place[] = ['elementId' => (int)$row['elementId'], 'structureId' => $structureId, 'parentUid' => $row['_parentUid'] ?? null];
+                unset($rows[$key]);
+            }
+        }
+        $rows = array_values($rows);
+
+        return $place;
+    }
+
+    /** Appends each node under its parent page (or the root) through Craft's Structures service. */
+    private function placeNodes(array $place): void
+    {
+        $elements = Craft::$app->getElements();
+        $structures = Craft::$app->getStructures();
+        foreach ($place as $node) {
+            $element = $elements->getElementById($node['elementId']);
+            if (!$element) {
+                continue;
+            }
+            $parent = $node['parentUid'] ? $elements->getElementByUid($node['parentUid']) : null;
+            $parentInTree = $parent && (new Query())->from('{{%structureelements}}')->where(['structureId' => $node['structureId'], 'elementId' => $parent->id])->exists();
+            $parentInTree
+                ? $structures->append($node['structureId'], $element, $parent)
+                : $structures->appendToRoot($node['structureId'], $element);
+        }
     }
 
     /** Structure root nodes (elementId null) of the structures the exported nodes belong to. */
@@ -721,6 +805,7 @@ class SiteKitContent extends Component
                 throw new \Exception("Structure #{$structureId} already has entries created on this site; its tree can't take the incoming entries' positions.");
             }
         }
+        $nodesToPlace = $this->nodesToPlace($rowsByTable['structureelements'], $resolveUid);
 
         $transaction = $db->beginTransaction();
         $counts = [];
@@ -797,6 +882,10 @@ class SiteKitContent extends Component
 
         $counts['assetFiles'] = $this->importAssetFiles("{$contentDir}/assets", $onlyIds);
         Craft::$app->getElements()->invalidateAllCaches();
+        if ($nodesToPlace) {
+            $this->placeNodes($nodesToPlace);
+            $counts['placedNodes'] = count($nodesToPlace);
+        }
 
         return $counts;
     }
@@ -942,7 +1031,8 @@ class SiteKitContent extends Component
             ->where(['table_schema' => Craft::$app->getDb()->createCommand('SELECT DATABASE()')->queryScalar(), 'table_name' => Craft::$app->getDb()->getSchema()->getRawTableName("{{%{$table}}}")])
             ->andWhere(['like', 'extra', 'GENERATED'])
             ->column();
-        $columns = array_values(array_diff(array_keys($rows[0]), $generated));
+        // "_" keys are export annotations (_parentUid), not columns.
+        $columns = array_values(array_filter(array_diff(array_keys($rows[0]), $generated), fn($column) => $column[0] !== '_'));
 
         // JSON columns (elements_sites.content holds every field value) are
         // read back as JSON strings; Yii JSON-encodes whatever it inserts

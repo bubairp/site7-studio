@@ -50,14 +50,35 @@ class KitBuilder extends Component
             }
         }
 
+        // Only pages that still exist here: a Template package left behind by
+        // a page deleted (or re-slugged) on this site must not ship again.
+        // One package per page, too: a re-slugged page was just built under
+        // its new handle, and its old package must go.
         $templates = [];
         $pages = [];
+        $byEntry = [];
+        $justBuilt = array_flip($built['built'] ?? []);
         foreach (glob(dirname(Craft::getAlias('@site7/studio')) . '/packages/' . TemplateBuilder::HANDLE_PREFIX . '*/' . TemplateBuilder::META_FILE) ?: [] as $file) {
             $manifest = json_decode((string)@file_get_contents(dirname($file) . '/manifest.json'), true);
-            if (in_array($themeHandle, $manifest['requires']['themes'] ?? [], true)) {
-                $templates[] = $manifest['handle'];
-                $pages[] = json_decode((string)file_get_contents($file), true)['uri'] ?? null;
+            if (!in_array($themeHandle, $manifest['requires']['themes'] ?? [], true)) {
+                continue;
             }
+            $meta = json_decode((string)file_get_contents($file), true) ?: [];
+            $stale = !\craft\elements\Entry::find()->uid($meta['entryUid'] ?? '')->status(null)->exists()
+                || ($buildTemplates && !isset($justBuilt[$manifest['handle']]));
+            if ($stale) {
+                if ($buildTemplates) {
+                    FileHelper::removeDirectory(dirname($file));
+                    $plugin->packageManager->getPackageByHandle($manifest['handle'])?->delete();
+                }
+                continue;
+            }
+            if (isset($byEntry[$meta['entryUid']])) {
+                throw new \Exception("'{$manifest['handle']}' and '{$byEntry[$meta['entryUid']]}' are the same page - rebuild the Templates (drop --templates=0).");
+            }
+            $byEntry[$meta['entryUid']] = $manifest['handle'];
+            $templates[] = $manifest['handle'];
+            $pages[] = $meta['uri'] ?? null;
         }
         sort($templates);
         if (!$templates) {
@@ -67,16 +88,15 @@ class KitBuilder extends Component
         $projectConfig = Craft::$app->getProjectConfig();
         $demoSections = ThemeBuilder::visitorSectionUids($projectConfig->get('plugins.guest-entries.settings') ?? []);
 
-        $dir = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
-        $pricingType = ThemeBuilder::existingPricingType($dir);
-        $version ??= ThemeBuilder::existingVersion($dir);
-        if (is_dir($dir)) {
-            FileHelper::removeDirectory($dir);
-        }
-        FileHelper::createDirectory($dir);
+        // Built next to the package and swapped in at the end: a failed
+        // rebuild leaves the package - with its version and price - as it was.
+        $final = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
+        $pricingType = ThemeBuilder::existingPricingType($final);
+        $version ??= ThemeBuilder::existingVersion($final);
+        $dir = ThemeBuilder::startStaging($final);
 
         try {
-            $content = $this->exportContent($dir, array_keys($demoSections));
+            $content = (new SiteKitContent())->exportToDir($dir, array_keys($demoSections), self::PLUGIN_TABLES);
         } catch (\Throwable $e) {
             FileHelper::removeDirectory($dir);
             throw $e;
@@ -106,6 +126,7 @@ class KitBuilder extends Component
             'pricingType' => $pricingType,
         ]));
         file_put_contents("{$dir}/README.md", "# {$name}\n\nLibrary Starter Kit built with `site7-studio/starter-kit/build`. See docs/51_LIBRARY_STARTER_KIT.md.\n");
+        $dir = ThemeBuilder::commitStaging($dir, $final);
 
         $plugin->packageManager->discoverPackages();
         if ($record = $plugin->packageManager->getPackageByHandle($handle)) {
@@ -123,25 +144,6 @@ class KitBuilder extends Component
         $handle = StringHelper::toKebabCase($name);
 
         return str_ends_with($handle, '-starter-kit') ? $handle : "{$handle}-starter-kit";
-    }
-
-    private function exportContent(string $dir, array $sectionUids): array
-    {
-        $zipPath = Craft::$app->getRuntimePath() . '/site7-kit-content-' . StringHelper::randomString(6) . '.zip';
-        $zip = new \ZipArchive();
-        $zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
-        $result = (new SiteKitContent())->export($zip, $sectionUids, self::PLUGIN_TABLES);
-        $zip->close();
-        foreach ($result['tempFiles'] as $tempFile) {
-            @unlink($tempFile);
-        }
-
-        $zip->open($zipPath);
-        $zip->extractTo($dir);
-        $zip->close();
-        @unlink($zipPath);
-
-        return ['counts' => $result['counts'], 'skipped' => $result['skipped'], 'assetFiles' => $result['assetFiles']];
     }
 
     private function json(mixed $data): string

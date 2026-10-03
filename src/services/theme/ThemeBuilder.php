@@ -47,12 +47,12 @@ class ThemeBuilder extends Component
             throw new \Exception('Configure the page-builder field in Site7 Studio Setup first.');
         }
 
-        $dir = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
-        $pricingType = self::existingPricingType($dir);
-        $version ??= self::existingVersion($dir);
-        if (is_dir($dir)) {
-            FileHelper::removeDirectory($dir);
-        }
+        // Built next to the package and swapped in at the end: a failed
+        // rebuild leaves the package - with its version and price - as it was.
+        $final = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
+        $pricingType = self::existingPricingType($final);
+        $version ??= self::existingVersion($final);
+        $dir = self::startStaging($final);
         FileHelper::createDirectory("{$dir}/files");
 
         // Structure.
@@ -125,7 +125,9 @@ class ThemeBuilder extends Component
                 $settingsSections[$uid] = $section['handle'];
             }
         }
-        $content = $this->exportContent($dir, array_keys($settingsSections));
+        // Forms are site settings; menus point at pages, so they come with
+        // the Starter Kit's content instead.
+        $content = (new SiteKitContent())->exportToDir($dir, array_keys($settingsSections), self::SETTINGS_PLUGIN_TABLES);
 
         $composerJson = json_decode((string)file_get_contents("{$root}/composer.json"), true);
         $meta = [
@@ -153,6 +155,7 @@ class ThemeBuilder extends Component
             'pricingType' => $pricingType,
         ]));
         file_put_contents("{$dir}/README.md", "# {$name}\n\nTheme package built with `site7-studio/theme/build`. See docs/49_THEME_PACKAGE.md.\n");
+        $dir = self::commitStaging($dir, $final);
 
         $plugin->packageManager->discoverPackages();
         $record = $plugin->packageManager->getPackageByHandle($handle);
@@ -174,6 +177,33 @@ class ThemeBuilder extends Component
         $manifest = json_decode((string)@file_get_contents("{$dir}/manifest.json"), true);
 
         return is_string($manifest['pricingType'] ?? null) && $manifest['pricingType'] !== '' ? $manifest['pricingType'] : 'free';
+    }
+
+    /**
+     * An empty staging directory next to $final ("<handle>.building"):
+     * builders write there and commitStaging() swaps it in, so a failed
+     * build never removes the package it was rebuilding.
+     */
+    public static function startStaging(string $final): string
+    {
+        $staging = "{$final}.building";
+        if (is_dir($staging)) {
+            FileHelper::removeDirectory($staging);
+        }
+        FileHelper::createDirectory($staging);
+
+        return $staging;
+    }
+
+    /** Replaces $final with the finished $staging directory; returns $final. */
+    public static function commitStaging(string $staging, string $final): string
+    {
+        if (is_dir($final)) {
+            FileHelper::removeDirectory($final);
+        }
+        rename($staging, $final);
+
+        return $final;
     }
 
     /**
@@ -203,31 +233,6 @@ class ThemeBuilder extends Component
         }
 
         return $uids;
-    }
-
-    /**
-     * Settings content into <dir>/content, via a temporary zip so it's the
-     * exact layout SiteKitContent::import() reads.
-     */
-    private function exportContent(string $dir, array $sectionUids): array
-    {
-        $zipPath = Craft::$app->getRuntimePath() . '/site7-theme-content-' . StringHelper::randomString(6) . '.zip';
-        $zip = new \ZipArchive();
-        $zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
-        // Forms are site settings; menus point at pages, so they come with
-        // the Starter Kit's content instead.
-        $result = (new SiteKitContent())->export($zip, $sectionUids, self::SETTINGS_PLUGIN_TABLES);
-        $zip->close();
-        foreach ($result['tempFiles'] as $tempFile) {
-            @unlink($tempFile);
-        }
-
-        $zip->open($zipPath);
-        $zip->extractTo($dir);
-        $zip->close();
-        @unlink($zipPath);
-
-        return ['counts' => $result['counts'], 'skipped' => $result['skipped'], 'assetFiles' => $result['assetFiles']];
     }
 
     private function json(mixed $data): string

@@ -3,7 +3,6 @@
 namespace site7\studio\tests\unit\services\library;
 
 use Codeception\Test\Unit;
-use site7\studio\services\library\LibraryDistribution;
 use site7\studio\services\library\LibraryUpdater;
 
 class LibraryUpdaterTest extends Unit
@@ -33,13 +32,5 @@ class LibraryUpdaterTest extends Unit
         $this->assertSame('apply', LibraryUpdater::decide(null, null, 'b'));
         $this->assertSame('none', LibraryUpdater::decide(null, 'b', 'b'));
         $this->assertSame('kept', LibraryUpdater::decide(null, 'x', 'b'));
-    }
-
-    public function testVersionBumps(): void
-    {
-        $this->assertSame('1.0.1', LibraryDistribution::bumpVersion('1.0.0', 'patch'));
-        $this->assertSame('1.3.0', LibraryDistribution::bumpVersion('1.2.9', 'minor'));
-        $this->assertSame('2.0.0', LibraryDistribution::bumpVersion('1.2.9', 'major'));
-        $this->assertSame('1.0.1', LibraryDistribution::bumpVersion('1', 'patch'));
     }
 }

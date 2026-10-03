@@ -49,18 +49,23 @@ class TemplateBuilder extends Component
         $themeHandle ??= self::libraryTheme();
         $section = $entry->getSection();
         $handle = self::handleFor($entry);
+        // Slugs repeat under different parents in a Structure: when the
+        // handle belongs to another page, name this one by its URI.
+        $existing = json_decode((string)@file_get_contents(dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}/" . self::META_FILE), true);
+        if (!empty($existing['entryUid']) && $existing['entryUid'] !== $entry->uid) {
+            $handle = self::handleFrom($section->handle, $section->type, str_replace('/', '-', (string)$entry->uri));
+        }
         $name = $section->type === 'single' ? (string)$entry->title : "{$section->name}: {$entry->title}";
 
-        $dir = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
-        $pricingType = \site7\studio\services\theme\ThemeBuilder::existingPricingType($dir);
-        $version ??= \site7\studio\services\theme\ThemeBuilder::existingVersion($dir);
-        if (is_dir($dir)) {
-            FileHelper::removeDirectory($dir);
-        }
-        FileHelper::createDirectory($dir);
+        // Built next to the package and swapped in at the end: a failed
+        // rebuild leaves the package - with its version and price - as it was.
+        $final = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
+        $pricingType = \site7\studio\services\theme\ThemeBuilder::existingPricingType($final);
+        $version ??= \site7\studio\services\theme\ThemeBuilder::existingVersion($final);
+        $dir = \site7\studio\services\theme\ThemeBuilder::startStaging($final);
 
         try {
-            $content = $this->exportContent($dir, (int)$entry->id);
+            $content = (new SiteKitContent())->exportToDir($dir, null, false, [(int)$entry->id]);
             $maxId = max(array_column(json_decode((string)file_get_contents("{$dir}/content/tables/elements.json"), true) ?: [['id' => 0]], 'id'));
             if ($maxId >= SiteKitContent::LIBRARY_ID_LIMIT) {
                 throw new \Exception("Element #{$maxId} is above the Library's ID range (" . SiteKitContent::LIBRARY_ID_LIMIT . ').');
@@ -134,6 +139,7 @@ class TemplateBuilder extends Component
             'pricingType' => $pricingType,
         ]));
         file_put_contents("{$dir}/README.md", "# {$name}\n\nTemplate package built with `site7-studio/template/build`. See docs/50_TEMPLATE_PACKAGE.md.\n");
+        $dir = \site7\studio\services\theme\ThemeBuilder::commitStaging($dir, $final);
 
         $plugin->packageManager->discoverPackages();
         if ($record = $plugin->packageManager->getPackageByHandle($handle)) {
@@ -218,25 +224,6 @@ class TemplateBuilder extends Component
         }
 
         return $blocks;
-    }
-
-    private function exportContent(string $dir, int $entryId): array
-    {
-        $zipPath = Craft::$app->getRuntimePath() . '/site7-template-content-' . StringHelper::randomString(6) . '.zip';
-        $zip = new \ZipArchive();
-        $zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
-        $result = (new SiteKitContent())->export($zip, null, false, [$entryId]);
-        $zip->close();
-        foreach ($result['tempFiles'] as $tempFile) {
-            @unlink($tempFile);
-        }
-
-        $zip->open($zipPath);
-        $zip->extractTo($dir);
-        $zip->close();
-        @unlink($zipPath);
-
-        return ['counts' => $result['counts'], 'skipped' => $result['skipped'], 'assetFiles' => $result['assetFiles']];
     }
 
     private function json(mixed $data): string

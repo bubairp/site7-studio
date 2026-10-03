@@ -34,7 +34,10 @@ JSON text is compared by value, not by text: MySQL's JSON column reformats it, w
 
 ## 3. Author side
 
-`library/publish` (`52` §3) publishes only packages whose directory checksum changed since this site last published them (`storage/site7-studio/library-published.json`). Before exporting, it raises their version:
+`library/publish` (`52` §3) versions through the plugin's one versioning path (CLAUDE.md invariant 3):
+- **Changed** (the package directory's checksum differs from its newest row in `site7_package_versions`): it gets a new version from `VersionManagerService::createVersion()`, which bumps from the highest version ever recorded (never backwards), writes the manifest, archives it and records the row.
+- **Unchanged:** published only if that version hasn't reached Commerce24 yet (publish history).
+- **No version history yet:** exported and recorded at its current version.
 
 ```
 php craft site7-studio/library/publish [--bump=patch|minor|major] [--notes="…"] [--force]
@@ -70,11 +73,13 @@ php craft site7-studio/library/publish [--bump=patch|minor|major] [--notes="…"
         - plugin settings of installed plugins, and CP element sources, each as one item;
         - settings content (the Theme's sections, plus wheelform tables).
      5. **Frontend:** `npm install` + `npm run build` when a file under `frontend/` or `templates/` changed.
+
+     Steps 2 and 5 run for every file the Theme changed that this site now has as the new version has it, whichever run wrote it. So a retry after a failed update still runs Composer and the build. Plugins already installed are skipped.
    - **Library Starter Kit:**
      - Templates the new version requires that aren't installed are downloaded (signed) and installed with their blocks.
      - Its content goes through the rule: demo entries element by element, and the menu and sitemap plugin tables each as one item (`pluginTableSignatures()`). Changing any menu item here keeps the whole menu table.
    - **Order** within one run: Theme, Sections, Templates, kit.
-5. **If applying fails,** the previous Library copy is restored, so running the update again compares against what the site really has. Items already applied then count as done.
+5. **If downloading or applying fails,** the previous Library copy is restored, so running the update again compares against what the site really has. Items already applied then count as done.
 
 ## 5. Verified (2026-10-03)
 
@@ -116,7 +121,8 @@ php craft site7-studio/library/publish [--bump=patch|minor|major] [--notes="…"
 - **Plugin tables are compared whole.** One edited menu item keeps the whole menu table.
 - **A Craft version change can't arrive as a Theme update.** Update Craft on the site first, then the Theme.
 - **New Composer packages aren't installed when the customer has changed `composer.json`/`.lock`.** The update reports it instead.
-- **Publish history:** `library/publish` compares against `storage/site7-studio/library-published.json` on the author site. Deleting that file makes the next publish send everything again at its current version, without raising versions, so installed sites see no update.
+- **Version history is the author site's database.** Restoring an older database snapshot on the author site rolls the recorded versions back; the next bump can then be lower than what Commerce24 already has, so installed sites see no update. Publish with a higher `--bump` in that case.
+- **New pages in tree (Structure) sections** that don't fit this site's tree are appended under their parent page, or at the end of the root when there is no parent. Their order among siblings can differ from the dev site's (`50` §6).
 
 ## 7. Important classes
 
