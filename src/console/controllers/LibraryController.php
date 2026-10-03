@@ -118,6 +118,17 @@ class LibraryController extends Controller
     }
 
     /**
+     * Internal: the structure/settings/content step of a Theme update, run as its own process.
+     */
+    public function actionApplyTheme(string $handle, string $baseline): int
+    {
+        $report = (new \site7\studio\services\theme\ThemeUpdater())->applyStructureAndContent($handle, $baseline);
+        $this->stdout(\site7\studio\services\theme\ThemeUpdater::REPORT_PREFIX . json_encode($report) . "\n");
+
+        return ExitCode::OK;
+    }
+
+    /**
      * Downloads a package and everything it requires into this site's Library, without installing.
      * Usage: php craft site7-studio/library/download rp-craft-starter-kit
      */

@@ -420,6 +420,38 @@ class SiteKitContent extends Component
         return $signatures;
     }
 
+    /**
+     * One hash per plugin table of a content directory (menus, forms,
+     * sitemap rows), normalised like signatures().
+     *
+     * @return array<string, string> table => hash (tables the directory has)
+     */
+    public static function pluginTableSignatures(string $contentDir, array $tables): array
+    {
+        $hashes = [];
+        foreach ($tables as $table) {
+            $file = "{$contentDir}/plugin-tables/{$table}.json";
+            if (!is_file($file)) {
+                continue;
+            }
+            $rows = [];
+            foreach (json_decode((string)file_get_contents($file), true) ?: [] as $row) {
+                unset($row['dateCreated'], $row['dateUpdated'], $row['site_id']);
+                foreach ($row as $column => $value) {
+                    if (is_string($value) && str_contains($value, '@{site:')) {
+                        $row[$column] = preg_replace('/@\{site:[0-9a-f\-]{36}\}/', '@{site}', $value);
+                    }
+                }
+                ksort($row);
+                $rows[] = json_encode($row, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            }
+            sort($rows);
+            $hashes[$table] = md5(json_encode($rows));
+        }
+
+        return $hashes;
+    }
+
     private static function canonicalJson(array $data): string
     {
         $sort = function(array &$array) use (&$sort): void {
@@ -609,10 +641,11 @@ class SiteKitContent extends Component
      *   elements' rows (no plugin tables)
      * @param int[] $replaceIds elements already here whose rows are replaced
      *   by the incoming ones (their structure nodes are kept)
+     * @param string[] $pluginTables with $onlyIds: plugin tables to replace too
      * @return array<string, int> rows imported per table
      * @throws \Exception
      */
-    public function import(string $kitDir, ?array $onlyIds = null, array $replaceIds = []): array
+    public function import(string $kitDir, ?array $onlyIds = null, array $replaceIds = [], array $pluginTables = []): array
     {
         $db = Craft::$app->getDb();
         if ($db->getIsPgsql()) {
@@ -747,7 +780,7 @@ class SiteKitContent extends Component
 
             foreach (self::PLUGIN_TABLES as $table => $structural) {
                 $file = "{$contentDir}/plugin-tables/{$table}.json";
-                if ($onlyIds !== null || !is_file($file) || !$db->tableExists("{{%{$table}}}")) {
+                if (($onlyIds !== null && !in_array($table, $pluginTables, true)) || !is_file($file) || !$db->tableExists("{{%{$table}}}")) {
                     continue;
                 }
                 $db->createCommand()->delete("{{%{$table}}}")->execute();
