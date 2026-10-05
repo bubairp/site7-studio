@@ -31,7 +31,7 @@ Craft's own event system, validation, Project Config sync (automatic, via Craft 
 2. `CraftResourceService::createMatrixEntryType(array $def)` — same idempotent lookup-by-handle pattern, builds a `craft\models\EntryType` + `FieldLayout` + `FieldLayoutTab` + `CustomField` elements, calls `$entriesService->saveEntryType($entryType)`.
 3. Both operations are genuinely idempotent — installing an already-installed package, or a package whose Fields/Entry Types another package already created, never creates duplicates.
 4. `CraftResourceInstallExecutor` (Starter Kit installation, see `32_STARTER_KIT_SYSTEM.md`) creates/updates Asset Volumes/Category Groups/Tag Groups via `saveVolume()`/`saveGroup()`/`saveTagGroup()`, and **only updates** an already-existing Craft Section's settings via `saveSection()` — it never creates a Section or its Entry Types from scratch.
-5. Project Config changes are never written directly — `ProjectConfigExecutor` (Starter Kit installation only) calls `Craft::$app->getProjectConfig()->rebuild()`, letting Craft itself regenerate `config/project/*.yaml` from live state.
+5. Project Config changes are never written directly — `ProjectConfigExecutor` (Blueprint Starter Kit install, and `site7-studio/update` after removals) calls `saveModifiedConfigData()` + `writeYamlFiles(true)`, letting Craft write `config/project/*.yaml` from its own project config. It no longer calls `rebuild()`, which regenerates project config from the database and drops data that only lives in project config (`43` #21).
 6. The plugin's own settings live in project config (`plugins.site7-studio.settings`), so they must hold nothing environment-specific. The Site7 Components field is stored as `matrixFieldUid`; `Settings::$matrixFieldId` is a read-only getter resolving it to this site's ID, which every caller uses. `m261002_000000_store_matrix_field_uid` converted the old `matrixFieldId` setting (schema 1.0.4). Every writer (`SettingsController`, `SetupController`, `make/setup-matrix-field`, `clear/settings`) goes through `Settings::mergeWithStored()`: `savePluginSettings()` replaces the whole settings node with just the keys passed, so changes are merged onto the *stored* settings — not `getAttributes()`, which carries `config/site7-studio.php` overrides such as the Commerce24 API key from `.env` — and keys that file overrides are never written.
 
 ## 6. Important Classes
@@ -63,7 +63,7 @@ No SITE7-owned tables here — the resources themselves live in Craft's own `fie
 **Created**: `templates/_blocks/{handle}.twig` (see `13_TEMPLATE_ARCHITECTURE.md`).
 **Modified**: same, on safe update.
 **Deleted**: same, on permanent delete, content-compare guarded.
-**Never touched**: `config/project/*.yaml` directly (only via Craft's own `rebuild()`), `templates/site7-components/` (confirmed dead — see `13_TEMPLATE_ARCHITECTURE.md`).
+**Never touched**: `config/project/*.yaml` directly (only via Craft's own `writeYamlFiles()`), `templates/site7-components/` (confirmed dead — see `13_TEMPLATE_ARCHITECTURE.md`).
 
 ## 9. Events
 

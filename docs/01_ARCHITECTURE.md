@@ -43,7 +43,7 @@ Storage / Archives  (packages/{handle}/ on disk; storage/site7-studio/{exports,
    ↓
 Host site resources/files  (templates/_blocks/*.twig; Craft Fields/Entry Types/
                              Sections/Volumes/Category&Tag Groups; frontend/
-                             owned files; config/project/*.yaml via rebuild())
+                             owned files; config/project/*.yaml via writeYamlFiles())
 ```
 
 Every box above is a real directory/class group — none invented. See `02_DIRECTORY_STRUCTURE.md` for the exact filesystem mapping.

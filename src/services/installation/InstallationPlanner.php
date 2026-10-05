@@ -57,7 +57,7 @@ class InstallationPlanner extends Component
         $steps = array_merge($steps, self::planCraftResources($blueprint['resources'] ?? []));
         $steps = array_merge($steps, self::planContent($blueprint['packageHandle']));
         $steps = array_merge($steps, self::planFrontend($blueprint['frontendRequirements'] ?? [], $packagePath));
-        $steps[] = new InstallationStep(InstallationStep::TYPE_PROJECT_CONFIG, 'project-config-rebuild', 'Rebuild Project Config', []);
+        $steps[] = new InstallationStep(InstallationStep::TYPE_PROJECT_CONFIG, 'project-config-rebuild', 'Write Project Config', []);
 
         return new InstallationPlan($steps, ['errors' => $errors, 'warnings' => $warnings]);
     }

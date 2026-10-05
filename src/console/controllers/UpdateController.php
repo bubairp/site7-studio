@@ -182,7 +182,7 @@ class UpdateController extends Controller
         }
 
         if (!empty($applied)) {
-            (new ProjectConfigExecutor())->execute([new InstallationStep(InstallationStep::TYPE_PROJECT_CONFIG, 'sync-rebuild', 'Rebuild Project Config after removals')], false);
+            (new ProjectConfigExecutor())->execute([new InstallationStep(InstallationStep::TYPE_PROJECT_CONFIG, 'sync-rebuild', 'Write Project Config after removals')], false);
         }
 
         $session->appliedRemovals = $applied;
