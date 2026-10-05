@@ -33,6 +33,14 @@ class Commerce24MarketplaceRepository implements MarketplaceRepositoryInterface
 {
     public CommerceClient $client;
 
+    /**
+     * Why the last listAvailablePackages() came back empty without a catalog
+     * (not configured, or the request failed); null when it reached
+     * Commerce24. The Repository tab shows it, so an empty list isn't
+     * mistaken for an empty catalog.
+     */
+    public ?string $unavailableReason = null;
+
     public function __construct(?CommerceClient $client = null)
     {
         $this->client = $client ?? Site7Studio::getInstance()->commerceClient;
@@ -59,7 +67,9 @@ class Commerce24MarketplaceRepository implements MarketplaceRepositoryInterface
      */
     public function listAvailablePackages(): array
     {
+        $this->unavailableReason = null;
         if (!$this->client->isConfigured()) {
+            $this->unavailableReason = 'Commerce24 isn\'t connected. Set it up on the Commerce tab of Settings.';
             return [];
         }
 
@@ -67,6 +77,7 @@ class Commerce24MarketplaceRepository implements MarketplaceRepositoryInterface
             $data = $this->client->request('GET', '/marketplace/catalog');
         } catch (CommerceApiException $e) {
             Craft::warning('Could not list the Commerce24 Repository catalog: ' . $e->getMessage(), 'site7-studio');
+            $this->unavailableReason = $e->getMessage();
             return [];
         }
 

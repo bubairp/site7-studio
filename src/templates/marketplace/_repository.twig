@@ -85,6 +85,8 @@
                     {% endfor %}
                 </tbody>
             </table>
+        {% elseif repository.unavailableReason ?? null %}
+            <p class="warning">{{ repository.unavailableReason }}</p>
         {% else %}
             {% include "site7-studio/_components/empty-state" with {
                 message: 'No packages available from ' ~ repository.getName() ~ ' yet.',

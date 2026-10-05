@@ -36,10 +36,18 @@ class PackagePublisherController extends Controller
         $this->view->registerAssetBundle(\site7\studio\assetbundles\Site7StudioBundle::class);
 
         $plugin = Site7Studio::getInstance();
+        $perPage = 25;
+        $total = $plugin->publishHistory->countAllHistory();
+        $totalPages = max(1, (int)ceil($total / $perPage));
+        $page = min($totalPages, max(1, (int)Craft::$app->getRequest()->getQueryParam('page', 1)));
 
         return $this->renderTemplate('site7-studio/publishing/index', [
             'title' => 'Publishing',
-            'history' => $plugin->publishHistory->getAllHistory(),
+            'history' => $plugin->publishHistory->getAllHistory($perPage, ($page - 1) * $perPage),
+            'historyPage' => $page,
+            'historyTotalPages' => $totalPages,
+            'historyTotal' => $total,
+            'historyPerPage' => $perPage,
             'targets' => $plugin->repositoryManager->getTargets(),
             'commerceConfigured' => $plugin->commerceClient->isConfigured(),
         ]);

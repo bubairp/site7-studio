@@ -88,6 +88,7 @@
                             <th scope="row">
                                 {% if pkg %}
                                     <a href="{{ url('site7-studio/library/package/' ~ pkg.handle) }}">{{ pkg.name }}</a>
+                                    <div class="light smalltext"><code>{{ pkg.handle }}</code></div>
                                 {% else %}
                                     <span class="light">{{ "Deleted package"|t('site7-studio') }}</span>
                                 {% endif %}
@@ -101,6 +102,21 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% if historyTotalPages > 1 %}
+                <div class="flex pagination" style="margin-top: 12px;">
+                    {% if historyPage > 1 %}
+                        <a class="btn" href="{{ url('site7-studio/publishing', {page: historyPage - 1}) }}">← {{ "Newer"|t('site7-studio') }}</a>
+                    {% endif %}
+                    <span class="light">{{ "{first}–{last} of {total}"|t('site7-studio', {
+                        first: (historyPage - 1) * historyPerPage + 1,
+                        last: min(historyPage * historyPerPage, historyTotal),
+                        total: historyTotal,
+                    }) }}</span>
+                    {% if historyPage < historyTotalPages %}
+                        <a class="btn" href="{{ url('site7-studio/publishing', {page: historyPage + 1}) }}">{{ "Older"|t('site7-studio') }} →</a>
+                    {% endif %}
+                </div>
+            {% endif %}
         {% else %}
             {% include "site7-studio/_components/empty-state" with {
                 message: 'Nothing published yet.',

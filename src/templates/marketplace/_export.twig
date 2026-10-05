@@ -3,7 +3,7 @@
  # Params: packages (PackageRecord[])
  #}
 <div class="light" style="padding-bottom: 24px;">
-    {{ "Export any package as a distributable .s7pkg file. With \"Include dependencies\" checked, every package it requires is bundled alongside it (Sections for a Pattern; Patterns and Sections for a Template; Templates for a Starter Kit) - compositions only reference each other by handle, so this is what makes the archive self-contained."|t('site7-studio') }}
+    {{ "Export any package as a distributable .s7pkg file. With \"Include dependencies\" checked, every package it requires is bundled alongside it (the Theme and Sections for a Template; the Theme and Templates for a Starter Kit) - compositions only reference each other by handle, so this is what makes the archive self-contained."|t('site7-studio') }}
 </div>
 
 {% if packages|length %}

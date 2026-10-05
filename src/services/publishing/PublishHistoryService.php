@@ -56,11 +56,18 @@ class PublishHistoryService extends Component
     /**
      * @return PackagePublicationRecord[] newest first, across every package - the Publishing landing page's own history view.
      */
-    public function getAllHistory(int $limit = 100): array
+    public function getAllHistory(int $limit = 100, int $offset = 0): array
     {
         return PackagePublicationRecord::find()
-            ->orderBy(['publishedAt' => SORT_DESC])
+            ->orderBy(['publishedAt' => SORT_DESC, 'id' => SORT_DESC])
             ->limit($limit)
+            ->offset($offset)
             ->all();
+    }
+
+    /** Number of publish history rows across every package. */
+    public function countAllHistory(): int
+    {
+        return (int)PackagePublicationRecord::find()->count();
     }
 }
