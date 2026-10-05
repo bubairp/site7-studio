@@ -69,6 +69,20 @@ class MarketplaceController extends Controller
                     $data['listingsByRepository'][$handle] = $repository->listAvailablePackages();
                 }
                 $data['commerceOwnership'] = $this->buildCommerceOwnership($data['listingsByRepository']['commerce24'] ?? []);
+                // What this site has of each listed package, so the tab can say
+                // Installed / Update instead of offering Install for everything.
+                $data['onSite'] = [];
+                foreach ($packageManager->getAllPackages() as $record) {
+                    $data['onSite'][$record->handle] = ['version' => (string)$record->version, 'status' => (string)$record->status];
+                }
+                foreach ($data['listingsByRepository'] as $repositoryHandle => $listings) {
+                    foreach ($listings as $listing) {
+                        $local = $data['onSite'][$listing->handle] ?? null;
+                        if ($local !== null && version_compare((string)$listing->version, $local['version'], '>')) {
+                            $data['onSite'][$listing->handle]['newerIn'][$repositoryHandle] = true;
+                        }
+                    }
+                }
                 break;
         }
 

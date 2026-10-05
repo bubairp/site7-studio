@@ -4,7 +4,9 @@
  #         listingsByRepository (array<string, MarketplaceListing[]> keyed by repository handle -
  #         fetched once in the controller, not here, since listAvailablePackages() can mean
  #         real I/O per repository), commerceOwnership (array<string, {label, color, plans}> keyed
- #         by handle - Commerce24 listings only, see MarketplaceController::buildCommerceOwnership())
+ #         by handle - Commerce24 listings only, see MarketplaceController::buildCommerceOwnership()),
+ #         onSite (array<string, {version, status, newerIn?: array<repositoryHandle, true>}> keyed by
+ #         handle - this site's package records, and which repositories list a newer version)
  #}
 <p class="light">
     {{ "Every repository registered through MarketplaceRepositoryInterface is listed below with the packages it currently has available to pull. The Local Repository reads .s7pkg files from a folder on this server; Commerce24 reads its catalog live over the network once configured on the Commerce settings tab."|t('site7-studio') }}
@@ -31,11 +33,12 @@
             <table class="data fullwidth" style="table-layout: fixed;">
                 <colgroup>
                     <col style="width: 16%;">
-                    <col style="width: 10%;">
                     <col style="width: 9%;">
-                    <col style="width: 25%;">
-                    <col style="width: 22%;">
-                    <col style="width: 18%;">
+                    <col style="width: 8%;">
+                    <col style="width: 19%;">
+                    <col style="width: 15%;">
+                    <col style="width: 16%;">
+                    <col style="width: 17%;">
                 </colgroup>
                 <thead>
                     <tr>
@@ -43,6 +46,7 @@
                         <th scope="col">{{ "Type"|t('site7-studio') }}</th>
                         <th scope="col">{{ "Version"|t('site7-studio') }}</th>
                         <th scope="col">{{ "File"|t('site7-studio') }}</th>
+                        <th scope="col">{{ "On this site"|t('site7-studio') }}</th>
                         <th scope="col">{{ "Ownership"|t('site7-studio') }}</th>
                         <th scope="col">{{ "Action"|t('site7-studio') }}</th>
                     </tr>
@@ -55,6 +59,22 @@
                             <td>{{ listing.type|title }}</td>
                             <td>v{{ listing.version }}</td>
                             <td class="light" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ listing.fileName }}">{{ listing.fileName }}</td>
+                            {% set local = onSite[listing.handle] ?? null %}
+                            {# "available" = in this site's Library, not installed (docs/51). #}
+                            {% set installed = local and local.status != 'available' %}
+                            {% set newer = local and (local.newerIn[repositoryHandle] ?? false) %}
+                            <td>
+                                {% if not local %}
+                                    <span class="light">{{ "Not installed"|t('site7-studio') }}</span>
+                                {% elseif installed %}
+                                    <span class="status-label teal"><span class="status teal"></span><span class="status-label-text">{{ "Installed"|t('site7-studio') }} v{{ local.version }}</span></span>
+                                {% else %}
+                                    <span class="light">{{ "In Library"|t('site7-studio') }} v{{ local.version }}</span>
+                                {% endif %}
+                                {% if newer %}
+                                    <div class="smalltext" style="color: var(--blue-600, #2563eb);">{{ "Newer here"|t('site7-studio') }}: v{{ listing.version }}</div>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if ownership %}
                                     <span class="status-label {{ ownership.color }}"><span class="status {{ ownership.color }}"></span><span class="status-label-text">{{ ownership.label|t('site7-studio') }}</span></span>
@@ -67,16 +87,20 @@
                             </td>
                             <td>
                                 {% if ownership and ownership.label == 'Locked' %}
-                                    <a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}" class="btn small">{{ "View Plans"|t('site7-studio') }}</a>
+                                    <a href="{{ url('site7-studio/commerce', {tab: 'subscription'}) }}" class="btn small">{{ "View Plans"|t('site7-studio') }}</a>
+                                {% elseif installed and newer %}
+                                    {# Updates keep local edits (docs/53): send them to the screen that does that. #}
+                                    <a href="{{ repositoryHandle == 'commerce24' ? url('site7-studio/update') : url('site7-studio/marketplace', {tab: 'updates'}) }}" class="btn small submit">{{ "Update"|t('site7-studio') }}</a>
                                 {% else %}
+                                    {# Reinstall stays available: it's how a backup in the Local Repository is restored. #}
                                     <form method="post" accept-charset="UTF-8">
                                         {{ csrfInput() }}
                                         <input type="hidden" name="action" value="site7-studio/marketplace/install-from-repository">
                                         <input type="hidden" name="repositoryHandle" value="{{ repository.getHandle() }}">
                                         <input type="hidden" name="handle" value="{{ listing.handle }}">
                                         <button type="submit" class="btn small"
-                                            onclick="return confirm('Install {{ listing.handle|e('js') }} v{{ listing.version|e('js') }} from {{ repository.getName()|e('js') }}? If it already exists locally with different content, this will overwrite it.');">
-                                            {{ "Install"|t('site7-studio') }}
+                                            onclick="return confirm('{{ installed ? 'Reinstall' : 'Install' }} {{ listing.handle|e('js') }} v{{ listing.version|e('js') }} from {{ repository.getName()|e('js') }}? If it already exists locally with different content, this will overwrite it.');">
+                                            {{ (installed ? 'Reinstall' : 'Install')|t('site7-studio') }}
                                         </button>
                                     </form>
                                 {% endif %}
