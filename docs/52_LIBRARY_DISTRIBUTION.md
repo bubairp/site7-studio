@@ -86,6 +86,24 @@ All requests send `Authorization: Bearer <api key>`, `X-Site7-Environment` and `
 
 **`GET /packages/entitlements`**. `free` should list every free published package; `purchased` and `premium` (plan) as before.
 
+## 5a. Local Laravel Commerce24 (`~/my-project/commerce24`, since 2026-10-05)
+
+A real Laravel 13 implementation of §5 and every endpoint the plugin's commerce services call, for local testing. It's its own DDEV project with a local git repo, and its README explains setup, demo data and how it decides access. Craft sites reach it at `http://ddev-commerce24-web/api` (set through `COMMERCE24_*` in each site's `.env`, read by `config/site7-studio.php`):
+- **rp-craft** uses the author account. Its key may publish, and the account has the Enterprise plan and licence `C24-AUTHOR-0001`.
+- **site7-fresh** uses the Demo Customer account, which starts with no plan.
+
+Unlike the mock, it stores every version, enforces API keys per site, plan website limits and publish rights, refuses a changed re-publish of a version (409), and has an `/admin` area for plans, purchases, licences, keys and prices.
+
+**Verified end to end (2026-10-05):**
+- **Author (rp-craft):** connection, licence activation and validation, a key from another account refused, plan and customer data. Publishing the whole Library took 35 s for 97 packages (237 MB); changing the kit's `pricingType` to premium released 2.0.2.
+- **Customer (site7-fresh), no plan:** the catalog lists 97 packages, the premium kit isn't entitled, and its download is refused (403). A free download's signature checks out (`c24-local`).
+- **Customer, Business plan:** the kit downloads and its signature is verified. After cancelling it's refused again. Renew, downgrade, licence transfer and refusing an unknown plan all work.
+- **Library update on site7-fresh:** `library/update --all` updated 31 packages (Theme 1.1.0→1.1.1, kit 2.0.0→2.0.2, 29 Templates) in 29 s, all signature-verified, and the kit's `verifiedPricingType` is premium. The pages return 200, and afterwards no updates are left.
+- **Plugin screens on rp-craft:** all five Account & License tabs, the Marketplace Repository and Settings → Test Connection show live data.
+- **Automated tests:** the Laravel app's feature tests (12) cover what's hard to trigger from a site: revoked keys, publish rights and conflicts, purchases, older versions and signatures, website limits.
+
+The mock below is no longer used; the Laravel app replaces it.
+
 ## 6. Mock (`rp-craft/mock-commerce24`, local only, git-ignored)
 
 Implements §5:

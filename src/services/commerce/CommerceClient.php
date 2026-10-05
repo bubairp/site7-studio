@@ -110,8 +110,9 @@ class CommerceClient extends Component implements CommerceClientInterface
                 'headers' => ['Accept' => 'application/zip, application/json'],
             ]);
         } catch (GuzzleException $e) {
+            $message = self::describe($e, 'Could not download from Commerce24');
             @unlink($temp);
-            throw new CommerceApiException('Could not download from Commerce24: ' . $e->getMessage(), 0, $e);
+            throw new CommerceApiException($message, 0, $e);
         }
 
         if (str_contains(strtolower($response->getHeaderLine('Content-Type')), 'json')) {
@@ -144,8 +145,29 @@ class CommerceClient extends Component implements CommerceClientInterface
             return is_array($decoded) ? $decoded : [];
         } catch (GuzzleException $e) {
             Craft::warning("Commerce24 request failed ({$method} {$endpoint}): " . $e->getMessage(), 'site7-studio');
-            throw new CommerceApiException('Could not reach Commerce24: ' . $e->getMessage(), 0, $e);
+            throw new CommerceApiException(self::describe($e, 'Could not reach Commerce24'), 0, $e);
         }
+    }
+
+    /**
+     * A user-facing message for a failed request: when Commerce24 answered
+     * with an error, its own {"error": ...} text and the HTTP status (it was
+     * reached, it said no); otherwise $unreachable plus the transport error.
+     */
+    private static function describe(GuzzleException $e, string $unreachable): string
+    {
+        if ($e instanceof \GuzzleHttp\Exception\RequestException && ($response = $e->getResponse())) {
+            $body = $response->getBody();
+            if ($body->isSeekable()) {
+                $body->rewind();
+            }
+            $data = json_decode((string)$body->getContents(), true);
+            $reason = is_array($data) && is_string($data['error'] ?? null) ? $data['error'] : $response->getReasonPhrase();
+
+            return "Commerce24: {$reason} (HTTP {$response->getStatusCode()})";
+        }
+
+        return "{$unreachable}: {$e->getMessage()}";
     }
 
     private function getHttpClient(): Client
