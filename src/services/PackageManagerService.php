@@ -141,6 +141,10 @@ class PackageManagerService extends Component
      */
     public function getPackagePath(string $handle): ?string
     {
+        // Handles reach here from request params: never let one leave packages/.
+        if ($handle === '' || preg_match('#[/\\\\]|\.\.#', $handle)) {
+            return null;
+        }
         $pluginPath = Craft::getAlias('@site7/studio');
         $basePath = dirname($pluginPath);
         $packagePath = $basePath . '/packages/' . $handle;

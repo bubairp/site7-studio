@@ -18,6 +18,23 @@ use site7\studio\models\synchronization\SynchronizationSession;
  */
 class UpdateWizardController extends Controller
 {
+    /**
+     * Updating changes the site: every step past the index page is for
+     * admins. Craft only checks plugin access for CP pages, not for action
+     * requests, so each step must check for itself.
+     */
+    public function beforeAction($action): bool
+    {
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+        if ($action->id !== 'index') {
+            $this->requireAdmin(false);
+        }
+
+        return true;
+    }
+
     /** Step 1 - list installed Starter Kits with a newer version available. */
     public function actionIndex()
     {

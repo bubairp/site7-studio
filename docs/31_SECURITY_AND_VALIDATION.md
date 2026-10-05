@@ -44,6 +44,22 @@ VERSION INTEGRITY      (packageId, version) uniqueness is application-level only
 
 PACKAGE AUTHENTICITY   Ed25519PackageSigner — signature.json over bundle-manifest.json,
                        verified on import (47_PACKAGE_SIGNING.md)
+
+ACCESS                 Craft checks accessPlugin-site7-studio only for plugin CP *pages*,
+                       never for action requests - every action must check access itself.
+                       Admin-only: site kits, Install/Update wizard steps, library kit
+                       install/update, starter-kit-generator/install, setup, settings save
+                       and test-connection. Permission-gated: package lifecycle
+                       (managePackages), Marketplace (manageMarketplace), Commerce
+                       (manageCommerce/License/Subscription/Updates), Publishing
+                       (publishPackages/...), Shared Resources (plugin access; changes also
+                       managePackages). Dev-Mode-gated: authoring, Resource Import.
+                       Editor-facing: Save as Template (plugin access + can view the entry),
+                       Create from Template (create-entries permission for the section),
+                       Content Browser reads (logged in). 43 #22.
+
+PATH SAFETY            PackageManagerService::getPackagePath() refuses handles containing
+                       /, \ or .. ; ZipArchive::extractTo() strips ../ from entry names.
 ```
 
 ## 5. Execution Flow
@@ -70,7 +86,7 @@ Not applicable at this document's scope.
 
 The plugin's single most repeated safety guarantee, restated once more here as the canonical statement: **a file the developer has modified on the live site is never silently overwritten by any Site7 Studio operation** (install re-run, update, sync, rollback) — every one of those operations routes through the same `PackageUpdatePlanner::classify()` three-way check before writing to a live target. The only exception is the FIRST install of a file (no baseline yet), which is inherently safe since nothing existed to overwrite, and even then it's content-compare guarded (won't overwrite an unrelated file that happens to already exist at the target path unless it's byte-identical to the source).
 
-Package **authenticity** (was this `.s7pkg` actually produced by who it claims) is NOT currently cryptographically verified — only content integrity (checksum-based corruption detection) is. This is a known, documented gap (§14, `43_KNOWN_ISSUES_AND_TECHNICAL_DEBT.md`).
+Package **authenticity** (was this `.s7pkg` actually produced by who it claims) is verified with Ed25519 signatures since 2026-10-02 (`47_PACKAGE_SIGNING.md`); unsigned archives are accepted only when every package in them is free.
 
 ## 11. Failure Scenarios
 

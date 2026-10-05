@@ -20,6 +20,23 @@ use site7\studio\services\starterkit\KitInstaller;
  */
 class InstallWizardController extends Controller
 {
+    /**
+     * Installing a kit changes the whole site: every step past the index
+     * page is for admins. Craft only checks plugin access for CP pages, not
+     * for action requests, so each step must check for itself.
+     */
+    public function beforeAction($action): bool
+    {
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+        if ($action->id !== 'index') {
+            $this->requireAdmin(false);
+        }
+
+        return true;
+    }
+
     /** Step 1 - list available Starter Kits. */
     public function actionIndex()
     {

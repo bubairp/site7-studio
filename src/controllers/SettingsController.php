@@ -107,6 +107,8 @@ class SettingsController extends Controller
     {
         $this->requirePostRequest();
         $this->requireAcceptsJson();
+        // Calls Commerce24 with the stored API key: same audience as saving settings.
+        $this->requireAdmin(false);
 
         $client = Site7Studio::getInstance()->commerceClient;
 

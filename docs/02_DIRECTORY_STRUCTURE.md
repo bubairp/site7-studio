@@ -30,7 +30,6 @@ plugins/site7-studio/
 │   ├── interfaces/                   # Contracts for pluggable subsystems
 │   ├── widgets/                      # LibraryWidget (Craft Dashboard widget)
 │   ├── assetbundles/                 # CP JS/CSS asset bundles
-│   ├── log/                          # Site7FileTarget (custom log target)
 │   └── translations/                 # en/site7-studio.php
 ├── docs/                             # Plugin's OLDER documentation (phase docs, validation reports) - not
 │   │                                  # depended on by this new docs/site7-studio/ set (see 00_OVERVIEW.md)

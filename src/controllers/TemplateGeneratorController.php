@@ -26,9 +26,14 @@ class TemplateGeneratorController extends Controller
             return $this->asJson(['success' => false, 'error' => 'A Template name is required.']);
         }
 
+        $this->requirePermission('accessPlugin-site7-studio');
+
         $entry = Craft::$app->getEntries()->getEntryById((int)$entryId, Craft::$app->getSites()->getCurrentSite()->id);
         if (!$entry) {
             return $this->asJson(['success' => false, 'error' => 'Entry not found.']);
+        }
+        if (!Craft::$app->getElements()->canView($entry)) {
+            throw new \yii\web\ForbiddenHttpException('You can\'t view this entry.');
         }
 
         $meta = [

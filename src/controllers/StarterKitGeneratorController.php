@@ -179,6 +179,8 @@ class StarterKitGeneratorController extends Controller
     {
         $this->requirePostRequest();
         $this->requireAcceptsJson();
+        // Installing a kit creates pages and site structure: admins only.
+        $this->requireAdmin();
 
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 

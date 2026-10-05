@@ -1,11 +1,15 @@
 /**
- * Site7 Studio - Pattern Browser Modal
+ * Site7 Studio - Site7 Content Browser modal (Sections and Templates).
  */
 (function($) {
     if (typeof Craft === 'undefined' || typeof Garnish === 'undefined') {
         return;
     }
 
+    // Escapes text for HTML and attribute values (Craft.escapeHtml leaves quotes as they are).
+    function escapeAttr(value) {
+        return String(value ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    }
 
     const Site7PatternBrowser = Garnish.Modal.extend({
         $body: null,
@@ -174,8 +178,9 @@
             );
             
             cats.forEach(c => {
+                const safe = escapeAttr(c);
                 this.$categoryList.append(
-                    `<li class="cs-item ${this.activeCategory === c ? 'sel' : ''}"><div class="cs-item__btn cs-item__page-btn" data-category="${c}" tabindex="0" role="button"><div class="cp-icon"></div><div class="label">${c}</div></div></li>`
+                    `<li class="cs-item ${this.activeCategory === c ? 'sel' : ''}"><div class="cs-item__btn cs-item__page-btn" data-category="${safe}" tabindex="0" role="button"><div class="cp-icon"></div><div class="label">${safe}</div></div></li>`
                 );
             });
         },
@@ -232,30 +237,32 @@
                 return;
             }
             
+            // Package metadata can come from imported archives: always escape it.
+            const esc = escapeAttr;
             filtered.forEach(p => {
                 let includedHtml = '';
                 if (p.type.toLowerCase() === 'template' && p.requires) {
                     const sections = Array.isArray(p.requires.sections) ? p.requires.sections : [];
                     if (sections.length) {
-                        includedHtml += `<div style="margin-bottom: 8px; font-size: 12px; color: #6b7a8a;"><strong>Included Sections:</strong> ${sections.join(', ')}</div>`;
+                        includedHtml += `<div style="margin-bottom: 8px; font-size: 12px; color: #6b7a8a;"><strong>Included Sections:</strong> ${esc(sections.join(', '))}</div>`;
                     }
                 }
 
                 const $card = $(`
                     <div class="site7-card" style="display: flex; flex-direction: column; background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden;">
                         <div class="site7-card-image" style="height: 160px; background: #f3f5f8; border-bottom: 1px solid #e1e5ea; position: relative;">
-                            <img src="${p.previewImageUrl}" alt="${p.name}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none';">
+                            <img src="${esc(p.previewImageUrl)}" alt="${esc(p.name)}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none';">
                         </div>
                         <div class="site7-card-body" style="padding: 16px; flex: 1; display: flex; flex-direction: column;">
                             <div style="margin-bottom: 8px;">
-                                <span style="font-size: 11px; text-transform: uppercase; color: #8f98a3; font-weight: 600;">${p.category}</span>
+                                <span style="font-size: 11px; text-transform: uppercase; color: #8f98a3; font-weight: 600;">${esc(p.category)}</span>
                             </div>
-                            <h4 style="margin: 0 0 8px 0; font-size: 15px; color: #3f4d5a;">${p.name}</h4>
-                            <p style="margin: 0 0 16px 0; font-size: 13px; color: #6b7a8a; flex: 1;">${p.description || 'No description.'}</p>
+                            <h4 style="margin: 0 0 8px 0; font-size: 15px; color: #3f4d5a;">${esc(p.name)}</h4>
+                            <p style="margin: 0 0 16px 0; font-size: 13px; color: #6b7a8a; flex: 1;">${esc(p.description || 'No description.')}</p>
                             ${includedHtml}
                             <div style="display: flex; gap: 8px; margin-top: auto;">
-                                <button type="button" class="btn site7-pattern-preview-btn" data-url="${p.renderUrl}" style="flex: 1; justify-content: center;">Preview</button>
-                                <button type="button" class="btn submit site7-pattern-insert-btn" data-handle="${p.handle}" data-type="${p.type.toLowerCase()}" data-block-type-handle="${p.blockTypeHandle || ''}" data-block-type-id="${p.blockTypeId || ''}" style="flex: 1; justify-content: center;">Insert</button>
+                                <button type="button" class="btn site7-pattern-preview-btn" data-url="${esc(p.renderUrl)}" style="flex: 1; justify-content: center;">Preview</button>
+                                <button type="button" class="btn submit site7-pattern-insert-btn" data-handle="${esc(p.handle)}" data-type="${esc(p.type.toLowerCase())}" data-block-type-handle="${esc(p.blockTypeHandle || '')}" data-block-type-id="${esc(String(p.blockTypeId || ''))}" style="flex: 1; justify-content: center;">Insert</button>
                             </div>
                         </div>
                     </div>

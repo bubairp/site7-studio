@@ -209,6 +209,12 @@ class TemplateInsertionService extends Component
             $entry->slug = $slug;
         }
 
+        // From the CP, the user must be allowed to create entries in that section.
+        $user = Craft::$app->getUser()->getIdentity();
+        if ($user && !Craft::$app->getElements()->canSave($entry, $user)) {
+            throw new \Exception("You aren't allowed to create entries in {$section->name}.");
+        }
+
         $this->applyTemplateContent($entry, $matrixHandle, $blocks, $manifest, $templateHandle);
 
         if (!Craft::$app->getElements()->saveElement($entry)) {

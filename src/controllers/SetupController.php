@@ -10,6 +10,20 @@ use craft\fields\Matrix;
 
 class SetupController extends Controller
 {
+    /**
+     * Setup chooses (or creates) the page-builder field the whole plugin
+     * works on: admins only.
+     */
+    public function beforeAction($action): bool
+    {
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+        $this->requireAdmin(false);
+
+        return true;
+    }
+
     public function actionIndex()
     {
         $settings = Site7Studio::getInstance()->getSettings();

@@ -16,6 +16,23 @@ use site7\studio\Site7Studio;
  */
 class SharedResourceController extends Controller
 {
+    /**
+     * Craft only checks plugin access for CP pages, not for action requests,
+     * so check it here; changing the registry also needs managePackages.
+     */
+    public function beforeAction($action): bool
+    {
+        if (!parent::beforeAction($action)) {
+            return false;
+        }
+        $this->requirePermission('accessPlugin-site7-studio');
+        if (in_array($action->id, ['import', 'update', 'delete'], true)) {
+            $this->requirePermission('managePackages');
+        }
+
+        return true;
+    }
+
     public function actionIndex()
     {
         $registry = Site7Studio::getInstance()->sharedResourceRegistry;

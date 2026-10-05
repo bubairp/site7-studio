@@ -107,6 +107,9 @@ class Site7Studio extends Plugin
 
         // Defer most setup tasks until Craft is fully initialized
         Craft::$app->onInit(function() {
+            // Starts the plugin's own log file (storage/logs/site7-studio-<date>.log).
+            // Not earlier: Craft's log targets are rebuilt after plugins init.
+            $this->get('log');
             $this->attachEventHandlers();
         });
     }
