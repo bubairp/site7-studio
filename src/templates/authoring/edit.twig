@@ -249,8 +249,7 @@
                 <div id="site7-update-diff-panel" style="margin-top: 12px; display: none;"></div>
             {% endif %}
         {% elseif package.type == 'template' %}
-            <p class="light">{{ "Drag Sections and Patterns from the library on the left into the canvas, reorder them, then select a Section to set its Default Values (a Pattern's own content is configured in the Pattern's own editor - a Template only references it)."|t('site7-studio') }}</p>
-            <p class="light"><em>{{ "Install order is always Patterns, then Sections, regardless of how they're arranged here."|t('site7-studio') }}</em></p>
+            <p class="light">{{ "Drag Sections from the library on the left into the canvas, reorder them, then select a Section to set its Default Values."|t('site7-studio') }}</p>
             <form method="post" accept-charset="UTF-8" id="site7-template-builder-form">
                 {{ csrfInput() }}
                 {{ redirectInput('site7-studio/packages/' ~ package.handle ~ '/edit') }}
@@ -263,11 +262,10 @@
                      data-composition="{{ templateComposition|json_encode|escape('html_attr') }}">
                     <div class="site7-pb-column site7-pb-sidebar">
                         <h3>{{ "Available Packages"|t('site7-studio') }}</h3>
-                        <input type="text" id="site7-tb-search" class="text fullwidth" placeholder="{{ 'Search Sections & Patterns...'|t('site7-studio') }}">
+                        <input type="text" id="site7-tb-search" class="text fullwidth" placeholder="{{ 'Search Sections...'|t('site7-studio') }}">
                         <div class="site7-tb-filter" id="site7-tb-filter">
                             <button type="button" class="btn small active" data-filter="all">{{ "All"|t('site7-studio') }}</button>
                             <button type="button" class="btn small" data-filter="section">{{ "Sections"|t('site7-studio') }}</button>
-                            <button type="button" class="btn small" data-filter="pattern">{{ "Patterns"|t('site7-studio') }}</button>
                         </div>
                         <div id="site7-tb-library"></div>
                     </div>

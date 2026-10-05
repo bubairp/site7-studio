@@ -59,7 +59,6 @@
             // Tabs
             this.$tabs = $('<div class="site7-tabs flex gap-xs" style="display: flex;"></div>').appendTo($headerLeft);
             this.$tabs.append(`<button type="button" class="btn ${this.activeTab === 'section' ? 'active' : ''}" data-tab="section">Sections</button>`);
-            this.$tabs.append(`<button type="button" class="btn ${this.activeTab === 'pattern' ? 'active' : ''}" data-tab="pattern">Patterns</button>`);
             this.$tabs.append(`<button type="button" class="btn ${this.activeTab === 'template' ? 'active' : ''}" data-tab="template">Templates</button>`);
             
             // Search & Close Group
@@ -150,7 +149,6 @@
 
         tabLabel: function() {
             if (this.activeTab === 'section') return 'Sections';
-            if (this.activeTab === 'pattern') return 'Patterns';
             return 'Templates';
         },
 
@@ -237,11 +235,7 @@
             filtered.forEach(p => {
                 let includedHtml = '';
                 if (p.type.toLowerCase() === 'template' && p.requires) {
-                    const patterns = Array.isArray(p.requires.patterns) ? p.requires.patterns : [];
                     const sections = Array.isArray(p.requires.sections) ? p.requires.sections : [];
-                    if (patterns.length) {
-                        includedHtml += `<div style="margin-bottom: 4px; font-size: 12px; color: #6b7a8a;"><strong>Included Patterns:</strong> ${patterns.join(', ')}</div>`;
-                    }
                     if (sections.length) {
                         includedHtml += `<div style="margin-bottom: 8px; font-size: 12px; color: #6b7a8a;"><strong>Included Sections:</strong> ${sections.join(', ')}</div>`;
                     }

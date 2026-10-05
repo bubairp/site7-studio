@@ -17,6 +17,10 @@ class LibraryController extends Controller
 
         $request = Craft::$app->getRequest();
         $type = $request->getQueryParam('type', 'section');
+        // Patterns are no longer offered in the CP: old links land on Sections.
+        if (strtolower((string)$type) === 'pattern') {
+            return $this->redirect('site7-studio/library?type=section');
+        }
         $q = trim((string)$request->getQueryParam('q', ''));
         $status = trim((string)$request->getQueryParam('status', ''));
         $categoryFilters = array_map('strtolower', (array)$request->getQueryParam('category', []));

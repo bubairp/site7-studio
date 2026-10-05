@@ -53,7 +53,7 @@ class PackageAuthoringController extends Controller
         $this->view->registerAssetBundle(\site7\studio\assetbundles\LibraryBundle::class);
 
         $preselectedType = (string)Craft::$app->getRequest()->getQueryParam('type', 'section');
-        if (!in_array($preselectedType, PackageAuthoringService::VALID_TYPES, true)) {
+        if (!in_array($preselectedType, PackageAuthoringService::VALID_TYPES, true) || $preselectedType === 'pattern') {
             $preselectedType = 'section';
         }
 
@@ -90,6 +90,10 @@ class PackageAuthoringController extends Controller
         ];
 
         try {
+            // Patterns are no longer created from the CP.
+            if ($meta['type'] === 'pattern') {
+                throw new \Exception('Pattern packages are no longer available. Create a Section or Template instead.');
+            }
             $record = (new PackageAuthoringService())->createPackage($meta);
         } catch (\Throwable $e) {
             Craft::$app->getSession()->setError($e->getMessage());

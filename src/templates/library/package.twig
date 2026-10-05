@@ -286,24 +286,12 @@
         </section>
     {% endif %}
 
-    {% if package.type|lower == 'pattern' or package.type|lower == 'template' %}
+    {% if package.type|lower == 'template' %}
         {% set manifest = package.getManifest() %}
         <hr>
         <section class="site7-detail-section">
             <h2>{{ package.type|title }} {{ "Composition"|t('site7-studio') }}</h2>
             <div class="meta">
-                {% if package.type|lower == 'template' %}
-                    <div class="field">
-                        <div class="heading"><label>{{ "Included Patterns"|t('site7-studio') }}</label></div>
-                        <div class="input">
-                            {% if manifest and manifest.requires.patterns is defined and manifest.requires.patterns|length %}
-                                {{ manifest.requires.patterns|map(p => p|title)|join(', ') }}
-                            {% else %}
-                                <span class="light">{{ "None"|t('site7-studio') }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endif %}
                 <div class="field">
                     <div class="heading"><label>{{ "Included Sections"|t('site7-studio') }}</label></div>
                     <div class="input">

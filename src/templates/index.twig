@@ -10,11 +10,6 @@
             url: url('site7-studio/library', {type: 'section'}),
         } only %}
         {% include "site7-studio/_components/stat-card" with {
-            value: byType.pattern ?? 0,
-            label: 'Patterns',
-            url: url('site7-studio/library', {type: 'pattern'}),
-        } only %}
-        {% include "site7-studio/_components/stat-card" with {
             value: byType.template ?? 0,
             label: 'Templates',
             url: url('site7-studio/library', {type: 'template'}),

@@ -1,7 +1,7 @@
 /**
  * Site7 Studio - Pattern Matrix Insertion JS
  * 
- * Injects an "Insert Pattern" button into the Craft Matrix field UI.
+ * Injects an "Add Section" button into the Craft Matrix field UI.
  */
 (function($) {
     console.log('[Site7 Studio] JS File Loaded');
@@ -44,7 +44,7 @@
             // the site7-matrix-override element itself, never a nested
             // field's own.
             if (!this.cssInjected) {
-                $('<style>.site7-matrix-override > .buttons > *, .site7-matrix-override > .flex-inline > * { display: none !important; } .site7-matrix-override > .site7-btn-group, .site7-matrix-override > .site7-add-block-btn, .site7-matrix-override > .site7-insert-pattern-btn { display: flex !important; }</style>').appendTo(document.head);
+                $('<style>.site7-matrix-override > .buttons > *, .site7-matrix-override > .flex-inline > * { display: none !important; } .site7-matrix-override > .site7-btn-group, .site7-matrix-override > .site7-add-block-btn { display: flex !important; }</style>').appendTo(document.head);
                 this.cssInjected = true;
             }
         },
@@ -122,7 +122,7 @@
             // Create buttons container
             const $btnGroup = $('<div class="site7-btn-group" style="display: flex; gap: 10px; margin-top: 10px; width: 100%;"></div>');
 
-            // Create "Add Section" and "Insert Pattern" buttons. Deliberately NOT
+            // Create the "Add Section" button. Deliberately NOT
             // using Craft's "btn" class here. Craft's own Matrix/NestedElementManager
             // field JS finds its native add-entry button with a selector scoped to
             // the WHOLE .buttons container - e.g. classic MatrixInput does
@@ -140,9 +140,8 @@
             // that match entirely; visual parity with Craft's button style is
             // replicated via inline styles below and site7-btn-group's own CSS.
             const $addBlockBtn = $('<div class="dashed icon site7-add-block-btn" style="flex: 1; justify-content: center; border: 1px dashed #5b32d5; border-radius: 4px; color: #5b32d5; cursor: pointer; padding: 12px; font-weight: bold; text-align: center;">Add Section</div>');
-            const $insertPatternBtn = $('<div class="dashed icon site7-insert-pattern-btn" style="flex: 1; justify-content: center; border: 1px dashed #5b32d5; border-radius: 4px; color: #5b32d5; cursor: pointer; padding: 12px; font-weight: bold; text-align: center;">Insert Pattern</div>');
 
-            $btnGroup.append($addBlockBtn).append($insertPatternBtn);
+            $btnGroup.append($addBlockBtn);
 
             // Insert as a SIBLING of the buttons container, not a child of it - see
             // the comment above: staying out of .buttons entirely is what keeps
@@ -157,7 +156,6 @@
             // can never bubble into any handler Craft has delegated on the
             // shared .buttons container, on top of the fixes above.
             $addBlockBtn.on('click', $.proxy(function(e) { e.stopPropagation(); this.openPatternModal($matrixContainer, 'section', e); }, this));
-            $insertPatternBtn.on('click', $.proxy(function(e) { e.stopPropagation(); this.openPatternModal($matrixContainer, 'pattern', e); }, this));
         },
 
         openPatternModal: function($matrixContainer, defaultTab, e) {
@@ -172,8 +170,6 @@
                 if (handle && type) {
                     if (type === 'section') {
                         this.insertSection($matrixContainer, handle, blockTypeHandle, blockTypeId);
-                    } else if (type === 'pattern') {
-                        this.insertPattern($matrixContainer, handle);
                     } else if (type === 'template') {
                         this.insertTemplate($matrixContainer, handle);
                     }
@@ -328,34 +324,8 @@
             }
         },
 
-        insertPattern: function($matrixContainer, handle) {
-            // Fetch template blocks from API
-            const url = Craft.getActionUrl ? Craft.getActionUrl('site7-studio/package-action/get-pattern-blocks') : '/admin/site7-studio/package-action/get-pattern-blocks';
-            
-            $.ajax({
-                url: url,
-                type: 'GET',
-                data: { handle: handle },
-                dataType: 'json',
-                headers: {
-                    'Accept': 'application/json'
-                },
-                success: $.proxy(function(response) {
-                    if (response.success && response.blocks) {
-                        this.createBlocksSequentially($matrixContainer, response.blocks);
-                    } else {
-                        Craft.cp.displayError('Failed to load pattern blocks: ' + (response.error || 'Unknown error'));
-                    }
-                }, this),
-                error: $.proxy(function() {
-                    Craft.cp.displayError('Error fetching pattern blocks.');
-                }, this)
-            });
-        },
-
         insertTemplate: function($matrixContainer, handle) {
-            // Fetch the flattened Section list from API. Templates resolve to the same
-            // {type, typeId, fields} block shape as Patterns, so block creation is shared.
+            // Fetch the flattened Section list from API, as {type, typeId, fields} blocks.
             const url = Craft.getActionUrl ? Craft.getActionUrl('site7-studio/package-action/get-template-blocks') : '/admin/site7-studio/package-action/get-template-blocks';
 
             $.ajax({
@@ -473,7 +443,7 @@
                 }
             }
             
-            Craft.cp.displayNotice('Pattern inserted.');
+            Craft.cp.displayNotice('Template inserted.');
         }
     });
 
