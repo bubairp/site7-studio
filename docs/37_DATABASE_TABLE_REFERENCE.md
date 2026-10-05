@@ -8,7 +8,7 @@ Flat lookup table, one row per table, for quick "what table do I need" reference
 | `site7_components` | (Section package sub-content) | `m260716_100535_create_package_tables.php` | FK→`site7_packages` |
 | `site7_templates` | (Template package sub-content) | `m260716_100535_create_package_tables.php` | FK→`site7_packages` |
 | `site7_package_dependencies` | Declared dependencies (package or shared-resource) | `m260716_100535_create_package_tables.php` | FK→`site7_packages` CASCADE |
-| `site7_package_versions` | Immutable version history + archive path/checksum | `m260716_100535_create_package_tables.php`; `archivePath` column added by `m260813_142335_add_package_version_archive_path.php` | FK→`site7_packages` CASCADE; unique `(packageId, version)` |
+| `site7_package_versions` | Immutable version history + archive path/checksum | `m260716_100535_create_package_tables.php`; `archivePath` column added by `m260813_142335_add_package_version_archive_path.php` | FK→`site7_packages` CASCADE; unique `(packageId, version)` (DB index since `m261005_100000_add_package_version_unique_index.php`) |
 | `site7_package_publications` | Publish-target tracking | `m260723_110923_create_package_publications_table.php` | FK→`site7_packages` |
 | `site7_shared_resources` | Registered shared Craft resources | `m260724_130000_create_shared_resources_tables.php` | unique idx `handle`, idx `type` |
 | `site7_shared_resource_dependencies` | Shared→Shared dependency edges | `m260724_130000_create_shared_resources_tables.php` | FK→`site7_shared_resources` CASCADE |

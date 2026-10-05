@@ -439,6 +439,9 @@ class PackageManagerService extends Component
                 return false;
             }
 
+            if (!self::isRelativeSafePath((string)$item['targetPath'])) {
+                return false;
+            }
             $absoluteTarget = $root . '/' . $item['targetPath'];
             \craft\helpers\FileHelper::createDirectory(dirname($absoluteTarget));
             copy($extractedPath, $absoluteTarget);
@@ -473,6 +476,9 @@ class PackageManagerService extends Component
      */
     private function applySafeFileRemoval(PackageRecord $record, array $item, string $root, $baselineService): bool
     {
+        if (!self::isRelativeSafePath((string)$item['targetPath'])) {
+            return false;
+        }
         $absoluteTarget = $root . '/' . $item['targetPath'];
         if (file_exists($absoluteTarget)) {
             @unlink($absoluteTarget);
@@ -515,6 +521,26 @@ class PackageManagerService extends Component
                 continue;
             }
 
+            // The manifest decides where the file lands, and a package can
+            // come from an imported archive: only frontend sources, never
+            // outside them, never PHP.
+            if (!self::isAllowedOwnedFileTarget($targetPath) || !self::isRelativeSafePath($sourcePath)) {
+                $this->_lastInstallWarnings[] = "Owned file '{$targetPath}' of package '{$record->handle}' is outside the frontend source folders - skipped.";
+                Craft::warning("Refused owned file target '{$targetPath}' (source '{$sourcePath}') of package '{$record->handle}'.", __METHOD__);
+                continue;
+            }
+
+            // One owner per file: another package's baseline means it's theirs.
+            $otherOwner = \site7\studio\records\PackageInstalledFileRecord::find()
+                ->where(['targetPath' => $targetPath])
+                ->andWhere(['not', ['packageId' => $record->id]])
+                ->one();
+            if ($otherOwner) {
+                $ownerHandle = PackageRecord::findOne($otherOwner->packageId)?->handle ?? "#{$otherOwner->packageId}";
+                $this->_lastInstallWarnings[] = "Owned file '{$targetPath}' already belongs to package '{$ownerHandle}' - skipped.";
+                continue;
+            }
+
             $absoluteSource = $packagePath . '/' . $sourcePath;
             if (!is_file($absoluteSource)) {
                 Craft::warning("Owned file '{$sourcePath}' declared by package '{$record->handle}' was not found in its package directory - skipped.", __METHOD__);
@@ -535,6 +561,39 @@ class PackageManagerService extends Component
                 $baselineService->record($record->id, $record->handle, $targetPath, $record->version, $checksum);
             }
         }
+    }
+
+    /**
+     * Where a package-owned file may be written (docs/21): a frontend source
+     * file - the same places FrontendToolingScanner offers as candidates
+     * (src/ under the project root or under frontend/, assets/, theme/) -
+     * and never a PHP file.
+     */
+    public static function isAllowedOwnedFileTarget(string $targetPath): bool
+    {
+        if (!self::isRelativeSafePath($targetPath)) {
+            return false;
+        }
+        if (preg_match('/\.(php\d?|phtml|phar)$/i', $targetPath)) {
+            return false;
+        }
+
+        return (bool)preg_match('#^(?:(?:frontend|assets|theme)/)?src/.+#', $targetPath);
+    }
+
+    /** Relative, forward-slash path with no "..", "." or empty segments. */
+    public static function isRelativeSafePath(string $path): bool
+    {
+        if ($path === '' || str_contains($path, '\\') || str_starts_with($path, '/') || preg_match('/^[a-zA-Z]:/', $path)) {
+            return false;
+        }
+        foreach (explode('/', $path) as $segment) {
+            if ($segment === '' || $segment === '.' || $segment === '..') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

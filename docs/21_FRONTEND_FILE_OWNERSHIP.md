@@ -96,7 +96,8 @@ None dispatched directly by owned-file operations.
 | Scenario | Behavior |
 |---|---|
 | Selected candidate file no longer exists at capture time | Not specifically handled beyond the standard file-read failure — capture would fail for that entry |
-| `targetPath` collides with a path already owned by a DIFFERENT package | Not explicitly guarded against — no cross-package ownership registry/lock found |
+| `targetPath` collides with a path already owned by a DIFFERENT package | Skipped with an install warning (since 2026-10-05): a `site7_installed_files` row for that `targetPath` under another package means it's theirs |
+| `targetPath` outside the frontend sources (`src/`, `frontend/src/`, `assets/src/`, `theme/src/`), with `..`/absolute segments, or a PHP file | Refused with an install warning (`PackageManagerService::isAllowedOwnedFileTarget()`); the update/removal path and Sync From Source refuse unsafe paths too. Before 2026-10-05 the manifest's `targetPath` was used as given, so an imported package could create any new file in the project, e.g. a PHP file under `web/` |
 | Owned file locally modified before an update | `RESULT_LOCAL_MODIFICATION` via the shared planner — never overwritten, identical to template behavior |
 
 ## 12. Developer Change Guide
@@ -109,4 +110,4 @@ If adding owned-file support to a new package type: reuse `installOwnedFiles()`/
 
 ## 14. Known Limitations
 
-No cross-package `targetPath` collision detection (see Failure Scenarios) — not confirmed to be exercised by any current code path, but not explicitly guarded against either.
+Cross-package collisions and unsafe targets are refused at install (see Failure Scenarios). A package installed before 2026-10-05 keeps any baseline it already recorded.

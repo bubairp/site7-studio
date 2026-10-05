@@ -393,6 +393,11 @@ class MatrixEntryTypeImportService extends Component
             if ($sourcePath === '' || $targetPath === '') {
                 continue;
             }
+            // Same rule as install: only frontend sources travel into a package.
+            if (!\site7\studio\services\PackageManagerService::isAllowedOwnedFileTarget($targetPath)
+                || !\site7\studio\services\PackageManagerService::isRelativeSafePath($sourcePath)) {
+                continue;
+            }
 
             $liveAbsolute = $root . '/' . $targetPath;
             $packageAbsolute = $packagePath . '/' . $sourcePath;

@@ -56,7 +56,7 @@ Called by: `SectionUpdateService`, `PageUpdateService` (since 2026-10-05; before
 
 ## 7. Data Model
 
-`site7_package_versions`: `id`, `packageId` (FK CASCADE), `version`, `archivePath`, `checksum`, `releaseNotes`, `releaseDate`, `dateCreated`. **`(packageId, version)` uniqueness is application-level only** (checked in `MarketplaceService::recordVersion()` before insert) — there is no DB unique index on this pair (`src/migrations/m260716_100535_create_package_tables.php` creates no such index, unlike `site7_packages.handle` or `site7_installed_files`'s composite index, which are real DB constraints). This matters for the race-condition caveat in §11 and for `PageUpdateService`'s bypass path (`18_SYNC_FROM_SOURCE.md` §5a), which writes duplicate `(packageId, version)` rows precisely because nothing at the DB layer stops it.
+`site7_package_versions`: `id`, `packageId` (FK CASCADE), `version`, `archivePath`, `checksum`, `releaseNotes`, `releaseDate`, `dateCreated`. **`(packageId, version)` is unique in the database since 2026-10-05** (`m261005_100000_add_package_version_unique_index`, index `site7_package_versions_packageId_version_unq`; the migration skips it with a warning on a site that already has duplicate rows), on top of the check in `MarketplaceService::recordVersion()`. Before that it was application-level only — there was no DB unique index on this pair (`src/migrations/m260716_100535_create_package_tables.php` creates no such index, unlike `site7_packages.handle` or `site7_installed_files`'s composite index, which are real DB constraints). This matters for the race-condition caveat in §11 and for `PageUpdateService`'s bypass path (`18_SYNC_FROM_SOURCE.md` §5a), which writes duplicate `(packageId, version)` rows precisely because nothing at the DB layer stops it.
 
 ## 8. Filesystem Impact
 
@@ -79,7 +79,7 @@ Called by: `SectionUpdateService`, `PageUpdateService` (since 2026-10-05; before
 
 | Scenario | Behavior |
 |---|---|
-| Two content changes race to version at once | Not specifically guarded against — no locking found, and no DB unique constraint on `(packageId, version)` to fall back on (see §7). Two concurrent requests computing the same target version could both insert, producing a real duplicate row — this is a genuine open gap, not one softened by a DB-level safety net. |
+| Two content changes race to version at once | No locking, but the DB unique index on `(packageId, version)` (§7) makes the second insert fail instead of storing a duplicate row. |
 | `recordVersion()` called with a version that already exists | No-op — treated as already-recorded |
 | Rollback followed immediately by a content change | Handled correctly by the Step 7 fix — verified live |
 

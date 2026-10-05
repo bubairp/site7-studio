@@ -49,6 +49,7 @@ class Install extends Migration
             m260817_150000_create_installed_files_table::class,
             m261002_000000_store_matrix_field_uid::class,
             m261002_100000_add_package_signature_columns::class,
+            m261005_100000_add_package_version_unique_index::class,
         ];
     }
 

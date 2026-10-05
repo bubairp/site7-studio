@@ -30,8 +30,8 @@ Items 1-3 are **fixed** (2026-10-02) — the whole `unit` suite runs green; see 
 
 ## Absence of certain safety mechanisms (not necessarily bugs, but worth tracking)
 
-10. No explicit locking around concurrent version creation for the same package, AND `(packageId, version)` uniqueness is application-level only — there is no DB unique index backing it up. (`17_PACKAGE_VERSIONING.md`)
-11. No cross-package `targetPath` collision detection for owned files — two different packages could declare ownership of the same target path with no guard. (`21_FRONTEND_FILE_OWNERSHIP.md`)
+10. **RESOLVED (2026-10-05)** — unique DB index on `(packageId, version)` (`17` §7); still no locking, but a racing second insert now fails instead of duplicating. Original: No explicit locking around concurrent version creation for the same package, AND `(packageId, version)` uniqueness is application-level only — there is no DB unique index backing it up. (`17_PACKAGE_VERSIONING.md`)
+11. **RESOLVED (2026-10-05)** — install skips a file another package already owns, and refuses targets outside the frontend sources or PHP files; the latter was a real hole (an imported package could create e.g. `web/x.php`) (`21`). Original: No cross-package `targetPath` collision detection for owned files — two different packages could declare ownership of the same target path with no guard. (`21_FRONTEND_FILE_OWNERSHIP.md`)
 12. No index for querying `site7_installed_files` baselines across packages by `targetPath` alone (only the composite unique index) — not currently needed by any code path, but would matter if a cross-package ownership audit feature were ever built (see item 11). (`16_INSTALLED_FILE_BASELINE.md`)
 
 ## Confirmed architectural gaps found during this documentation-validation pass
