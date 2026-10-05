@@ -41,7 +41,38 @@ class PackagePublisherController extends Controller
             'title' => 'Publishing',
             'history' => $plugin->publishHistory->getAllHistory(),
             'targets' => $plugin->repositoryManager->getTargets(),
+            'commerceConfigured' => $plugin->commerceClient->isConfigured(),
         ]);
+    }
+
+    /**
+     * Publishes the Library to Commerce24 (docs/52) on the authoring site:
+     * runs `site7-studio/library/publish` in the background, since it builds
+     * and uploads every changed package, and shows its progress.
+     */
+    public function actionPublishLibrary()
+    {
+        $this->requirePostRequest();
+        $this->requirePermission('publishPackages');
+        if (!Craft::$app->getConfig()->getGeneral()->devMode) {
+            throw new \yii\web\ForbiddenHttpException('The Library is published from the authoring site, in Dev Mode.');
+        }
+
+        $request = Craft::$app->getRequest();
+        $bump = (string)$request->getBodyParam('bump', 'patch');
+        if (!in_array($bump, ['patch', 'minor', 'major'], true)) {
+            $bump = 'patch';
+        }
+        $args = ['site7-studio/library/publish', "--bump={$bump}"];
+        if ($notes = trim((string)$request->getBodyParam('notes', ''))) {
+            $args[] = "--notes={$notes}";
+        }
+        if ($request->getBodyParam('force')) {
+            $args[] = '--force=1';
+        }
+        $id = Site7Studio::getInstance()->siteKitJobs->start('Publish the Library to Commerce24', $args, ['label' => 'Publishing', 'url' => 'site7-studio/publishing']);
+
+        return $this->redirect("site7-studio/site-kits/job/{$id}");
     }
 
     /**

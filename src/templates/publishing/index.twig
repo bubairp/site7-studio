@@ -2,7 +2,43 @@
 {% set selectedSubnavItem = "publishing" %}
 {% set title = "Publishing"|t('site7-studio') %}
 
+{% import "_includes/forms" as forms %}
+
 {% block content %}
+    {# The CP side of `site7-studio/library/publish` (docs/52, docs/53). #}
+    {% if craft.app.config.general.devMode %}
+        <section class="site7-detail-section" style="margin-bottom: 24px;">
+            <h2>{{ "Publish the Library to Commerce24"|t('site7-studio') }}</h2>
+            <p class="light">{{ "Publishes every Library package that changed since its last release, each as its own signed archive, with a new version. Unchanged packages are skipped."|t('site7-studio') }}</p>
+            {% if not commerceConfigured %}
+                <p class="warning">{{ "Commerce24 isn't connected."|t('site7-studio') }} <a href="{{ url('site7-studio/settings') }}#commerce">{{ "Set it up in Settings →"|t('site7-studio') }}</a></p>
+            {% else %}
+                <form method="post" accept-charset="UTF-8">
+                    {{ csrfInput() }}
+                    {{ actionInput('site7-studio/package-publisher/publish-library') }}
+                    {{ forms.selectField({
+                        label: 'Version bump'|t('site7-studio'),
+                        instructions: 'How much to raise the version of each changed package.'|t('site7-studio'),
+                        name: 'bump',
+                        options: {patch: 'Patch (1.0.0 → 1.0.1)', minor: 'Minor (1.0.0 → 1.1.0)', major: 'Major (1.0.0 → 2.0.0)'},
+                        value: 'patch',
+                    }) }}
+                    {{ forms.textareaField({
+                        label: 'Release notes'|t('site7-studio'),
+                        instructions: 'Shown to customers on their Updates screen.'|t('site7-studio'),
+                        name: 'notes',
+                        rows: 3,
+                    }) }}
+                    {{ forms.lightswitchField({
+                        label: 'Publish unchanged packages too'|t('site7-studio'),
+                        name: 'force',
+                    }) }}
+                    <button type="submit" class="btn submit">{{ "Publish Library"|t('site7-studio') }}</button>
+                </form>
+            {% endif %}
+        </section>
+    {% endif %}
+
     <section class="site7-detail-section" style="margin-bottom: 24px;">
         <h2>{{ "Repositories"|t('site7-studio') }}</h2>
         <p class="light">{{ "Where packages published from this site can go. Future Private/Enterprise repositories register the same way, through PackagePublishTargetInterface."|t('site7-studio') }}</p>

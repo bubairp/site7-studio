@@ -5,7 +5,6 @@
 {% set tabs = {
     general: { label: 'General'|t('site7-studio'), url: '#general' },
     commerce: { label: 'Commerce'|t('site7-studio'), url: '#commerce' },
-    theme: { label: 'Theme Settings'|t('site7-studio'), url: '#theme' },
     system: { label: 'System'|t('site7-studio'), url: '#system' },
     about: { label: 'About'|t('site7-studio'), url: '#about' }
 } %}
@@ -103,14 +102,6 @@
 
             <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
         </form>
-    </div>
-
-    <div id="theme" class="site7-settings-section hidden">
-        <h2>{{ "Theme Settings"|t('site7-studio') }}</h2>
-        <hr>
-        <div class="pane padded">
-            <p>{{ "Global theme configuration will be available in a future release."|t('site7-studio') }}</p>
-        </div>
     </div>
 
     <div id="system" class="site7-settings-section hidden">

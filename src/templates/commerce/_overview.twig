@@ -1,7 +1,7 @@
 {#
- # Commerce & Licensing - Overview tab.
+ # Account & License - Overview tab.
  # Params: license (LicenseInfo), subscription (SubscriptionInfo), plan (PlanInfo|null),
- #         installedPackages (PackageRecord[]), updates (MarketplaceListing[] keyed by handle)
+ #         installedPackages (PackageRecord[]), updates (LibraryUpdater::availableUpdates())
  #}
 {% set licenseColors = {active: 'teal', expired: 'red', unlicensed: 'gray', unknown: 'amber'} %}
 {% set subscriptionColors = {active: 'teal', canceled: 'red', past_due: 'amber', none: 'gray', unknown: 'gray'} %}
@@ -21,7 +21,7 @@
         </div>
         <div class="field">
             <div class="heading"><label>{{ "Current Plan"|t('site7-studio') }}</label></div>
-            <div class="input"><a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}">{{ plan ? plan.name : 'None'|t('site7-studio') }}</a></div>
+            <div class="input"><a href="{{ url('site7-studio/commerce', {tab: 'subscription'}) }}">{{ plan ? plan.name : 'None'|t('site7-studio') }}</a></div>
         </div>
         <div class="field">
             <div class="heading"><label>{{ "License Status"|t('site7-studio') }}</label></div>
@@ -54,7 +54,7 @@
     {% include "site7-studio/_components/stat-card" with {
         value: updates|length,
         label: 'Available Updates',
-        url: url('site7-studio/commerce', {tab: 'updates'}),
+        url: url('site7-studio/update'),
     } only %}
 </div>
 
@@ -82,7 +82,7 @@
         {% if not connected %}
             <a href="{{ url('site7-studio/settings') }}#commerce" class="btn submit">{{ "Connect Commerce24"|t('site7-studio') }}</a>
         {% else %}
-            <a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}" class="btn submit">{{ "Upgrade Plan"|t('site7-studio') }}</a>
+            <a href="{{ url('site7-studio/commerce', {tab: 'subscription'}) }}" class="btn submit">{{ "Upgrade Plan"|t('site7-studio') }}</a>
         {% endif %}
         <form method="post" accept-charset="UTF-8">
             {{ csrfInput() }}
@@ -90,13 +90,8 @@
             <input type="hidden" name="action" value="site7-studio/commerce/refresh-license">
             <button type="submit" class="btn">{{ "Refresh License"|t('site7-studio') }}</button>
         </form>
-        <form method="post" accept-charset="UTF-8">
-            {{ csrfInput() }}
-            {{ redirectInput('site7-studio/commerce?tab=updates') }}
-            <input type="hidden" name="action" value="site7-studio/commerce/check-updates">
-            <button type="submit" class="btn">{{ "Check Updates"|t('site7-studio') }}</button>
-        </form>
-        <a href="{{ url('site7-studio/marketplace') }}" class="btn">{{ "Open Marketplace"|t('site7-studio') }}</a>
+        <a href="{{ url('site7-studio/update') }}" class="btn">{{ "Check Updates"|t('site7-studio') }}</a>
+        <a href="{{ url('site7-studio/library') }}" class="btn">{{ "Browse Library"|t('site7-studio') }}</a>
         <a href="{{ url('site7-studio/commerce', {tab: 'account'}) }}" class="btn">{{ "Manage Account"|t('site7-studio') }}</a>
     </div>
 </div>

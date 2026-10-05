@@ -60,22 +60,25 @@ class CpSubscriber implements EventSubscriberInterface
      */
     public function onRegisterSite7Navigation(RegisterNavigationEvent $event): void
     {
+        // What every site needs: browse the Library, set up a site from a
+        // Starter Kit, update, and the Commerce24 account and licence.
         $subnav = [
             'dashboard' => ['label' => 'Dashboard', 'url' => 'site7-studio'],
             'library' => ['label' => 'Library', 'url' => 'site7-studio/library'],
             'install' => ['label' => 'Install', 'url' => 'site7-studio/install'],
-            'update' => ['label' => 'Update', 'url' => 'site7-studio/update'],
-            'site-kits' => ['label' => 'Site Kits', 'url' => 'site7-studio/site-kits'],
-            'marketplace' => ['label' => 'Marketplace', 'url' => 'site7-studio/marketplace'],
-            'commerce' => ['label' => 'Commerce & Licensing', 'url' => 'site7-studio/commerce'],
-            'publishing' => ['label' => 'Publishing', 'url' => 'site7-studio/publishing'],
-            'settings' => ['label' => 'Settings', 'url' => 'site7-studio/settings'],
+            'update' => ['label' => 'Updates', 'url' => 'site7-studio/update'],
+            'commerce' => ['label' => 'Account & License', 'url' => 'site7-studio/commerce'],
         ];
-        // Full Site Kits are an internal tool (docs/48); sites are set up
-        // from Library Starter Kits on the Install screen (docs/51).
-        if (!\Craft::$app->getConfig()->getGeneral()->devMode) {
-            unset($subnav['site-kits']);
+        // Authoring tools for the site the Library is built on (rp-craft):
+        // publishing, .s7pkg files and repositories, and Full Site Kits
+        // (an internal tool, docs/48). Their URLs still work for anyone with
+        // the permissions; they're just not in the menu outside Dev Mode.
+        if (\Craft::$app->getConfig()->getGeneral()->devMode) {
+            $subnav['publishing'] = ['label' => 'Publishing', 'url' => 'site7-studio/publishing'];
+            $subnav['marketplace'] = ['label' => 'Marketplace', 'url' => 'site7-studio/marketplace'];
+            $subnav['site-kits'] = ['label' => 'Site Kits', 'url' => 'site7-studio/site-kits'];
         }
+        $subnav['settings'] = ['label' => 'Settings', 'url' => 'site7-studio/settings'];
         $event->registry->registerNavItem([
             'url' => 'site7-studio',
             'label' => 'Site7 Studio',

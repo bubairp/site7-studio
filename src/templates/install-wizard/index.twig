@@ -1,5 +1,6 @@
 {% extends "_layouts/cp" %}
 {% set title = "Install a Starter Kit" %}
+{% set selectedSubnavItem = "install" %}
 
 {% do view.registerAssetBundle("site7\\studio\\assetbundles\\InstallWizardBundle") %}
 
@@ -81,7 +82,8 @@
     {% endif %}
 </div>
 
-{% if kits is not empty %}
+{# Blueprint Starter Kits (docs/32) are the older kit system: Dev Mode only. #}
+{% if kits is not empty and craft.app.config.general.devMode %}
 <h2>Blueprint Starter Kits</h2>
 <div id="s7-install-wizard" data-summary-url-template="{{ url('site7-studio/install/summary/__UID__') }}">
 

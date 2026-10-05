@@ -24,7 +24,7 @@ class PackageActionController extends Controller
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
         if (!Site7Studio::getInstance()->commercePackages->canInstallOrEnable($handle)) {
-            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'This package is not included in your current plan. Upgrade from Commerce & Licensing to install it.'));
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'This package is not included in your current plan. Upgrade from Account & License to install it.'));
             return $this->redirectToPostedUrl();
         }
 
@@ -56,7 +56,7 @@ class PackageActionController extends Controller
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
         if (!Site7Studio::getInstance()->commercePackages->canInstallOrEnable($handle)) {
-            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'This package is not included in your current plan. Upgrade from Commerce & Licensing to enable it.'));
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'This package is not included in your current plan. Upgrade from Account & License to enable it.'));
             return $this->redirectToPostedUrl();
         }
 

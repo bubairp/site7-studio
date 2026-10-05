@@ -1,7 +1,7 @@
 {% extends "_layouts/cp" %}
 {% set title = job.label %}
 {% set back = job.back ?? {label: 'Site Kits', url: 'site7-studio/site-kits'} %}
-{% set selectedSubnavItem = {'site7-studio/install': 'install', 'site7-studio/update': 'update'}[back.url] ?? 'site-kits' %}
+{% set selectedSubnavItem = {'site7-studio/install': 'install', 'site7-studio/update': 'update', 'site7-studio/publishing': 'publishing'}[back.url] ?? 'site-kits' %}
 {% set crumbs = [{label: back.label, url: cpUrl(back.url)}] %}
 
 {% set content %}

@@ -7,13 +7,19 @@
  # Params:
  #   selectedItem (string, optional) – key of the currently selected nav item
  #}
-{% set sidebarItems = {
-    library: { heading: 'Library', nested: {
-        sections: { label: 'Sections', url: 'site7-studio/library?type=section' },
-        templates: { label: 'Templates', url: 'site7-studio/library?type=template' },
-        kits: { label: 'Starter Kits', url: 'site7-studio/library?type=starter-kit' },
+{% set libraryItems = {
+    sections: { label: 'Sections', url: 'site7-studio/library?type=section' },
+    templates: { label: 'Templates', url: 'site7-studio/library?type=template' },
+    kits: { label: 'Starter Kits', url: 'site7-studio/library?type=starter-kit' },
+} %}
+{# Shared Resources are an authoring concern: Dev Mode only. #}
+{% if craft.app.config.general.devMode %}
+    {% set libraryItems = libraryItems|merge({
         sharedResources: { label: 'Shared Resources', url: 'site7-studio/library/shared-resources' },
-    }},
+    }) %}
+{% endif %}
+{% set sidebarItems = {
+    library: { heading: 'Library', nested: libraryItems },
 } %}
 
 {% include "_includes/nav" with {

@@ -52,6 +52,24 @@ None.
 
 `RegisterNavigationEvent`, `RegisterPermissionsEvent` — see `27_EVENTS_AND_HOOKS.md`.
 
+## 9a. Menu layout (2026-10-05)
+
+The menu has two audiences: the sites that use the Library (customers), and the site the Library is authored on (rp-craft, Dev Mode).
+
+| Menu item | Shown | Contents |
+|---|---|---|
+| Dashboard | always | counts, setup status |
+| Library | always | Sections · Templates · Starter Kits; Shared Resources in Dev Mode only |
+| Install | always | Library Starter Kits; Blueprint Starter Kits (`32`) in Dev Mode only |
+| Updates | always | Library updates (`53`); Blueprint kit updates in Dev Mode only. The one place for updates |
+| Account & License (`site7-studio/commerce`) | always | Overview · Plan & Subscription (Plans included) · License · Packages (Downloads included) · Account |
+| Publishing | Dev Mode | Publish the Library to Commerce24 (runs `library/publish` as a background job), repositories, publish history |
+| Marketplace | Dev Mode | Installed · Import · Export · Updates · Repository (.s7pkg files and repositories) |
+| Site Kits | Dev Mode | Full Site Kits (`48`) |
+| Settings | always | General · Commerce · System · About |
+
+Removed from view, code kept: Commerce's Updates tab (`?tab=updates` redirects to Updates; its actions redirect there too), Team tab (no backend yet, `_team.twig`), and the empty Theme Settings tab. Old `?tab=plans`/`downloads`/`team` links land on the tab that now holds them. Dev Mode screens hidden from the menu still work by URL for users with the permissions.
+
 ## 10. Validation and Safety
 
 **Why event-dispatched, not hard-coded**: allows nav/permission contributions to be added by future feature areas without modifying a central registry class — matches the plugin's general "avoid a god class" pattern seen elsewhere (e.g. `MarketplaceService`'s pluggable repository registration, §23).

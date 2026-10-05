@@ -7,8 +7,10 @@ use craft\web\Controller;
 use site7\studio\Site7Studio;
 
 /**
- * Backs the Commerce & Licensing Platform's nine tabs (Overview/Plans/
- * Subscription/License/Packages/Downloads/Updates/Team/Account). Every
+ * Backs the Account & License screen's five tabs (Overview, Plan &
+ * Subscription, License, Packages, Account). Plans are shown on the
+ * Subscription tab and Downloads on the Packages tab; updates live on the
+ * Updates screen, and Team waits for a real backend (_team.twig). Every
  * action here only orchestrates - the actual business logic (entitlement
  * checks, plan/feature resolution, caching, HTTP) lives in the commerce
  * services (LicenseService, SubscriptionService, PlanService, PackageService,
@@ -20,19 +22,26 @@ use site7\studio\Site7Studio;
  */
 class CommerceController extends Controller
 {
-    private const TABS = ['overview', 'plans', 'subscription', 'license', 'packages', 'downloads', 'updates', 'team', 'account'];
+    private const TABS = ['overview', 'subscription', 'license', 'packages', 'account'];
+
+    /** Former tabs, so old links still land in the right place. */
+    private const MERGED_TABS = ['plans' => 'subscription', 'downloads' => 'packages', 'team' => 'overview'];
 
     public function actionIndex()
     {
         $this->view->registerAssetBundle(\site7\studio\assetbundles\Site7StudioBundle::class);
 
         $tab = (string)Craft::$app->getRequest()->getQueryParam('tab', 'overview');
+        if ($tab === 'updates') {
+            return $this->redirect('site7-studio/update');
+        }
+        $tab = self::MERGED_TABS[$tab] ?? $tab;
         if (!in_array($tab, self::TABS, true)) {
             $tab = 'overview';
         }
 
         $plugin = Site7Studio::getInstance();
-        $data = ['title' => 'Commerce & Licensing', 'activeTab' => $tab];
+        $data = ['title' => 'Account & License', 'activeTab' => $tab];
 
         switch ($tab) {
             case 'overview':
@@ -46,18 +55,19 @@ class CommerceController extends Controller
                 $data['plan'] = $planResult['plan'];
                 $this->flashEntitlementChanges($planResult);
                 $data['installedPackages'] = $plugin->packageManager->getAllPackages();
-                // Entitlement-filtered, same as the Updates tab - see
-                // UpdateService::getEntitledPackageUpdates()'s docblock. Kept
-                // consistent so this stat card's count never disagrees with
-                // what Updates itself lists.
-                $data['updates'] = $plugin->updates->getEntitledPackageUpdates();
-                break;
-            case 'plans':
-                $data['plans'] = $plugin->plan->getAllPlans();
-                $data['currentPlan'] = $plugin->plan->getCurrentPlan();
+                // The same list the Updates screen shows (docs/53), so the
+                // stat card's count never disagrees with it.
+                try {
+                    $data['updates'] = (new \site7\studio\services\library\LibraryUpdater())->availableUpdates();
+                } catch (\Throwable $e) {
+                    Craft::warning('Could not check Library updates: ' . $e->getMessage(), __METHOD__);
+                    $data['updates'] = [];
+                }
                 break;
             case 'subscription':
                 $data['subscription'] = $plugin->subscription->getSubscription();
+                $data['plans'] = $plugin->plan->getAllPlans();
+                $data['currentPlan'] = $plugin->plan->getCurrentPlan();
                 break;
             case 'license':
                 $data['license'] = $plugin->license->getLicense();
@@ -107,19 +117,12 @@ class CommerceController extends Controller
                 }
                 sort($data['availableToInstall']);
                 sort($data['lockedHandles']);
-                break;
-            case 'downloads':
+
                 $data['purchasedPackages'] = $plugin->downloads->getPurchasedPackages();
                 $data['purchasedAddOns'] = $plugin->downloads->getPurchasedAddOns();
                 $data['downloadHistory'] = $plugin->downloads->getDownloadHistory();
                 $data['importHistory'] = $plugin->downloads->getImportHistory();
                 $data['exportHistory'] = $plugin->downloads->getExportHistory();
-                break;
-            case 'updates':
-                $data['updates'] = $plugin->updates->checkUpdates();
-                break;
-            case 'team':
-                $data['teamAllowed'] = $plugin->featureGate->allows('teamManagement');
                 break;
             case 'account':
                 $data['connected'] = $plugin->commerceClient->isConfigured();
@@ -397,7 +400,7 @@ class CommerceController extends Controller
         } catch (\Throwable $e) {
             Craft::$app->getSession()->setError('Could not check for updates: ' . $e->getMessage());
         }
-        return $this->redirect('site7-studio/commerce?tab=updates');
+        return $this->redirect('site7-studio/update');
     }
 
     public function actionUpdateAll()
@@ -407,7 +410,7 @@ class CommerceController extends Controller
 
         $result = Site7Studio::getInstance()->updates->updateAll();
         $this->flashUpdateResult($result);
-        return $this->redirect('site7-studio/commerce?tab=updates');
+        return $this->redirect('site7-studio/update');
     }
 
     public function actionUpdateSelected()
@@ -418,7 +421,7 @@ class CommerceController extends Controller
         $handles = (array)Craft::$app->getRequest()->getBodyParam('handles', []);
         $result = Site7Studio::getInstance()->updates->updateSelected($handles);
         $this->flashUpdateResult($result);
-        return $this->redirect('site7-studio/commerce?tab=updates');
+        return $this->redirect('site7-studio/update');
     }
 
     /**

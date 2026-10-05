@@ -1,5 +1,6 @@
 {% extends "_layouts/cp" %}
-{% set title = "Update a Starter Kit" %}
+{% set title = "Updates" %}
+{% set selectedSubnavItem = "update" %}
 
 {% do view.registerAssetBundle("site7\\studio\\assetbundles\\InstallWizardBundle") %}
 {% do view.registerAssetBundle("site7\\studio\\assetbundles\\UpdateWizardBundle") %}
@@ -41,7 +42,8 @@
     {% endif %}
 </div>
 
-{% if updates is not empty %}
+{# Blueprint Starter Kits (docs/32) are the older kit system: Dev Mode only. #}
+{% if updates is not empty and craft.app.config.general.devMode %}
 <h2>Blueprint Starter Kit updates</h2>
 <div id="s7-update-wizard" data-summary-url-template="{{ url('site7-studio/update/summary/__UID__') }}">
 
