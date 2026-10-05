@@ -48,7 +48,7 @@ MarketplaceService::recordVersion() → site7_package_versions row
 **`VersionManagerService`**
 `src/services/publishing/VersionManagerService.php`
 Important methods: `createVersion()` (public), `resolveBumpBaseVersion()` (private — the bump-base logic).
-Called by: `SectionUpdateService`, explicit "Create Version" CP action, `StarterKitSyncService`. **NOT called by `PageUpdateService`** — Page-package sync bypasses this service entirely and constructs a `PackageVersionRecord` directly; see `18_SYNC_FROM_SOURCE.md` §5a for the resulting gaps (no version bump, no `archivePath`, non-standard checksum).
+Called by: `SectionUpdateService`, `PageUpdateService` (since 2026-10-05; before, it wrote `PackageVersionRecord`s directly — those old rows have no `archivePath`, `18_SYNC_FROM_SOURCE.md` §5a), explicit "Create Version" CP action, `StarterKitSyncService`.
 
 **`PackageExportService`** — `src/services/publishing/PackageExportService.php`. See `09_PACKAGE_BUILD_AND_EXPORT.md`.
 **`PackageArchiveHelper`** — `src/services/support/PackageArchiveHelper.php`. `createArchive()`, `computeDirectoryChecksum()`, `computeFileChecksum()`, `replaceDirectory()`.

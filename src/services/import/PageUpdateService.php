@@ -2,10 +2,12 @@
 
 namespace site7\studio\services\import;
 
+use craft\elements\db\ElementQueryInterface;
 use craft\elements\Entry;
+use craft\fields\Assets;
 use site7\studio\records\PackageRecord;
-use site7\studio\records\PackageVersionRecord;
 use site7\studio\repositories\PageImportSourceRepository;
+use site7\studio\services\support\AssetCaptureHelper;
 use site7\studio\Site7Studio;
 use Symfony\Component\Yaml\Yaml;
 
@@ -40,6 +42,16 @@ class PageUpdateService
         // actually copies a changed asset selection's bytes.
         [, , $manifestData, $recaptured] = $this->resolve($packageHandle, false);
 
+        return $this->compare($manifestData, $recaptured);
+    }
+
+    /**
+     * Stored content vs. recaptured content, key by key.
+     *
+     * @return array{addedKeys: string[], removedKeys: string[], changedKeys: string[], unchangedKeys: string[]}
+     */
+    private function compare(array $manifestData, array $recaptured): array
+    {
         $oldContent = array_merge((array)($manifestData['entryFields'] ?? []), (array)($manifestData['demoContent'] ?? []));
         $newContent = array_merge($recaptured['entryFields'], $recaptured['demoContent']);
 
@@ -68,14 +80,29 @@ class PageUpdateService
 
     /**
      * Rewrites entryFields/demoContent/requires from the live Entry's
-     * current content, in place - never touches handle/name/type/version/
+     * current content, in place - never touches handle/name/type/
      * author/category/tags/description. Preserves the package's DB id and
      * every existing reference.
+     *
+     * Same guarantees as SectionUpdateService (docs/18): when nothing
+     * changed it's a true no-op (no file written, no asset copied, no
+     * version), and a change produces exactly one version through
+     * VersionManagerService::createVersion() - a semver bump with an
+     * archive, so it can be rolled back.
      *
      * @throws \Exception if the package isn't an imported Page, or its source Entry no longer exists.
      */
     public function updateInPlace(string $packageHandle): PackageRecord
     {
+        // Decide first with a read-only recapture (no asset files copied).
+        [$record, , $manifestData, $recaptured] = $this->resolve($packageHandle, false);
+        $diff = $this->compare($manifestData, $recaptured);
+        $requiresChanged = $this->normalize(array_values((array)($manifestData['requires']['sections'] ?? [])))
+            !== $this->normalize(array_values((array)($recaptured['requires']['sections'] ?? [])));
+        if (!$diff['addedKeys'] && !$diff['removedKeys'] && !$diff['changedKeys'] && !$requiresChanged) {
+            return $record;
+        }
+
         [$record, $entry, $manifestData, $recaptured, $sourceRecord] = $this->resolve($packageHandle, true);
 
         $packageManager = Site7Studio::getInstance()->packageManager;
@@ -108,13 +135,22 @@ class PageUpdateService
 
         (new PageImportSourceRepository())->record($record->id, $entry->uid, (string)$entry->slug, $sourceHash);
 
-        $version = new PackageVersionRecord();
-        $version->packageId = $record->id;
-        $version->version = $record->version;
-        $version->releaseDate = date('Y-m-d H:i:s');
-        $version->releaseNotes = "Synced from the live Craft page '{$entry->title}'.";
-        $version->checksum = $sourceHash;
-        $version->save();
+        // Content added or removed is a shape change (minor); edited values
+        // are a patch - the same rule SectionUpdateService uses.
+        $bumpType = ($diff['addedKeys'] || $diff['removedKeys']) ? 'minor' : 'patch';
+        $parts = array_filter([
+            $diff['addedKeys'] ? count($diff['addedKeys']) . ' added' : null,
+            $diff['removedKeys'] ? count($diff['removedKeys']) . ' removed' : null,
+            $diff['changedKeys'] ? count($diff['changedKeys']) . ' changed' : null,
+            $requiresChanged ? 'block list changed' : null,
+        ]);
+        Site7Studio::getInstance()->versionManager->createVersion(
+            $packageHandle,
+            $bumpType,
+            "Synced from the live Craft page '{$entry->title}': " . implode(', ', $parts) . '.',
+        );
+
+        $record->refresh();
 
         return $record;
     }
@@ -167,8 +203,6 @@ class PageUpdateService
             $hasSite7Content = $fieldValue && $fieldValue->status(null)->drafts(null)->savedDraftsOnly(false)->count() > 0;
         }
 
-        $hasher = new EntrySourceHasher();
-
         if (!$hasSite7Content) {
             [, $entryFields, $sharedResourceHandles, $pluginDependencies, $excludedFields] = (new PageImportService())->captureNativeFields($entry, $matrixHandle, $packagePath);
             return [
@@ -196,14 +230,54 @@ class PageUpdateService
                 continue;
             }
             $sectionHandles[] = $sectionHandle;
-            $demoContent[$sectionHandle] = $hasher->extractScalarFieldValues($block);
+            $demoContent[$sectionHandle] = $this->captureValues($block, [], $packagePath);
         }
 
+        // Same shape as the import (TemplateGeneratorService::generateFromEntry()):
+        // a Section may appear more than once on a page, so no de-duplication.
         return [
-            'entryFields' => $hasher->extractScalarFieldValues($entry, [$matrixHandle]),
+            'entryFields' => $this->captureValues($entry, [$matrixHandle], $packagePath),
             'demoContent' => $demoContent,
-            'requires' => array_filter(['sections' => array_values(array_unique($sectionHandles))]),
+            'requires' => array_filter(['sections' => $sectionHandles]),
         ];
+    }
+
+    /**
+     * A block's or entry's field values exactly as the import captures them
+     * (TemplateGeneratorService::extractFieldValues(), private in that frozen
+     * class): Assets as a descriptor (files copied only when $packagePath is
+     * given), relation queries skipped - their __toString() is the query's
+     * class name, not content - and other non-stringable objects omitted.
+     * EntrySourceHasher::extractScalarFieldValues() isn't used here: it
+     * keeps those class names, and changing it would change every stored
+     * source hash.
+     */
+    private function captureValues(Entry $element, array $skipHandles, ?string $packagePath): array
+    {
+        $values = [];
+        foreach ($element->getFieldLayout()?->getCustomFields() ?? [] as $field) {
+            if (in_array($field->handle, $skipHandles, true)) {
+                continue;
+            }
+            $value = $element->getFieldValue($field->handle);
+            if ($field instanceof Assets) {
+                $descriptor = AssetCaptureHelper::captureAssetField($value, $packagePath, $packagePath !== null);
+                if ($descriptor !== null) {
+                    $values[$field->handle] = $descriptor;
+                }
+                continue;
+            }
+            if ($value instanceof ElementQueryInterface) {
+                continue;
+            }
+            if (is_scalar($value) || $value === null) {
+                $values[$field->handle] = $value;
+            } elseif (is_object($value) && method_exists($value, '__toString')) {
+                $values[$field->handle] = (string)$value;
+            }
+        }
+
+        return $values;
     }
 
     /**
@@ -241,9 +315,20 @@ class PageUpdateService
         return $map;
     }
 
+    /** JSON with object keys sorted, so key order never counts as a change. */
     private function normalize(mixed $value): string
     {
-        return json_encode($value);
+        $sort = function($v) use (&$sort) {
+            if (!is_array($v)) {
+                return $v;
+            }
+            if (!array_is_list($v)) {
+                ksort($v);
+            }
+            return array_map($sort, $v);
+        };
+
+        return json_encode($sort($value));
     }
 
     private function getMatrixFieldHandle(): ?string

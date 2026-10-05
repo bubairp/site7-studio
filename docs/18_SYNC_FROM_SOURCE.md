@@ -8,7 +8,7 @@ Document how a Section/Page package's stored content is refreshed from its live 
 
 `SectionUpdateService::diff()`/`updateInPlace()` (Section packages) re-reads the live Craft resource the package was originally imported from, compares it against the package's stored copy, and — only if different — overwrites the package's stored copy and creates exactly one new version.
 
-**This guarantee does NOT hold for Page packages.** `PageUpdateService::updateInPlace()` has no change-detection gate — see §5a below. Read that section before relying on any "no-op if unchanged" assumption for Page packages.
+`PageUpdateService::diff()`/`updateInPlace()` (Page packages) gives the same guarantee since 2026-10-05 — see §5a.
 
 ## 3. Current Status
 
@@ -46,9 +46,18 @@ diff(): detectFields() + diffTwig() [Section] / field-value diff [Page]
 
 **`PageUpdateService` does NOT mirror this shape — see §5a.**
 
-## 5a. Page Packages Diverge From This Document's Core Guarantee
+## 5a. Page Packages (aligned 2026-10-05)
 
-`PageUpdateService::updateInPlace()` (`src/services/import/PageUpdateService.php:76-119`) is a structurally different, non-conformant path:
+**Fixed.** `PageUpdateService::updateInPlace()` now mirrors `SectionUpdateService`:
+
+- It first recaptures read-only (no asset files copied) and compares with the stored copy (`compare()`: entryFields + demoContent key by key, plus the `requires.sections` list, key order ignored). Nothing changed → it returns without writing anything: no file, no asset copy, no source-hash update, no version.
+- On a change it recaptures again with asset copying, writes the manifest, and creates **one** version through `VersionManagerService::createVersion()` — a semver bump (keys added/removed = minor, values changed = patch) with an archive, so it can be rolled back.
+- The recapture now captures values exactly like the import (`TemplateGeneratorService::extractFieldValues()`): Assets as descriptors, relation queries skipped. `EntrySourceHasher::extractScalarFieldValues()` stored `"craft\elements\db\ElementQuery"` for every relation field, so the first sync after an import always looked changed and wrote those class names into the package. Repeated blocks are no longer de-duplicated in `requires.sections`, matching the import.
+- Verified live on rp-craft with a temporary import of Home: no difference right after import, two unchanged syncs → no version and no file change, a stale stored value → exactly one version (1.0.1, with archive), then unchanged again. Test package removed.
+
+Version rows written by the old code before this fix still have no `archivePath` and can't be rolled back.
+
+The old behaviour, for reference — `PageUpdateService::updateInPlace()` was a structurally different, non-conformant path:
 
 - **No change-detection gate.** Unlike `SectionUpdateService::updateInPlace()`, it does not call `diff()` internally and has no early-return when nothing changed. It unconditionally overwrites `manifest.json`'s `entryFields`/`demoContent`/`requires`/`dependencies`/`excludedFields` on every invocation (lines 86-100).
 - **Always creates a version row**, even when the recaptured content is byte-identical to what's already stored (lines 110-116) — there is no "did anything change" branch.
@@ -59,7 +68,7 @@ diff(): detectFields() + diffTwig() [Section] / field-value diff [Page]
   - `checksum` is `EntrySourceHasher::computeHash($entry)` — a hash of the live entry's field values — not the sha256 archive/directory checksum (`PackageArchiveHelper::computeDirectoryChecksum()`) used by every other version record in the system.
 - **The controller doesn't close the gap either.** `ResourceImportController::actionUpdatePagePackage()` calls `updateInPlace()` directly whenever `confirmed=1` is posted; the `diff()`-backed preview endpoint (`actionDiffPageUpdate()`) is independent and nothing forces the two calls together.
 
-Net effect: **only Section packages satisfy this document's "no-op unless changed, exactly one version via `VersionManagerService`" guarantee.** Page-package sync is a known architectural gap, not yet aligned with the Section path.
+Net effect (before the fix): only Section packages satisfied this document's "no-op unless changed, exactly one version via `VersionManagerService`" guarantee. Both package types do now.
 
 ## 6. Important Classes
 

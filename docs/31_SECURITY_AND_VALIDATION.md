@@ -39,8 +39,8 @@ VERSION INTEGRITY      (packageId, version) uniqueness is application-level only
                        recordVersion() — NOT a DB constraint (17_PACKAGE_VERSIONING.md §7);
                        dedup-safe against duplicate calls with identical args, but not against
                        a genuine race. VersionManagerService bump-base-off-history fix prevents
-                       post-rollback collisions. PageUpdateService bypasses recordVersion()
-                       entirely and can write real duplicate rows (18_SYNC_FROM_SOURCE.md §5a).
+                       post-rollback collisions. PageUpdateService goes through
+                       createVersion() too since 2026-10-05 (18_SYNC_FROM_SOURCE.md §5a).
 
 PACKAGE AUTHENTICITY   Ed25519PackageSigner — signature.json over bundle-manifest.json,
                        verified on import (47_PACKAGE_SIGNING.md)
