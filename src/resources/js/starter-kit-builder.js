@@ -1,7 +1,7 @@
 /**
  * Site7 Studio - Starter Kit Builder.
  *
- * Same mini-app pattern as the Pattern/Template Builders: one in-memory
+ * Same mini-app pattern as the Template Builder: one in-memory
  * "composition" array (here, the Starter Kit's Pages), rendered from and
  * serialized back to a single hidden JSON input on save. Each Page is a
  * structural reference to a Template (title/slug/entry type + the

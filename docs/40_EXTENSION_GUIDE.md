@@ -3,7 +3,7 @@
 How to safely add new capabilities without duplicating existing systems.
 
 ## Adding a new package type
-Extend the type-specific branches in `PackageManagerService::installPackage()`/manifest handling, following the existing `section`/`template`/`pattern`/`starter-kit`/`theme` pattern (`06_PACKAGE_ARCHITECTURE.md`). Do not create a parallel install method.
+Extend the type-specific branches in `PackageManagerService::installPackage()`/manifest handling, following the existing `section`/`template`/`starter-kit`/`theme` pattern (`06_PACKAGE_ARCHITECTURE.md`). Do not create a parallel install method.
 
 ## Adding a new owned-file type (beyond CSS/JS/config/asset)
 Add the type label to `ownedFiles` entries — the install/baseline/sync/update/rollback machinery is already type-agnostic (`21_FRONTEND_FILE_OWNERSHIP.md` §12). No new service needed.

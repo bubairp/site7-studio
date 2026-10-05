@@ -33,7 +33,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 class PackageAuthoringService extends Component
 {
-    public const VALID_TYPES = ['section', 'pattern', 'template', 'starter-kit'];
+    public const VALID_TYPES = ['section', 'template', 'starter-kit'];
 
     /**
      * @param array $meta {type, name, handle?, description?, category?, tags?, version?, author?, license?}
@@ -356,8 +356,8 @@ class PackageAuthoringService extends Component
     /**
      * Phase 9.2: true only for a Page (Template-type) package produced by
      * Import Existing Page (i.e. PageImportSourceRepository has a row for
-     * it) - a hand-authored/composed Template (Patterns+Sections via the
-     * Template Builder) is never locked.
+     * it) - a hand-authored/composed Template (Sections via the Template
+     * Builder) is never locked.
      */
     private function isLockedImportedPage(PackageRecord $record): bool
     {
@@ -594,35 +594,6 @@ class PackageAuthoringService extends Component
     }
 
     /**
-     * The Pattern Builder's left-sidebar Section library: every installed
-     * Section, with its field definitions embedded so the Builder can render
-     * the right-sidebar "Default Values" inputs for any Section dropped onto
-     * the canvas without a further round-trip.
-     *
-     * @return array<int, array{handle: string, name: string, category: string, previewImageUrl: string, fields: array}>
-     */
-    public function getAvailableSections(): array
-    {
-        $packageManager = Site7Studio::getInstance()->packageManager;
-        $sections = [];
-
-        foreach ($packageManager->getAllPackages() as $pkg) {
-            if (strtolower($pkg->type) !== 'section') {
-                continue;
-            }
-            $sections[] = [
-                'handle' => $pkg->handle,
-                'name' => $pkg->name,
-                'category' => $pkg->category ?: 'Uncategorized',
-                'previewImageUrl' => UrlHelper::cpUrl('site7-studio/library/package/' . $pkg->handle . '/preview-image'),
-                'fields' => $this->getSectionFieldDefs($pkg->handle),
-            ];
-        }
-
-        return $sections;
-    }
-
-    /**
      * @return array<int, array{handle: string, name: string}>
      */
     public function getSectionFieldDefs(string $sectionHandle): array
@@ -649,108 +620,20 @@ class PackageAuthoringService extends Component
     }
 
     /**
-     * The Pattern Builder's canvas, hydrated from the Pattern's own manifest -
-     * requires.sections (order) and demoContent (each instance's own Default
-     * Values, which "belong to the Pattern only" and never touch the
-     * referenced Section package itself).
-     *
-     * @return array<int, array{sectionHandle: string, sectionName: string, defaultValues: array}>
-     */
-    public function getPatternComposition(string $handle): array
-    {
-        $packageManager = Site7Studio::getInstance()->packageManager;
-        $record = $packageManager->getPackageByHandle($handle);
-        $manifest = $record?->getManifest();
-        if (!$manifest) {
-            return [];
-        }
-
-        $composition = [];
-        foreach ($manifest->requires['sections'] ?? [] as $sectionHandle) {
-            $sectionRecord = $packageManager->getPackageByHandle($sectionHandle);
-            $snakeHandle = str_replace('-', '_', $sectionHandle);
-            $composition[] = [
-                'sectionHandle' => $sectionHandle,
-                'sectionName' => $sectionRecord->name ?? $sectionHandle,
-                'defaultValues' => $manifest->demoContent[$sectionHandle] ?? $manifest->demoContent[$snakeHandle] ?? [],
-            ];
-        }
-
-        return $composition;
-    }
-
-    /**
-     * Saves the Pattern Builder's canvas back to the manifest. Only
-     * requires.sections and demoContent change - a Pattern never duplicates
-     * a Section's own definition, only references it by handle, per Phase
-     * 11.2's "Patterns do NOT create new Sections" rule.
-     *
-     * Note: demoContent is keyed by section handle (matching the existing,
-     * frozen manifest schema also used by Templates) - if the same Section
-     * appears more than once in a Pattern, its Default Values are shared
-     * across every instance. That's an existing schema limitation, not one
-     * introduced here.
-     *
-     * @param array $sections Ordered list of {sectionHandle, defaultValues?}; invalid/unknown Section handles are dropped.
-     * @throws \Exception if the package isn't a Pattern, or no valid Sections were given.
-     */
-    public function savePatternComposition(string $handle, array $sections): void
-    {
-        $packageManager = Site7Studio::getInstance()->packageManager;
-        $packagePath = $packageManager->getPackagePath($handle);
-        $record = $packageManager->getPackageByHandle($handle);
-        if (!$packagePath || !$record) {
-            throw new \Exception('Package not found.');
-        }
-        if ($record->type !== 'pattern') {
-            throw new \Exception('This package is not a Pattern.');
-        }
-
-        $sectionHandles = [];
-        $demoContent = [];
-        foreach ($sections as $section) {
-            $sectionHandle = trim((string)($section['sectionHandle'] ?? ''));
-            if ($sectionHandle === '') {
-                continue;
-            }
-            $sectionRecord = $packageManager->getPackageByHandle($sectionHandle);
-            if (!$sectionRecord || strtolower($sectionRecord->type) !== 'section') {
-                continue;
-            }
-            $sectionHandles[] = $sectionHandle;
-            $defaultValues = $section['defaultValues'] ?? [];
-            $demoContent[$sectionHandle] = is_array($defaultValues) ? $defaultValues : [];
-        }
-
-        if (empty($sectionHandles)) {
-            throw new \Exception('Add at least one Section to the Pattern.');
-        }
-
-        $manifestData = json_decode(file_get_contents($packagePath . '/manifest.json'), true) ?: [];
-        $manifestData['requires']['sections'] = $sectionHandles;
-        $manifestData['demoContent'] = $demoContent;
-
-        file_put_contents($packagePath . '/manifest.json', json_encode($manifestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-    }
-
-    /**
-     * The Template Builder's left sidebar library - every installed Section
-     * AND Pattern, since a Template composes both. Sections carry their own
-     * field defs (for the right sidebar's Default Value overrides); Patterns
-     * don't - a Template never overrides a Pattern's own content, only
-     * references it by handle, per "Templates must never duplicate package
-     * definitions."
+     * The Template Builder's left sidebar library - every Section in the
+     * Library, with its field defs (for the right sidebar's Default Value
+     * overrides).
      *
      * @return array<int, array{handle: string, name: string, type: string, category: string, previewImageUrl: string, fields: array}>
      */
-    public function getAvailableSectionsAndPatterns(): array
+    public function getAvailableSections(): array
     {
         $packageManager = Site7Studio::getInstance()->packageManager;
         $items = [];
 
         foreach ($packageManager->getAllPackages() as $pkg) {
             $type = strtolower($pkg->type);
-            if ($type !== 'section' && $type !== 'pattern') {
+            if ($type !== 'section') {
                 continue;
             }
             $items[] = [
@@ -760,7 +643,7 @@ class PackageAuthoringService extends Component
                 'category' => $pkg->category ?: 'Uncategorized',
                 'previewImageUrl' => UrlHelper::cpUrl('site7-studio/library/package/' . $pkg->handle . '/preview-image'),
                 'editUrl' => UrlHelper::cpUrl('site7-studio/packages/' . $pkg->handle . '/edit'),
-                'fields' => $type === 'section' ? $this->getSectionFieldDefs($pkg->handle) : [],
+                'fields' => $this->getSectionFieldDefs($pkg->handle),
             ];
         }
 
@@ -769,10 +652,7 @@ class PackageAuthoringService extends Component
 
     /**
      * The Template Builder's canvas, hydrated from the Template's own
-     * manifest. requires.patterns and requires.sections are stored as two
-     * separate ordered lists (Phase 9's frozen schema, where all Patterns
-     * install before any bare Sections) - read back here as Patterns first,
-     * then Sections, which is also each list's true install order.
+     * manifest: requires.sections, in order, with their Default Values.
      *
      * @return array<int, array{type: string, handle: string, name: string, defaultValues: array}>
      */
@@ -786,15 +666,6 @@ class PackageAuthoringService extends Component
         }
 
         $composition = [];
-        foreach ($manifest->requires['patterns'] ?? [] as $patternHandle) {
-            $patternRecord = $packageManager->getPackageByHandle($patternHandle);
-            $composition[] = [
-                'type' => 'pattern',
-                'handle' => $patternHandle,
-                'name' => $patternRecord->name ?? $patternHandle,
-                'defaultValues' => [],
-            ];
-        }
         foreach ($manifest->requires['sections'] ?? [] as $sectionHandle) {
             $sectionRecord = $packageManager->getPackageByHandle($sectionHandle);
             $snakeHandle = str_replace('-', '_', $sectionHandle);
@@ -810,22 +681,12 @@ class PackageAuthoringService extends Component
     }
 
     /**
-     * Saves the Template Builder's canvas back to the manifest. The canvas
-     * lets Sections and Patterns be freely interleaved and reordered for
-     * visual composition, but requires.patterns/requires.sections stay two
-     * separate ordered lists on disk (the existing, frozen schema) - so on
-     * save this splits the single visual order into "all Patterns, in the
-     * order they appeared" + "all bare Sections, in the order they
-     * appeared." Install order is always Patterns-then-Sections regardless
-     * of how they were interleaved in the canvas; this is an existing
-     * platform limitation (see TemplateGeneratorService::detectPatternReferences),
-     * not one introduced here.
+     * Saves the Template Builder's canvas back to the manifest:
+     * requires.sections in canvas order, and each Section's Default Values
+     * as demoContent. A requires.patterns list left by an older version is
+     * removed - Patterns are no longer a package type.
      *
-     * demoContent is only ever written for bare Section items - a Template
-     * never overrides a Pattern's own Default Values, only references the
-     * Pattern by handle.
-     *
-     * @param array $items Ordered list of {type: 'section'|'pattern', handle, defaultValues?}; invalid/unknown/mismatched-type entries are dropped.
+     * @param array $items Ordered list of {type: 'section', handle, defaultValues?}; invalid/unknown/mismatched-type entries are dropped.
      * @throws \Exception if the package isn't a Template, or nothing valid was given.
      */
     public function saveTemplateComposition(string $handle, array $items): void
@@ -843,36 +704,31 @@ class PackageAuthoringService extends Component
             throw new \Exception('This Page is an imported mirror of a live Craft page - its content is locked. Use Update Package to sync changes instead.');
         }
 
-        $patternHandles = [];
         $sectionHandles = [];
         $demoContent = [];
 
         foreach ($items as $item) {
             $itemType = strtolower((string)($item['type'] ?? ''));
             $itemHandle = trim((string)($item['handle'] ?? ''));
-            if ($itemHandle === '') {
+            if ($itemHandle === '' || $itemType !== 'section') {
                 continue;
             }
             $itemRecord = $packageManager->getPackageByHandle($itemHandle);
-            if (!$itemRecord || strtolower($itemRecord->type) !== $itemType) {
+            if (!$itemRecord || strtolower($itemRecord->type) !== 'section') {
                 continue;
             }
 
-            if ($itemType === 'pattern') {
-                $patternHandles[] = $itemHandle;
-            } elseif ($itemType === 'section') {
-                $sectionHandles[] = $itemHandle;
-                $defaultValues = $item['defaultValues'] ?? [];
-                $demoContent[$itemHandle] = is_array($defaultValues) ? $defaultValues : [];
-            }
+            $sectionHandles[] = $itemHandle;
+            $defaultValues = $item['defaultValues'] ?? [];
+            $demoContent[$itemHandle] = is_array($defaultValues) ? $defaultValues : [];
         }
 
-        if (empty($patternHandles) && empty($sectionHandles)) {
-            throw new \Exception('Add at least one Section or Pattern to the Template.');
+        if (empty($sectionHandles)) {
+            throw new \Exception('Add at least one Section to the Template.');
         }
 
         $manifestData = json_decode(file_get_contents($packagePath . '/manifest.json'), true) ?: [];
-        $manifestData['requires']['patterns'] = $patternHandles;
+        unset($manifestData['requires']['patterns']);
         $manifestData['requires']['sections'] = $sectionHandles;
         $manifestData['demoContent'] = $demoContent;
 

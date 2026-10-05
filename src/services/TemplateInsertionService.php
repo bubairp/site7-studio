@@ -14,35 +14,16 @@ use Symfony\Component\Yaml\Yaml;
 class TemplateInsertionService extends Component
 {
     /**
-     * Flattens a Template manifest's `requires.patterns` and `requires.sections` into an
-     * ordered list of Section handles, each carrying the demo content of the Pattern it was
-     * expanded from (if any) as a fallback. Each `requires.patterns` entry expands to that
-     * Pattern's own `requires.sections`, in the Pattern's order; `requires.sections` entries
-     * are appended directly afterward, in listed order. No de-duplication - a Section may
-     * legitimately appear more than once on a page.
+     * A Template manifest's `requires.sections` as an ordered list of Section handles, in
+     * listed order. No de-duplication - a Section may legitimately appear more than once
+     * on a page. `fallbackDemo` is kept (always empty) so callers don't change; it used to
+     * carry a Pattern's demo content when Patterns existed.
      *
      * @return array<int, array{handle: string, fallbackDemo: array}>
      */
     public function resolveSectionEntries(PackageManifest $manifest): array
     {
         $entries = [];
-        $packageManager = Site7Studio::getInstance()->packageManager;
-
-        foreach ($manifest->requires['patterns'] ?? [] as $patternHandle) {
-            $patternRecord = $packageManager->getPackageByHandle($patternHandle);
-            $patternManifest = $patternRecord?->getManifest();
-            if (!$patternManifest) {
-                continue;
-            }
-
-            $patternDemoContent = $patternManifest->demoContent ?? [];
-            foreach ($patternManifest->requires['sections'] ?? [] as $sectionHandle) {
-                $entries[] = [
-                    'handle' => $sectionHandle,
-                    'fallbackDemo' => $patternDemoContent,
-                ];
-            }
-        }
 
         foreach ($manifest->requires['sections'] ?? [] as $sectionHandle) {
             $entries[] = [
@@ -55,9 +36,8 @@ class TemplateInsertionService extends Component
     }
 
     /**
-     * Gets the serialized block data needed to insert a Template into a Matrix field.
-     * Returns the same flat shape as PatternInsertionService::getPatternBlocks() so the
-     * frontend's block-creation logic can be reused unchanged.
+     * Gets the serialized block data needed to insert a Template into a Matrix field,
+     * as {type, typeId, fields} blocks for pattern-matrix.js's createBlocksSequentially().
      */
     public function getTemplateBlocks(string $handle): array
     {
@@ -104,7 +84,7 @@ class TemplateInsertionService extends Component
 
             $entryType = $entriesService->getEntryTypeByHandle($entryTypeHandle);
             if (!$entryType) {
-                // Not installed/enabled - skip, same convention as PatternInsertionService.
+                // Not installed/enabled - skip.
                 continue;
             }
 

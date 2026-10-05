@@ -23,7 +23,7 @@ use site7\studio\Site7Studio;
  *                                     it has: fields.yaml, matrix.yaml, template.twig,
  *                                     preview/, resources/, README.md, etc.)
  *
- * Since Patterns/Templates/Starter Kits only ever reference sibling packages
+ * Since Templates/Starter Kits only ever reference sibling packages
  * by handle (never duplicate their content - see PackageManifest's docblock),
  * an export is only self-contained if its full dependency closure is bundled
  * alongside it - which is the default here.
@@ -142,13 +142,9 @@ class PackageExportService extends Component
 
             $requiredHandles = [];
             switch ($record->type) {
-                case 'pattern':
-                    $requiredHandles = $manifest->requires['sections'] ?? [];
-                    break;
                 case 'template':
                     $requiredHandles = array_merge(
                         $manifest->requires['themes'] ?? [],
-                        $manifest->requires['patterns'] ?? [],
                         $manifest->requires['sections'] ?? []
                     );
                     break;

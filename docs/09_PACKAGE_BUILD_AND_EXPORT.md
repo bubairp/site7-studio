@@ -29,7 +29,7 @@ site7_package_versions row: {version, checksum, archivePath}
 
 ## 5. Execution Flow
 
-1. `resolveDependencyClosure($rootHandle)` — BFS over `requires` (root handle first), type-specific: Pattern→`requires.sections`, Template→`requires.patterns`+`requires.sections`, Starter Kit→`requires.templates`+every `pages[].templateHandle`. Throws if a required handle can't be resolved.
+1. `resolveDependencyClosure($rootHandle)` — BFS over `requires` (root handle first), type-specific: Template→`requires.themes`+`requires.sections`, Starter Kit→`requires.templates`+every `pages[].templateHandle`. Throws if a required handle can't be resolved.
 2. For each package in the closure: locate its directory, compute `PackageArchiveHelper::computeDirectoryChecksum($path)`.
 3. Build a `PackageBundleManifest` model (`schemaVersion`, `generatedAt`, `rootHandle`, `rootType`, `craftVersion`, `site7Version`, `packages: [{handle,type,version,checksum}]`, `requiredSharedResources`).
 4. Open a `ZipArchive`, write `bundle-manifest.json` as the root entry, then `PackageArchiveHelper::addDirectoryToZip()` for every package in the closure — a generic, recursive, type-unaware copy (this is why owned frontend files, §21, required zero export-side code changes when added).

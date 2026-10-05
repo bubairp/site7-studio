@@ -90,7 +90,7 @@ Flat lookup, grouped by domain, for "where is the service that does X." Each ent
 Grouped by directory, as of this audit — grep `src/` for the class name to confirm current location/status before relying on any of these:
 
 - **`scanning/`** (whole subsystem, read-only Craft-state scanners): `AssetVolumeScanner`, `CategoryGroupScanner`, `EntryTypeScanner`, `FieldScanner`, `GlobalSetScanner`, `MatrixFieldScanner`, `PluginScanner`, `SectionScanner`, `TagGroupScanner`, `NavigationScanner`, `RelationFieldSourceResolver`.
-- **Library/content-discovery**: `LibraryService`, `ManifestReader`, `SearchService`, `ComponentRegistry`, `TemplateRegistry`, `TemplateGeneratorService`, `TemplateInsertionService`, `PatternInsertionService`, `sources/BuiltInLibrarySource`.
+- **Library/content-discovery**: `LibraryService`, `ManifestReader`, `SearchService`, `ComponentRegistry`, `TemplateRegistry`, `TemplateGeneratorService`, `TemplateInsertionService`, `sources/BuiltInLibrarySource`.
 - **Package engine**: `PackageImportService` (also cited in `35_DATA_FLOW_REFERENCE.md`'s Marketplace Install row), `engine/PackageDiscovery`, `engine/PackageReader`, `engine/PackageValidator`.
 - **CP registries**: `CpNavigationRegistry`, `CpPermissionRegistry` (named in `40_EXTENSION_GUIDE.md` but not tabulated here).
 - **Misc core**: `CraftResourceRegistry`, `CraftResourceScanner`, `ConfigService`, `CacheService`, `LogService`, `PlatformConfigService`, `ComposerDependencyScanner`.

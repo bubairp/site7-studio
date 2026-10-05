@@ -7,15 +7,11 @@ use site7\studio\Site7Studio;
 
 /**
  * Phase 9.3's "Starter Kit Relationships" - builds the unified References
- * list (which Template/Section/Pattern packages a Starter Kit depends on,
- * and each one's current imported/update-available status) from a Starter
- * Kit's own manifest. Reuses PackageAuthoringService::getSectionImportStatus()/
+ * list (which Template/Section packages a Starter Kit depends on, and each
+ * one's current imported/update-available status) from a Starter Kit's own
+ * manifest. Reuses PackageAuthoringService::getSectionImportStatus()/
  * getPageImportStatus() - the exact status logic Phases 9.1/9.2 already
  * built - rather than introducing a second hashing/tracking mechanism.
- * Patterns have no import-tracking of their own (nothing in this plugin
- * captures a Pattern from a live Craft resource - a Pattern is always a
- * hand-authored composition of Sections), so they're listed as plain
- * references with no status.
  */
 class StarterKitReferenceResolverService
 {
@@ -59,17 +55,6 @@ class StarterKitReferenceResolverService
                 'name' => $pkg->name ?? $handle,
                 'isImported' => $status['isImported'],
                 'updateAvailable' => $status['updateAvailable'],
-            ];
-        }
-
-        foreach ((array)($manifest->requires['patterns'] ?? []) as $handle) {
-            $pkg = $packageManager->getPackageByHandle($handle);
-            $references[] = [
-                'type' => 'pattern',
-                'handle' => $handle,
-                'name' => $pkg->name ?? $handle,
-                'isImported' => false,
-                'updateAvailable' => false,
             ];
         }
 

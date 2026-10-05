@@ -2,11 +2,13 @@
 
 ## 1. Purpose
 
-Document how the "Add Section" / "Insert Pattern" buttons and the "Site7 Content Browser" modal are injected into a Matrix field's Control Panel UI, and the constraint that injection must respect to avoid colliding with Craft's own native field JS.
+Document how the "Add Section" button and the "Site7 Content Browser" modal are injected into a Matrix field's Control Panel UI, and the constraint that injection must respect to avoid colliding with Craft's own native field JS.
 
 ## 2. What It Does
 
-`pattern-matrix.js` polls the CP DOM for Matrix fields (`div.matrix, .nested-element-cards`) and, for the field whose handle matches `window.site7Studio.matrixFieldHandle` (set by the CP template, see §6), injects a `site7-btn-group` containing "Add Section" and "Insert Pattern" buttons next to Craft's own native add-entry button, then hides the native button via CSS. Clicking either button opens `pattern-browser.js`'s `Site7PatternBrowser` modal (a `Garnish.Modal` styled as a `cs-modal`), which lets the author browse Sections/Patterns/Templates and insert one into the field.
+`pattern-matrix.js` polls the CP DOM for Matrix fields (`div.matrix, .nested-element-cards`) and, for the field whose handle matches `window.site7Studio.matrixFieldHandle` (set by the CP template, see §6), injects a `site7-btn-group` containing an "Add Section" button next to Craft's own native add-entry button, then hides the native button via CSS. Clicking it opens `pattern-browser.js`'s `Site7PatternBrowser` modal (a `Garnish.Modal` styled as a `cs-modal`), which lets the author browse Sections/Templates and insert one into the field.
+
+**2026-10-05:** the "Insert Pattern" button, the Patterns tab and `insertPattern()` were removed with the Pattern package type (`06`). The file and class names keep "pattern" for history; mentions of Patterns below describe the code before that date.
 
 ## 3. Current Status
 
@@ -23,15 +25,15 @@ injectButton($matrixContainer)
      window.site7Studio.matrixFieldHandle (see §11B)
    → finds $btnContainer: DIRECT CHILD .buttons, or .flex-inline
      fallback (see §15 for why this must be .children(), not .find())
-   → builds $btnGroup (Add Section / Insert Pattern) and inserts it
+   → builds $btnGroup (Add Section) and inserts it
      as a SIBLING of $btnContainer (NOT a child — see §11)
    → adds .site7-matrix-override class, which triggers injected CSS
      (child-combinator-scoped, see §11B) to hide $btnContainer's own
      (native) children
-   ↓ click "Add Section" / "Insert Pattern"
+   ↓ click "Add Section"
 openPatternModal() → new Site7PatternBrowser(defaultTab, onSelectCallback)
    ↓ user selects a card → onInsertClick() → hide() → onSelectCallback(handle, type, ...)
-insertSection() / insertPattern() / insertTemplate()
+insertSection() / insertTemplate()
    → Craft 5 Cards/NestedElementManager: manager.createElement(attributes)
    → Craft 4 / "Blocks" viewMode MatrixInput: matrixInstance.addEntry(handle)
      (Craft's own public instance method — see §14; DOM-click-simulation on
@@ -42,13 +44,13 @@ insertSection() / insertPattern() / insertTemplate()
 
 1. On CP page load (or after a slideout/PJAX navigation), `PatternInserter.pollForMatrixFields()` runs every 500ms, scanning for Matrix field containers.
 2. `injectButton()` matches the target field via `window.site7Studio.matrixFieldHandle` (set inline by the CP template rendering the entry edit page — search the CP template for `site7Studio` to find where it's assigned) and injects the button group once per container. When `matrixFieldHandle` is empty (Setup not run, `matrixFieldId` unset) nothing is injected at all — previously the handle check was skipped in that case, which put Add Section/Insert Pattern on every Matrix field on the page.
-3. Clicking "Add Section" or "Insert Pattern" opens `Site7PatternBrowser` (`pattern-browser.js`), which loads available content via `site7-studio/package-action/get-browser-data` and renders cards.
-4. Selecting a card's "Insert" button calls back into `pattern-matrix.js`'s `insertSection()`/`insertPattern()`/`insertTemplate()`, which create the actual Matrix entry/block using whichever native API the field's current View Mode exposes (`resolveCreateAttributes()` handles both the Craft 5 NestedElementManager array-of-types shape and the single-object shape used when a field allows exactly one Entry Type — see the extensive comment at `pattern-matrix.js:120-179` for why both shapes must be handled).
+3. Clicking "Add Section" opens `Site7PatternBrowser` (`pattern-browser.js`), which loads available content via `site7-studio/package-action/get-browser-data` and renders cards.
+4. Selecting a card's "Insert" button calls back into `pattern-matrix.js`'s `insertSection()`/`insertTemplate()`, which create the actual Matrix entry/block using whichever native API the field's current View Mode exposes (`resolveCreateAttributes()` handles both the Craft 5 NestedElementManager array-of-types shape and the single-object shape used when a field allows exactly one Entry Type — see the extensive comment at `pattern-matrix.js:120-179` for why both shapes must be handled).
 
 ## 6. Important Classes/Files
 
-**`PatternInserter`** — `src/resources/js/pattern-matrix.js`. Polls for and injects the button group; owns `insertSection()`/`insertPattern()`/`insertTemplate()`/`resolveCreateAttributes()`.
-**`Site7PatternBrowser`** — `src/resources/js/pattern-browser.js`. The `Garnish.Modal` subclass implementing the "Site7 Content Browser" UI (Sections/Patterns/Templates tabs, category sidebar, search, card grid).
+**`PatternInserter`** — `src/resources/js/pattern-matrix.js`. Polls for and injects the button group; owns `insertSection()`/`insertTemplate()`/`resolveCreateAttributes()`.
+**`Site7PatternBrowser`** — `src/resources/js/pattern-browser.js`. The `Garnish.Modal` subclass implementing the "Site7 Content Browser" UI (Sections/Templates tabs, category sidebar, search, card grid).
 **`PatternMatrixBundle`** — `src/assetbundles/PatternMatrixBundle.php`. Publishes both JS files (and others) as-is — **no build/bundling step**; editing the `.js` source directly is sufficient, but Craft's Yii `AssetManager` caches the published copy under a content-hashed `web/cpresources/<hash>/` directory and will keep serving a stale copy until that cache is cleared (`ddev craft clear-caches/all`, specifically the "Control panel resources" cache) — see §11.
 **`window.site7Studio.matrixFieldHandle`** — inline JS config telling `pattern-matrix.js` which Matrix field on the current page to target; set by the CP template.
 

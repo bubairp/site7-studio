@@ -7,7 +7,7 @@ use craft\base\Model;
 /**
  * The bundle-level manifest written at the root of every exported .s7pkg
  * (as "bundle-manifest.json"), distinct from the manifest.json each
- * individual package already carries. Since Pattern/Template/Starter Kit
+ * individual package already carries. Since Template/Starter Kit
  * packages only ever reference sibling packages by handle (never duplicate
  * their content - see PackageManifest's own docblock), this is what makes an
  * exported archive self-contained: it lists every package bundled inside,

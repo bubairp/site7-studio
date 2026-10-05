@@ -8,7 +8,7 @@ use craft\base\Model;
  * Class Asset
  *
  * A generalized base model for items in the Site7 Library.
- * Can represent Components, Templates, Patterns, or Starter Kits.
+ * Can represent Components, Templates, or Starter Kits.
  */
 class Asset extends Model
 {

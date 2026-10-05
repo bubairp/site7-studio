@@ -52,7 +52,7 @@ class ResourceImportAnalysis extends Model
     /**
      * Phase 9.3: StarterKitDependencyResolverService::resolve() - only
      * populated for kind === 'website'. The Starter Kit Summary's data
-     * source (sections/pages/categories/assets/components/patterns/globals/
+     * source (sections/pages/categories/assets/components/globals/
      * navigation/templates/composerPackages/npmPackages/plugins counts).
      */
     public array $starterKitSummary = [];

@@ -103,7 +103,9 @@ class StarterKitSyncService
             'pageHashes' => $pageHashes,
             'templates' => (array)($manifest?->requires['templates'] ?? []),
             'sections' => (array)($manifest?->requires['sections'] ?? []),
-            'patterns' => (array)($manifest?->requires['patterns'] ?? []),
+            // Always empty since Patterns were removed; the key stays so
+            // hashes recorded before that still match (WebsiteImportService).
+            'patterns' => [],
         ], JSON_UNESCAPED_SLASHES));
 
         $sourceRepo->record($record->id, $entryUids, $aggregateHash);

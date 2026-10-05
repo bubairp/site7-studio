@@ -75,7 +75,7 @@ None directly — side effects belong to listeners, not the event system itself.
 | `PackageSignedEvent` | | (extension point) | not dispatched — no signer implementation calls it |
 
 **Non-`EventDispatcher` framework hooks** (raw `yii\base\Event::on()` in `src/Site7Studio.php`):
-- `craft\web\View::EVENT_BEFORE_RENDER_PAGE_TEMPLATE` (line ~148) — injects Pattern insertion JS/`PatternMatrixBundle`.
+- `craft\web\View::EVENT_BEFORE_RENDER_PAGE_TEMPLATE` (line ~148) — injects the page builder's Add Section / Content Browser JS (`PatternMatrixBundle`).
 - `craft\elements\Entry::EVENT_DEFINE_ALT_ACTIONS` (line ~177) — adds "Save as Template" alt action.
 - `craft\web\UrlManager::EVENT_REGISTER_CP_URL_RULES` (line ~228) — registers all CP navigational routes (`28_CONTROLLERS_AND_ROUTES.md`).
 

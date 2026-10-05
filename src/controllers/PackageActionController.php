@@ -159,7 +159,7 @@ class PackageActionController extends Controller
         // Grab the type before deleting - once the record's gone there's
         // nothing left to look it up from, and the caller needs it to land
         // back on the right type-filtered Library view (Sections stay on
-        // Sections, Patterns stay on Patterns, etc.) instead of the default.
+        // Sections, Templates stay on Templates, etc.) instead of the default.
         $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
         $type = $record->type ?? 'section';
 
@@ -212,24 +212,6 @@ class PackageActionController extends Controller
     }
 
     /**
-     * Gets the serialized block structures for a pattern to inject into Matrix.
-     */
-    public function actionGetPatternBlocks()
-    {
-        $this->requireAcceptsJson();
-        
-        $handle = Craft::$app->getRequest()->getRequiredParam('handle');
-        
-        $service = new \site7\studio\services\PatternInsertionService();
-        $blocks = $service->getPatternBlocks($handle);
-
-        return $this->asJson([
-            'success' => true,
-            'blocks' => $blocks
-        ]);
-    }
-
-    /**
      * Gets the serialized block structures for a template to inject into Matrix.
      */
     public function actionGetTemplateBlocks()
@@ -248,13 +230,13 @@ class PackageActionController extends Controller
     }
 
     /**
-     * Gets the data for the Pattern Browser UI.
+     * Gets the data for the Site7 Content Browser (pattern-browser.js).
      */
     public function actionGetBrowserData()
     {
         $this->requireAcceptsJson();
-        
-        $type = Craft::$app->getRequest()->getParam('type', 'pattern');
+
+        $type = Craft::$app->getRequest()->getParam('type', 'section');
         
         $allPackages = Site7Studio::getInstance()->packageManager->getAllPackages();
         $packages = array_filter($allPackages, function($p) use ($type) {

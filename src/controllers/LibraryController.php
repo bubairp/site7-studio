@@ -210,10 +210,10 @@ class LibraryController extends Controller
             $hasPreviewTemplate = file_exists($packagePath . '/preview/preview.twig');
         }
 
-        // Patterns and Templates never have their own preview.twig - actionRenderPreview()
+        // Templates never have their own preview.twig - actionRenderPreview()
         // composes their preview from their required Sections' templates instead, so the
-        // iframe is always renderable for these types regardless of file presence.
-        if (in_array($package->type, ['pattern', 'template'], true)) {
+        // iframe is always renderable for them regardless of file presence.
+        if ($package->type === 'template') {
             $hasPreviewTemplate = true;
         }
 
@@ -221,7 +221,7 @@ class LibraryController extends Controller
     }
 
     /**
-     * Renders a live preview of the pattern using mock data and returns the HTML.
+     * Renders a live preview of the package using mock data and returns the HTML.
      */
     public function actionRenderPreview(string $handle)
     {
@@ -240,18 +240,7 @@ class LibraryController extends Controller
         $renderedContent = '';
         $packageCss = '';
 
-        if ($package->type === 'pattern') {
-            $manifest = $package->getManifest();
-            if ($manifest && !empty($manifest->requires['sections'])) {
-                $demoContent = $manifest->demoContent ?? [];
-                foreach ($manifest->requires['sections'] as $sectionHandle) {
-                    $sectionData = $demoContent[$sectionHandle] ?? $demoContent[str_replace('-', '_', $sectionHandle)] ?? [];
-                    [$html, $css] = $this->renderSectionForPreview($view, $sectionHandle, $sectionData, $handle);
-                    $renderedContent .= $html;
-                    $packageCss .= $css;
-                }
-            }
-        } elseif ($package->type === 'template') {
+        if ($package->type === 'template') {
             $manifest = $package->getManifest();
             if ($manifest) {
                 $templateDemoContent = $manifest->demoContent ?? [];
@@ -361,7 +350,7 @@ class LibraryController extends Controller
 
     /**
      * Renders a single Section's template.twig with the given demo data for use inside a
-     * composed preview (Pattern or Template), returning its HTML and CSS. Errors are logged
+     * composed preview (a Template), returning its HTML and CSS. Errors are logged
      * and swallowed so one broken Section doesn't blank out the rest of the preview.
      *
      * @return array{0: string, 1: string} [html, css]

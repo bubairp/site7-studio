@@ -53,7 +53,7 @@ class PackageAuthoringController extends Controller
         $this->view->registerAssetBundle(\site7\studio\assetbundles\LibraryBundle::class);
 
         $preselectedType = (string)Craft::$app->getRequest()->getQueryParam('type', 'section');
-        if (!in_array($preselectedType, PackageAuthoringService::VALID_TYPES, true) || $preselectedType === 'pattern') {
+        if (!in_array($preselectedType, PackageAuthoringService::VALID_TYPES, true)) {
             $preselectedType = 'section';
         }
 
@@ -90,10 +90,6 @@ class PackageAuthoringController extends Controller
         ];
 
         try {
-            // Patterns are no longer created from the CP.
-            if ($meta['type'] === 'pattern') {
-                throw new \Exception('Pattern packages are no longer available. Create a Section or Template instead.');
-            }
             $record = (new PackageAuthoringService())->createPackage($meta);
         } catch (\Throwable $e) {
             Craft::$app->getSession()->setError($e->getMessage());
@@ -185,17 +181,10 @@ class PackageAuthoringController extends Controller
         // them stay invisible in the CP.
         $packageDependencies = $authoringService->getPackageDependencies($handle);
 
-        $availableSections = [];
-        $patternComposition = [];
-        if ($package->type === 'pattern') {
-            $availableSections = $authoringService->getAvailableSections();
-            $patternComposition = $authoringService->getPatternComposition($handle);
-        }
-
         $availableTemplateItems = [];
         $templateComposition = [];
         if ($package->type === 'template') {
-            $availableTemplateItems = $authoringService->getAvailableSectionsAndPatterns();
+            $availableTemplateItems = $authoringService->getAvailableSections();
             $templateComposition = $authoringService->getTemplateComposition($handle);
         }
 
@@ -231,8 +220,6 @@ class PackageAuthoringController extends Controller
             'starterKitTree' => $starterKitTree,
             'isCapturedStarterKit' => $isCapturedStarterKit,
             'packageDependencies' => $packageDependencies,
-            'availableSections' => $availableSections,
-            'patternComposition' => $patternComposition,
             'availableTemplateItems' => $availableTemplateItems,
             'templateComposition' => $templateComposition,
             'availableTemplates' => $availableTemplates,
@@ -320,29 +307,6 @@ class PackageAuthoringController extends Controller
         }
 
         Craft::$app->getSession()->setNotice('Package Builder saved.');
-        return $this->redirectToPostedUrl();
-    }
-
-    /**
-     * Saves the Pattern Builder's canvas.
-     */
-    public function actionSavePattern()
-    {
-        $this->requirePostRequest();
-
-        $request = Craft::$app->getRequest();
-        $handle = (string)$request->getRequiredBodyParam('handle');
-        $this->requireAuthoringAccess($handle);
-        $composition = json_decode((string)$request->getBodyParam('composition', '[]'), true);
-
-        try {
-            (new PackageAuthoringService())->savePatternComposition($handle, is_array($composition) ? $composition : []);
-        } catch (\Throwable $e) {
-            Craft::$app->getSession()->setError($e->getMessage());
-            return $this->redirectToPostedUrl();
-        }
-
-        Craft::$app->getSession()->setNotice('Pattern saved.');
         return $this->redirectToPostedUrl();
     }
 

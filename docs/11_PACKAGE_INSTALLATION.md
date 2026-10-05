@@ -18,8 +18,8 @@ Explain exactly what happens when a package is installed onto a site — the sin
 installPackage($handle)
    ↓ resolve manifest.dependencies.sharedResources → DependencyResolverService::resolveSharedResources()
    ↓   (missing/dead Shared Resource → warning only, NEVER blocks install)
-   ↓ type-specific cascade: Pattern requires Sections → recursively install+enable;
-   ↓   Template requires Patterns/Sections → same; Starter-Kit requires Templates → same
+   ↓ type-specific cascade: Template requires Sections → recursively install+enable;
+   ↓   Starter-Kit requires Templates → same
    ↓ if type === 'section': CraftResourceService::generateResources($packagePath)
    ↓   → createCraftField() per fields.yaml entry — idempotent
    ↓   → createMatrixEntryType() per matrix.yaml block — idempotent
@@ -35,7 +35,7 @@ installPackage($handle)
 
 1. Load the `PackageRecord`; return `false` if not found.
 2. Resolve Shared Resource dependencies (`DependencyResolverService::resolveSharedResources()`) — collects warnings into `$_lastInstallWarnings`, never blocks.
-3. Type-specific cascade: if `pattern`, install+enable every required `section`; if `template`, install+enable every required `pattern`/`section`; if `starter-kit`, install+enable every required `template`. Each cascade call recursively re-enters `installPackage()`.
+3. Type-specific cascade: if `template`, install+enable every required `section` (an old `requires.patterns` is ignored); if `starter-kit`, install+enable every required `template`. Each cascade call recursively re-enters `installPackage()`.
 4. Resolve the package's on-disk path (`packages/{handle}/`, falling back to `tests/fixtures/packages/{handle}/` for test fixtures only).
 5. Begin a DB transaction.
 6. If `type === 'section'`: `CraftResourceService::generateResources($packagePath)` — see `04_CRAFT_CMS_INTEGRATION.md` for the Field/Entry Type creation detail and `13_TEMPLATE_ARCHITECTURE.md` for the template-copy guard. Record the template's baseline if it was actually copied.
@@ -80,7 +80,7 @@ None dispatched directly by `installPackage()` itself (the *caller*, e.g. an imp
 | Scenario | Behavior |
 |---|---|
 | Package not found | `installPackage()` returns `false` immediately |
-| Required Pattern/Section/Template missing | Throws `Exception("Required ... package '...' was not found.")` |
+| Required Section/Template missing | Throws `Exception("Required ... package '...' was not found.")` |
 | A Shared Resource is missing/dead | Warning collected, install continues |
 | `Craft::$app->getFields()->saveField()` returns false | Exception thrown inside the try block → transaction rollback + resource undo |
 | Template target already exists with different content | Skipped, warning recorded, install still succeeds overall |

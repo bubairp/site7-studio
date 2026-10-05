@@ -7,7 +7,6 @@ use site7\studio\models\packages\Package;
 use site7\studio\models\packages\PackageManifest;
 use site7\studio\models\packages\SectionPackage;
 use site7\studio\models\packages\TemplatePackage;
-use site7\studio\models\packages\PatternPackage;
 use site7\studio\models\packages\StarterKitPackage;
 use site7\studio\models\packages\ThemePackage;
 use Exception;
@@ -68,8 +67,6 @@ class PackageReader extends Component
                 return new SectionPackage();
             case 'template':
                 return new TemplatePackage();
-            case 'pattern':
-                return new PatternPackage();
             case 'starter-kit':
                 return new StarterKitPackage();
             case 'theme':

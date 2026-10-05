@@ -10,8 +10,8 @@ use site7\studio\Site7Studio;
  * The Dependency Engine. Resolves the two edge kinds Phase 16 introduces -
  * Shared Resource -> Shared Resource, and (any package) -> Shared Resource -
  * ahead of PackageManagerService::installPackage()'s existing, unmodified
- * per-type cascade (Pattern -> Section, Template -> Pattern/Section,
- * Starter Kit -> Template), which already resolves those edges correctly
+ * per-type cascade (Template -> Section, Starter Kit -> Template), which
+ * already resolves those edges correctly
  * and is left untouched here.
  */
 class DependencyResolverService extends Component

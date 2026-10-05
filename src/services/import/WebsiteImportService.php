@@ -112,7 +112,6 @@ class WebsiteImportService extends Component
         $pages = [];
         $requiresTemplates = [];
         $requiresSections = [];
-        $requiresPatterns = [];
         $pageHashes = [];
         $skipped = [];
         $notes = [];
@@ -154,7 +153,6 @@ class WebsiteImportService extends Component
             $pageHashes[] = (new EntrySourceHasher())->computeHash($entry);
             $templateManifest = $templateRecord->getManifest();
             $requiresSections = array_merge($requiresSections, (array)($templateManifest?->requires['sections'] ?? []));
-            $requiresPatterns = array_merge($requiresPatterns, (array)($templateManifest?->requires['patterns'] ?? []));
 
             $parentSlug = null;
             $parent = $entry->getParent();
@@ -258,7 +256,6 @@ class WebsiteImportService extends Component
             'requires' => array_filter([
                 'templates' => array_values(array_unique($requiresTemplates)),
                 'sections' => array_values(array_unique($requiresSections)),
-                'patterns' => array_values(array_unique($requiresPatterns)),
             ]),
             'pages' => $pages,
             'globals' => $globals,
@@ -324,7 +321,9 @@ class WebsiteImportService extends Component
             'pageHashes' => $pageHashes,
             'templates' => array_values(array_unique($requiresTemplates)),
             'sections' => array_values(array_unique($requiresSections)),
-            'patterns' => array_values(array_unique($requiresPatterns)),
+            // Always empty since Patterns were removed; the key stays so
+            // hashes recorded before that still match (StarterKitSyncService).
+            'patterns' => [],
         ], JSON_UNESCAPED_SLASHES));
         $sourceRepo->record($record->id, $entryUids, $aggregateHash);
 

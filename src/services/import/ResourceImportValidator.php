@@ -77,7 +77,7 @@ class ResourceImportValidator extends Component
             $errors[] = 'Nothing could be captured from this resource - it has no supported fields or content.';
         }
 
-        // 3. Dependencies - referenced Sections/Templates/Patterns/Category or
+        // 3. Dependencies - referenced Sections/Templates/Category or
         // Tag groups that aren't installed/packaged are never blocking, since
         // installPackage()'s cascade can only reach handles that are
         // themselves packages, not arbitrary native Craft resources.

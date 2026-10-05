@@ -530,7 +530,6 @@
                 categories: 'Categories',
                 assets: 'Assets',
                 components: 'Components',
-                patterns: 'Patterns',
                 globals: 'Globals',
                 navigation: 'Navigation',
                 templates: 'Templates',

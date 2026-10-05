@@ -14,7 +14,7 @@ Developers/agencies maintaining multiple Craft sites who want to reuse and safel
 
 ## What a package is
 
-A directory, `packages/{handle}/`, containing a `manifest.json` plus type-specific content: captured Craft field definitions (`fields.yaml`), Matrix/Entry Type configuration (`matrix.yaml`), a real Twig template (`template.twig`), optionally explicitly-owned frontend files, and preview assets. Every package has a `type` (`section`, `template`, `pattern`, `starter-kit`, `theme`), a globally-unique kebab-case `handle`, and a semantic `version`.
+A directory, `packages/{handle}/`, containing a `manifest.json` plus type-specific content: captured Craft field definitions (`fields.yaml`), Matrix/Entry Type configuration (`matrix.yaml`), a real Twig template (`template.twig`), optionally explicitly-owned frontend files, and preview assets. Every package has a `type` (`section`, `template`, `starter-kit`, `theme`; `pattern` was removed on 2026-10-05), a globally-unique kebab-case `handle`, and a semantic `version`.
 
 ## Relationship to Craft CMS
 

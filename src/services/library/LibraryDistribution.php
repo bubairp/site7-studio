@@ -40,7 +40,7 @@ class LibraryDistribution extends Component
     ];
 
     /** requires keys that point at other Library packages */
-    private const REQUIRES_KEYS = ['themes', 'templates', 'sections', 'patterns'];
+    private const REQUIRES_KEYS = ['themes', 'templates', 'sections'];
 
     // ------------------------------------------------------------- author side
 

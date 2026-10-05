@@ -74,7 +74,7 @@ class Commerce24PublishTarget implements PackagePublishTargetInterface
                 'timeout' => 600,
                 'json' => [
                     'handle' => $bundle->rootHandle,
-                    // The package's actual kind (section/pattern/template/
+                    // The package's actual kind (section/template/theme/
                     // starter-kit) - distinct from $metadata's optional,
                     // free-text "category" field (e.g. "Marketing"), and the
                     // only source Commerce24 has for it at all, so it must be

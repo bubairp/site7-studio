@@ -32,7 +32,9 @@ packages/{handle}/
 
 **Package source vs. installed resources — the core distinction**: everything under `packages/{handle}/` is Site7-owned authoring storage — safe to overwrite wholesale during import/sync/rollback, because no human hand-edits it directly outside the Package Editor/Import flows. What that source *produces* on the host site — Craft Fields, Entry Types, and `templates/_blocks/{handle}.twig` — is genuinely developer-editable live content, and is what every safety mechanism in this documentation set (baseline, three-way conflict, rollback protection) exists to protect. Confusing these two is the most common category of architectural mistake in this codebase's own history.
 
-**Package types** (`src/models/packages/*.php`): `SectionPackage` (`'section'`), `TemplatePackage` (`'template'`), `PatternPackage` (`'pattern'`), `StarterKitPackage` (`'starter-kit'`), `ThemePackage` (`'theme'`). All actual structure lives in `PackageManifest`, not these ~10-line subclasses.
+**Package types** (`src/models/packages/*.php`): `SectionPackage` (`'section'`), `TemplatePackage` (`'template'`), `StarterKitPackage` (`'starter-kit'`), `ThemePackage` (`'theme'`). All actual structure lives in `PackageManifest`, not these ~10-line subclasses.
+
+**Patterns removed (2026-10-05).** The `pattern` type (a reusable group of Sections) was unused and is gone: `PatternPackage`, `PatternInsertionService`, the Pattern Builder (`pattern-builder.js`, `actionSavePattern`), the `get-pattern-blocks` action, and the page builder's "Insert Pattern" button. A Template now requires Sections only. Compatibility: a `requires.patterns` key in an older manifest is ignored (saving a Template in the Builder removes it); a leftover `pattern` package folder is skipped at discovery with a logged warning; `library?type=pattern` links land on Sections. The Content Browser keeps its file and class names (`pattern-browser.js`, `pattern-matrix.js`, `Site7PatternBrowser`, `PatternMatrixBundle`) to avoid churn - they now serve Sections and Templates only (`44`).
 
 ## 5. Execution Flow — the complete lifecycle
 

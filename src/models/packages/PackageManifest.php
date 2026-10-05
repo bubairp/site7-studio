@@ -26,7 +26,7 @@ class PackageManifest extends Model
      * Never embeds a Shared Resource's own definition - only references it by
      * handle, resolved against site7_shared_resources at install time
      * (DependencyResolverService). Distinct from $requires, which is the
-     * existing (frozen) Section/Pattern/Template graph.
+     * existing (frozen) Section/Template graph.
      *
      * Website Starter Kit System schema additions, reserved empty by Phase 1
      * and populated by Phase 4's environment capture (ComposerDependencyScanner/

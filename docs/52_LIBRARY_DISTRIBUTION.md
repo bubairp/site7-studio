@@ -25,7 +25,7 @@ library/publish ── one archive per ──> POST /marketplace/publish
 - **Each package alone** (`PackageExportService::exportPackage($handle, false)`). Its requirements are separate listings, so a site downloads each package once, and only if it needs it. A whole-kit archive would be 250 MB+.
 - **Metadata** sent with each package (`metadata()`):
   - `name`, `description`, `category`, `pricingType`;
-  - `requires`, limited to package keys: `themes`, `templates`, `sections`, `patterns`;
+  - `requires`, limited to package keys: `themes`, `templates`, `sections`;
   - `formatVersion`;
   - `library`: the package's own `theme.json` / `template.json` / `starter-kit.json`, without `envKeys`.
 - The publish is recorded in publish history. Exported archives stay in `storage/site7-studio/exports/` (archives are immutable, `17`).

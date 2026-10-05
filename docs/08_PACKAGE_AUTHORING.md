@@ -35,7 +35,7 @@ packages/{handle}/manifest.json  +  site7_packages row
 **`PackageAuthoringService`**
 `src/services/PackageAuthoringService.php`
 Responsibility: package create/edit, locked-field enforcement, type-specific composition editing.
-Important methods: `createPackage()`, `updatePackage()`, `saveSectionFields()`, `savePatternComposition()`, `saveTemplateComposition()`, `saveStarterKitComposition()`, `savePreviewImage()`.
+Important methods: `createPackage()`, `updatePackage()`, `saveSectionFields()`, `saveTemplateComposition()`, `saveStarterKitComposition()`, `savePreviewImage()`.
 Called by: `PackageAuthoringController` (every action), `VersionManagerService::createVersion()` (for the `version` field write, §17).
 Dependencies: `PackageManagerService`, `PackageBackupService`, `SectionImportSourceRepository`/`PageImportSourceRepository`/`WebsiteImportSourceRepository` (locked-field checks).
 

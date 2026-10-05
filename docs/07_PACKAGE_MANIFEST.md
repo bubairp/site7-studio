@@ -52,7 +52,7 @@ Responsibility: `manifest.json` → hydrated `PackageManifest` + correct `Packag
 | Property | Type | Required | Meaning | Written by |
 |---|---|---|---|---|
 | `schemaVersion` | string | required | Always `'1'` currently | every writer |
-| `type` | string | required | `section`\|`template`\|`pattern`\|`starter-kit`\|`theme` | package creation (never changes) |
+| `type` | string | required | `section`\|`template`\|`starter-kit`\|`theme` (`pattern` removed, `06`) | package creation (never changes) |
 | `handle` | string | required | Kebab-case, globally unique | package creation |
 | `name` | string | required | Display name | authoring/import |
 | `version` | string | required | Semver `MAJOR.MINOR.PATCH` | `VersionManagerService::createVersion()` is the intended sanctioned writer of a NEW value, but this is **UI-enforced only** — `PackageAuthoringService::updatePackage()`'s general field loop accepts a `version` key from any caller, including `PackagePublisherController::actionSaveMetadata()` (whose field allow-list also includes `version`); the backend does not itself block a `version` write from outside `VersionManagerService`. |

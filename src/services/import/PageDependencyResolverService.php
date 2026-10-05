@@ -26,7 +26,7 @@ use site7\studio\Site7Studio;
  * Deliberately narrower than the full "8 dependencies" example in the phase
  * brief: it reports what's structurally resolvable from one live Entry
  * (matrix block Entry Types, actually-selected Category/Tag/Asset relations,
- * real Navigation menus) - Patterns/Templates are a SITE7 authoring concept
+ * real Navigation menus) - Templates are a SITE7 authoring concept
  * with no live-Craft equivalent to detect, and Global Sets have no
  * structural link from a single Entry (see PageDependencyPreview::$globals).
  */

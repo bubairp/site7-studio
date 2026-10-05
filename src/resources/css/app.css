@@ -157,7 +157,7 @@
     justify-content: flex-end;
 }
 
-/* ----- Library Grid: fallback when a Template/Pattern has no preview image ----- */
+/* ----- Library Grid: fallback when a Template has no preview image ----- */
 /* Craft's own asset thumb has nothing to fall back to when there's no image. */
 .card.thumb-end .thumb.site7-thumb-fallback {
     display: flex;
@@ -372,9 +372,8 @@ pre.code {
     color: var(--gray-600);
 }
 
-/* ----- Pattern Builder / Template Builder / Starter Kit Builder: 3-column layout ----- */
+/* ----- Template Builder / Starter Kit Builder: 3-column layout ----- */
 /* Craft has no visual drag-and-drop composition builder. */
-#site7-pattern-builder,
 #site7-template-builder,
 #site7-starter-kit-builder {
     display: flex;
@@ -505,7 +504,7 @@ pre.code {
 }
 
 /* Template Builder: adds a type filter and per-item type badges on top of
-   the Pattern Builder's shared .site7-pb-* column/card/dropzone layout. */
+   the shared .site7-pb-* column/card/dropzone layout. */
 .site7-tb-filter {
     display: flex;
     gap: 4px;
@@ -525,9 +524,4 @@ pre.code {
 .site7-tb-type-badge.site7-tb-type-section {
     background: var(--blue-050, #eff6ff);
     color: var(--blue-600, #2563eb);
-}
-
-.site7-tb-type-badge.site7-tb-type-pattern {
-    background: var(--teal-050, #f0fdfa);
-    color: var(--teal-600, #0d9488);
 }

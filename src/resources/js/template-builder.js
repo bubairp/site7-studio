@@ -1,11 +1,10 @@
 /**
  * Site7 Studio - Template Builder.
  *
- * Same mini-app pattern as the Pattern Builder (pattern-builder.js): one
- * in-memory "composition" array, rendered from and serialized back to a
- * single hidden JSON input on save. The Template Builder's canvas can hold
- * both Sections and Patterns (a Pattern Builder's canvas only holds
- * Sections), and each item tracks its own `type` alongside its `handle`.
+ * A small vanilla-JS mini-app: one in-memory "composition" array of
+ * Sections, rendered from and serialized back to a single hidden JSON
+ * input on save. Each item tracks its `type` ('section') alongside its
+ * `handle`.
  */
 (function() {
     var root = document.getElementById('site7-template-builder');
@@ -105,7 +104,7 @@
         if (!matches.length) {
             var empty = document.createElement('p');
             empty.className = 'light';
-            empty.textContent = 'No Sections or Patterns found.';
+            empty.textContent = 'No Sections found.';
             libraryEl.appendChild(empty);
         }
     }
@@ -130,7 +129,7 @@
         if (!composition.length) {
             var empty = document.createElement('p');
             empty.className = 'light';
-            empty.textContent = 'Drag Sections or Patterns here to build the Template.';
+            empty.textContent = 'Drag Sections here to build the Template.';
             canvasEl.appendChild(empty);
             return;
         }
@@ -207,21 +206,13 @@
             canvasEl.appendChild(card);
 
             if (!item.collapsed) {
-                if (item.type === 'pattern') {
-                    var patternNote = document.createElement('div');
-                    patternNote.className = 'light';
-                    patternNote.style.cssText = 'margin: -4px 0 8px 28px; font-size: 12px;';
-                    patternNote.textContent = 'Pattern - content configured in its own editor.';
-                    canvasEl.appendChild(patternNote);
-                } else {
-                    var summaryEntries = Object.keys(item.defaultValues || {}).filter(function(k) { return item.defaultValues[k]; });
-                    if (summaryEntries.length) {
-                        var summary = document.createElement('div');
-                        summary.className = 'light';
-                        summary.style.cssText = 'margin: -4px 0 8px 28px; font-size: 12px;';
-                        summary.textContent = summaryEntries.map(function(k) { return k + ': ' + item.defaultValues[k]; }).join(', ');
-                        canvasEl.appendChild(summary);
-                    }
+                var summaryEntries = Object.keys(item.defaultValues || {}).filter(function(k) { return item.defaultValues[k]; });
+                if (summaryEntries.length) {
+                    var summary = document.createElement('div');
+                    summary.className = 'light';
+                    summary.style.cssText = 'margin: -4px 0 8px 28px; font-size: 12px;';
+                    summary.textContent = summaryEntries.map(function(k) { return k + ': ' + item.defaultValues[k]; }).join(', ');
+                    canvasEl.appendChild(summary);
                 }
             }
         });
@@ -256,24 +247,6 @@
         var heading = document.createElement('p');
         heading.innerHTML = '<strong>' + escapeHtml(item.name) + '</strong>';
         propertiesEl.appendChild(heading);
-
-        if (item.type === 'pattern') {
-            var note = document.createElement('p');
-            note.className = 'light';
-            note.textContent = 'A Template only references a Pattern - its content is configured in the Pattern\'s own editor.';
-            propertiesEl.appendChild(note);
-
-            if (itemDef && itemDef.editUrl) {
-                var link = document.createElement('a');
-                link.href = itemDef.editUrl;
-                link.target = '_blank';
-                link.rel = 'noopener';
-                link.className = 'btn small';
-                link.textContent = 'Edit ' + item.name;
-                propertiesEl.appendChild(link);
-            }
-            return;
-        }
 
         var fields = itemDef ? itemDef.fields : [];
 

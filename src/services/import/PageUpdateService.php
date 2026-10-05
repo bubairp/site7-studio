@@ -23,11 +23,9 @@ use Symfony\Component\Yaml\Yaml;
  * package map) using the same, simple technique
  * TemplateGeneratorService::buildEntryTypeToSectionMap() uses (scan every
  * installed Section package's matrix.yaml), so it never has to touch that
- * frozen class's private methods. Unlike a fresh "Save as Template", this
- * does not attempt the Pattern-run reconstruction TemplateGeneratorService's
- * initial generation does - requires.sections stays a flat, honest list of
- * bare Section handles on update (a pre-existing requires.patterns entry, if
- * any, is left untouched).
+ * frozen class's private methods. requires.sections stays a flat list of
+ * Section handles on update (a requires.patterns entry left by an older
+ * version, if any, is left untouched and ignored).
  */
 class PageUpdateService
 {

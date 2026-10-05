@@ -113,8 +113,8 @@ class Site7Studio extends Plugin
 
     /**
      * Gates Package Authoring (the New Package wizard and Package Editor -
-     * create/edit/delete for Sections, Patterns, Templates, and Starter
-     * Kits) to Craft's own Dev Mode. "Save as Template" and managing a
+     * create/edit/delete for Sections, Templates, and Starter Kits) to
+     * Craft's own Dev Mode. "Save as Template" and managing a
      * Template you personally captured that way stay available regardless
      * - see PackageAuthoringController and PackageActionController::actionDelete().
      */
@@ -147,7 +147,7 @@ class Site7Studio extends Plugin
     {
         // Event listeners will be registered in future sprints
         
-        // Inject Pattern insertion JS into the CP
+        // Inject the page builder's Add Section button and Content Browser JS into the CP
         if (Craft::$app->getRequest()->getIsCpRequest() && !Craft::$app->getRequest()->getIsConsoleRequest()) {
             \yii\base\Event::on(
                 \craft\web\View::class,
@@ -197,7 +197,7 @@ class Site7Studio extends Plugin
                     return;
                 }
 
-                // Blocks inserted via this plugin's own Section/Pattern/Template insert
+                // Blocks inserted via this plugin's own Section/Template insert
                 // flow can remain provisional drafts on the owner until a subsequent
                 // native full-page save merges them, so the default (canonical-only)
                 // field-value query can under-report; check inclusively of drafts here.

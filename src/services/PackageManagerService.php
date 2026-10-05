@@ -179,38 +179,10 @@ class PackageManagerService extends Component
             }
         }
 
-        // If it is a pattern, verify and install required Sections first
-        if ($record->type === 'pattern') {
-            $manifest = $record->getManifest();
-            if ($manifest && !empty($manifest->requires['sections'])) {
-                foreach ($manifest->requires['sections'] as $requiredHandle) {
-                    $requiredRecord = $this->getPackageByHandle($requiredHandle);
-
-                    if (!$requiredRecord) {
-                        // Attempt discovery to find newly added packages
-                        $this->discoverPackages();
-                        $requiredRecord = $this->getPackageByHandle($requiredHandle);
-                    }
-
-                    if ($requiredRecord) {
-                        if ($requiredRecord->status !== 'enabled') {
-                            if ($requiredRecord->status === 'available') {
-                                $this->installPackage($requiredHandle);
-                            }
-                            $this->enablePackage($requiredHandle);
-                        }
-                    } else {
-                        throw new \Exception("Required section package '{$requiredHandle}' was not found.");
-                    }
-                }
-            }
-        }
-
-        // If it is a template, verify and install required Patterns and Sections first.
-        // Templates are never stored as content and never generate their own Craft
-        // resources - installing one only cascades into its required Patterns/Sections.
-        // A required Pattern's own installPackage() call below already cascades into
-        // its required Sections, so this achieves full transitive installation.
+        // If it is a template, verify and install its required Sections first.
+        // Templates never generate their own Craft resources - installing one
+        // cascades into its required Sections. A requires.patterns list left by
+        // an older version is ignored: Patterns are no longer a package type.
         if ($record->type === 'template') {
             // Format v2 (docs/50): the page's content is installed below,
             // once its blocks are - check what it needs first.
@@ -220,7 +192,7 @@ class PackageManagerService extends Component
             }
             $manifest = $record->getManifest();
             if ($manifest) {
-                foreach (['patterns' => 'pattern', 'sections' => 'section'] as $requiresKey => $requiredKind) {
+                foreach (['sections' => 'section'] as $requiresKey => $requiredKind) {
                     foreach ($manifest->requires[$requiresKey] ?? [] as $requiredHandle) {
                         $requiredRecord = $this->getPackageByHandle($requiredHandle);
 
@@ -245,7 +217,7 @@ class PackageManagerService extends Component
         }
 
         // If it is a Starter Kit, verify and install its required Templates first -
-        // same cascade pattern as templates cascading into patterns/sections above.
+        // same cascade as templates cascading into their sections above.
         // This only installs the Template packages themselves; it does not create
         // any pages - that's StarterKitInstallationService::installStarterKit()'s job,
         // triggered by the separate "Install Starter Kit" action once this package

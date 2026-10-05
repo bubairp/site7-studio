@@ -35,7 +35,7 @@ class TemplateGeneratorService extends Component
             throw new \Exception('No Site7 Matrix field is configured.');
         }
 
-        // Blocks inserted via this plugin's own Section/Pattern/Template insert flow
+        // Blocks inserted via this plugin's own Section/Template insert flow
         // can remain provisional drafts on the owner until a subsequent native
         // full-page save merges them, so the default (canonical-only) field-value
         // query can under-report; read inclusively of drafts here.
@@ -107,8 +107,6 @@ class TemplateGeneratorService extends Component
             throw new \Exception('No recognized Site7 Sections were found in this entry.');
         }
 
-        [$requiresPatterns, $requiresSections] = $this->detectPatternReferences($sectionHandles);
-
         // Capture the source Entry's own custom fields (its Section/Entry Type field
         // layout) - everything except the Site7 Matrix field, which is captured above
         // via demoContent/requires instead. Structural identity (handles) only, per
@@ -130,10 +128,9 @@ class TemplateGeneratorService extends Component
             'sourceEntryType' => $entry->getType()->handle,
             'sourceSection' => $entry->getSection()?->handle,
             'sourceSectionType' => $entry->getSection()?->type,
-            'requires' => array_filter([
-                'patterns' => $requiresPatterns,
-                'sections' => $requiresSections,
-            ]),
+            'requires' => [
+                'sections' => $sectionHandles,
+            ],
             'demoContent' => $demoContent,
             'entryFields' => $entryFields,
             'dependencies' => [],
@@ -184,7 +181,7 @@ class TemplateGeneratorService extends Component
     /**
      * Builds an [entryTypeHandle => sectionPackageHandle] map by scanning every
      * Section package's matrix.yaml, mirroring the same on-demand lookup already
-     * performed (in the opposite direction) by PatternInsertionService and
+     * performed (in the opposite direction) by TemplateInsertionService and
      * PackageActionController::actionGetBrowserData.
      */
     private function buildEntryTypeToSectionMap(): array
@@ -307,53 +304,6 @@ class TemplateGeneratorService extends Component
             // field simply isn't captured as static demo content.
         }
         return $values;
-    }
-
-    /**
-     * Scans the ordered section-handle sequence for contiguous runs that exactly
-     * match an existing Pattern's requires.sections, replacing each matched run with
-     * a Pattern reference. Remaining sections are returned as bare Sections. This is
-     * a best-effort reconstruction - true arbitrary interleaving of Patterns and
-     * Sections isn't representable under Phase 9's existing (frozen) ordering model,
-     * where all requires.patterns are expanded before any requires.sections.
-     *
-     * @return array{0: string[], 1: string[]} [requiresPatterns, requiresSections]
-     */
-    private function detectPatternReferences(array $sectionHandles): array
-    {
-        $packageManager = Site7Studio::getInstance()->packageManager;
-        $patterns = array_filter($packageManager->getAllPackages(), fn($p) => strtolower($p->type) === 'pattern');
-
-        $requiresPatterns = [];
-        $requiresSections = [];
-        $i = 0;
-        $count = count($sectionHandles);
-
-        while ($i < $count) {
-            $matchedPattern = null;
-            foreach ($patterns as $pattern) {
-                $manifest = $pattern->getManifest();
-                $required = $manifest?->requires['sections'] ?? [];
-                $len = count($required);
-                if ($len === 0 || $i + $len > $count) {
-                    continue;
-                }
-                if (array_slice($sectionHandles, $i, $len) === $required) {
-                    $matchedPattern = $pattern;
-                    $i += $len;
-                    break;
-                }
-            }
-
-            if ($matchedPattern) {
-                $requiresPatterns[] = $matchedPattern->handle;
-            } else {
-                $requiresSections[] = $sectionHandles[$i];
-                $i++;
-            }
-        }
-
-        return [$requiresPatterns, $requiresSections];
     }
 
     private function generateUniqueHandle(string $name): string

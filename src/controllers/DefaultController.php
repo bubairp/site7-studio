@@ -17,7 +17,7 @@ class DefaultController extends Controller
 
         $packages = Site7Studio::getInstance()->packageManager->getAllPackages();
 
-        $byType = ['section' => 0, 'pattern' => 0, 'template' => 0, 'starter-kit' => 0];
+        $byType = ['section' => 0, 'template' => 0, 'starter-kit' => 0];
         $byStatus = ['available' => 0, 'installed' => 0, 'enabled' => 0, 'disabled' => 0];
         foreach ($packages as $package) {
             $type = strtolower($package->type);
