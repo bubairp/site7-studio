@@ -151,6 +151,10 @@ class KitInstaller extends ThemeInstaller
     {
         $packageManager = Site7Studio::getInstance()->packageManager;
         $packageManager->discoverPackages();
+        // Without its folder the kit has no manifest, so nothing would install.
+        if (!$packageManager->getPackagePath($handle)) {
+            return ["The Starter Kit '{$handle}' is not in this site's Library (packages/{$handle} is missing)."];
+        }
         try {
             $ok = $packageManager->installPackage($handle) && $packageManager->enablePackage($handle);
         } catch (\Throwable $e) {

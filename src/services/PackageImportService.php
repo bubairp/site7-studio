@@ -131,9 +131,11 @@ class PackageImportService extends Component
             $result->pricingTypes[$handle] = (string)($packageManifest['pricingType'] ?? 'free');
 
             $existing = $packageManager->getPackageByHandle($handle);
-            if ($existing) {
-                $existingPath = $packageManager->getPackagePath($handle);
-                $existingChecksum = $existingPath ? PackageArchiveHelper::computeDirectoryChecksum($existingPath) : null;
+            $existingPath = $existing ? $packageManager->getPackagePath($handle) : null;
+            // A row whose folder is gone (an interrupted import) has no local
+            // files to protect: the archive restores them.
+            if ($existing && $existingPath) {
+                $existingChecksum = PackageArchiveHelper::computeDirectoryChecksum($existingPath);
                 if ($existingChecksum === $actualChecksum) {
                     $result->alreadyInstalled[] = $handle;
                 } else {

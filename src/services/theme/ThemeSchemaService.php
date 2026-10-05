@@ -158,12 +158,13 @@ class ThemeSchemaService extends Component
     }
 
     /**
-     * @return array{create: array, reuse: array, conflicts: string[], missingTypes: string[]}
+     * @return array{create: array, reuse: array, replace: string[], conflicts: string[], missingTypes: string[]}
+     *   replace: UIDs of Setup placeholder fields the Theme's own field takes over
      */
     public function plan(array $schema): array
     {
         $projectConfig = Craft::$app->getProjectConfig();
-        $plan = ['create' => [], 'reuse' => [], 'conflicts' => [], 'missingTypes' => []];
+        $plan = ['create' => [], 'reuse' => [], 'replace' => [], 'conflicts' => [], 'missingTypes' => []];
 
         foreach ($schema['items'] as $item) {
             if ($projectConfig->get($item['path']) !== null) {
@@ -175,6 +176,10 @@ class ThemeSchemaService extends Component
             if ($handle !== null && $kind !== 'fs') {
                 foreach ($projectConfig->get($kind) ?? [] as $otherKey => $other) {
                     if (($other['handle'] ?? null) === $handle && $otherKey !== $key) {
+                        if ($kind === 'fields' && self::isSetupPlaceholder((string)$otherKey, $other)) {
+                            $plan['replace'][] = (string)$otherKey;
+                            break;
+                        }
                         $plan['conflicts'][] = "{$kind} '{$handle}' already exists here with a different UID.";
                         continue 2;
                     }
@@ -203,6 +208,18 @@ class ThemeSchemaService extends Component
             throw new \Exception(implode(' ', array_merge($plan['conflicts'], $plan['missingTypes'])));
         }
 
+        // Setup's empty site7Components field gives way to the Theme's own.
+        foreach ($plan['replace'] as $uid) {
+            $field = Craft::$app->getFields()->getFieldByUid($uid);
+            if ($field && !Craft::$app->getFields()->deleteField($field)) {
+                throw new \Exception("Could not remove the empty '{$field->handle}' field Setup created.");
+            }
+            $plugin = \site7\studio\Site7Studio::getInstance();
+            if ($plugin->getSettings()->matrixFieldUid === $uid) {
+                Craft::$app->getPlugins()->savePluginSettings($plugin, \site7\studio\models\Settings::mergeWithStored(['matrixFieldUid' => null]));
+            }
+        }
+
         $projectConfig = Craft::$app->getProjectConfig();
         foreach ($plan['create'] as $item) {
             $projectConfig->set($item['path'], $item['config'], "Site7 Studio theme: {$item['path']}");
@@ -217,6 +234,24 @@ class ThemeSchemaService extends Component
         }
 
         return ['created' => count($plan['create']), 'reused' => count($plan['reuse'])];
+    }
+
+    /**
+     * The Matrix field Site7 Studio's Setup creates on a fresh site
+     * (SetupController, make/setup-matrix-field): site7Components, still
+     * without any block type and not used in any field layout. A Theme
+     * replaces it with its own field of that handle - otherwise "complete
+     * Setup, then install a Starter Kit" stops on a handle conflict.
+     */
+    public static function isSetupPlaceholder(string $uid, array $config): bool
+    {
+        if (($config['handle'] ?? null) !== 'site7Components' || ($config['type'] ?? null) !== \craft\fields\Matrix::class
+            || !empty($config['settings']['entryTypes'])) {
+            return false;
+        }
+        $field = Craft::$app->getFields()->getFieldByUid($uid);
+
+        return $field !== null && Craft::$app->getFields()->findFieldUsages($field) === [];
     }
 
     /** @return array{0: string, 1: string} kind, key */

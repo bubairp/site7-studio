@@ -97,6 +97,11 @@ class ThemeInstaller extends SiteKitInstaller
                 $result['errors'][] = "Plugin '{$pluginHandle}' was not installed by composer.";
                 return $result;
             }
+            // Re-running an install that stopped later on finds them installed.
+            if (Craft::$app->getPlugins()->isPluginInstalled($pluginHandle)) {
+                $log("Plugin {$pluginHandle} is already installed");
+                continue;
+            }
             if (!$this->run([$php, $craft, 'plugin/install', $pluginHandle], $root, "plugin {$pluginHandle}", $result, $log)) {
                 return $result;
             }
