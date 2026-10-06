@@ -186,7 +186,9 @@
         <div class="site7-notice site7-notice--warning">
             <strong>{{ "No page builder yet."|t('site7-studio') }}</strong> {{ "Packages install once there is one."|t('site7-studio') }}
             <a href="{{ url('site7-studio/install') }}">{{ "Install a Starter Kit →"|t('site7-studio') }}</a>
-            {{ "or"|t('site7-studio') }} <a href="{{ url('site7-studio/settings') }}">{{ "choose this site's own field in Settings →"|t('site7-studio') }}</a>
+            {% if hasMatrixFields %}
+                {{ "or"|t('site7-studio') }} <a href="{{ url('site7-studio/settings') }}">{{ "choose this site's own field in Settings →"|t('site7-studio') }}</a>
+            {% endif %}
         </div>
     {% endif %}
 

@@ -47,7 +47,7 @@ class LibraryUpdater extends Component
     public function availableUpdates(): array
     {
         $packageManager = Site7Studio::getInstance()->packageManager;
-        $catalog = (new LibraryDistribution())->catalog();
+        $catalog = (new LibraryDistribution())->catalog(true);
         $updates = [];
         foreach ($packageManager->getAllPackages() as $record) {
             $entry = $catalog[$record->handle] ?? null;

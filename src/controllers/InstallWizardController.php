@@ -87,7 +87,23 @@ class InstallWizardController extends Controller
             'libraryKits' => $this->libraryKits(),
             'remoteKits' => (new \site7\studio\services\library\LibraryDistribution())->remoteKits(),
             'kitCheck' => $kitCheck,
+            // Whether each kit fits this site, shown before Check: a kit
+            // adds its pages to a site with its Theme, and needs a fresh
+            // site otherwise (one Theme per site).
+            'installedTheme' => $this->installedThemeHandle(),
+            'siteHasStructure' => count(Craft::$app->getEntries()->getAllSections()) > 0,
         ]);
+    }
+
+    private function installedThemeHandle(): ?string
+    {
+        foreach (Site7Studio::getInstance()->packageManager->getAllPackages() as $record) {
+            if ($record->type === 'theme' && $record->status !== 'available') {
+                return $record->handle;
+            }
+        }
+
+        return null;
     }
 
     /** @return array[] handle, name, description, version, status, meta (starter-kit.json) */

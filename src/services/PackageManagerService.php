@@ -669,6 +669,37 @@ class PackageManagerService extends Component
     }
 
     /**
+     * The CP's Remove button: uninstalls a package but keeps it in the
+     * Library, so Install rebuilds it from there. A Section's block type,
+     * fields and _blocks template are deleted with deletePackage()'s same
+     * usage-checked removal (anything still used is kept and reported via
+     * getLastDeleteWarnings()). Other package types generate no Craft
+     * resources of their own, so only their status changes. removePackage()
+     * stays the soft step Reinstall uses, which must keep the block type.
+     */
+    public function uninstallPackage(string $handle): bool
+    {
+        $this->_lastDeleteWarnings = [];
+
+        $record = $this->getPackageByHandle($handle);
+        if (!$record) {
+            return false;
+        }
+
+        if ($record->type === 'section') {
+            $this->unlinkFromMatrix($handle);
+            $packagePath = $this->getPackagePath($handle);
+            if ($packagePath) {
+                $this->_lastDeleteWarnings = \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->removePackageResources($packagePath);
+            }
+        }
+
+        $result = $this->updatePackageStatus($handle, 'available');
+        $this->invalidateCraftCaches();
+        return $result;
+    }
+
+    /**
      * Permanently deletes a package: unlinks/removes any generated Craft
      * resources first (same as removePackage()), then deletes its DB record
      * and its entire folder from disk. Irreversible - the caller is

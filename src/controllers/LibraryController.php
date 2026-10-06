@@ -105,6 +105,7 @@ class LibraryController extends Controller
             'packages' => $packages,
             'currentType' => $type,
             'isSetupComplete' => $isSetupComplete,
+            'hasMatrixFields' => !$isSetupComplete && array_filter(Craft::$app->getFields()->getAllFields(), fn($field) => $field instanceof \craft\fields\Matrix),
             'settings' => $settings,
             'q' => $q,
             'status' => $status,

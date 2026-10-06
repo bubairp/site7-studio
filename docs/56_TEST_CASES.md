@@ -97,6 +97,26 @@ Connecting a site: `55`. **How:** B = in the browser (Chrome), S = script or con
 | F1 | Plugin unit tests | `ddev exec 'cd plugins/site7-studio && php ../../vendor/bin/codecept run unit -c codeception.yml'` (in rp-craft) | ✅ 198 tests |
 | F2 | Commerce24 feature tests | `ddev exec php artisan test` (in commerce24) | ✅ 14 tests |
 
+## Run of 2026-10-06 (new site `site7-qa`)
+
+A second fresh customer site, https://site7-qa.ddev.site (Craft 5.10.8.1, empty Library, Demo Customer key), tested by HTTP requests against the real CP (one-time admin link) and the real Commerce24.
+
+| # | Case | Result |
+|---|---|---|
+| G1 | Kit install with admin changes off | ❌ → ✅ stopped at "structure" (read-only project config); now refused at Check / before the Theme copies anything (`43` #29). With `.env` fixed, the re-run finished ("Starter Kit installed", already installed plugins skipped) |
+| G2 | Account & License → Packages → Install a package not in the Library | ❌ → ✅ "Could not install"; now downloaded from Commerce24 and installed (`43` #28) |
+| G3 | Delete a Section, Install it again from Packages | ✅ `map`, `cta-banner`: downloaded, signature verified, enabled, entry type restored |
+| G4 | Every CP page: all screens and tabs, every package's page, preview and editor (97 packages) | ✅ 301 pages, HTTP 200, no errors |
+| G5 | CP actions: Test Connection, licence activate/validate/refresh, check updates, portals, disable/enable/remove/install, export, repair, Content Browser data, import-tool lookups | ✅ |
+| G6 | Publish Library with a customer key | ✅ refused by Commerce24 (403); now stops after the first refusal (`43` #30) |
+| G7 | Section install warnings on a Library site | ❌ → ✅ "Shared Resource not registered" for fields the Theme created (`43` #31) |
+| G8 | Frontend | ✅ 68 pages, no errors |
+| G9 | Logs and queue | ✅ no plugin errors left; queue empty, 0 failed |
+| G11 | Library → package → **Remove** a Section (`form`), then Install, Enable | ❌ → ✅ Remove deleted nothing; now block type, template and page-builder link are gone, the package stays "Available"; Install rebuilds, Enable relinks (config and database). Refused for `heading-content` (27 entries) (`43` #32) |
+| G12 | Disable an installed Starter Kit | ❌ → ✅ allowed, site unchanged, Install screen said "Not installed"; re-install added no duplicates and kept an edited title. Now refused, hidden, and the Install screen shows whether each kit fits (`43` #33) |
+| G13 | Library updates, two rounds (author: `headingContent` + `buttons` templates, About Us + Web Development titles; customer: edited `buttons` template + Web Development title) | ✅ 4 published (93 unchanged) each round; author changes arrived, customer edits kept ("kept your version"), backup + signatures, pages 200, project config clean, re-run 0 updates. ❌ → ✅ updates showed only after the 5-minute catalog cache expired (`43` #34) |
+| G10 | Unit tests (F1) | ✅ 198 tests |
+
 ## Findings from this run
 
 1. **Fixed:** Starter Kit install stopped on a fresh site when Setup had run first (C6).

@@ -31,6 +31,12 @@ class KitInstaller extends ThemeInstaller
     public function validateKit(string $handle): array
     {
         $result = ['errors' => [], 'warnings' => [], 'meta' => null, 'theme' => null, 'themeInstalled' => false, 'remote' => false, 'download' => [], 'downloadSize' => 0];
+        // The Theme's structure step writes project config, which Craft
+        // refuses while admin changes are off - say so before any download.
+        if (!Craft::$app->getConfig()->getGeneral()->allowAdminChanges) {
+            $result['errors'][] = 'Admin changes are turned off on this site, so its project config is read-only and the kit can\'t set up its structure. Set CRAFT_ALLOW_ADMIN_CHANGES=true in .env, then try again.';
+            return $result;
+        }
         $packageManager = Site7Studio::getInstance()->packageManager;
         $dir = $packageManager->getPackagePath($handle);
         if (!$dir) {

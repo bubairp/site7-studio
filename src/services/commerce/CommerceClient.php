@@ -70,6 +70,14 @@ class CommerceClient extends Component implements CommerceClientInterface
         $settings = Site7Studio::getInstance()->getSettings();
         $cacheKey = 'site7-studio.commerce24.' . md5($method . '|' . $endpoint . '|' . json_encode($options['query'] ?? []));
 
+        // 'fresh' => true: read Commerce24 now and refresh the cached copy -
+        // for answers that must not be minutes old (new versions just published).
+        $fresh = !empty($options['fresh']);
+        unset($options['fresh']);
+        if ($fresh && strtoupper($method) === 'GET') {
+            \Craft::$app->getCache()->delete($cacheKey);
+        }
+
         if (strtoupper($method) === 'GET') {
             return Site7Studio::getInstance()->cache->getOrSet(
                 $cacheKey,

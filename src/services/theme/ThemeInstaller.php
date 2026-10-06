@@ -43,6 +43,9 @@ class ThemeInstaller extends SiteKitInstaller
         if (Craft::$app->getVersion() !== $meta['craftVersion']) {
             $result['errors'][] = "This theme was built on Craft {$meta['craftVersion']}; this site runs Craft " . Craft::$app->getVersion() . '.';
         }
+        if (!$this->allowsAdminChangesWith("{$dir}/files/config/general.php")) {
+            $result['errors'][] = "The theme's config/general.php turns admin changes off on this site, so its structure couldn't be installed. Set CRAFT_ALLOW_ADMIN_CHANGES=true in .env (or CRAFT_ENVIRONMENT=dev), then try again.";
+        }
         $sections = count(Craft::$app->getEntries()->getAllSections());
         if ($sections > 0 || Entry::find()->status(null)->count() > 0) {
             $result['errors'][] = "This site already has content structure ({$sections} sections). A Theme sets up a fresh Craft install.";
@@ -64,6 +67,33 @@ class ThemeInstaller extends SiteKitInstaller
         }
 
         return $result;
+    }
+
+    /**
+     * Whether project config stays writable once $generalConfigFile (the
+     * Theme's config/general.php, copied over this site's before the
+     * structure step) is in place. The CRAFT_ALLOW_ADMIN_CHANGES env var
+     * overrides any config file, as in Craft.
+     */
+    private function allowsAdminChangesWith(string $generalConfigFile): bool
+    {
+        $override = App::env('CRAFT_ALLOW_ADMIN_CHANGES');
+        if ($override !== null) {
+            return App::parseBooleanEnv($override) ?? true;
+        }
+        if (!is_file($generalConfigFile)) {
+            return Craft::$app->getConfig()->getGeneral()->allowAdminChanges;
+        }
+        try {
+            $config = (static fn(string $file) => require $file)($generalConfigFile);
+        } catch (\Throwable) {
+            return true; // can't tell - the structure step reports it if so
+        }
+        if ($config instanceof \craft\config\GeneralConfig) {
+            return $config->allowAdminChanges;
+        }
+
+        return (bool)(is_array($config) ? ($config['allowAdminChanges'] ?? $config['*']['allowAdminChanges'] ?? true) : true);
     }
 
     /**

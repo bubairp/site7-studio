@@ -35,6 +35,8 @@ The **Library Starter Kits** pane lists the Library's v2 kits. **Check** runs `K
 - the Theme is installed, or the Theme's own fresh-site checks pass (`49` §4).
 It also lists the `.env` keys to add.
 
+Each kit row says whether it fits this site before Check: once a Theme is installed, a kit with that Theme adds its pages (pages already here are skipped, edits kept) and a kit with another Theme needs a fresh site; a site with its own structure and no Theme needs a fresh site too. A kit that doesn't fit has no Check. An installed kit (or Theme) can't be disabled or removed (`43` #33).
+
 **Install** starts `starter-kit/install` as a background job (`SiteKitJobs`) and opens its live progress page. The job page links back to the Install screen.
 
 The blueprint wizard below the pane only appears when blueprint kits exist. In the Library, a v2 kit's page points to the Install screen, and v1-only buttons ("Install Starter Kit", "Create Page from Template") are hidden for v2 packages.

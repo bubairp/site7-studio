@@ -36,6 +36,8 @@ class DefaultController extends Controller
             'title' => 'Dashboard',
             'isSetupComplete' => $isSetupComplete,
             'pageBuilder' => $isSetupComplete ? Craft::$app->getFields()->getFieldById($settings->matrixFieldId) : null,
+            // "Choose in Settings" only helps when there's a Matrix field to choose.
+            'hasMatrixFields' => !$isSetupComplete && array_filter(Craft::$app->getFields()->getAllFields(), fn($field) => $field instanceof \craft\fields\Matrix),
             'totalPackages' => count($packages),
             'byType' => $byType,
             'byStatus' => $byStatus,

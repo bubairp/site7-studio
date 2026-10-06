@@ -81,6 +81,11 @@ class PackageActionController extends Controller
 
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
+        if ($this->setUpTheSite($handle)) {
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Cannot disable package. A Starter Kit or Theme set up this site: its pages, structure and files stay either way.'));
+            return $this->redirectToPostedUrl();
+        }
+
         // Phase 7.2 Safety Check
         $usage = Site7Studio::getInstance()->packageUsage->getUsage($handle);
         if (!empty($usage)) {
@@ -109,6 +114,11 @@ class PackageActionController extends Controller
 
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
+        if ($this->setUpTheSite($handle)) {
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Cannot remove package. A Starter Kit or Theme set up this site: its pages, structure and files stay either way.'));
+            return $this->redirectToPostedUrl();
+        }
+
         // Phase 7.2 Safety Check
         $usage = Site7Studio::getInstance()->packageUsage->getUsage($handle);
         if (!empty($usage)) {
@@ -116,10 +126,14 @@ class PackageActionController extends Controller
             return $this->redirectToPostedUrl();
         }
 
-        $success = Site7Studio::getInstance()->packageManager->removePackage($handle);
-        
+        // Deletes what the package generated, keeps it in the Library.
+        $success = Site7Studio::getInstance()->packageManager->uninstallPackage($handle);
+
         if ($success) {
-            Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package removed successfully.'));
+            $warnings = Site7Studio::getInstance()->packageManager->getLastDeleteWarnings();
+            Craft::$app->getSession()->setNotice(Craft::t('site7-studio', $warnings
+                ? 'Package removed. Some of its Craft resources were left in place because they are still used elsewhere: ' . implode(' ', $warnings)
+                : 'Package removed successfully. It stays in the Library - Install it again any time.'));
         } else {
             Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Could not remove package.'));
         }
@@ -301,5 +315,17 @@ class PackageActionController extends Controller
             'success' => true,
             'packages' => $data
         ]);
+    }
+
+    /**
+     * A Starter Kit or Theme, once installed, is how this site was set up:
+     * disabling or removing it changes nothing on the site and only makes
+     * the Install and Updates screens treat it as not installed.
+     */
+    private function setUpTheSite(string $handle): bool
+    {
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+
+        return $record !== null && in_array($record->type, ['starter-kit', 'theme'], true) && $record->status !== 'available';
     }
 }

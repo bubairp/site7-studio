@@ -147,5 +147,5 @@ The RP Craft Theme also expects these plugin folders, copied the same way: `plug
 | "Commerce24: Your plan allows N website(s) (HTTP 422)" | The licence is already active on the plan's maximum number of sites. Deactivate one, or choose a bigger plan. |
 | A download fails with "signature … untrusted" / "unsigned" | `COMMERCE24_SIGNING_*` doesn't match Commerce24's key. Copy it again (§2.4). |
 | A paid package shows "Not in your plan" / 403 | Expected: give the customer a plan that includes it, or a purchase, in the Commerce24 admin. |
-| Account & License shows old data | Commerce24 answers are cached for 5 minutes (Settings → Commerce cache duration). Any change made from the plugin clears the cache straight away. |
+| Account & License shows old data | Commerce24 answers are cached for 5 minutes (Settings → Commerce cache duration). Any change made from the plugin clears the cache straight away. The Updates list and a kit's Check always read the catalog fresh. |
 | A "Manage subscription" link opens an address that doesn't exist | Commerce24's `APP_URL` must be its public address (fixed in the local app). |

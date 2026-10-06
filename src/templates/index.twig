@@ -56,10 +56,13 @@
 
         {% if not isSetupComplete %}
             <div class="site7-notice site7-notice--warning">
-                <strong>{{ "No page builder yet."|t('site7-studio') }}</strong> {{ "Install a Starter Kit: its Theme brings the page builder. A site with its own page-builder Matrix field can choose it in Settings instead."|t('site7-studio') }}
+                <strong>{{ "No page builder yet."|t('site7-studio') }}</strong> {{ "Install a Starter Kit: its Theme brings the page builder."|t('site7-studio') }}
+                {% if hasMatrixFields %}{{ "This site has its own Matrix field, so you can choose it as the page builder in Settings instead."|t('site7-studio') }}{% endif %}
                 <br><br>
                 <a href="{{ url('site7-studio/install') }}" class="btn submit">{{ "Install a Starter Kit"|t('site7-studio') }}</a>
-                <a href="{{ url('site7-studio/settings') }}" class="btn">{{ "Choose in Settings"|t('site7-studio') }}</a>
+                {% if hasMatrixFields %}
+                    <a href="{{ url('site7-studio/settings') }}" class="btn">{{ "Choose in Settings"|t('site7-studio') }}</a>
+                {% endif %}
             </div>
         {% endif %}
     </div>

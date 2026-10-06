@@ -123,10 +123,28 @@ class LibraryDistribution extends Component
             } catch (\Throwable $e) {
                 $result['errors'][] = "{$handle}: {$e->getMessage()}";
                 $log("FAILED {$handle}: {$e->getMessage()}");
+                // A refused key (401/403) refuses every package: stop here.
+                if (self::isKeyRefused($e)) {
+                    $log("Stopped: Commerce24 refused this site's API key, so no package can be published with it.");
+                    break;
+                }
             }
         }
 
         return $result;
+    }
+
+    /** Whether Commerce24 answered 401/403, anywhere in $e's chain. */
+    private static function isKeyRefused(\Throwable $e): bool
+    {
+        for ($cause = $e; $cause !== null; $cause = $cause->getPrevious()) {
+            if ($cause instanceof \GuzzleHttp\Exception\RequestException
+                && in_array($cause->getResponse()?->getStatusCode(), [401, 403], true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** The highest recorded version of a package. */
@@ -189,17 +207,19 @@ class LibraryDistribution extends Component
 
     /**
      * Commerce24's catalog keyed by handle; [] when not configured or unreachable.
+     * $fresh skips the client's cache (Settings > Commerce cache duration),
+     * for Updates and kit checks right after the author publishes.
      *
      * @return array<string, array>
      */
-    public function catalog(): array
+    public function catalog(bool $fresh = false): array
     {
         $client = Site7Studio::getInstance()->commerceClient;
         if (!$client->isConfigured()) {
             return [];
         }
         try {
-            $data = $client->request('GET', '/marketplace/catalog');
+            $data = $client->request('GET', '/marketplace/catalog', $fresh ? ['fresh' => true] : []);
         } catch (CommerceApiException $e) {
             Craft::warning('Could not read the Commerce24 catalog: ' . $e->getMessage(), 'site7-studio');
             return [];
@@ -269,7 +289,7 @@ class LibraryDistribution extends Component
     public function check(string $kitHandle): array
     {
         $result = ['errors' => [], 'warnings' => [], 'kit' => null, 'download' => [], 'downloadSize' => 0];
-        $catalog = $this->catalog();
+        $catalog = $this->catalog(true);
         $kit = $catalog[$kitHandle] ?? null;
         if (($kit['type'] ?? null) !== 'starter-kit') {
             $result['errors'][] = "'{$kitHandle}' is not a Starter Kit in the Commerce24 catalog.";

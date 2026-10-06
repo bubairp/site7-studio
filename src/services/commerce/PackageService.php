@@ -12,6 +12,7 @@ use site7\studio\interfaces\PackageProviderInterface;
 use site7\studio\models\commerce\CommerceApiException;
 use site7\studio\models\commerce\PlanInfo;
 use site7\studio\records\PackageRecord;
+use site7\studio\services\library\LibraryDistribution;
 use site7\studio\Site7Studio;
 
 /**
@@ -303,7 +304,11 @@ class PackageService extends Component implements PackageProviderInterface
      * Rejects non-entitled handles rather than silently installing them -
      * business logic (entitlement checks) lives here, not in a controller.
      *
-     * @throws \Exception if $handle isn't entitled, or the Package Engine install fails.
+     * A package that isn't in this site's Library (never downloaded, or
+     * deleted since) is downloaded from Commerce24 first, with whatever it
+     * requires that's missing too.
+     *
+     * @throws \Exception if $handle isn't entitled, can't be downloaded, or the Package Engine install fails.
      */
     public function installEntitled(string $handle): bool
     {
@@ -312,6 +317,9 @@ class PackageService extends Component implements PackageProviderInterface
         }
 
         $packageManager = Site7Studio::getInstance()->packageManager;
+        if (!$packageManager->getPackagePath($handle)) {
+            $this->downloadWithRequirements($handle);
+        }
         if (!$packageManager->installPackage($handle)) {
             return false;
         }
@@ -355,6 +363,29 @@ class PackageService extends Component implements PackageProviderInterface
         ]));
 
         return $summary;
+    }
+
+    /**
+     * Downloads $handle and every Library package it requires that this site
+     * doesn't have, from Commerce24 (each signature-checked, not installed).
+     *
+     * @throws \Exception if Commerce24 doesn't offer one of them or a download fails.
+     */
+    private function downloadWithRequirements(string $handle): void
+    {
+        $distribution = new LibraryDistribution();
+        $catalog = $distribution->catalog();
+        if (!isset($catalog[$handle])) {
+            throw new \Exception("'{$handle}' isn't in this site's Library, and Commerce24 doesn't offer it.");
+        }
+        $closure = LibraryDistribution::closure($handle, $catalog);
+        if ($closure['missing']) {
+            throw new \Exception("'{$handle}' needs " . implode(', ', $closure['missing']) . ", which Commerce24 doesn't offer.");
+        }
+        $errors = $distribution->download($closure['handles']);
+        if ($errors) {
+            throw new \Exception('Download from Commerce24 failed: ' . implode(' ', $errors));
+        }
     }
 
     private function getEntitlements(): array

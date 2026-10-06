@@ -4,6 +4,19 @@
 
 {% do view.registerAssetBundle("site7\\studio\\assetbundles\\InstallWizardBundle") %}
 
+{% macro fit(kitTheme, installedTheme, siteHasStructure) %}
+    {%- if installedTheme -%}
+        {%- if kitTheme == installedTheme -%}
+            <br><span class="light">Adds its pages to this site (same Theme). Pages already here are kept.</span>
+        {%- else -%}
+            <br><span class="warning">Needs a fresh site: it uses the Theme <code>{{ kitTheme }}</code>, this site has <code>{{ installedTheme }}</code>.</span>
+        {%- endif -%}
+    {%- elseif siteHasStructure -%}
+        <br><span class="warning">Needs a fresh site: this site already has its own content structure.</span>
+    {%- endif -%}
+{% endmacro %}
+{% from _self import fit %}
+
 {% set content %}
 {# ---------------------------------------------------- Library Starter Kits (docs/51) #}
 <div class="pane">
@@ -26,14 +39,18 @@
                     <td>
                         <span class="status blue"></span>Commerce24{% if kit.pricingType != 'free' %} · {{ kit.pricingType|title }}{% endif %}
                         {% if kit.entitled is defined and not kit.entitled %}<br><span class="error">Not in your plan</span>{% endif %}
+                        {{ fit(m.theme ?? null, installedTheme, siteHasStructure) }}
                     </td>
                     <td class="thin nowrap">
+                        {% set fits = installedTheme ? (m.theme ?? null) == installedTheme : not siteHasStructure %}
+                        {% if fits %}
                         <form method="post" class="inline">
                             {{ csrfInput() }}
                             {{ actionInput('site7-studio/install-wizard/check-library-kit') }}
                             {{ hiddenInput('handle', kit.handle) }}
                             <button type="submit" class="btn">Check</button>
                         </form>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}
@@ -44,9 +61,12 @@
                         Theme <code>{{ kit.meta.theme }}</code><br>
                         {{ kit.meta.templates }} pages, {{ kit.meta.content.counts.simplerpmenu_items ?? 0 }} menu items, {{ kit.meta.content.counts.entries ?? 0 }} demo entries
                     </td>
-                    <td>{% if kit.status == 'enabled' %}<span class="status green"></span>Installed{% else %}<span class="status"></span>Not installed{% endif %}</td>
+                    {# Installed once it set up the site, even if it was disabled before Disable was taken away. #}
+                    {% set installed = kit.status in ['enabled', 'disabled'] %}
+                    {% set fits = installedTheme ? kit.meta.theme == installedTheme : not siteHasStructure %}
+                    <td>{% if installed %}<span class="status green"></span>Installed{% else %}<span class="status"></span>Not installed{{ fit(kit.meta.theme, installedTheme, siteHasStructure) }}{% endif %}</td>
                     <td class="thin nowrap">
-                        {% if kit.status != 'enabled' %}
+                        {% if not installed and fits %}
                             <form method="post" class="inline">
                                 {{ csrfInput() }}
                                 {{ actionInput('site7-studio/install-wizard/check-library-kit') }}

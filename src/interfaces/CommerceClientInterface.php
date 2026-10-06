@@ -41,7 +41,7 @@ interface CommerceClientInterface
      *
      * @param string $method HTTP method (GET, POST, PUT, DELETE, ...).
      * @param string $endpoint Path relative to the configured API endpoint (e.g. '/license').
-     * @param array $options Guzzle-style request options (json, query, headers, ...).
+     * @param array $options Guzzle-style request options (json, query, headers, ...), plus 'fresh' => true to skip the cached copy of a GET.
      * @throws CommerceApiException on any transport error, non-2xx response, or if not configured.
      */
     public function request(string $method, string $endpoint, array $options = []): array;

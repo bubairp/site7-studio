@@ -318,10 +318,14 @@ pre.code {
     border: 1px solid #ffeeba;
 }
 
-.site7-notice--warning a {
+.site7-notice--warning a:not(.btn) {
     margin-left: 10px;
     text-decoration: underline;
     font-weight: bold;
+}
+
+.site7-notice .btn {
+    text-decoration: none;
 }
 
 /* ----- New Package Wizard: Package Type cards ----- */

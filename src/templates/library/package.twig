@@ -91,7 +91,12 @@
                     </form>
                 {% endif %}
 
-                {% if package.status == 'enabled' %}
+                {% set setUpTheSite = package.type in ['starter-kit', 'theme'] %}
+                {% if setUpTheSite %}
+                    <span class="light">{{ "Installed - this package set up the site. Its pages, structure and files stay; to start again, use a fresh site."|t('site7-studio') }}</span>
+                {% endif %}
+
+                {% if package.status == 'enabled' and not setUpTheSite %}
                     <form method="post" accept-charset="UTF-8" id="disableForm">
                         {{ csrfInput() }}
                         {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
@@ -107,6 +112,7 @@
                     </form>
                 {% endif %}
 
+                {% if not setUpTheSite %}
                 <form method="post" accept-charset="UTF-8" id="removeForm">
                     {{ csrfInput() }}
                     {{ redirectInput('site7-studio/library/package/' ~ package.handle) }}
@@ -116,10 +122,14 @@
                         {% if usage is not empty %}
                             disabled title="{{ 'Cannot remove while in use'|t('site7-studio') }}"
                         {% else %}
-                            onclick="if(confirm('Are you sure you want to remove this package? This will delete all generated fields, entry types, and templates.')) { this.closest('form').submit(); }"
+                            {% set removeMessage = package.type == 'section'
+                                ? 'Are you sure you want to remove this package? This will delete all generated fields, entry types, and templates. The package stays in the Library, so you can install it again.'
+                                : 'Are you sure you want to remove this package? It will be marked as not installed; the pages and structure it created stay. The package stays in the Library, so you can install it again.' %}
+                            onclick="if(confirm({{ removeMessage|t('site7-studio')|json_encode|e('html_attr') }})) { this.closest('form').submit(); }"
                         {% endif %}
                     >{{ "Remove"|t('site7-studio') }}</button>
                 </form>
+                {% endif %}
             {% endif %}
         {% endif %}
 

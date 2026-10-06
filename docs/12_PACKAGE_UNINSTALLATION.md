@@ -16,7 +16,8 @@ Clearly separate four operations that are easy to confuse: **uninstall** ("remov
 
 ```
                      status column          packages/{handle}/    installed files    Craft resources
-removePackage()   →  'available'             untouched              untouched         unlinked from Matrix only
+uninstallPackage() → 'available'             untouched              content-guard      removed if unused (Remove button)
+removePackage()   →  'available'             untouched              untouched         unlinked from Matrix only (Reinstall)
 disablePackage()  →  'disabled'              untouched              untouched         unlinked from Matrix only
 deletePackage()   →  row DELETED (cascade)   directory DELETED       content-guard      removed if unused
 detachPackage()   →  row DELETED (cascade)   directory DELETED       (cascade)          NEVER touched
@@ -24,7 +25,9 @@ detachPackage()   →  row DELETED (cascade)   directory DELETED       (cascade)
 
 ## 5. Execution Flow
 
-**`removePackage($handle)`** ("uninstall"/soft): if `type === 'section'`, calls `unlinkFromMatrix($handle)` only — **deliberately never calls `CraftResourceService::removePackageResources()`**, so a later `installPackage()` reuses the exact same Entry Type/Fields rather than orphaning any content already authored against them. `status → 'available'`.
+**`uninstallPackage($handle)`** (the CP's **Remove** button, since 2026-10-06, `43` #32): a Section is unlinked from Matrix and `removePackageResources()` deletes its Entry Type, Fields and `_blocks` template (usage-checked, §10; what's kept is reported), but the package stays in the Library, `status → 'available'`, so Install rebuilds it from `packages/{handle}/`. Other package types generate no Craft resources of their own: only the status changes, their pages and structure stay.
+
+**`removePackage($handle)`** (soft, used by Marketplace Reinstall): if `type === 'section'`, calls `unlinkFromMatrix($handle)` only — **deliberately never calls `CraftResourceService::removePackageResources()`**, so a later `installPackage()` reuses the exact same Entry Type/Fields rather than orphaning any content already authored against them. `status → 'available'`.
 
 **`disablePackage($handle)`**: same Matrix-unlink, `status → 'disabled'`.
 
@@ -36,7 +39,7 @@ detachPackage()   →  row DELETED (cascade)   directory DELETED       (cascade)
 
 **`PackageManagerService`**
 `src/services/PackageManagerService.php`
-Important methods: `removePackage()`, `disablePackage()`, `deletePackage()`, `detachPackage()`.
+Important methods: `uninstallPackage()`, `removePackage()`, `disablePackage()`, `deletePackage()`, `detachPackage()`.
 Called by: `PackageActionController::actionRemove/Disable/Delete/Detach()`.
 
 **`CraftResourceService::removePackageResources()`**
@@ -55,6 +58,7 @@ Responsibility: pre-flight usage check surfaced in the CP before `remove`/`delet
 
 | Operation | `packages/{handle}/` | `templates/_blocks/{handle}.twig` | Owned-file targets |
 |---|---|---|---|
+| `uninstallPackage` | untouched | deleted **only if still byte-matches** | untouched |
 | `removePackage` | untouched | untouched | untouched |
 | `disablePackage` | untouched | untouched | untouched |
 | `deletePackage` | deleted | deleted **only if still byte-matches** the package's own `template.twig` | same content-compare guard |
@@ -68,7 +72,7 @@ None dispatched directly by these four methods.
 
 ## 10. Validation and Safety
 
-**Usage-aware deletion**: `removePackageResources()` (called only by `deletePackage()`) checks `Entry::find()->typeId($entryType->id)->status(null)->count()` — if any real Entry elements still use the Entry Type, it's skipped (not deleted), reported in the return warnings. Same for Fields via `Craft::$app->getFields()->findFieldUsages($field)`. The installed template is only removed if it still byte-matches the package's own `template.twig` — a locally-modified installed file is left in place and reported, never destroyed.
+**Usage-aware deletion**: `removePackageResources()` (called by `deletePackage()` and `uninstallPackage()`) checks `Entry::find()->typeId($entryType->id)->status(null)->count()` — if any real Entry elements still use the Entry Type, it's skipped (not deleted), reported in the return warnings. Same for Fields via `Craft::$app->getFields()->findFieldUsages($field)`. The installed template is only removed if it still byte-matches the package's own `template.twig` — a locally-modified installed file is left in place and reported, never destroyed.
 
 **`detachPackage()`'s strict gate**: no self-captured-Template exception (unlike `deletePackage()`) — this is intentionally the most locked-down operation in the plugin, since it removes package tracking without any of `deletePackage()`'s usage safety checks (because it never touches Craft resources at all, those checks are unnecessary for it).
 
@@ -83,7 +87,8 @@ None dispatched directly by these four methods.
 
 ## 12. Developer Change Guide
 
-If you need "remove but keep resources reusable": use `removePackage()`.
+If you need "uninstall, keep it in the Library": use `uninstallPackage()`.
+If you need "remove but keep resources reusable" (Reinstall): use `removePackage()`.
 If you need "permanently delete, safely, respecting usage": use `deletePackage()`.
 If you need "undo an accidental import without touching anything it linked to": use `detachPackage()`.
 **Never** add a fifth uninstall variant without first confirming one of these four doesn't already do what you need — this is one of the most carefully differentiated parts of the plugin.
