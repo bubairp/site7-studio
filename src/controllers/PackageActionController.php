@@ -33,6 +33,12 @@ class PackageActionController extends Controller
             Craft::$app->getSession()->setError(Craft::t('site7-studio', 'This package is not included in your current plan. Upgrade from Account & License to install it.'));
             return $this->redirectToPostedUrl();
         }
+        try {
+            Site7Studio::getInstance()->commercePackages->assertWithinPackageLimit($handle);
+        } catch (\Exception $e) {
+            Craft::$app->getSession()->setError($e->getMessage());
+            return $this->redirectToPostedUrl();
+        }
 
         $packageManager = Site7Studio::getInstance()->packageManager;
         $success = $packageManager->installPackage($handle);

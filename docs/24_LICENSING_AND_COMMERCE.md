@@ -75,6 +75,10 @@ See table in `27_EVENTS_AND_HOOKS.md`. All dispatched via the shared `EventDispa
 
 **`BeforeLicenseValidationEvent` short-circuit**: allows a listener to substitute its own validation result without a network call — an intentional extension point, not currently used by any in-plugin listener found during research.
 
+### 10a. Plan package limit (2026-10-06)
+
+A plan decides which Starter Kits a customer gets (`includedPackages`) and how many packages a site may install **beyond** its kit (`packageLimit`, Commerce24 `plans.package_limit`; null = unlimited). `PackageService::kitPackageHandles()` is the installed Library kit's closure - the kit, its Theme, its pages and their blocks, from the local manifests - and none of it counts. `extraPackageUsage()` counts every other installed package except this site's own saved Templates; Account & License → Overview shows it as "Extra Packages: used / limit". `assertWithinPackageLimit()` refuses a new install past the limit in Packages → Install (`installEntitled()`), the package page's Install and the Marketplace repository install; reinstalling something installed never counts. Packages a Template cascades into (its blocks) aren't checked one by one.
+
 ## 11. Failure Scenarios
 
 | Scenario | Behavior |

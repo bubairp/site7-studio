@@ -85,6 +85,7 @@
         "routes.php",
         "vite.php"
     ],
+    "builtFrontend": "web/themes/front",
     "pathRepositories": [
         "plugins/htmlsitemap",
         "plugins/payment-gateway",

@@ -59,6 +59,7 @@ class CommerceController extends Controller
                 // stat card's count never disagrees with it.
                 try {
                     $data['updates'] = (new \site7\studio\services\library\LibraryUpdater())->availableUpdates();
+                    $data['extraUsage'] = $plugin->commercePackages->extraPackageUsage();
                 } catch (\Throwable $e) {
                     Craft::warning('Could not check Library updates: ' . $e->getMessage(), __METHOD__);
                     $data['updates'] = [];

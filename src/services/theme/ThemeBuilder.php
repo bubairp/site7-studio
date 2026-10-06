@@ -93,6 +93,12 @@ class ThemeBuilder extends Component
                 ]);
             }
         }
+        // The built frontend (Vite's output folder), so a site works without
+        // running npm - on shared hosting, or offline (docs/49 §2b).
+        $builtFrontend = self::builtFrontendPath($root);
+        if ($builtFrontend !== null) {
+            FileHelper::copyDirectory("{$root}/{$builtFrontend}", "{$dir}/files/{$builtFrontend}");
+        }
         // Config files, except site7-studio.php: it holds this install's own
         // Commerce24 connection and trusted signing keys.
         $configFiles = [];
@@ -139,6 +145,7 @@ class ThemeBuilder extends Component
             'settingsSections' => array_values($settingsSections),
             'content' => $content,
             'configFiles' => $configFiles,
+            'builtFrontend' => $builtFrontend,
             'pathRepositories' => SiteKitFiles::pathRepositories($composerJson),
             'envKeys' => is_file("{$root}/.env") ? SiteKitFiles::envKeys((string)file_get_contents("{$root}/.env")) : [],
         ];
@@ -238,5 +245,29 @@ class ThemeBuilder extends Component
     private function json(mixed $data): string
     {
         return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * The built frontend folder, relative to the site root, from the Vite
+     * plugin's manifestPath (…/.vite/manifest.json in Vite 5, …/manifest.json
+     * before); null when there's no Vite config or no build.
+     */
+    public static function builtFrontendPath(string $root): ?string
+    {
+        $manifestPath = Craft::$app->getConfig()->getConfigFromFile('vite')['manifestPath'] ?? null;
+        if (!is_string($manifestPath) || $manifestPath === '') {
+            return null;
+        }
+        $manifest = str_replace('\\', '/', Craft::getAlias($manifestPath));
+        $dir = dirname($manifest);
+        if (basename($dir) === '.vite') {
+            $dir = dirname($dir);
+        }
+        $root = rtrim(str_replace('\\', '/', $root), '/');
+        if (!is_file($manifest) || !str_starts_with($dir, "{$root}/")) {
+            return null;
+        }
+
+        return substr($dir, strlen($root) + 1);
     }
 }

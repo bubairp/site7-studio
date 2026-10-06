@@ -1,0 +1,135 @@
+{
+  "fonts/europa-light-webfont.eot": {
+    "file": "fonts/europa-light-webfont.BZFOMeAB.eot",
+    "src": "fonts/europa-light-webfont.eot"
+  },
+  "fonts/europa-light-webfont.svg": {
+    "file": "img/europa-light-webfont.etWwR3Y9.svg",
+    "src": "fonts/europa-light-webfont.svg"
+  },
+  "fonts/europa-light-webfont.ttf": {
+    "file": "fonts/europa-light-webfont.BO36pY7e.ttf",
+    "src": "fonts/europa-light-webfont.ttf"
+  },
+  "fonts/europa-light-webfont.woff": {
+    "file": "fonts/europa-light-webfont.AkS1exMC.woff",
+    "src": "fonts/europa-light-webfont.woff"
+  },
+  "fonts/europa-light-webfont.woff2": {
+    "file": "fonts/europa-light-webfont.CkBEKecz.woff2",
+    "src": "fonts/europa-light-webfont.woff2"
+  },
+  "images/newsletter-bg-shape.png": {
+    "file": "img/newsletter-bg-shape.z8Oxk90V.png",
+    "src": "images/newsletter-bg-shape.png"
+  },
+  "node_modules/lightgallery/fonts/lg.svg": {
+    "file": "img/lg.B0dIV2BS.svg",
+    "src": "node_modules/lightgallery/fonts/lg.svg"
+  },
+  "node_modules/lightgallery/fonts/lg.ttf": {
+    "file": "fonts/lg.oyjwlqP2.ttf",
+    "src": "node_modules/lightgallery/fonts/lg.ttf"
+  },
+  "node_modules/lightgallery/fonts/lg.woff": {
+    "file": "fonts/lg.CosQH4Cu.woff",
+    "src": "node_modules/lightgallery/fonts/lg.woff"
+  },
+  "node_modules/lightgallery/images/loading.gif": {
+    "file": "img/loading.BZOHaeKn.gif",
+    "src": "node_modules/lightgallery/images/loading.gif"
+  },
+  "src/index.js": {
+    "file": "js/index.DLkcwtRe.js",
+    "name": "index",
+    "src": "src/index.js",
+    "isEntry": true,
+    "dynamicImports": [
+      "src/js/components/carousel.js",
+      "src/js/components/gallery.js",
+      "src/js/components/masonry-grid.js",
+      "src/js/components/parallax.js",
+      "src/js/components/jarallax.js"
+    ],
+    "css": [
+      "css/index.DkOjnwkC.css"
+    ],
+    "assets": [
+      "img/newsletter-bg-shape.z8Oxk90V.png",
+      "fonts/europa-light-webfont.BZFOMeAB.eot",
+      "fonts/europa-light-webfont.CkBEKecz.woff2",
+      "fonts/europa-light-webfont.AkS1exMC.woff",
+      "fonts/europa-light-webfont.BO36pY7e.ttf",
+      "img/europa-light-webfont.etWwR3Y9.svg"
+    ]
+  },
+  "src/js/components/carousel.js": {
+    "file": "js/carousel.C2TCd3UQ.js",
+    "name": "carousel",
+    "src": "src/js/components/carousel.js",
+    "isDynamicEntry": true,
+    "css": [
+      "css/carousel.BUrcyj0q.css"
+    ]
+  },
+  "src/js/components/gallery.js": {
+    "file": "js/gallery.CDALo_Kv.js",
+    "name": "gallery",
+    "src": "src/js/components/gallery.js",
+    "isDynamicEntry": true,
+    "css": [
+      "css/gallery.g29iUNd6.css"
+    ],
+    "assets": [
+      "fonts/lg.oyjwlqP2.ttf",
+      "fonts/lg.CosQH4Cu.woff",
+      "img/lg.B0dIV2BS.svg",
+      "img/loading.BZOHaeKn.gif"
+    ]
+  },
+  "src/js/components/jarallax.js": {
+    "file": "js/jarallax.LD95z0jG.js",
+    "name": "jarallax",
+    "src": "src/js/components/jarallax.js",
+    "isDynamicEntry": true,
+    "css": [
+      "css/jarallax.CZkZPK-Y.css"
+    ]
+  },
+  "src/js/components/masonry-grid.js": {
+    "file": "js/masonry-grid.CK7EFAut.js",
+    "name": "masonry-grid",
+    "src": "src/js/components/masonry-grid.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/index.js"
+    ]
+  },
+  "src/js/components/parallax.js": {
+    "file": "js/parallax.WIzvtVMY.js",
+    "name": "parallax",
+    "src": "src/js/components/parallax.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/index.js"
+    ]
+  },
+  "src/js/pages/contact.js": {
+    "file": "js/pages/contact.BrNU8qgU.js",
+    "name": "pages/contact",
+    "src": "src/js/pages/contact.js",
+    "isEntry": true
+  },
+  "src/js/pages/home.js": {
+    "file": "js/pages/home.Bv2azoL3.js",
+    "name": "pages/home",
+    "src": "src/js/pages/home.js",
+    "isEntry": true
+  },
+  "src/js/pages/sitemap.js": {
+    "file": "js/pages/sitemap.BrNU8qgU.js",
+    "name": "pages/sitemap",
+    "src": "src/js/pages/sitemap.js",
+    "isEntry": true
+  }
+}

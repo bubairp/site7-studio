@@ -141,3 +141,5 @@ ddev exec "nohup php -d memory_limit=-1 -S 0.0.0.0:8090 mock-commerce24/router.p
 ## 9. Important classes
 
 `services/library/LibraryDistribution`, `console/controllers/LibraryController`, `services/commerce/CommerceClient::download()`, `repositories/marketplace/Commerce24MarketplaceRepository::fetchPackage()`, `services/starterkit/KitInstaller::validateRemoteKit()`. Tests: `tests/unit/services/library/LibraryDistributionTest`.
+
+**2026-10-06:** plans (`GET /plans`, `GET /account/plan`) also carry `packageLimit` - packages a site may install beyond its Starter Kit, null = unlimited (`24` §10a).

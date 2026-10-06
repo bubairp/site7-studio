@@ -79,7 +79,9 @@ class ThemeUpdater extends ThemeInstaller
         $log('Structure, plugin settings and settings content: ' . LibraryUpdater::summary($applied));
         $report = LibraryUpdater::mergeReports($report, $applied);
 
-        $rebuild = array_filter($arrived, fn($path) => preg_match('#^(frontend|templates)/#', $path));
+        // A Theme that ships its built frontend updates it through the file
+        // rule above; only one without it is rebuilt here.
+        $rebuild = empty($new['builtFrontend']) && array_filter($arrived, fn($path) => preg_match('#^(frontend|templates)/#', $path));
         if ($rebuild) {
             $this->buildFrontend($root, $result, $log);
             $report['notes'] = array_merge($report['notes'], $result['warnings']);

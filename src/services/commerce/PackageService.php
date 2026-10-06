@@ -315,6 +315,7 @@ class PackageService extends Component implements PackageProviderInterface
         if (!$this->isEntitled($handle)) {
             throw new \Exception("'{$handle}' is not included in your current plan or purchases.");
         }
+        $this->assertWithinPackageLimit($handle);
 
         $packageManager = Site7Studio::getInstance()->packageManager;
         $distribution = new LibraryDistribution();
@@ -367,6 +368,78 @@ class PackageService extends Component implements PackageProviderInterface
         ]));
 
         return $summary;
+    }
+
+    /**
+     * The packages this site's Starter Kit brought: the kit, its Theme, its
+     * pages and their blocks (from the local manifests' requires). They
+     * don't count toward the plan's package limit.
+     *
+     * @return array<string, true>
+     */
+    public function kitPackageHandles(): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $records = $packageManager->getAllPackages();
+        $local = [];
+        foreach ($records as $record) {
+            $local[$record->handle] = ['requires' => (array)($record->getManifest()?->requires ?? [])];
+        }
+        $handles = [];
+        foreach ($records as $record) {
+            if ($record->type === 'starter-kit' && $packageManager->setsUpTheSite($record->handle)
+                && \site7\studio\services\PackageManagerService::hasSetUpTheSite($record)) {
+                foreach (LibraryDistribution::closure($record->handle, $local)['handles'] as $handle) {
+                    $handles[$handle] = true;
+                }
+            }
+        }
+
+        return $handles;
+    }
+
+    /**
+     * Packages installed beyond the Starter Kit, against the plan's
+     * packageLimit (null = unlimited). Not counted: what the kit brought, and
+     * pages this site saved as its own Templates.
+     *
+     * @return array{used: int, limit: int|null}
+     */
+    public function extraPackageUsage(): array
+    {
+        $kit = $this->kitPackageHandles();
+        $used = 0;
+        foreach (Site7Studio::getInstance()->packageManager->getAllPackages() as $record) {
+            if ($record->status !== 'available' && !isset($kit[$record->handle]) && $record->creatorId === null) {
+                $used++;
+            }
+        }
+
+        return ['used' => $used, 'limit' => Site7Studio::getInstance()->plan->getCurrentPlan()?->packageLimit];
+    }
+
+    /**
+     * Refuses a new install that would take the site past its plan's package
+     * limit. Reinstalling something already installed, the kit's own
+     * packages and this site's own Templates never count.
+     *
+     * @throws \Exception
+     */
+    public function assertWithinPackageLimit(string $handle): void
+    {
+        if (!$this->client->isConfigured()) {
+            return;
+        }
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        if (($record && ($record->status !== 'available' || $record->creatorId !== null)) || isset($this->kitPackageHandles()[$handle])) {
+            return;
+        }
+        ['used' => $used, 'limit' => $limit] = $this->extraPackageUsage();
+        if ($limit !== null && $used >= $limit) {
+            throw new \Exception($limit === 0
+                ? "Your plan doesn't include packages beyond your Starter Kit. Upgrade your plan to add '{$handle}'."
+                : "Your plan includes {$limit} " . ($limit === 1 ? 'package' : 'packages') . " beyond your Starter Kit, and all are in use. Remove one, or upgrade your plan to add '{$handle}'.");
+        }
     }
 
     private function getEntitlements(): array

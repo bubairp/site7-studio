@@ -21,7 +21,7 @@
     {% endif %}
 
     {% if activeTab == 'overview' %}
-        {% include "site7-studio/commerce/_overview" with {license: license, subscription: subscription, plan: plan, installedPackages: installedPackages, updates: updates} only %}
+        {% include "site7-studio/commerce/_overview" with {license: license, subscription: subscription, plan: plan, installedPackages: installedPackages, updates: updates, extraUsage: extraUsage|default({used: 0, limit: null})} only %}
     {% elseif activeTab == 'subscription' %}
         {% include "site7-studio/commerce/_subscription" with {subscription: subscription} only %}
         <hr>

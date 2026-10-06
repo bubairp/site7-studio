@@ -62,16 +62,17 @@
     <h2>{{ "Plan & Renewal"|t('site7-studio') }}</h2>
     <div class="meta">
         <div class="field">
-            <div class="heading"><label>{{ "Package Usage"|t('site7-studio') }}</label></div>
-            <div class="input">{{ installedPackages|length }}{% if plan and plan.websiteLimit %} / {{ plan.websiteLimit }}{% endif %}</div>
+            <div class="heading"><label>{{ "Extra Packages"|t('site7-studio') }}</label></div>
+            <div class="input">
+                <div>
+                    <div>{{ extraUsage.used }} / {{ extraUsage.limit ?? 'unlimited'|t('site7-studio') }}</div>
+                    <div class="light smalltext">{{ "Installed beyond your Starter Kit; the kit's own Theme, pages and blocks don't count."|t('site7-studio') }}</div>
+                </div>
+            </div>
         </div>
         <div class="field">
             <div class="heading"><label>{{ "Renewal Date"|t('site7-studio') }}</label></div>
             <div class="input">{{ subscription.renewalDate ?: '—' }}</div>
-        </div>
-        <div class="field">
-            <div class="heading"><label>{{ "Storage Usage"|t('site7-studio') }}</label></div>
-            <div class="input light">{{ "Coming soon"|t('site7-studio') }}</div>
         </div>
     </div>
 </div>

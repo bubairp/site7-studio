@@ -59,7 +59,7 @@ class ThemeInstaller extends SiteKitInstaller
         if (!empty($meta['content']) && !Craft::$app->getDb()->getIsMysql()) {
             $result['errors'][] = 'The theme includes settings content, which can only be imported into MySQL.';
         }
-        if (!(new ExecutableFinder())->find('npm')) {
+        if (empty($meta['builtFrontend']) && !(new ExecutableFinder())->find('npm')) {
             $result['warnings'][] = 'npm was not found - the frontend will not be built.';
         }
         $targetEnvKeys = array_merge(is_file("{$root}/.env") ? SiteKitFiles::envKeys((string)file_get_contents("{$root}/.env")) : [], array_keys(getenv()));
@@ -162,6 +162,11 @@ class ThemeInstaller extends SiteKitInstaller
         $log("Backed up composer files, config/ and templates/ to {$result['backup']}");
 
         $this->copyCode("{$dir}/files", $root, $log, $validation['meta']['configFiles'] ?? []);
+        $builtFrontend = $validation['meta']['builtFrontend'] ?? null;
+        if ($builtFrontend && is_dir("{$dir}/files/{$builtFrontend}")) {
+            \craft\helpers\FileHelper::copyDirectory("{$dir}/files/{$builtFrontend}", "{$root}/{$builtFrontend}");
+            $log("Copied the built frontend ({$builtFrontend}/)");
+        }
         if (!$this->installPackages("{$dir}/files", $root, $result, $log)) {
             return $result;
         }
@@ -195,7 +200,11 @@ class ThemeInstaller extends SiteKitInstaller
             return $result;
         }
 
-        $this->buildFrontend($root, $result, $log);
+        if ($builtFrontend) {
+            $log('Frontend: built files copied, npm not needed (run npm run build in frontend/ to rebuild)');
+        } else {
+            $this->buildFrontend($root, $result, $log);
+        }
 
         return $result;
     }

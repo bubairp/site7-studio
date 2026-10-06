@@ -174,6 +174,8 @@ class MarketplaceService extends Component
             throw new \Exception("'{$handle}' is not included in your current plan or purchases.");
         }
 
+        Site7Studio::getInstance()->commercePackages->assertWithinPackageLimit($handle);
+
         $path = $repository->fetchPackage($handle);
 
         // Commerce24 signs everything it serves, so an unsigned download
