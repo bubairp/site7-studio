@@ -42,7 +42,7 @@ class UpdateWizardController extends Controller
 
         return $this->renderTemplate('site7-studio/update-wizard/index', [
             'updates' => $updates,
-            'libraryUpdates' => (new \site7\studio\services\library\LibraryUpdater())->availableUpdates(),
+            'libraryUpdates' => (new \site7\studio\services\library\LibraryUpdater())->availableUpdates(true),
         ]);
     }
 

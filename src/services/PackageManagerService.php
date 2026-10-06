@@ -689,7 +689,12 @@ class PackageManagerService extends Component
         if ($record->type === 'section') {
             $this->unlinkFromMatrix($handle);
             $packagePath = $this->getPackagePath($handle);
-            if ($packagePath) {
+            // A block imported from this site (Import Existing Section) is
+            // its own source: its block type, fields and template are the
+            // author's real ones, never "generated" - keep them.
+            if ((new \site7\studio\repositories\SectionImportSourceRepository())->findByPackageId((int)$record->id)) {
+                $this->_lastDeleteWarnings[] = "'{$record->name}' was imported from this site, so its block type, fields and template are its source and were kept.";
+            } elseif ($packagePath) {
                 $this->_lastDeleteWarnings = \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->removePackageResources($packagePath);
             }
         }
@@ -697,6 +702,27 @@ class PackageManagerService extends Component
         $result = $this->updatePackageStatus($handle, 'available');
         $this->invalidateCraftCaches();
         return $result;
+    }
+
+    /**
+     * A Theme or Library Starter Kit (docs/49, 51): it sets up a whole site,
+     * so it installs only through the Install screen (ThemeInstaller /
+     * KitInstaller), never the generic installPackage(), and once it has set
+     * up the site it can't be disabled or removed. Blueprint kits (docs/32)
+     * aren't included: they install like any package.
+     */
+    public function setsUpTheSite(string $handle): bool
+    {
+        $record = $this->getPackageByHandle($handle);
+
+        return $record !== null && ($record->type === 'theme'
+            || ($record->type === 'starter-kit' && \site7\studio\services\starterkit\KitInstaller::isFormatV2($this->getPackagePath($handle))));
+    }
+
+    /** Whether a Theme or Library Starter Kit has set up this site: enabled, or disabled before that was refused. */
+    public static function hasSetUpTheSite(?\site7\studio\records\PackageRecord $record): bool
+    {
+        return $record !== null && in_array($record->status, ['enabled', 'disabled'], true);
     }
 
     /**

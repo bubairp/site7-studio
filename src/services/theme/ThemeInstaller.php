@@ -93,7 +93,13 @@ class ThemeInstaller extends SiteKitInstaller
             return $config->allowAdminChanges;
         }
 
-        return (bool)(is_array($config) ? ($config['allowAdminChanges'] ?? $config['*']['allowAdminChanges'] ?? true) : true);
+        if (!is_array($config)) {
+            return true;
+        }
+        // A multi-environment array: this environment's key wins over '*'.
+        $env = Craft::$app->env;
+
+        return (bool)($config['allowAdminChanges'] ?? ($env !== null ? $config[$env]['allowAdminChanges'] ?? null : null) ?? $config['*']['allowAdminChanges'] ?? true);
     }
 
     /**

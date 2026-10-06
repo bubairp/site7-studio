@@ -141,6 +141,9 @@
                         <td><span class="status-label teal"><span class="status teal"></span><span class="status-label-text">{{ "Available"|t('site7-studio') }}</span></span></td>
                         <td class="light">{{ "Your current plan"|t('site7-studio') }}</td>
                         <td>
+                            {% if handle in (siteSetupHandles|default([])) %}
+                                <a href="{{ url('site7-studio/install') }}" class="btn small">{{ "Install screen"|t('site7-studio') }}</a>
+                            {% else %}
                             <form method="post" accept-charset="UTF-8">
                                 {{ csrfInput() }}
                                 {{ redirectInput('site7-studio/commerce?tab=packages') }}
@@ -148,6 +151,7 @@
                                 <input type="hidden" name="handle" value="{{ handle }}">
                                 <button type="submit" class="btn small submit">{{ "Install"|t('site7-studio') }}</button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

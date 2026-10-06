@@ -322,6 +322,27 @@ class LibraryDistribution extends Component
     }
 
     /**
+     * Downloads $handle and every Library package it requires that this
+     * site doesn't have (each signature-checked, not installed), from a
+     * fresh catalog - it may have been published minutes ago.
+     *
+     * @return string[] errors
+     */
+    public function downloadWithRequirements(string $handle, ?callable $log = null): array
+    {
+        $catalog = $this->catalog(true);
+        if (!isset($catalog[$handle])) {
+            return ["'{$handle}' isn't in this site's Library, and Commerce24 doesn't offer it."];
+        }
+        $closure = self::closure($handle, $catalog);
+        if ($closure['missing']) {
+            return ["'{$handle}' needs " . implode(', ', $closure['missing']) . ", which Commerce24 doesn't offer."];
+        }
+
+        return $this->download($closure['handles'], $log);
+    }
+
+    /**
      * Downloads packages into this site's Library (not installed). Each
      * archive must carry a valid Commerce24 signature.
      *

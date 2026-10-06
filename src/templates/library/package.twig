@@ -69,8 +69,15 @@
             >{{ "Update Starter Kit"|t('site7-studio') }}</button>
         {% endif %}
 
-        {% if not isSetupComplete %}
-            <a href="{{ url('site7-studio/settings') }}" class="btn submit">{{ "Choose a Page Builder to Install"|t('site7-studio') }}</a>
+        {% if setsUpTheSite and package.status == 'available' %}
+            {# A Theme or Library Starter Kit sets up the whole site. #}
+            <a href="{{ url('site7-studio/install') }}" class="btn submit">{{ "Install from the Install screen"|t('site7-studio') }}</a>
+        {% elseif not isSetupComplete %}
+            {% if hasMatrixFields %}
+                <a href="{{ url('site7-studio/settings') }}" class="btn submit">{{ "Choose a Page Builder to Install"|t('site7-studio') }}</a>
+            {% else %}
+                <a href="{{ url('site7-studio/install') }}" class="btn submit">{{ "Install a Starter Kit First"|t('site7-studio') }}</a>
+            {% endif %}
         {% else %}
             {% if package.status == 'available' %}
                 <form method="post" accept-charset="UTF-8">
@@ -91,7 +98,7 @@
                     </form>
                 {% endif %}
 
-                {% set setUpTheSite = package.type in ['starter-kit', 'theme'] %}
+                {% set setUpTheSite = setsUpTheSite %}
                 {% if setUpTheSite %}
                     <span class="light">{{ "Installed - this package set up the site. Its pages, structure and files stay; to start again, use a fresh site."|t('site7-studio') }}</span>
                 {% endif %}

@@ -44,10 +44,10 @@ class LibraryUpdater extends Component
      *
      * @return array[] handle, type, name, from, to, releaseNotes, size, entitled, supported
      */
-    public function availableUpdates(): array
+    public function availableUpdates(bool $fresh = false): array
     {
         $packageManager = Site7Studio::getInstance()->packageManager;
-        $catalog = (new LibraryDistribution())->catalog(true);
+        $catalog = (new LibraryDistribution())->catalog($fresh);
         $updates = [];
         foreach ($packageManager->getAllPackages() as $record) {
             $entry = $catalog[$record->handle] ?? null;
@@ -82,7 +82,7 @@ class LibraryUpdater extends Component
         $log ??= fn(string $line) => null;
         $result = ['updated' => [], 'skipped' => [], 'errors' => [], 'report' => []];
         $updates = [];
-        foreach ($this->availableUpdates() as $update) {
+        foreach ($this->availableUpdates(true) as $update) {
             if ($handles === [] || in_array($update['handle'], $handles, true)) {
                 $updates[$update['handle']] = $update;
             }

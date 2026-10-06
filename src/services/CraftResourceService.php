@@ -465,7 +465,8 @@ class CraftResourceService extends Component
                         continue;
                     }
 
-                    $entryCount = \craft\elements\Entry::find()->typeId($entryType->id)->status(null)->count();
+                    // Drafts and revisions too: deleting the type would delete their blocks.
+                    $entryCount = \craft\elements\Entry::find()->typeId($entryType->id)->status(null)->drafts(null)->provisionalDrafts(null)->revisions(null)->count();
                     if ($entryCount > 0) {
                         $skipped[] = "Entry Type '{$entryType->handle}' - still has {$entryCount} existing entr(y/ies).";
                         continue;

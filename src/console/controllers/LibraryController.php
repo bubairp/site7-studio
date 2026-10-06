@@ -88,7 +88,7 @@ class LibraryController extends Controller
      */
     public function actionUpdates(): int
     {
-        $updates = (new LibraryUpdater())->availableUpdates();
+        $updates = (new LibraryUpdater())->availableUpdates(true);
         $this->stdout(count($updates) . " updates available\n");
         foreach ($updates as $update) {
             $this->stdout(sprintf("  %-40s %-10s %s -> %s%s%s\n", $update['handle'], $update['type'], $update['from'], $update['to'],
@@ -134,13 +134,7 @@ class LibraryController extends Controller
      */
     public function actionDownload(string $handle): int
     {
-        $distribution = new LibraryDistribution();
-        $closure = LibraryDistribution::closure($handle, $distribution->catalog());
-        if ($closure['missing']) {
-            $this->stderr('Not in the Commerce24 catalog: ' . implode(', ', $closure['missing']) . "\n", Console::FG_RED);
-            return ExitCode::UNSPECIFIED_ERROR;
-        }
-        $errors = $distribution->download($closure['handles'], fn(string $line) => $this->stdout("  {$line}\n"));
+        $errors = (new LibraryDistribution())->downloadWithRequirements($handle, fn(string $line) => $this->stdout("  {$line}\n"));
         foreach ($errors as $error) {
             $this->stderr("Error: {$error}\n", Console::FG_RED);
         }

@@ -8,6 +8,7 @@ use site7\studio\records\PackageRecord;
 use site7\studio\services\library\LibraryDistribution;
 use site7\studio\services\sitekit\SiteKitContent;
 use site7\studio\services\theme\ThemeInstaller;
+use site7\studio\services\PackageManagerService;
 use site7\studio\Site7Studio;
 
 /**
@@ -31,9 +32,17 @@ class KitInstaller extends ThemeInstaller
     public function validateKit(string $handle): array
     {
         $result = ['errors' => [], 'warnings' => [], 'meta' => null, 'theme' => null, 'themeInstalled' => false, 'remote' => false, 'download' => [], 'downloadSize' => 0];
-        // The Theme's structure step writes project config, which Craft
-        // refuses while admin changes are off - say so before any download.
-        if (!Craft::$app->getConfig()->getGeneral()->allowAdminChanges) {
+        // The structure step writes project config, which Craft refuses
+        // while admin changes are off. Say so before any download when it's
+        // already known: the env override wins over any config file, and
+        // once a Theme is installed this site's config is the Theme's.
+        // Otherwise the Theme's own config/general.php decides, checked by
+        // validateTheme() before anything changes.
+        $override = App::env('CRAFT_ALLOW_ADMIN_CHANGES');
+        $adminChangesOff = $override !== null
+            ? !(App::parseBooleanEnv($override) ?? true)
+            : $this->siteHasTheme() && !Craft::$app->getConfig()->getGeneral()->allowAdminChanges;
+        if ($adminChangesOff) {
             $result['errors'][] = 'Admin changes are turned off on this site, so its project config is read-only and the kit can\'t set up its structure. Set CRAFT_ALLOW_ADMIN_CHANGES=true in .env, then try again.';
             return $result;
         }
@@ -61,7 +70,7 @@ class KitInstaller extends ThemeInstaller
         }
 
         $packageManager->discoverPackages();
-        if ($packageManager->getPackageByHandle((string)$theme)?->status === 'enabled') {
+        if (PackageManagerService::hasSetUpTheSite($packageManager->getPackageByHandle((string)$theme))) {
             $result['themeInstalled'] = true;
         } else {
             $themeCheck = $this->validateTheme((string)$theme);
@@ -91,12 +100,23 @@ class KitInstaller extends ThemeInstaller
             $result['theme'] = $check['kit']['requires']['themes'][0] ?? null;
         }
         $result['themeInstalled'] = $result['theme'] !== null
-            && Site7Studio::getInstance()->packageManager->getPackageByHandle($result['theme'])?->status === 'enabled';
+            && PackageManagerService::hasSetUpTheSite(Site7Studio::getInstance()->packageManager->getPackageByHandle($result['theme']));
         if (!$result['themeInstalled'] && count(Craft::$app->getEntries()->getAllSections()) > 0) {
             $result['errors'][] = 'This site already has content structure. A Starter Kit sets up a fresh Craft install.';
         }
 
         return $result;
+    }
+
+    private function siteHasTheme(): bool
+    {
+        foreach (Site7Studio::getInstance()->packageManager->getAllPackages() as $record) {
+            if ($record->type === 'theme' && PackageManagerService::hasSetUpTheSite($record)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

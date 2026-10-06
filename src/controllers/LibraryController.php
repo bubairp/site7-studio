@@ -163,6 +163,8 @@ class LibraryController extends Controller
             'title' => $package->name,
             'package' => $package,
             'isSetupComplete' => $isSetupComplete,
+            'hasMatrixFields' => !$isSetupComplete && array_filter(Craft::$app->getFields()->getAllFields(), fn($field) => $field instanceof \craft\fields\Matrix),
+            'setsUpTheSite' => Site7Studio::getInstance()->packageManager->setsUpTheSite($package->handle),
             'usage' => $usage,
             'hasPreviewImage' => $hasPreviewImage,
             'hasPreviewTemplate' => $hasPreviewTemplate,

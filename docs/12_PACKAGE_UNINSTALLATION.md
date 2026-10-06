@@ -25,7 +25,7 @@ detachPackage()   →  row DELETED (cascade)   directory DELETED       (cascade)
 
 ## 5. Execution Flow
 
-**`uninstallPackage($handle)`** (the CP's **Remove** button, since 2026-10-06, `43` #32): a Section is unlinked from Matrix and `removePackageResources()` deletes its Entry Type, Fields and `_blocks` template (usage-checked, §10; what's kept is reported), but the package stays in the Library, `status → 'available'`, so Install rebuilds it from `packages/{handle}/`. Other package types generate no Craft resources of their own: only the status changes, their pages and structure stay.
+**`uninstallPackage($handle)`** (the CP's **Remove** button, since 2026-10-06, `43` #32): a Section is unlinked from Matrix and `removePackageResources()` deletes its Entry Type, Fields and `_blocks` template (usage-checked, §10; what's kept is reported), but the package stays in the Library, `status → 'available'`, so Install rebuilds it from `packages/{handle}/`. A block imported from this site keeps its block type, fields and template: they're its source. A Theme or Library Starter Kit can't be removed once it has set up the site. Other package types generate no Craft resources of their own: only the status changes, their pages and structure stay.
 
 **`removePackage($handle)`** (soft, used by Marketplace Reinstall): if `type === 'section'`, calls `unlinkFromMatrix($handle)` only — **deliberately never calls `CraftResourceService::removePackageResources()`**, so a later `installPackage()` reuses the exact same Entry Type/Fields rather than orphaning any content already authored against them. `status → 'available'`.
 
@@ -72,7 +72,7 @@ None dispatched directly by these four methods.
 
 ## 10. Validation and Safety
 
-**Usage-aware deletion**: `removePackageResources()` (called by `deletePackage()` and `uninstallPackage()`) checks `Entry::find()->typeId($entryType->id)->status(null)->count()` — if any real Entry elements still use the Entry Type, it's skipped (not deleted), reported in the return warnings. Same for Fields via `Craft::$app->getFields()->findFieldUsages($field)`. The installed template is only removed if it still byte-matches the package's own `template.twig` — a locally-modified installed file is left in place and reported, never destroyed.
+**Usage-aware deletion**: `removePackageResources()` (called by `deletePackage()` and `uninstallPackage()`) checks `Entry::find()->typeId($entryType->id)->status(null)->drafts(null)->provisionalDrafts(null)->revisions(null)->count()` (drafts and revisions count: deleting the type would delete their blocks) — if any real Entry elements still use the Entry Type, it's skipped (not deleted), reported in the return warnings. Same for Fields via `Craft::$app->getFields()->findFieldUsages($field)`. The installed template is only removed if it still byte-matches the package's own `template.twig` — a locally-modified installed file is left in place and reported, never destroyed.
 
 **`detachPackage()`'s strict gate**: no self-captured-Template exception (unlike `deletePackage()`) — this is intentionally the most locked-down operation in the plugin, since it removes package tracking without any of `deletePackage()`'s usage safety checks (because it never touches Craft resources at all, those checks are unnecessary for it).
 

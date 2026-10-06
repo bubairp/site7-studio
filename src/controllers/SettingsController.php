@@ -95,6 +95,15 @@ class SettingsController extends Controller
                 Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Choose a Matrix field.'));
                 return $this->redirectToPostedUrl();
             }
+            // Enabled Section packages are linked into the current field;
+            // switching would strand their blocks there.
+            if ($submitted['matrixFieldUid'] !== ($plugin->getSettings()->matrixFieldUid ?: null)) {
+                $linked = array_filter($plugin->packageManager->getAllPackages(), fn($record) => $record->type === 'section' && $record->status === 'enabled');
+                if ($linked) {
+                    Craft::$app->getSession()->setError(Craft::t('site7-studio', 'The page builder can’t change while {count} Section packages are enabled in it. Disable them first, or keep this page builder.', ['count' => count($linked)]));
+                    return $this->redirectToPostedUrl();
+                }
+            }
         }
 
         // The Commerce tab only submits its own fields; see

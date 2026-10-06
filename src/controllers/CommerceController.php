@@ -102,6 +102,12 @@ class CommerceController extends Controller
                 $data['availableToInstall'] = [];
                 $data['lockedHandles'] = [];
                 $data['lockedPlanNames'] = [];
+                // A Theme or Starter Kit sets up the whole site: the Install
+                // screen installs it, not this tab's per-package Install.
+                $data['siteSetupHandles'] = array_keys(array_filter(
+                    (new \site7\studio\services\library\LibraryDistribution())->catalog(),
+                    fn($entry) => in_array($entry['type'] ?? null, ['theme', 'starter-kit'], true)
+                ));
                 foreach ($notInstalled as $handle) {
                     if ($plugin->commercePackages->isEntitled($handle)) {
                         $data['availableToInstall'][] = $handle;

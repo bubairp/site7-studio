@@ -4,6 +4,7 @@ namespace site7\studio\controllers;
 
 use Craft;
 use craft\web\Controller;
+use site7\studio\services\PackageManagerService;
 use site7\studio\Site7Studio;
 
 class PackageActionController extends Controller
@@ -22,6 +23,11 @@ class PackageActionController extends Controller
         $this->requirePermission('managePackages');
 
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
+
+        if (Site7Studio::getInstance()->packageManager->setsUpTheSite($handle)) {
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'A Theme or Starter Kit sets up the whole site: install it from Site7 Studio → Install.'));
+            return $this->redirectToPostedUrl();
+        }
 
         if (!Site7Studio::getInstance()->commercePackages->canInstallOrEnable($handle)) {
             Craft::$app->getSession()->setError(Craft::t('site7-studio', 'This package is not included in your current plan. Upgrade from Account & License to install it.'));
@@ -324,8 +330,9 @@ class PackageActionController extends Controller
      */
     private function setUpTheSite(string $handle): bool
     {
-        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        $packageManager = Site7Studio::getInstance()->packageManager;
 
-        return $record !== null && in_array($record->type, ['starter-kit', 'theme'], true) && $record->status !== 'available';
+        return $packageManager->setsUpTheSite($handle)
+            && PackageManagerService::hasSetUpTheSite($packageManager->getPackageByHandle($handle));
     }
 }

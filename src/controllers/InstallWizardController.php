@@ -98,7 +98,7 @@ class InstallWizardController extends Controller
     private function installedThemeHandle(): ?string
     {
         foreach (Site7Studio::getInstance()->packageManager->getAllPackages() as $record) {
-            if ($record->type === 'theme' && $record->status !== 'available') {
+            if ($record->type === 'theme' && \site7\studio\services\PackageManagerService::hasSetUpTheSite($record)) {
                 return $record->handle;
             }
         }

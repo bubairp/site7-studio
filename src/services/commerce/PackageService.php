@@ -317,8 +317,12 @@ class PackageService extends Component implements PackageProviderInterface
         }
 
         $packageManager = Site7Studio::getInstance()->packageManager;
-        if (!$packageManager->getPackagePath($handle)) {
-            $this->downloadWithRequirements($handle);
+        $distribution = new LibraryDistribution();
+        if ($packageManager->setsUpTheSite($handle) || in_array($distribution->catalog()[$handle]['type'] ?? null, ['theme', 'starter-kit'], true)) {
+            throw new \Exception("'{$handle}' sets up the whole site: install it from Site7 Studio → Install.");
+        }
+        if (!$packageManager->getPackagePath($handle) && ($errors = $distribution->downloadWithRequirements($handle))) {
+            throw new \Exception('Download from Commerce24 failed: ' . implode(' ', $errors));
         }
         if (!$packageManager->installPackage($handle)) {
             return false;
@@ -363,29 +367,6 @@ class PackageService extends Component implements PackageProviderInterface
         ]));
 
         return $summary;
-    }
-
-    /**
-     * Downloads $handle and every Library package it requires that this site
-     * doesn't have, from Commerce24 (each signature-checked, not installed).
-     *
-     * @throws \Exception if Commerce24 doesn't offer one of them or a download fails.
-     */
-    private function downloadWithRequirements(string $handle): void
-    {
-        $distribution = new LibraryDistribution();
-        $catalog = $distribution->catalog();
-        if (!isset($catalog[$handle])) {
-            throw new \Exception("'{$handle}' isn't in this site's Library, and Commerce24 doesn't offer it.");
-        }
-        $closure = LibraryDistribution::closure($handle, $catalog);
-        if ($closure['missing']) {
-            throw new \Exception("'{$handle}' needs " . implode(', ', $closure['missing']) . ", which Commerce24 doesn't offer.");
-        }
-        $errors = $distribution->download($closure['handles']);
-        if ($errors) {
-            throw new \Exception('Download from Commerce24 failed: ' . implode(' ', $errors));
-        }
     }
 
     private function getEntitlements(): array
