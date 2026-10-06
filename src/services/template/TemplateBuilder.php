@@ -130,7 +130,7 @@ class TemplateBuilder extends Component
             'type' => 'template',
             'version' => $version,
             'author' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? 'Site7',
-            'description' => "The page \"{$entry->title}\" (/" . ($entry->uri === '__home__' ? '' : $entry->uri) . ') with its content: ' . count($requiredSections) . ' block types.',
+            'description' => self::description($entry->title, count($requiredSections)),
             'category' => $section->name,
             'sourceSection' => $section->handle,
             'sourceSectionType' => $section->type,
@@ -229,5 +229,11 @@ class TemplateBuilder extends Component
     private function json(mixed $data): string
     {
         return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /** A Template's description in the Library and the Content Browser. */
+    public static function description(string $title, int $sections): string
+    {
+        return "The {$title} page" . ($sections ? ', built from ' . $sections . ($sections === 1 ? ' section.' : ' sections.') : '.');
     }
 }
