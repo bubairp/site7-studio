@@ -3,7 +3,7 @@
     "handle": "heading-content",
     "name": "Heading + Content",
     "type": "section",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "author": "Site7",
     "description": "Imported from the Craft Entry Type \"Heading + Content\".",
     "category": null,
@@ -24,7 +24,7 @@
         "sourceUid": "cbe1aebf-c053-4ef9-a1b9-385a2271f486",
         "sourceHandle": "headingContent",
         "sourceHash": "c2a58fb398d0f53ded478ef120af0652e59376895e0e61d3ea4dfb9a930ea5b9",
-        "importedAt": "2026-10-02T04:09:10-07:00",
+        "importedAt": "2026-10-06T02:58:31-07:00",
         "importedBy": null
     }
 }

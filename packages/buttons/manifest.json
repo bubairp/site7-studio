@@ -3,7 +3,7 @@
     "handle": "buttons",
     "name": "Buttons",
     "type": "section",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "author": "Site7",
     "description": "Imported from the Craft Entry Type \"Buttons\".",
     "category": null,
@@ -26,7 +26,7 @@
         "sourceUid": "349b7806-3b7b-4680-8e76-109064ba8899",
         "sourceHandle": "buttons",
         "sourceHash": "34342b63dd103622fd6b77e647c3d11fb901dc641a34bb581e23ce0eb4125e98",
-        "importedAt": "2026-10-02T04:09:08-07:00",
+        "importedAt": "2026-10-06T02:58:32-07:00",
         "importedBy": null
     }
 }
