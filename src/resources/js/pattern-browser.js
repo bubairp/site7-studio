@@ -241,11 +241,16 @@
             const esc = escapeAttr;
             filtered.forEach(p => {
                 let includedHtml = '';
-                if (p.type.toLowerCase() === 'template' && p.requires) {
-                    const sections = Array.isArray(p.requires.sections) ? p.requires.sections : [];
-                    if (sections.length) {
-                        includedHtml += `<div style="margin-bottom: 8px; font-size: 12px; color: #6b7a8a;"><strong>Included Sections:</strong> ${esc(sections.join(', '))}</div>`;
-                    }
+                let canInsert = true;
+                if (p.type.toLowerCase() === 'template') {
+                    const sections = p.requires && Array.isArray(p.requires.sections) ? p.requires.sections : [];
+                    canInsert = sections.length > 0;
+                    const what = !canInsert
+                        ? 'This page has no sections to insert.'
+                        : (p.insertMode === 'layout'
+                            ? `Inserts ${sections.length} section(s): layout and styles, for your own text and images.`
+                            : `Inserts ${sections.length} section(s) with their content.`);
+                    includedHtml += `<div style="margin-bottom: 8px; font-size: 12px; color: #6b7a8a;">${esc(what)}</div>`;
                 }
 
                 const $card = $(`
@@ -262,7 +267,7 @@
                             ${includedHtml}
                             <div style="display: flex; gap: 8px; margin-top: auto;">
                                 <button type="button" class="btn site7-pattern-preview-btn" data-url="${esc(p.renderUrl)}" style="flex: 1; justify-content: center;">Preview</button>
-                                <button type="button" class="btn submit site7-pattern-insert-btn" data-handle="${esc(p.handle)}" data-type="${esc(p.type.toLowerCase())}" data-block-type-handle="${esc(p.blockTypeHandle || '')}" data-block-type-id="${esc(String(p.blockTypeId || ''))}" style="flex: 1; justify-content: center;">Insert</button>
+                                ${canInsert ? `<button type="button" class="btn submit site7-pattern-insert-btn" data-handle="${esc(p.handle)}" data-type="${esc(p.type.toLowerCase())}" data-block-type-handle="${esc(p.blockTypeHandle || '')}" data-block-type-id="${esc(String(p.blockTypeId || ''))}" style="flex: 1; justify-content: center;">Insert</button>` : ''}
                             </div>
                         </div>
                     </div>

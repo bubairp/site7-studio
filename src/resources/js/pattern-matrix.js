@@ -324,29 +324,82 @@
             }
         },
 
-        insertTemplate: function($matrixContainer, handle) {
-            // Fetch the flattened Section list from API, as {type, typeId, fields} blocks.
-            const url = Craft.getActionUrl ? Craft.getActionUrl('site7-studio/package-action/get-template-blocks') : '/admin/site7-studio/package-action/get-template-blocks';
+        // Templates (docs/44 §15): the server duplicates the template page's
+        // blocks into this page - with their content, or layout and styles only
+        // for a detail page - the same way Craft's own paste does, and they're
+        // rendered here exactly like pasted entries (MatrixInput.pasteEntries()).
+        insertTemplate: async function($matrixContainer, handle) {
+            const matrix = $matrixContainer.data('matrix');
+            const manager = $matrixContainer.data('nestedElementManager') || $matrixContainer.data('nested-element-manager');
+            if (!matrix && !manager) {
+                Craft.cp.displayError('This field can’t take a template.');
+                return;
+            }
 
-            $.ajax({
-                url: url,
-                type: 'GET',
-                data: { handle: handle },
-                dataType: 'json',
-                headers: {
-                    'Accept': 'application/json'
-                },
-                success: $.proxy(function(response) {
-                    if (response.success && response.blocks) {
-                        this.createBlocksSequentially($matrixContainer, response.blocks);
-                    } else {
-                        Craft.cp.displayError('Failed to load template blocks: ' + (response.error || 'Unknown error'));
+            try {
+                // First make sure the page (and anything leading up to it) is a draft.
+                if (matrix && matrix.elementEditor) {
+                    await matrix.elementEditor.setFormValue(matrix.settings.baseInputName, '*');
+                } else if (manager) {
+                    await manager.markAsDirty();
+                }
+
+                const settings = matrix ? matrix.settings : manager.settings;
+                const siteId = matrix ? settings.siteId : settings.ownerSiteId;
+                let data;
+                try {
+                    ({data} = await Craft.sendActionRequest('POST', 'site7-studio/package-action/insert-template', {
+                        data: {handle: handle, ownerId: settings.ownerId, fieldId: settings.fieldId, siteId: siteId},
+                    }));
+                } catch (e) {
+                    Craft.cp.displayError((e && e.response && e.response.data && e.response.data.message) || 'Could not insert the template.');
+                    return;
+                }
+                if (!data.newElements || !data.newElements.length) {
+                    Craft.cp.displayError(data.message);
+                    return;
+                }
+
+                if (matrix) {
+                    const {data: rendered} = await Craft.sendActionRequest('POST', 'matrix/render-blocks', {
+                        data: {entryIds: data.newElements.map(info => info.id), siteId: siteId, namespace: settings.namespace},
+                    });
+                    await (matrix.elementEditor ? matrix.elementEditor.pause() : Promise.resolve());
+                    const $newEntries = $(rendered.blockHtml);
+                    matrix.$entriesContainer.append($newEntries);
+                    await Craft.appendHeadHtml(rendered.headHtml);
+                    await Craft.appendBodyHtml(rendered.bodyHtml);
+                    Craft.initUiElements($newEntries);
+                    $newEntries.each((i, entry) => {
+                        if (entry.nodeType !== 1) {
+                            return;
+                        }
+                        const $entry = $(entry);
+                        new Craft.MatrixInput.Entry(matrix, $entry);
+                        matrix.trigger('entryAdded', {$entry});
+                    });
+                    if (matrix.entrySort) {
+                        matrix.entrySort.addItems($newEntries);
                     }
-                }, this),
-                error: $.proxy(function() {
-                    Craft.cp.displayError('Error fetching template blocks.');
-                }, this)
-            });
+                    if (matrix.entrySelect) {
+                        matrix.entrySelect.addItems($newEntries);
+                    }
+                    matrix.updateAddEntryBtn();
+                    if (matrix.elementEditor) {
+                        matrix.elementEditor.resume();
+                    }
+                } else {
+                    await manager.addElementCards(data.newElements);
+                    if (typeof manager.updateSortOrder === 'function') {
+                        await manager.updateSortOrder(data.newElements[0].id);
+                    }
+                }
+
+                Craft.cp.displayNotice(data.message);
+            } catch (err) {
+                console.error('Site7: template insert failed', err);
+                Craft.cp.displayError('Could not insert the template.');
+            }
         },
 
         createBlocksSequentially: async function($matrixContainer, blocks) {

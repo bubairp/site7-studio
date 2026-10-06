@@ -115,6 +115,7 @@ A second fresh customer site, https://site7-qa.ddev.site (Craft 5.10.8.1, empty 
 | G11 | Library → package → **Remove** a Section (`form`), then Install, Enable | ❌ → ✅ Remove deleted nothing; now block type, template and page-builder link are gone, the package stays "Available"; Install rebuilds, Enable relinks (config and database). Refused for `heading-content` (27 entries) (`43` #32) |
 | G12 | Disable an installed Starter Kit | ❌ → ✅ allowed, site unchanged, Install screen said "Not installed"; re-install added no duplicates and kept an edited title. Now refused, hidden, and the Install screen shows whether each kit fits (`43` #33) |
 | G13 | Library updates, two rounds (author: `headingContent` + `buttons` templates, About Us + Web Development titles; customer: edited `buttons` template + Web Development title) | ✅ 4 published (93 unchanged) each round; author changes arrived, customer edits kept ("kept your version"), backup + signatures, pages 200, project config clean, re-run 0 updates. ❌ → ✅ updates showed only after the 5-minute catalog cache expired (`43` #34) |
+| G14 | Browser (Chrome): Settings test, Account & License tabs, Install, Updates, package Install/Enable/Disable/Remove, Content Browser Sections and Templates, frontend | ✅ no errors. Template Insert ❌ → ✅: was empty blocks; now Home (general) inserts 5 blocks with content, a blog post (detail) inserts layout + styles with text and image cleared, a 0-block template has no Insert (`43` #36) |
 | G10 | Unit tests (F1) | ✅ 198 tests |
 
 ## Findings from this run

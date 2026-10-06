@@ -98,7 +98,7 @@ class MatrixEntryTypeImportService extends Component
             'type' => 'section',
             'version' => $version,
             'author' => !empty($meta['author']) ? $meta['author'] : (Craft::$app->getUser()->getIdentity()?->friendlyName ?? 'Site7'),
-            'description' => !empty($meta['description']) ? $meta['description'] : "Imported from the Craft Entry Type \"{$entryType->name}\".",
+            'description' => !empty($meta['description']) ? $meta['description'] : "The {$entryType->name} section.",
             'category' => $meta['category'] ?? null,
             'tags' => $tags,
             'requires' => [],

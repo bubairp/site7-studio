@@ -4,7 +4,13 @@ namespace site7\studio\services;
 
 use Craft;
 use craft\base\Component;
+use craft\base\ElementInterface;
 use craft\elements\Entry;
+use craft\fields\Assets;
+use craft\fields\Entries;
+use craft\fields\Link;
+use craft\fields\Matrix;
+use craft\fields\PlainText;
 use craft\models\Section;
 use site7\studio\models\packages\PackageManifest;
 use site7\studio\services\support\AssetCaptureHelper;
@@ -331,5 +337,168 @@ class TemplateInsertionService extends Component
         }
         $field = Craft::$app->getFields()->getFieldById($settings->matrixFieldId);
         return $field?->handle;
+    }
+
+    public const INSERT_CONTENT = 'content';
+    public const INSERT_LAYOUT = 'layout';
+
+    /**
+     * Nested Matrix fields that hold a block's design (Block Style, spacing,
+     * typography...), kept when a Template inserts its layout only.
+     */
+    private const DESIGN_FIELD = '/(style|spacing|typography|background|border|divider|settings)$/i';
+
+    /**
+     * How the Content Browser's Insert brings a Template (format v2, docs/50)
+     * into another page. A general page - a Single, or a top-level page such
+     * as /about-us - brings its content. A detail page (blogs/…, products/…)
+     * brings its layout and block styles only: its text and images belong
+     * to that one page. template.json `insert` ('content'|'layout') overrides.
+     */
+    public function insertMode(string $handle): string
+    {
+        $meta = $this->templateMeta($handle);
+        if (in_array($meta['insert'] ?? null, [self::INSERT_CONTENT, self::INSERT_LAYOUT], true)) {
+            return $meta['insert'];
+        }
+
+        return ($meta['sectionType'] ?? null) === 'single' || !str_contains((string)($meta['uri'] ?? ''), '/')
+            ? self::INSERT_CONTENT
+            : self::INSERT_LAYOUT;
+    }
+
+    /**
+     * Inserts a Template into the page being edited: its page's blocks on
+     * this site are duplicated into $ownerId's Matrix field the way Craft's
+     * own paste does (elements/bulk-duplicate), then rendered by the client
+     * through matrix/render-blocks. In layout mode the copies' text, images,
+     * links and page relations are cleared; design settings stay.
+     *
+     * @return array{newElements: array[], mode: string, message: string}
+     * @throws \Exception with a message for the editor
+     */
+    public function insertIntoPage(string $handle, int $ownerId, int $fieldId, int $siteId): array
+    {
+        $package = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        if (!$package || $package->type !== 'template') {
+            throw new \Exception("'{$handle}' is not a Template package.");
+        }
+        $meta = $this->templateMeta($handle);
+        $source = !empty($meta['entryUid'])
+            ? Entry::find()->uid($meta['entryUid'])->siteId($siteId)->status(null)->one()
+            : null;
+        if (!$source) {
+            throw new \Exception("The page '{$package->name}' isn't on this site yet. Install it from Site7 Studio → Library → Templates first.");
+        }
+        $pageBuilder = Craft::$app->getFields()->getFieldById((int)Site7Studio::getInstance()->getSettings()->matrixFieldId);
+        $target = Craft::$app->getFields()->getFieldById($fieldId);
+        if (!$pageBuilder instanceof Matrix || !$target instanceof Matrix) {
+            throw new \Exception('Templates insert into the page builder field.');
+        }
+        $owner = Craft::$app->getElements()->getElementById($ownerId, null, $siteId);
+        if (!$owner) {
+            throw new \Exception('The page being edited was not found.');
+        }
+
+        $allowedTypeIds = array_map(fn($entryType) => $entryType->id, $target->getEntryTypes());
+        $blocks = $source->getFieldValue($pageBuilder->handle)->status(null)->all();
+        $mode = $this->insertMode($handle);
+        $elementsService = Craft::$app->getElements();
+        $copies = [];
+        $skipped = 0;
+
+        Craft::$app->getDb()->transaction(function() use ($blocks, $allowedTypeIds, $owner, $target, $siteId, $mode, $elementsService, &$copies, &$skipped) {
+            $elementsService->ensureBulkOp(function() use ($blocks, $allowedTypeIds, $owner, $target, $siteId, $mode, $elementsService, &$copies, &$skipped) {
+                foreach ($blocks as $block) {
+                    if (!in_array($block->typeId, $allowedTypeIds, true)) {
+                        $skipped++;
+                        continue;
+                    }
+                    $attributes = array_intersect_key(
+                        ['primaryOwnerId' => $owner->id, 'ownerId' => $owner->id, 'fieldId' => $target->id, 'siteId' => $siteId],
+                        array_flip($block->safeAttributes())
+                    );
+                    $copy = $elementsService->duplicateElement($block, $attributes + $block::baseBulkDuplicateAttributes(), false, checkAuthorization: true);
+                    if ($mode === self::INSERT_LAYOUT) {
+                        $this->clearContent($copy);
+                    }
+                    $copies[] = $copy;
+                }
+            });
+        });
+
+        $message = $mode === self::INSERT_CONTENT
+            ? 'Template inserted with its content - replace the text and images with your own.'
+            : 'Template inserted: its sections and styles, ready for your own text and images.';
+        if ($skipped) {
+            $message .= " {$skipped} section(s) this field doesn't allow were left out.";
+        }
+
+        return [
+            'newElements' => array_map(fn($copy) => $copy->toArray($copy->attributes()), $copies),
+            'mode' => $mode,
+            'message' => $copies ? $message : 'This template has no sections this field can take.',
+        ];
+    }
+
+    /** template.json of a format v2 Template package; [] otherwise. */
+    private function templateMeta(string $handle): array
+    {
+        $path = Site7Studio::getInstance()->packageManager->getPackagePath($handle);
+
+        return $path ? (json_decode((string)@file_get_contents("{$path}/template.json"), true) ?: []) : [];
+    }
+
+    /**
+     * Clears a copied block's content - text, images, links, relations to
+     * pages - in it and its nested blocks, keeping design fields (dropdowns,
+     * toggles, colours, DESIGN_FIELD matrices).
+     */
+    private function clearContent(ElementInterface $element): void
+    {
+        $changed = false;
+        foreach ($element->getFieldLayout()?->getCustomFields() ?? [] as $field) {
+            if ($field instanceof Matrix) {
+                if (!preg_match(self::DESIGN_FIELD, $field->handle)) {
+                    foreach ($element->getFieldValue($field->handle)->status(null)->all() as $nested) {
+                        $this->clearContent($nested);
+                    }
+                }
+                continue;
+            }
+            if ($field instanceof PlainText || $field instanceof Assets || $field instanceof Link
+                || is_a($field, 'craft\ckeditor\Field')
+                || ($field instanceof Entries && $this->relatesToPages($field))) {
+                // Relation fields read null as "not set, keep what's stored".
+                $element->setFieldValue($field->handle, $field instanceof Assets || $field instanceof Entries ? [] : null);
+                $changed = true;
+            }
+        }
+        if ($changed) {
+            Craft::$app->getElements()->saveElement($element, false);
+        }
+    }
+
+    /** Whether an Entries field can relate to pages (entries with URLs), not to libraries like colours or fonts. */
+    private function relatesToPages(Entries $field): bool
+    {
+        if ($field->sources === '*' || $field->sources === null) {
+            return true;
+        }
+        foreach ((array)$field->sources as $source) {
+            if ($source === 'singles') {
+                return true;
+            }
+            if (str_starts_with((string)$source, 'section:')) {
+                $section = Craft::$app->getEntries()->getSectionByUid(substr($source, 8));
+                foreach ($section?->getSiteSettings() ?? [] as $siteSettings) {
+                    if ($siteSettings->hasUrls) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

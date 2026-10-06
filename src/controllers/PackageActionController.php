@@ -250,6 +250,33 @@ class PackageActionController extends Controller
     }
 
     /**
+     * The Content Browser's Insert for a Template: duplicates its page's
+     * blocks into the page being edited (TemplateInsertionService::insertIntoPage()).
+     * Element permissions are checked by Craft's duplicateElement().
+     */
+    public function actionInsertTemplate()
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+
+        $request = Craft::$app->getRequest();
+        try {
+            $result = (new \site7\studio\services\TemplateInsertionService())->insertIntoPage(
+                (string)$request->getRequiredBodyParam('handle'),
+                (int)$request->getRequiredBodyParam('ownerId'),
+                (int)$request->getRequiredBodyParam('fieldId'),
+                (int)$request->getRequiredBodyParam('siteId'),
+            );
+        } catch (\yii\web\HttpException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            return $this->asFailure($e->getMessage());
+        }
+
+        return $this->asJson(['success' => true] + $result);
+    }
+
+    /**
      * Gets the data for the Site7 Content Browser (pattern-browser.js).
      */
     public function actionGetBrowserData()
@@ -314,6 +341,8 @@ class PackageActionController extends Controller
                 'renderUrl' => \craft\helpers\UrlHelper::cpUrl('site7-studio/library/package/' . $pkg->handle . '/render-preview'),
                 'blockTypeHandle' => $blockTypeHandle,
                 'blockTypeId' => $blockTypeId,
+                // Templates: what Insert brings (content or layout only).
+                'insertMode' => strtolower($pkg->type) === 'template' ? (new \site7\studio\services\TemplateInsertionService())->insertMode($pkg->handle) : null,
             ];
         }
 

@@ -9,7 +9,7 @@
  #         handle - this site's package records, and which repositories list a newer version)
  #}
 <p class="light">
-    {{ "Every repository registered through MarketplaceRepositoryInterface is listed below with the packages it currently has available to pull. The Local Repository reads .s7pkg files from a folder on this server; Commerce24 reads its catalog live over the network once configured on the Commerce settings tab."|t('site7-studio') }}
+    {{ "Each package source is listed below with the packages you can install from it. The Local Repository reads .s7pkg files from a folder on this server; Commerce24 reads its catalog live over the network once configured on the Commerce settings tab."|t('site7-studio') }}
 </p>
 
 {% set anyListings = listingsByRepository|filter(l => l|length)|length %}

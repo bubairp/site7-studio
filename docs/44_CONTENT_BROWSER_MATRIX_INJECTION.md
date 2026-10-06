@@ -117,3 +117,17 @@ If adding a new injected control near a native Craft field control: never place 
 ## 14. Known Limitations
 
 **Resolved 2026-08-18.** `insertSection()`'s classic/"Blocks"-viewMode path and `createBlocksSequentially()`'s classic-Matrix loop now call `matrixInstance.addEntry(entryTypeHandle)` directly (Craft's own public instance method, which itself posts to the `matrix/create-entry` action and returns a promise) whenever that method and a matching `entryTypesByHandle` entry are available, instead of simulating a click on the native add button. This was done for two reasons: (1) it's the deeper fix for the §11 bug class — calling the real method never touches the native DOM button at all, so there is nothing for a future Site7-injected control to accidentally collide with, even if the DOM-isolation fix in §11 were ever undone by a future edit; (2) it replaced `createBlocksSequentially()`'s previous fixed-500ms-delay-and-hope pacing with an actually-awaited completion signal per block, removing a real (if unconfirmed-in-practice) race risk under slow server responses. The DOM-click-simulation path is kept only as a fallback for hypothetical older Craft builds that don't expose `addEntry()` as a public method — not currently known to be needed on any supported Craft version. Verified live: stubbing `Site7PatternBrowser`'s constructor to auto-select a card and clicking "Add Section" produced a real block via `addEntry()` and the expected "Section inserted." notice, with no console errors.
+
+## 15. Inserting a Template (2026-10-06)
+
+Insert on the Templates tab duplicates the blocks of the template's page on this site into the page being edited, the way Craft's own paste works: the client makes sure the page is a draft (`elementEditor.setFormValue(baseInputName, '*')`, or `markAsDirty()` in cards mode), `package-action/insert-template` duplicates the blocks server-side (`TemplateInsertionService::insertIntoPage()`, Craft's `duplicateElement()` with authorization checks, as `elements/bulk-duplicate` does), and the client renders them with `matrix/render-blocks` (cards mode: `addElementCards()`). The template's page is never changed.
+
+What comes along depends on the page (`insertMode()`):
+
+| Page | Example | Insert brings |
+|---|---|---|
+| General: a Single, or a top-level page (URI without `/`) | Home, Contact, About Us | the blocks **with their content** |
+| Detail: a page under a prefix | `blogs/…`, `products/…`, `services/…` | **layout and styles**: plain text, rich text, images, links and relations to pages are cleared; dropdowns, toggles, colour/font relations and design matrices (`…Style`, spacing, typography, background, border, divider, settings) stay |
+
+`template.json` may set `"insert": "content"` or `"layout"` to override. A template with no blocks shows "This page has no sections to insert." and no Insert button. If the template's page isn't on this site, Insert says to install it from the Library first. Blocks of types the target field doesn't allow are left out and counted in the message.
+
