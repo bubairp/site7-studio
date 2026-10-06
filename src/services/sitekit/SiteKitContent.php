@@ -1031,15 +1031,22 @@ class SiteKitContent extends Component
             ->where(['table_schema' => Craft::$app->getDb()->createCommand('SELECT DATABASE()')->queryScalar(), 'table_name' => Craft::$app->getDb()->getSchema()->getRawTableName("{{%{$table}}}")])
             ->andWhere(['like', 'extra', 'GENERATED'])
             ->column();
-        // "_" keys are export annotations (_parentUid), not columns.
-        $columns = array_values(array_filter(array_diff(array_keys($rows[0]), $generated), fn($column) => $column[0] !== '_'));
+        $tableSchema = Craft::$app->getDb()->getTableSchema("{{%{$table}}}", true);
+        // "_" keys are export annotations (_parentUid), not columns. Columns
+        // this site's table doesn't have are left out: the Library installs
+        // on any Craft of the major version it was built on (CraftVersion),
+        // and a later minor release can add columns.
+        $columns = array_values(array_filter(
+            array_diff(array_keys($rows[0]), $generated),
+            fn($column) => $column[0] !== '_' && (!$tableSchema || isset($tableSchema->columns[$column]))
+        ));
 
         // JSON columns (elements_sites.content holds every field value) are
         // read back as JSON strings; Yii JSON-encodes whatever it inserts
         // into them, so pass the decoded value or it's stored double-encoded
         // and Craft sees every field as empty.
         $jsonColumns = [];
-        foreach (Craft::$app->getDb()->getTableSchema("{{%{$table}}}", true)?->columns ?? [] as $name => $schema) {
+        foreach ($tableSchema?->columns ?? [] as $name => $schema) {
             if ($schema->dbType === 'json' || $schema->type === 'json') {
                 $jsonColumns[] = $name;
             }

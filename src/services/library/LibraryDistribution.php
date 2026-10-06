@@ -314,8 +314,8 @@ class LibraryDistribution extends Component
         }
 
         $craftVersion = $kit['metadata']['library']['craftVersion'] ?? null;
-        if ($craftVersion && $craftVersion !== Craft::$app->getVersion()) {
-            $result['errors'][] = "This kit was built on Craft {$craftVersion}; this site runs Craft " . Craft::$app->getVersion() . '.';
+        if ($craftVersion && !\site7\studio\services\support\CraftVersion::isCompatible($craftVersion)) {
+            $result['errors'][] = 'This kit is for Craft ' . \site7\studio\services\support\CraftVersion::range($craftVersion) . " (built on {$craftVersion}); this site runs Craft " . Craft::$app->getVersion() . '.';
         }
 
         return $result;

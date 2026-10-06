@@ -36,6 +36,12 @@ Fields and entry types are roots because templates read fields by handle. `entry
 
 **Secrets.** Never copied. Plugin settings keep their `$ENV_VAR` references, and `.env` keys are listed by name only.
 
+
+## 2a. Craft versions (2026-10-06)
+
+A Theme, Starter Kit or Template installs and updates on any Craft of the **major** version it was built on: built on 5.10.8.1, it installs on 5.x (`support/CraftVersion`), and Craft 6 needs the Library rebuilt on Craft 6. The install keeps the site's own Craft: when the Theme's `composer.lock` pins another Craft version, the Composer step runs `composer require craftcms/cms:<this site's version> --update-with-all-dependencies` instead of `composer install`. Content rows leave out columns the site's tables don't have. Full Site Kits (`48`) still need the exact version: they replace the whole database.
+
+Limits: a site on an older 5.x than the Library may not know newer field or block settings; and after the Composer step changes `composer.lock`, a later Theme update counts the lock as the customer's own (`53` §6: merge by hand).
 ## 3. Console
 
 ```

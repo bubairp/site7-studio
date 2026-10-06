@@ -31,8 +31,8 @@ class ThemeUpdater extends ThemeInstaller
     {
         $old = json_decode((string)file_get_contents("{$baseline}/" . ThemeBuilder::META_FILE), true) ?: [];
         $new = json_decode((string)file_get_contents("{$dir}/" . ThemeBuilder::META_FILE), true) ?: [];
-        if (($new['craftVersion'] ?? null) !== Craft::$app->getVersion()) {
-            throw new \Exception("This version of the Theme needs Craft {$new['craftVersion']}; this site runs Craft " . Craft::$app->getVersion() . '. Update Craft first.');
+        if (!\site7\studio\services\support\CraftVersion::isCompatible($new['craftVersion'] ?? null)) {
+            throw new \Exception('This version of the Theme is for Craft ' . \site7\studio\services\support\CraftVersion::range((string)$new['craftVersion']) . '; this site runs Craft ' . Craft::$app->getVersion() . '.');
         }
         $root = $this->root();
         $php = App::phpExecutable() ?? 'php';

@@ -8,6 +8,7 @@ use craft\helpers\App;
 use site7\studio\models\Settings;
 use site7\studio\services\sitekit\SiteKitFiles;
 use site7\studio\services\sitekit\SiteKitInstaller;
+use site7\studio\services\support\CraftVersion;
 use site7\studio\Site7Studio;
 use Symfony\Component\Process\ExecutableFinder;
 
@@ -40,8 +41,8 @@ class ThemeInstaller extends SiteKitInstaller
         $result['dir'] = $dir;
         $root = $this->root();
 
-        if (Craft::$app->getVersion() !== $meta['craftVersion']) {
-            $result['errors'][] = "This theme was built on Craft {$meta['craftVersion']}; this site runs Craft " . Craft::$app->getVersion() . '.';
+        if (!CraftVersion::isCompatible($meta['craftVersion'] ?? null)) {
+            $result['errors'][] = 'This theme is for Craft ' . CraftVersion::range($meta['craftVersion']) . " (built on {$meta['craftVersion']}); this site runs Craft " . Craft::$app->getVersion() . '.';
         }
         if (!$this->allowsAdminChangesWith("{$dir}/files/config/general.php")) {
             $result['errors'][] = "The theme's config/general.php turns admin changes off on this site, so its structure couldn't be installed. Set CRAFT_ALLOW_ADMIN_CHANGES=true in .env (or CRAFT_ENVIRONMENT=dev), then try again.";
@@ -67,6 +68,44 @@ class ThemeInstaller extends SiteKitInstaller
         }
 
         return $result;
+    }
+
+    /**
+     * Installs the Theme's Composer packages, keeping this site's own Craft
+     * version: the Theme's composer.lock pins the Craft it was built on, and
+     * a different one would up- or downgrade Craft under this site's
+     * database. Same version: `composer install` from the lock, as before.
+     */
+    protected function installPackages(string $kit, string $root, array &$result, callable $log): bool
+    {
+        $siteCraft = Craft::$app->getVersion();
+        $lockedCraft = self::lockedVersion("{$kit}/composer.lock", 'craftcms/cms');
+        if ($lockedCraft === null || ltrim($lockedCraft, 'v') === $siteCraft) {
+            return parent::installPackages($kit, $root, $result, $log);
+        }
+
+        $php = App::phpExecutable() ?? 'php';
+        copy("{$kit}/composer.json", "{$root}/composer.json");
+        copy("{$kit}/composer.lock", "{$root}/composer.lock");
+        $composerPhar = Craft::$app->getRuntimePath() . '/composer.phar';
+        copy(Craft::getAlias('@lib/composer.phar'), $composerPhar);
+        $log("The Theme was built on Craft {$lockedCraft}; keeping this site's Craft {$siteCraft}.");
+
+        return $this->run([$php, $composerPhar, 'require', "craftcms/cms:{$siteCraft}", '--update-with-all-dependencies', '--no-interaction', '--no-scripts', '--working-dir=' . $root], $root, 'composer install', $result, $log)
+            && $this->run([$php, "{$root}/craft", 'migrate/all', '--interactive=0'], $root, 'craft migrate/all', $result, $log);
+    }
+
+    /** The version of $package in a composer.lock, or null. */
+    private static function lockedVersion(string $lockFile, string $package): ?string
+    {
+        $lock = json_decode((string)@file_get_contents($lockFile), true) ?: [];
+        foreach ($lock['packages'] ?? [] as $entry) {
+            if (($entry['name'] ?? null) === $package) {
+                return (string)$entry['version'];
+            }
+        }
+
+        return null;
     }
 
     /**
