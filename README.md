@@ -2,6 +2,10 @@
 
 Site7 Studio is a visual website builder and package engine for Craft CMS 5.
 
+- **Using it on a site:** [GUIDE.md](GUIDE.md): install, connect, Starter Kit, page builder, updates, troubleshooting.
+- **What's new:** [CHANGELOG.md](CHANGELOG.md).
+- **Developer documentation:** [docs/](docs/00_OVERVIEW.md).
+
 ## Architecture
 
 Site7 Studio follows a strict **Craft CMS First** UI architecture. 
