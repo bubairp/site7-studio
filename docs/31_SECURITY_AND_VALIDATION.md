@@ -48,7 +48,7 @@ PACKAGE AUTHENTICITY   Ed25519PackageSigner — signature.json over bundle-manif
 ACCESS                 Craft checks accessPlugin-site7-studio only for plugin CP *pages*,
                        never for action requests - every action must check access itself.
                        Admin-only: site kits, Install/Update wizard steps, library kit
-                       install/update, starter-kit-generator/install, setup, settings save
+                       install/update, starter-kit-generator/install, settings save
                        and test-connection. Permission-gated: package lifecycle
                        (managePackages), Marketplace (manageMarketplace), Commerce
                        (manageCommerce/License/Subscription/Updates), Publishing

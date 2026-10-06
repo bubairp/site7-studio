@@ -22,7 +22,7 @@ class MakeController extends Controller
     public $starterKitCategory = '';
     public $starterKitTags = '';
 
-    /** setup-matrix-field: handle of an existing Matrix field to use instead of site7Components. */
+    /** setup-matrix-field: handle of the existing Matrix field to use as the page builder. */
     public $field = '';
 
     public function options($actionID)
@@ -56,51 +56,25 @@ class MakeController extends Controller
     }
 
     /**
-     * Console equivalent of SetupController::actionSave() - creates the
-     * site7Components Matrix field and points the plugin's matrixFieldId
-     * setting at it. Same effect as running the CP's Site7 Studio Setup
-     * wizard, just scriptable.
-     * With --field, uses that existing Matrix field instead (Setup's Option B).
-     * Usage: php craft site7-studio/make/setup-matrix-field [--field=matrixContent]
+     * Points Site7 Studio at an existing page-builder Matrix field - the
+     * console form of Settings > General > Page Builder Field. A Starter Kit
+     * sets it itself; this is for an authoring site or a site with its own
+     * page builder.
+     * Usage: php craft site7-studio/make/setup-matrix-field --field=matrixContent
      */
     public function actionSetupMatrixField(): int
     {
-        $fieldsService = Craft::$app->getFields();
-        $existing = $fieldsService->getFieldByHandle($this->field ?: 'site7Components');
-
-        if ($this->field && !$existing instanceof Matrix) {
-            $this->stderr("Error: '{$this->field}' is not a Matrix field.\n", Console::FG_RED);
+        $field = $this->field ? Craft::$app->getFields()->getFieldByHandle($this->field) : null;
+        if (!$field instanceof Matrix) {
+            $this->stderr("Error: pass --field=<handle> of an existing Matrix field.\n", Console::FG_RED);
             return 1;
-        }
-
-        if ($existing) {
-            $fieldId = $existing->id;
-            $this->stdout("Using existing field '{$existing->handle}' (id {$fieldId}).\n", Console::FG_YELLOW);
-        } else {
-            $matrixField = new Matrix([
-                'handle' => 'site7Components',
-                'name' => 'Site7 Components',
-                'viewMode' => 'blocks',
-            ]);
-            // A brand new Matrix field legitimately has zero Entry Types at
-            // this point - they arrive later as Section packages are
-            // enabled (see PackageManagerService's entry-type injection).
-            // Craft 5's default saveField() validation now rejects a Matrix
-            // field with no Entry Types, so skip validation for this one
-            // intentionally-transient save.
-            if (!$fieldsService->saveField($matrixField, false)) {
-                $this->stderr("Error: Failed to create Matrix field: " . json_encode($matrixField->getErrors()) . "\n", Console::FG_RED);
-                return 1;
-            }
-            $fieldId = $matrixField->id;
-            $this->stdout("Created Matrix field 'site7Components' (id {$fieldId}).\n", Console::FG_GREEN);
         }
 
         Craft::$app->getPlugins()->savePluginSettings(
             Site7Studio::getInstance(),
-            \site7\studio\models\Settings::mergeWithStored(['matrixFieldUid' => $fieldsService->getFieldById($fieldId)?->uid])
+            \site7\studio\models\Settings::mergeWithStored(['matrixFieldUid' => $field->uid])
         );
-        $this->stdout("Setup complete - matrixFieldId set to {$fieldId}.\n", Console::FG_GREEN);
+        $this->stdout("Page builder set to '{$field->handle}'.\n", Console::FG_GREEN);
 
         return 0;
     }

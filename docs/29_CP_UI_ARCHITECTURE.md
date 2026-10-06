@@ -58,7 +58,7 @@ The menu has two audiences: the sites that use the Library (customers), and the 
 
 | Menu item | Shown | Contents |
 |---|---|---|
-| Dashboard | always | counts, setup status |
+| Dashboard | always | counts, page builder (or: Install a Starter Kit / choose in Settings) |
 | Library | always | Sections · Templates · Starter Kits; Shared Resources in Dev Mode only |
 | Install | always | Library Starter Kits; Blueprint Starter Kits (`32`) in Dev Mode only |
 | Updates | always | Library updates (`53`); Blueprint kit updates in Dev Mode only. The one place for updates |

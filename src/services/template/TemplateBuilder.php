@@ -44,7 +44,7 @@ class TemplateBuilder extends Component
         $plugin = Site7Studio::getInstance();
         $pageBuilderUid = $plugin->getSettings()->matrixFieldUid;
         if (!$pageBuilderUid) {
-            throw new \Exception('Configure the page-builder field in Site7 Studio Setup first.');
+            throw new \Exception('Choose the page-builder field first (Site7 Studio > Settings > General).');
         }
         $themeHandle ??= self::libraryTheme();
         $section = $entry->getSection();

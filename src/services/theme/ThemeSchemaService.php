@@ -208,11 +208,11 @@ class ThemeSchemaService extends Component
             throw new \Exception(implode(' ', array_merge($plan['conflicts'], $plan['missingTypes'])));
         }
 
-        // Setup's empty site7Components field gives way to the Theme's own.
+        // The old Setup screen's empty site7Components field gives way to the Theme's own.
         foreach ($plan['replace'] as $uid) {
             $field = Craft::$app->getFields()->getFieldByUid($uid);
             if ($field && !Craft::$app->getFields()->deleteField($field)) {
-                throw new \Exception("Could not remove the empty '{$field->handle}' field Setup created.");
+                throw new \Exception("Could not remove the empty '{$field->handle}' field the old Setup screen created.");
             }
             $plugin = \site7\studio\Site7Studio::getInstance();
             if ($plugin->getSettings()->matrixFieldUid === $uid) {
@@ -237,11 +237,11 @@ class ThemeSchemaService extends Component
     }
 
     /**
-     * The Matrix field Site7 Studio's Setup creates on a fresh site
-     * (SetupController, make/setup-matrix-field): site7Components, still
-     * without any block type and not used in any field layout. A Theme
-     * replaces it with its own field of that handle - otherwise "complete
-     * Setup, then install a Starter Kit" stops on a handle conflict.
+     * The Matrix field Site7 Studio's old Setup screen created (removed
+     * 2026-10-05): site7Components, still without any block type and not
+     * used in any field layout. A Theme replaces it with its own field of
+     * that handle - otherwise a site set up that way stops on a handle
+     * conflict when it installs a Starter Kit.
      */
     public static function isSetupPlaceholder(string $uid, array $config): bool
     {

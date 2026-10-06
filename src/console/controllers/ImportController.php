@@ -40,7 +40,7 @@ class ImportController extends Controller
         $fieldId = Site7Studio::getInstance()->getSettings()->matrixFieldId;
         $field = $fieldId ? Craft::$app->getFields()->getFieldById($fieldId) : null;
         if (!$field instanceof Matrix) {
-            $this->stderr("No page-builder Matrix field is configured - run Site7 Studio Setup first.\n", Console::FG_RED);
+            $this->stderr("No page-builder Matrix field is configured - choose one in Site7 Studio > Settings > General first.\n", Console::FG_RED);
             return ExitCode::CONFIG;
         }
 

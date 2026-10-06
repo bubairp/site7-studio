@@ -17,7 +17,7 @@ Standard Craft `\craft\web\Controller` subclasses under `src/controllers/`, hand
 ```
 craft\web\UrlManager::EVENT_REGISTER_CP_URL_RULES  (Site7Studio::attachEventHandlers(), ~line 228)
    ↓
-explicit navigational GET route rules (site7-studio, /settings, /setup, /library, /packages/*,
+explicit navigational GET route rules (site7-studio, /settings, /setup → Settings, /library, /packages/*,
    /publishing, /marketplace, /commerce, /install/*, /update/*)
    ↓
 POST/AJAX actions reached via Craft's DEFAULT controller-action routing
@@ -42,7 +42,6 @@ Only navigational (page-load) GET routes get explicit `$event->rules[...]` entri
 | `PackagePublisherController` | `src/controllers/PackagePublisherController.php` | actionIndex, actionWizard($handle), actionSaveMetadata, actionPublish, actionCreateVersion |
 | `ResourceImportController` | `src/controllers/ResourceImportController.php` | actionGetMatrixEntryTypes, actionEntryTypeDetail, actionGetCraftSections, actionAnalyzeSection, actionImportSection, actionDiffSectionUpdate, actionUpdateSectionPackage, actionGetPages, actionGetWebsiteTree, actionDiffPageUpdate, actionUpdatePagePackage, actionAnalyzePage, actionImportPage, actionGetWebsiteResources, actionAnalyzeWebsite, actionImportWebsite, actionGetStarterKitReferences, actionSyncStarterKit, actionListFrontendFileCandidates |
 | `SettingsController` | `src/controllers/SettingsController.php` | actionIndex, actionSave, actionTestConnection |
-| `SetupController` | `src/controllers/SetupController.php` | actionIndex, actionSave, actionComplete |
 | `SharedResourceController` | `src/controllers/SharedResourceController.php` | actionIndex, actionPreview($handle), actionImport, actionExport($handle), actionUpdate, actionDelete |
 | `StarterKitGeneratorController` | `src/controllers/StarterKitGeneratorController.php` | actionGetEntries, actionSaveAsStarterKit, actionInstall |
 | `TemplateGeneratorController` | `src/controllers/TemplateGeneratorController.php` | actionSaveAsTemplate, actionGetCreateOptions, actionCreateFromTemplate |

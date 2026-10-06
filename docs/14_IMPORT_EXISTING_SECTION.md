@@ -135,7 +135,7 @@ None confirmed beyond the general Section-package "one template file" assumption
 
 **Import/sync:** Import Existing Section writes `schema.json`; a block whose fields are all Shared Resources is now importable (v1 had nothing of its own to capture). Sync From Source regenerates it and treats any schema difference as a change.
 
-**Bulk:** `php craft site7-studio/import/sections [--dry-run]` imports every block type of the configured page-builder field (Setup Option B lets an authoring site use its own field, e.g. rp-craft's `matrixContent`).
+**Bulk:** `php craft site7-studio/import/sections [--dry-run]` imports every block type of the configured page-builder field (Settings → General → Page Builder Field lets an authoring site use its own field, e.g. rp-craft's `matrixContent`).
 
 **Verified 2026-10-02:**
 - rp-craft: 27 of 27 `matrixContent` blocks imported (27 Sections, 17 Shared Resources); rp-craft unchanged - still 170 fields / 104 entry types, the only project config change is the plugin's `matrixFieldUid`, 12 content pages identical to a pre-import baseline.

@@ -243,8 +243,9 @@ class Site7Studio extends Plugin
                 // entirely - a pre-existing gap that only mattered once this
                 // template needed controller-supplied data (the Commerce tab).
                 $event->rules['site7-studio/settings'] = 'site7-studio/settings/index';
-                $event->rules['site7-studio/setup'] = 'site7-studio/setup/index';
-                $event->rules['site7-studio/setup/complete'] = 'site7-studio/setup/complete';
+                // The Setup screen is gone: the page builder is a setting
+                // (Settings > General), which a Starter Kit fills in.
+                $event->rules['site7-studio/setup'] = 'site7-studio/settings/index';
                 $event->rules['site7-studio/library'] = 'site7-studio/library/index';
                 $event->rules['site7-studio/library/shared-resources'] = 'site7-studio/shared-resource/index';
                 $event->rules['site7-studio/library/shared-resource/<handle:[\w\-]+>'] = 'site7-studio/shared-resource/preview';

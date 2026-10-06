@@ -184,8 +184,9 @@
 {% block content %}
     {% if not isSetupComplete %}
         <div class="site7-notice site7-notice--warning">
-            <strong>{{ "Warning:"|t('site7-studio') }}</strong> {{ "You must complete the First-Time Setup Wizard before you can install packages."|t('site7-studio') }}
-            <a href="{{ url('site7-studio/setup') }}">{{ "Complete Setup →"|t('site7-studio') }}</a>
+            <strong>{{ "No page builder yet."|t('site7-studio') }}</strong> {{ "Packages install once there is one."|t('site7-studio') }}
+            <a href="{{ url('site7-studio/install') }}">{{ "Install a Starter Kit →"|t('site7-studio') }}</a>
+            {{ "or"|t('site7-studio') }} <a href="{{ url('site7-studio/settings') }}">{{ "choose this site's own field in Settings →"|t('site7-studio') }}</a>
         </div>
     {% endif %}
 

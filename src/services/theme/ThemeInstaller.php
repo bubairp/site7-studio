@@ -107,8 +107,13 @@ class ThemeInstaller extends SiteKitInstaller
             }
         }
 
-        if (!$this->run([$php, $craft, 'site7-studio/theme/apply', $handle], $root, 'structure', $result, $log)
-            || !$this->run([$php, $craft, 'site7-studio/theme/ensure-singles'], $root, 'singles', $result, $log)) {
+        $before = Site7Studio::getInstance()->getSettings()->matrixFieldUid;
+        $before = $before ? Craft::$app->getFields()->getFieldByUid($before) : null;
+        if (!$this->run([$php, $craft, 'site7-studio/theme/apply', $handle], $root, 'structure', $result, $log)) {
+            return $result;
+        }
+        $log($this->pageBuilderNote($dir, $before));
+        if (!$this->run([$php, $craft, 'site7-studio/theme/ensure-singles'], $root, 'singles', $result, $log)) {
             return $result;
         }
         if (is_dir("{$dir}/content") && !$this->run([$php, $craft, 'site7-studio/site-kit/import-content', $dir], $root, 'settings content', $result, $log)) {
@@ -158,6 +163,31 @@ class ThemeInstaller extends SiteKitInstaller
         }
 
         return $result;
+    }
+
+    /**
+     * The job log line for the page builder apply() sets: the Theme's field
+     * replaces whatever was set before.
+     */
+    private function pageBuilderNote(string $dir, ?\craft\base\FieldInterface $before): string
+    {
+        $schema = json_decode((string)file_get_contents("{$dir}/" . ThemeSchemaService::FILE), true) ?: [];
+        $uid = $schema['pageBuilderField'] ?? null;
+        $config = [];
+        foreach ($schema['items'] ?? [] as $item) {
+            if ($uid && $item['path'] === "fields.{$uid}") {
+                $config = $item['config'];
+            }
+        }
+        if (!$uid) {
+            return 'The Theme has no page builder field; Site7 Studio\'s Matrix field is unchanged.';
+        }
+        $note = sprintf("Page builder: '%s' (%s), from the Theme", $config['name'] ?? '?', $config['handle'] ?? $uid);
+        if ($before && $before->uid !== $uid) {
+            $note .= sprintf(" - replaces '%s' (%s) set before", $before->name, $before->handle);
+        }
+
+        return $note;
     }
 
     /**

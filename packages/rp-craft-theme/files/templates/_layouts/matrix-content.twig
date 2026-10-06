@@ -28,11 +28,6 @@
 		{% include "_includes/matrix-container" with {
             cache_key: 'entry-' ~ entry.id
         } %}
-		{% include "_includes/matrix-container" with {
-            matrixContainer: entry.site7Components ?? null,
-            cache_key: 'entry-' ~ entry.id ~ '-site7components',
-            id_prefix: 'site7-'
-        } %}
 	{% endblock %}
 	{% block after_content_matrix %}{% endblock %}
 {% endblock %}

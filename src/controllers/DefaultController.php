@@ -35,6 +35,7 @@ class DefaultController extends Controller
         return $this->renderTemplate('site7-studio/index', [
             'title' => 'Dashboard',
             'isSetupComplete' => $isSetupComplete,
+            'pageBuilder' => $isSetupComplete ? Craft::$app->getFields()->getFieldById($settings->matrixFieldId) : null,
             'totalPackages' => count($packages),
             'byType' => $byType,
             'byStatus' => $byStatus,

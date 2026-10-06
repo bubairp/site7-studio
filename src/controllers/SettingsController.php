@@ -3,6 +3,7 @@
 namespace site7\studio\controllers;
 
 use Craft;
+use craft\fields\Matrix;
 use craft\web\Controller;
 use site7\studio\Site7Studio;
 
@@ -15,6 +16,7 @@ class SettingsController extends Controller
         return $this->renderTemplate('site7-studio/settings', [
             'title' => 'Settings',
             'settings' => Site7Studio::getInstance()->getSettings(),
+            'matrixFields' => array_values(array_filter(Craft::$app->getFields()->getAllFields(), fn($field) => $field instanceof Matrix)),
             'system' => $this->getSystemInfo(),
             'links' => $this->getAboutLinks(),
         ]);
@@ -84,6 +86,15 @@ class SettingsController extends Controller
         // Textarea input for the package Category dropdown's options - one per line.
         if (isset($submitted['packageCategories']) && is_string($submitted['packageCategories'])) {
             $submitted['packageCategories'] = array_values(array_filter(array_map('trim', explode("\n", $submitted['packageCategories']))));
+        }
+
+        // The page builder: an existing Matrix field, or none.
+        if (array_key_exists('matrixFieldUid', $submitted)) {
+            $submitted['matrixFieldUid'] = $submitted['matrixFieldUid'] ?: null;
+            if ($submitted['matrixFieldUid'] !== null && !Craft::$app->getFields()->getFieldByUid($submitted['matrixFieldUid']) instanceof Matrix) {
+                Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Choose a Matrix field.'));
+                return $this->redirectToPostedUrl();
+            }
         }
 
         // The Commerce tab only submits its own fields; see

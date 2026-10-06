@@ -25,12 +25,12 @@
         <h2>{{ "Platform Status"|t('site7-studio') }}</h2>
         <div class="meta">
             <div class="field">
-                <div class="heading"><label>{{ "Setup Status"|t('site7-studio') }}</label></div>
+                <div class="heading"><label>{{ "Page Builder"|t('site7-studio') }}</label></div>
                 <div class="input">
-                    {% if isSetupComplete %}
-                        <span class="status-label green"><span class="status green"></span><span class="status-label-text">{{ "Complete"|t('site7-studio') }}</span></span>
+                    {% if pageBuilder %}
+                        <span class="status-label green"><span class="status green"></span><span class="status-label-text">{{ pageBuilder.name }}</span></span>
                     {% else %}
-                        <span class="status-label red"><span class="status red"></span><span class="status-label-text">{{ "Required"|t('site7-studio') }}</span></span>
+                        <span class="status-label red"><span class="status red"></span><span class="status-label-text">{{ "Not set"|t('site7-studio') }}</span></span>
                     {% endif %}
                 </div>
             </div>
@@ -56,9 +56,10 @@
 
         {% if not isSetupComplete %}
             <div class="site7-notice site7-notice--warning">
-                <strong>{{ "Warning:"|t('site7-studio') }}</strong> {{ "You must complete the First-Time Setup Wizard before you can install Site7 packages."|t('site7-studio') }}
+                <strong>{{ "No page builder yet."|t('site7-studio') }}</strong> {{ "Install a Starter Kit: its Theme brings the page builder. A site with its own page-builder Matrix field can choose it in Settings instead."|t('site7-studio') }}
                 <br><br>
-                <a href="{{ url('site7-studio/setup') }}" class="btn submit">{{ "Complete Setup"|t('site7-studio') }}</a>
+                <a href="{{ url('site7-studio/install') }}" class="btn submit">{{ "Install a Starter Kit"|t('site7-studio') }}</a>
+                <a href="{{ url('site7-studio/settings') }}" class="btn">{{ "Choose in Settings"|t('site7-studio') }}</a>
             </div>
         {% endif %}
     </div>

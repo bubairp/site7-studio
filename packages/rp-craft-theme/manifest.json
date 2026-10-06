@@ -3,8 +3,8 @@
     "handle": "rp-craft-theme",
     "name": "RP Craft Theme",
     "type": "theme",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "author": "Site7",
-    "description": "Structure, templates, frontend and settings of RP Craft Theme: 315 structure items, 20 plugins. Blocks come as Section packages.",
+    "description": "Structure, templates, frontend and settings of RP Craft Theme: 314 structure items, 20 plugins. Blocks come as Section packages.",
     "pricingType": "free"
 }

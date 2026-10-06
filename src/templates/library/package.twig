@@ -70,7 +70,7 @@
         {% endif %}
 
         {% if not isSetupComplete %}
-            <a href="{{ url('site7-studio/setup') }}" class="btn submit">{{ "Complete Setup to Install"|t('site7-studio') }}</a>
+            <a href="{{ url('site7-studio/settings') }}" class="btn submit">{{ "Choose a Page Builder to Install"|t('site7-studio') }}</a>
         {% else %}
             {% if package.status == 'available' %}
                 <form method="post" accept-charset="UTF-8">

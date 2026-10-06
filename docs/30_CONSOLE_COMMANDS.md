@@ -33,7 +33,7 @@ SPECIAL CASE: InstallController::actionRunStage($sessionUid) is not meant
 |---|---|---|
 | `ClearController` | `src/console/controllers/ClearController.php` | actionSettings() |
 | `InstallController` | `src/console/controllers/InstallController.php` | actionList(), actionValidate(string $handle), actionRun(string $handle) (supports `--dryRun`/`-d`), actionRunStage(string $sessionUid) — subprocess-only entry point, never invoked directly by a user |
-| `MakeController` | `src/console/controllers/MakeController.php` | actionRelinkMatrix(string $handle), actionSetupMatrixField(), actionStarterKit(string $name), actionPackage(string $handle) |
+| `MakeController` | `src/console/controllers/MakeController.php` | actionRelinkMatrix(string $handle), actionSetupMatrixField() (`--field=<handle>` required: sets the page builder; no longer creates `site7Components`), actionStarterKit(string $name), actionPackage(string $handle) |
 | `PackageController` | `src/console/controllers/PackageController.php` | actionSync() |
 | `UpdateController` | `src/console/controllers/UpdateController.php` | actionList(), actionPlan(string $handle), actionRun(string $handle, string $removals = ''), actionApplyRemovals(string $sessionUid) |
 

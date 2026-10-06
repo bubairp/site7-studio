@@ -3,7 +3,7 @@
     "handle": "rp-craft-starter-kit",
     "name": "RP Craft",
     "type": "starter-kit",
-    "version": "2.0.1",
+    "version": "2.0.3",
     "author": "Site7",
     "description": "The whole RP Craft site on a fresh Craft install: the rp-craft-theme Theme, 68 pages with their blocks, menus and demo content.",
     "requires": {
@@ -81,5 +81,5 @@
             "template-testimonials-bms-system-2-2"
         ]
     },
-    "pricingType": "free"
+    "pricingType": "premium"
 }
