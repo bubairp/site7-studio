@@ -223,6 +223,14 @@ class PackageActionController extends Controller
 
         $handle = Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
+        // Detaching a Section takes its block type out of the page builder,
+        // which would hide the blocks pages use - same check as Delete.
+        $usage = Site7Studio::getInstance()->packageUsage->getUsage($handle);
+        if (!empty($usage)) {
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Cannot detach package. It is currently in use by ' . count($usage) . ' entries.'));
+            return $this->redirectToPostedUrl();
+        }
+
         $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
         $type = $record->type ?? 'section';
 

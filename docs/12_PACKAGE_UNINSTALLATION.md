@@ -33,7 +33,7 @@ detachPackage()   →  row DELETED (cascade)   directory DELETED       (cascade)
 
 **`deletePackage($handle)`** (permanent, Dev-Mode-gated with a self-captured-Template exception, §`08_PACKAGE_AUTHORING.md`): unlinks from Matrix, calls `CraftResourceService::removePackageResources($packagePath)` (usage-checked — see §10), deletes the `PackageRecord` row (cascading every dependent table via FK, §`05_DATABASE_ARCHITECTURE.md`), then deletes the `packages/{handle}/` directory from disk.
 
-**`detachPackage($handle)`** (Dev-Mode-only, no exception — the strictest gate in the plugin): "undo an import by mistake" — deletes the `PackageRecord` (same cascade) and the source directory, but **never calls `removePackageResources()`** — the live Entry Type/Fields the package was imported from (or generated) are left completely untouched, as if the import had never happened.
+**`detachPackage($handle)`** (Dev-Mode-only, no exception — the strictest gate in the plugin; refused while pages use the package, since 2026-10-07): "undo an import by mistake" — deletes the `PackageRecord` (same cascade) and the source directory, but **never calls `removePackageResources()`** — the live Entry Type/Fields the package was imported from (or generated) are left completely untouched, as if the import had never happened.
 
 ## 6. Important Classes
 

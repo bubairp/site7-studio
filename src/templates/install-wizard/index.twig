@@ -1,5 +1,5 @@
 {% extends "_layouts/cp" %}
-{% set title = "Install a Starter Kit" %}
+{% set title = "Install a Starter Kit"|t('site7-studio') %}
 {% set selectedSubnavItem = "install" %}
 
 {% do view.registerAssetBundle("site7\\studio\\assetbundles\\InstallWizardBundle") %}
@@ -7,12 +7,12 @@
 {% macro fit(kitTheme, installedTheme, siteHasStructure) %}
     {%- if installedTheme -%}
         {%- if kitTheme == installedTheme -%}
-            <br><span class="light">Adds its pages to this site (same Theme). Pages already here are kept.</span>
+            <br><span class="light">{{ "Adds its pages to this site (same Theme). Pages already here are kept."|t('site7-studio') }}</span>
         {%- else -%}
-            <br><span class="warning">Needs a fresh site: it uses the Theme <code>{{ kitTheme }}</code>, this site has <code>{{ installedTheme }}</code>.</span>
+            <br><span class="warning">{{ "Needs a fresh site: it uses the Theme {kitTheme}, this site has {installedTheme}."|t('site7-studio', {kitTheme: kitTheme, installedTheme: installedTheme}) }}</span>
         {%- endif -%}
     {%- elseif siteHasStructure -%}
-        <br><span class="warning">Needs a fresh site: this site already has its own content structure.</span>
+        <br><span class="warning">{{ "Needs a fresh site: this site already has its own content structure."|t('site7-studio') }}</span>
     {%- endif -%}
 {% endmacro %}
 {% from _self import fit %}
@@ -20,25 +20,25 @@
 {% set content %}
 {# ---------------------------------------------------- Library Starter Kits (docs/51) #}
 <div class="pane">
-    <h2>Library Starter Kits</h2>
-    <p class="light">A Library Starter Kit sets up the whole site on a fresh Craft install: its Theme (structure, templates, frontend, plugins, settings), every page with its blocks, menus and demo content.</p>
+    <h2>{{ "Library Starter Kits"|t('site7-studio') }}</h2>
+    <p class="light">{{ "A Library Starter Kit sets up the whole site on a fresh Craft install: its Theme (structure, templates, frontend, plugins, settings), every page with its blocks, menus and demo content."|t('site7-studio') }}</p>
     {% if libraryKits is empty and remoteKits is empty %}
-        <p>No Library Starter Kit in this site's Library{{ craft.app.plugins.getPlugin('site7-studio').commerceClient.isConfigured() ? ' or from Commerce24' : '. Connect Commerce24 (Settings → Commerce) to install one from the Site7 Library' }}.</p>
+        <p>{{ craft.app.plugins.getPlugin('site7-studio').commerceClient.isConfigured() ? "No Library Starter Kit in this site's Library or from Commerce24."|t('site7-studio') : "No Library Starter Kit in this site's Library. Connect Commerce24 (Settings → Commerce) to install one from the Site7 Library."|t('site7-studio') }}</p>
     {% else %}
         <table class="data fullwidth">
-            <thead><tr><th>Starter Kit</th><th>Includes</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>{{ "Starter Kit"|t('site7-studio') }}</th><th>{{ "Includes"|t('site7-studio') }}</th><th>{{ "Status"|t('site7-studio') }}</th><th></th></tr></thead>
             <tbody>
             {% for kit in remoteKits %}
                 {% set m = kit.metadata.library ?? {} %}
                 <tr>
                     <td><strong>{{ kit.name }}</strong> <span class="light">v{{ kit.version }}</span><br><span class="light">{{ kit.description }}</span></td>
                     <td>
-                        Theme <code>{{ m.theme ?? '?' }}</code><br>
-                        {{ m.templates ?? '?' }} pages, {{ m.content.counts.simplerpmenu_items ?? 0 }} menu items, {{ m.content.counts.entries ?? 0 }} demo entries
+                        {{ "Theme"|t('site7-studio') }} <code>{{ m.theme ?? '?' }}</code><br>
+                        {{ "{pages} pages, {menuItems} menu items, {entries} demo entries"|t('site7-studio', {pages: m.templates ?? '?', menuItems: m.content.counts.simplerpmenu_items ?? 0, entries: m.content.counts.entries ?? 0}) }}
                     </td>
                     <td>
                         <span class="status blue"></span>Commerce24{% if kit.pricingType != 'free' %} · {{ kit.pricingType|title }}{% endif %}
-                        {% if kit.entitled is defined and not kit.entitled %}<br><span class="error">Not in your plan</span>{% endif %}
+                        {% if kit.entitled is defined and not kit.entitled %}<br><span class="error">{{ "Not in your plan"|t('site7-studio') }}</span>{% endif %}
                         {{ fit(m.theme ?? null, installedTheme, siteHasStructure) }}
                     </td>
                     <td class="thin nowrap">
@@ -48,7 +48,7 @@
                             {{ csrfInput() }}
                             {{ actionInput('site7-studio/install-wizard/check-library-kit') }}
                             {{ hiddenInput('handle', kit.handle) }}
-                            <button type="submit" class="btn">Check</button>
+                            <button type="submit" class="btn">{{ "Check"|t('site7-studio') }}</button>
                         </form>
                         {% endif %}
                     </td>
@@ -58,20 +58,20 @@
                 <tr>
                     <td><strong>{{ kit.name }}</strong> <span class="light">v{{ kit.version }}</span><br><span class="light">{{ kit.description }}</span></td>
                     <td>
-                        Theme <code>{{ kit.meta.theme }}</code><br>
-                        {{ kit.meta.templates }} pages, {{ kit.meta.content.counts.simplerpmenu_items ?? 0 }} menu items, {{ kit.meta.content.counts.entries ?? 0 }} demo entries
+                        {{ "Theme"|t('site7-studio') }} <code>{{ kit.meta.theme }}</code><br>
+                        {{ "{pages} pages, {menuItems} menu items, {entries} demo entries"|t('site7-studio', {pages: kit.meta.templates, menuItems: kit.meta.content.counts.simplerpmenu_items ?? 0, entries: kit.meta.content.counts.entries ?? 0}) }}
                     </td>
                     {# Installed once it set up the site, even if it was disabled before Disable was taken away. #}
                     {% set installed = kit.status in ['enabled', 'disabled'] %}
                     {% set fits = installedTheme ? kit.meta.theme == installedTheme : not siteHasStructure %}
-                    <td>{% if installed %}<span class="status green"></span>Installed{% else %}<span class="status"></span>Not installed{{ fit(kit.meta.theme, installedTheme, siteHasStructure) }}{% endif %}</td>
+                    <td>{% if installed %}<span class="status green"></span>{{ "Installed"|t('site7-studio') }}{% else %}<span class="status"></span>{{ "Not installed"|t('site7-studio') }}{{ fit(kit.meta.theme, installedTheme, siteHasStructure) }}{% endif %}</td>
                     <td class="thin nowrap">
                         {% if not installed and fits %}
                             <form method="post" class="inline">
                                 {{ csrfInput() }}
                                 {{ actionInput('site7-studio/install-wizard/check-library-kit') }}
                                 {{ hiddenInput('handle', kit.handle) }}
-                                <button type="submit" class="btn">Check</button>
+                                <button type="submit" class="btn">{{ "Check"|t('site7-studio') }}</button>
                             </form>
                         {% endif %}
                     </td>
@@ -83,11 +83,16 @@
 
     {% if kitCheck %}
         <hr>
-        <h3>Check: {{ kitCheck.handle }}</h3>
+        <h3>{{ "Check: {handle}"|t('site7-studio', {handle: kitCheck.handle}) }}</h3>
         {% if kitCheck.errors %}
             <ul class="errors">{% for e in kitCheck.errors %}<li>{{ e }}</li>{% endfor %}</ul>
         {% else %}
-            <p class="success">✓ Ready to install: {% if kitCheck.remote ?? false %}downloads {{ kitCheck.download|length }} packages ({{ kitCheck.downloadSize|filesize }}) from Commerce24, each checked against its signature, then {% endif %}{{ kitCheck.themeInstalled ? 'the Theme ' ~ kitCheck.theme ~ ' is already installed' : 'installs the Theme ' ~ kitCheck.theme ~ ' (Composer packages, plugins, structure, frontend build)' }}, then {{ kitCheck.meta.templates ?? '' }} pages, menus and demo content.</p>
+            <p class="success">✓ {{ "Ready to install."|t('site7-studio') }}
+                {% if kitCheck.remote ?? false %}{{ "Downloads {count} packages ({size}) from Commerce24, each checked against its signature."|t('site7-studio', {count: kitCheck.download|length, size: kitCheck.downloadSize|filesize}) }}{% endif %}
+                {{ kitCheck.themeInstalled
+                    ? "The Theme {theme} is already installed."|t('site7-studio', {theme: kitCheck.theme})
+                    : "Installs the Theme {theme}: Composer packages, plugins, structure and its design."|t('site7-studio', {theme: kitCheck.theme}) }}
+                {{ "Then {pages} pages, menus and demo content."|t('site7-studio', {pages: kitCheck.meta.templates ?? ''}) }}</p>
         {% endif %}
         {% for w in kitCheck.warnings %}<p class="warning">{{ w }}</p>{% endfor %}
         {% if not kitCheck.errors %}
@@ -95,8 +100,8 @@
                 {{ csrfInput() }}
                 {{ actionInput('site7-studio/install-wizard/install-library-kit') }}
                 {{ hiddenInput('handle', kitCheck.handle) }}
-                <button type="submit" class="btn submit">Install</button>
-                {% if not kitCheck.themeInstalled %}<span class="light">Takes a few minutes. Composer files, config/ and templates/ are backed up to storage/site7-studio/site-kit-backups/ first.</span>{% endif %}
+                <button type="submit" class="btn submit">{{ "Install"|t('site7-studio') }}</button>
+                {% if not kitCheck.themeInstalled %}<span class="light">{{ "Takes a few minutes. Composer files, config/ and templates/ are backed up to storage/site7-studio/site-kit-backups/ first."|t('site7-studio') }}</span>{% endif %}
             </form>
         {% endif %}
     {% endif %}
