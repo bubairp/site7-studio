@@ -19,6 +19,7 @@
             <a href="{{ url('site7-studio/settings') }}#commerce">{{ "Set it up on the Commerce tab of Settings →"|t('site7-studio') }}</a>
         </div>
     {% endif %}
+    {% if activeTab != 'packages' %}{% include "site7-studio/_components/plan-disabled-notice" %}{% endif %}
 
     {% if activeTab == 'overview' %}
         {% include "site7-studio/commerce/_overview" with {license: license, subscription: subscription, plan: plan, installedPackages: installedPackages, updates: updates, extraUsage: extraUsage|default({used: 0, limit: null})} only %}

@@ -228,6 +228,15 @@
 {% endblock %}
 
 {% block content %}
+    {% if package.entitlementRemovableOn %}
+        <div class="site7-notice site7-notice--warning" style="margin-bottom: 16px;">
+            <strong>{{ "Disabled because your plan doesn't include it."|t('site7-studio') }}</strong>
+            {{ setsUpTheSite
+                ? "It set up this site, so it stays installed, without updates, until your plan includes it again."|t('site7-studio')
+                : "Upgrade before {date} to get it back automatically; after that it can be removed."|t('site7-studio', {date: package.entitlementRemovableOn|date('Y-m-d')}) }}
+            <a href="{{ url('site7-studio/commerce', {tab: 'subscription'}) }}">{{ "View plans →"|t('site7-studio') }}</a>
+        </div>
+    {% endif %}
     <section class="site7-detail-section">
         <h2>{{ "Overview"|t('site7-studio') }}</h2>
         <div class="flex flex-nowrap flex-gap-l">

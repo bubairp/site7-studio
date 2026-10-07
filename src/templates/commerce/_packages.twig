@@ -12,8 +12,8 @@
     <section class="site7-detail-section" style="margin-bottom: 24px;">
         <h2>{{ "Disabled by Your Plan"|t('site7-studio') }} ({{ pendingDeletions|length }})</h2>
         <div class="site7-notice site7-notice--warning">
-            {{ "Your plan no longer includes these - upgrade again before the date shown to get them back automatically, otherwise they become permanently removable."|t('site7-studio') }}
-            <a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}">{{ "View Plans →"|t('site7-studio') }}</a>
+            {{ "Your plan no longer includes these. Upgrade again to get them back automatically. Blocks and pages can be removed after the date shown; a Starter Kit or Theme stays installed, without updates."|t('site7-studio') }}
+            <a href="{{ url('site7-studio/commerce', {tab: 'subscription'}) }}">{{ "View Plans →"|t('site7-studio') }}</a>
         </div>
         <table class="data fullwidth">
             <thead>
@@ -37,7 +37,9 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if isEligible %}
+                            {% if handle in (setsUpTheSite|default([])) %}
+                                <span class="light">{{ "Stays installed"|t('site7-studio') }}</span>
+                            {% elseif isEligible %}
                                 <span class="status-label red"><span class="status red"></span><span class="status-label-text">{{ "Removable now"|t('site7-studio') }}</span></span>
                             {% else %}
                                 {{ eligibleOn }} <span class="light">({{ "in {days} days"|t('site7-studio', {days: daysLeft}) }})</span>
@@ -45,7 +47,7 @@
                         </td>
                         <td>
                             <div class="flex flex-nowrap flex-gap-s">
-                                <a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}" class="btn small submit">{{ "Upgrade to Keep"|t('site7-studio') }}</a>
+                                <a href="{{ url('site7-studio/commerce', {tab: 'subscription'}) }}" class="btn small submit">{{ "Upgrade to Keep"|t('site7-studio') }}</a>
                                 {% if handle in (setsUpTheSite|default([])) %}
                                     <span class="light">{{ "Set up this site: stays installed, without updates."|t('site7-studio') }}</span>
                                 {% elseif isEligible %}

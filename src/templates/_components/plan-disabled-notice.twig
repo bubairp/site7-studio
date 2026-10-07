@@ -1,0 +1,26 @@
+{#
+ # Shown while a plan change has disabled installed packages (PackageService::
+ # getPendingDeletions()), so it isn't only in the one-time message after the
+ # change. Used on the Dashboard and every Account & License tab.
+ #}
+{% set s7 = craft.app.plugins.getPlugin('site7-studio') %}
+{% set pending = s7.commercePackages.getPendingDeletions() %}
+{% if pending|length %}
+    {% set names = [] %}
+    {% set onlySiteSetup = true %}
+    {% for handle in pending|keys %}
+        {% set record = s7.packageManager.getPackageByHandle(handle) %}
+        {% set names = names|merge([record ? record.name : handle]) %}
+        {% set onlySiteSetup = onlySiteSetup and s7.packageManager.setsUpTheSite(handle) %}
+    {% endfor %}
+    <div class="site7-notice site7-notice--warning" style="margin-bottom: 16px;">
+        <strong>{{ (pending|length == 1 ? "Your plan doesn't include {names}." : "Your plan doesn't include {count} installed packages: {names}.")|t('site7-studio', {names: names|join(', '), count: pending|length}) }}</strong>
+        {% if onlySiteSetup %}
+            {{ "It set up this site, so the site keeps working and it stays installed - without updates until your plan includes it again."|t('site7-studio') }}
+        {% else %}
+            {{ "They're disabled until you upgrade again. Blocks and pages can be removed after 14 days; a Starter Kit or Theme stays installed, without updates."|t('site7-studio') }}
+        {% endif %}
+        <a href="{{ url('site7-studio/commerce', {tab: 'packages'}) }}">{{ "See them →"|t('site7-studio') }}</a>
+        <a href="{{ url('site7-studio/commerce', {tab: 'subscription'}) }}">{{ "View plans →"|t('site7-studio') }}</a>
+    </div>
+{% endif %}

@@ -3,6 +3,7 @@
 {% set selectedSubnavItem = "dashboard" %}
 
 {% block content %}
+    {% include "site7-studio/_components/plan-disabled-notice" %}
     <div class="site7-stat-grid">
         {% include "site7-studio/_components/stat-card" with {
             value: byType.section ?? 0,

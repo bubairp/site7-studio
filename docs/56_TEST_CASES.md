@@ -124,6 +124,7 @@ A second fresh customer site, https://site7-qa.ddev.site (Craft 5.10.8.1, empty 
 | G20 | Manual test on a fresh site: Library → Import Existing Section → a block the kit installed | ❌ → ✅ it was imported again as a second package; now listed "In Library" and refused (`43` #41) |
 | G21 | Shared Resources on a fresh site with the kit installed | ❌ → ✅ listed only 2 (from an accidental import); now the 11 shared fields the installed blocks use (`43` #42) |
 | G22 | Plan changes: Business → Professional → (14 days later) → Business, then cancel and renew | ✅ the paid kit is disabled and re-enabled, site and blocks untouched, Extra Packages follows the plan (0/50 → 0/20 → 0/50). ❌ → ✅ "Remove Now" was offered for the kit after 14 days; now refused (`43` #43) |
+| G23 | After a downgrade, where the customer sees it (manual test) | ❌ → ✅ only in the one-time message; now a banner on the Dashboard and Account & License, a note on the package page, and the Packages section (`43` #44) |
 | G10 | Unit tests (F1) | ✅ 212 tests (2026-10-07) |
 
 ## Findings from this run
