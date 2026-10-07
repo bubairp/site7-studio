@@ -3,7 +3,7 @@
     "handle": "heading-content",
     "name": "Heading + Content",
     "type": "section",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "author": "Site7",
     "description": "A heading with formatted text.",
     "category": "Text & Media",

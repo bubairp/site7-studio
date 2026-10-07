@@ -3,7 +3,7 @@
     "handle": "teams",
     "name": "Teams",
     "type": "section",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "author": "Site7",
     "description": "Team members with their photos and roles.",
     "category": "Collections",
