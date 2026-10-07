@@ -3,7 +3,7 @@
     "handle": "image-with-text",
     "name": "Image with Text",
     "type": "section",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "author": "Site7",
     "description": "An image beside a heading and text.",
     "category": "Text & Media",

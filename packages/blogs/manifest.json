@@ -3,7 +3,7 @@
     "handle": "blogs",
     "name": "Blogs",
     "type": "section",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "author": "Site7",
     "description": "Blog posts as cards: the latest ones, or the ones you pick.",
     "category": "Collections",

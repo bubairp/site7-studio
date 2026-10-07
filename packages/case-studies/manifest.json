@@ -3,7 +3,7 @@
     "handle": "case-studies",
     "name": "Case Studies",
     "type": "section",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "author": "Site7",
     "description": "Case studies as cards, each linking to its story.",
     "category": "Collections",
