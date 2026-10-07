@@ -20,3 +20,15 @@ packages/** -text
 *.otf binary
 *.zip binary
 *.s7pkg binary
+
+# Left out of downloaded archives (Composer dist, GitHub zip): what a
+# customer site doesn't need. The Library comes from Commerce24.
+/packages export-ignore
+/tests export-ignore
+/docs export-ignore
+/.claude export-ignore
+/CLAUDE.md export-ignore
+/codeception.yml export-ignore
+/phpunit.xml.dist export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
