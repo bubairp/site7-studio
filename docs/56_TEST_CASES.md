@@ -120,7 +120,8 @@ A second fresh customer site, https://site7-qa.ddev.site (Craft 5.10.8.1, empty 
 | G16 | Plan package limit (Business limit set to 0, 1, back to 50) | ✅ kit's 90 packages don't count (0 extra); limit 0 refuses `contact`; limit 1 installs `contact`, refuses `map`; reinstall allowed; Overview "Extra Packages 1 / 50" |
 | G17 | Starter Kit update, two rounds (a footer menu item renamed, then back) | ✅ kit 2.0.4 and 2.0.5 published; site7-qa "1 updated" (menu table) each round; 0 updates left |
 | G18 | Customer texts: 27 blocks get descriptions and categories, 68 pages "The X page, built from N sections." | ✅ 95 published, 89 updates on site7-qa; Content Browser categories and texts |
-| G10 | Unit tests (F1) | ✅ 198 tests |
+| G19 | Block previews (`preview/preview.png`, screenshots of each block on site7-qa) | ✅ 16 of 27 blocks; served to the Content Browser (200 image/png). Still without: Hero Banner Item, Page Banner, Image Gallery (froze Chrome), CTA Banner and Accordion (not on site7-qa's pages as expected), and Contact, Form, Map, Select Entries, Single-video, Universal Card (on no page at all) |
+| G10 | Unit tests (F1) | ✅ 212 tests (2026-10-07) |
 
 ## Findings from this run
 
