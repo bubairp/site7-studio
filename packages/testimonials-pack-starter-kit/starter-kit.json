@@ -10,6 +10,10 @@
         "testimonials/bms-system"
     ],
     "pack": true,
+    "sections": [
+        "standardPages",
+        "testimonials"
+    ],
     "demoSections": [],
     "pluginTables": [],
     "content": {

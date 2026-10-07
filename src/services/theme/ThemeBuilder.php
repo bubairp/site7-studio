@@ -24,6 +24,10 @@ use site7\studio\Site7Studio;
  *                   templates), modules, frontend, web/assets, config files
  *   content/        entries of the settings singles (Singles without URLs:
  *                   header, footer, general...) with their nested entries and assets
+ *
+ * With base sections (docs/49 §2c) every other section is optional: it
+ * stays in schema.json and content/, but installs only when a page or
+ * pack needs it (ThemeInstaller::addSections()).
  */
 class ThemeBuilder extends Component
 {
@@ -34,10 +38,12 @@ class ThemeBuilder extends Component
     public const SETTINGS_PLUGIN_TABLES = ['wheelform_forms', 'wheelform_form_fields'];
 
     /**
+     * @param string[]|null $baseSections handles of the sections every site
+     *   gets; null keeps the package's earlier list (none: every section)
      * @return array{path: string, meta: array}
      * @throws \Exception
      */
-    public function build(string $name, ?string $version = null): array
+    public function build(string $name, ?string $version = null, ?array $baseSections = null): array
     {
         $root = rtrim(Craft::getAlias('@root'), '/');
         $handle = StringHelper::toKebabCase($name);
@@ -52,6 +58,21 @@ class ThemeBuilder extends Component
         $final = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
         $pricingType = self::existingPricingType($final);
         $version ??= self::existingVersion($final);
+        $name = self::existingName($final) ?? $name;
+        $baseSections ??= (json_decode((string)@file_get_contents("{$final}/" . self::META_FILE), true) ?: [])['baseSections'] ?? null;
+        $projectConfig = Craft::$app->getProjectConfig();
+        $optionalSections = [];
+        if ($baseSections) {
+            $handles = array_column($projectConfig->get('sections') ?? [], 'handle');
+            if ($unknown = array_diff($baseSections, $handles)) {
+                throw new \Exception('These base sections are not on this site: ' . implode(', ', $unknown));
+            }
+            foreach ($projectConfig->get('sections') ?? [] as $uid => $section) {
+                if (!in_array($section['handle'], $baseSections, true)) {
+                    $optionalSections[$uid] = $section['handle'];
+                }
+            }
+        }
         $dir = self::startStaging($final);
         FileHelper::createDirectory("{$dir}/files");
 
@@ -60,7 +81,6 @@ class ThemeBuilder extends Component
         file_put_contents("{$dir}/" . ThemeSchemaService::FILE, $this->json($schema));
 
         // Plugins: every installed plugin except Site7 Studio itself, with its project config.
-        $projectConfig = Craft::$app->getProjectConfig();
         $pluginConfigs = [];
         foreach (Craft::$app->getPlugins()->getAllPluginInfo() as $pluginHandle => $info) {
             if (!empty($info['isInstalled']) && $pluginHandle !== 'site7-studio') {
@@ -133,7 +153,21 @@ class ThemeBuilder extends Component
         }
         // Forms are site settings; menus point at pages, so they come with
         // the Starter Kit's content instead.
-        $content = (new SiteKitContent())->exportToDir($dir, array_keys($settingsSections), self::SETTINGS_PLUGIN_TABLES);
+        $siteKitContent = new SiteKitContent();
+        $content = $siteKitContent->exportToDir($dir, array_keys($settingsSections), self::SETTINGS_PLUGIN_TABLES);
+        // content/ keeps every section's settings content, so a Theme update
+        // compares like with like; a fresh install imports the base part
+        // (baseContentIds) and each optional section's part when it's added.
+        $baseContentIds = null;
+        $sectionContent = [];
+        if ($optionalSections) {
+            $baseContentIds = $siteKitContent->elementIds(array_keys(array_diff_key($settingsSections, $optionalSections)));
+            foreach (array_intersect_key($settingsSections, $optionalSections) as $uid => $sectionHandle) {
+                if ($ids = array_values(array_diff($siteKitContent->elementIds([$uid]), $baseContentIds))) {
+                    $sectionContent[$sectionHandle] = $ids;
+                }
+            }
+        }
 
         $composerJson = json_decode((string)file_get_contents("{$root}/composer.json"), true);
         $meta = [
@@ -144,6 +178,10 @@ class ThemeBuilder extends Component
             'structure' => array_count_values(array_map(fn($item) => substr($item['path'], 0, strrpos($item['path'], '.')), $schema['items'])),
             'settingsSections' => array_values($settingsSections),
             'content' => $content,
+            'baseSections' => $baseSections ? array_values($baseSections) : null,
+            'optionalSections' => array_values($optionalSections),
+            'baseContentIds' => $baseContentIds,
+            'sectionContent' => $sectionContent ?: new \stdClass(),
             'configFiles' => $configFiles,
             'builtFrontend' => $builtFrontend,
             'pathRepositories' => SiteKitFiles::pathRepositories($composerJson),
@@ -184,6 +222,18 @@ class ThemeBuilder extends Component
         $manifest = json_decode((string)@file_get_contents("{$dir}/manifest.json"), true);
 
         return is_string($manifest['pricingType'] ?? null) && $manifest['pricingType'] !== '' ? $manifest['pricingType'] : 'free';
+    }
+
+    /**
+     * The name of the package already at $dir, so a rebuild keeps a name
+     * set on it (site7-studio/library/rename) - the build argument only
+     * decides the handle; null for a new one.
+     */
+    public static function existingName(string $dir): ?string
+    {
+        $manifest = json_decode((string)@file_get_contents("{$dir}/manifest.json"), true);
+
+        return is_string($manifest['name'] ?? null) && $manifest['name'] !== '' ? $manifest['name'] : null;
     }
 
     /**

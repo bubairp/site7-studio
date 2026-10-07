@@ -141,6 +141,32 @@ class ThemeSchemaService extends Component
     }
 
     /**
+     * The schema without these sections (by handle): a Theme with optional
+     * sections installs them only when a page needs them (docs/49 §2c).
+     */
+    public static function withoutSections(array $schema, array $handles): array
+    {
+        if ($handles) {
+            $schema['items'] = array_values(array_filter($schema['items'], fn($item) => !self::isSectionItem($item, $handles)));
+        }
+
+        return $schema;
+    }
+
+    /** The schema with only these sections (by handle) - what addSections() installs. */
+    public static function onlySections(array $schema, array $handles): array
+    {
+        $schema['items'] = array_values(array_filter($schema['items'], fn($item) => self::isSectionItem($item, $handles)));
+
+        return $schema;
+    }
+
+    private static function isSectionItem(array $item, array $handles): bool
+    {
+        return str_starts_with((string)$item['path'], 'sections.') && in_array($item['handle'] ?? null, $handles, true);
+    }
+
+    /**
      * The schema with the source site's UIDs replaced by this site's primary site.
      */
     public function forThisSite(array $schema): array

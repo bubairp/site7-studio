@@ -15,6 +15,12 @@
         "products"
     ],
     "pack": true,
+    "sections": [
+        "productCategory",
+        "products",
+        "standardPages",
+        "productReview"
+    ],
     "demoSections": [],
     "pluginTables": [],
     "content": {

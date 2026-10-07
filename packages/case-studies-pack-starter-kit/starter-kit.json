@@ -11,6 +11,10 @@
         "casestudies"
     ],
     "pack": true,
+    "sections": [
+        "casestudies",
+        "standardPages"
+    ],
     "demoSections": [],
     "pluginTables": [],
     "content": {

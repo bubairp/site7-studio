@@ -50,6 +50,11 @@ class TemplateInstaller extends Component
      */
     public function installContent(string $packagePath): array
     {
+        // Its section may be one of the Theme's optional ones (docs/49 §2c).
+        $meta = json_decode((string)@file_get_contents("{$packagePath}/" . TemplateBuilder::META_FILE), true) ?: [];
+        if (!empty($meta['section'])) {
+            (new \site7\studio\services\theme\ThemeInstaller())->addSections([$meta['section']]);
+        }
         $content = new SiteKitContent();
         if ($missing = $content->missingStructure($packagePath)) {
             throw new \Exception('This site is missing structure the page needs: ' . implode(', ', array_slice($missing, 0, 10)));

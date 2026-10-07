@@ -44,7 +44,11 @@ class KitBuilder extends Component
      *   no menus or demo content - it adds pages to a site (docs/51 §2a).
      *   A pack never rebuilds or removes Template packages.
      */
-    public function build(string $name, ?string $themeHandle = null, bool $buildTemplates = true, ?string $version = null, ?array $onlyPages = null): array
+    /**
+     * @param string[] $sections a pack's Theme sections besides its pages'
+     *   own (categories, reviews, data its pages show - docs/49 §2c)
+     */
+    public function build(string $name, ?string $themeHandle = null, bool $buildTemplates = true, ?string $version = null, ?array $onlyPages = null, array $sections = []): array
     {
         $isPack = $onlyPages !== null;
         $buildTemplates = $buildTemplates && !$isPack;
@@ -65,6 +69,7 @@ class KitBuilder extends Component
         // its new handle, and its old package must go.
         $templates = [];
         $pages = [];
+        $pageSections = [];
         $byEntry = [];
         $justBuilt = array_flip($built['built'] ?? []);
         foreach (glob(dirname(Craft::getAlias('@site7/studio')) . '/packages/' . TemplateBuilder::HANDLE_PREFIX . '*/' . TemplateBuilder::META_FILE) ?: [] as $file) {
@@ -91,6 +96,7 @@ class KitBuilder extends Component
             $byEntry[$meta['entryUid']] = $manifest['handle'];
             $templates[] = $manifest['handle'];
             $pages[] = $meta['uri'] ?? null;
+            $pageSections[] = (string)($meta['section'] ?? '');
         }
         sort($templates);
         if (!$templates) {
@@ -105,6 +111,7 @@ class KitBuilder extends Component
         // Built next to the package and swapped in at the end: a failed
         // rebuild leaves the package - with its version and price - as it was.
         $final = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
+        $name = ThemeBuilder::existingName($final) ?? $name;
         $pricingType = ThemeBuilder::existingPricingType($final);
         $version ??= ThemeBuilder::existingVersion($final);
         $dir = ThemeBuilder::startStaging($final);
@@ -126,6 +133,7 @@ class KitBuilder extends Component
             'templates' => count($templates),
             'pages' => array_values(array_filter($pages, fn($uri) => $uri !== null)),
             'pack' => $isPack,
+            'sections' => $isPack ? array_values(array_unique(array_merge(array_filter($pageSections), $sections))) : null,
             'demoSections' => $isPack ? [] : array_values(array_map(fn($uid) => $projectConfig->get("sections.{$uid}.handle"), array_keys($demoSections))),
             'pluginTables' => $isPack ? [] : self::PLUGIN_TABLES,
             'content' => $content,
@@ -141,7 +149,7 @@ class KitBuilder extends Component
             'author' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? 'Site7',
             'description' => $isPack
                 ? count($templates) . " pages for the {$themeHandle} Theme, with their blocks and content. Adds them to a site and leaves its menus as they are."
-                : "The whole {$name} site on a fresh Craft install: the {$themeHandle} Theme, " . count($templates) . ' pages with their blocks, menus and demo content.',
+                : "The whole website on a fresh Craft install: the {$themeHandle} Theme, " . count($templates) . ' pages with their blocks, menus and demo content.',
             'requires' => ['themes' => [$themeHandle], 'templates' => $templates],
             'pricingType' => $pricingType,
         ]));

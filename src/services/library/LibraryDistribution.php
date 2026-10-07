@@ -203,6 +203,19 @@ class LibraryDistribution extends Component
         file_put_contents("{$path}/manifest.json", json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
     }
 
+    /** Sets a Library package's name in its manifest.json (what customers see); builders keep it, the handle stays. */
+    public function setName(string $handle, string $name): void
+    {
+        $path = Site7Studio::getInstance()->packageManager->getPackagePath($handle) ?? throw new \Exception("Package '{$handle}' was not found.");
+        $manifest = json_decode((string)file_get_contents("{$path}/manifest.json"), true);
+        $manifest['name'] = $name;
+        file_put_contents("{$path}/manifest.json", json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        if ($record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle)) {
+            $record->name = $name;
+            $record->save(false);
+        }
+    }
+
     // ----------------------------------------------------------- customer side
 
     /**

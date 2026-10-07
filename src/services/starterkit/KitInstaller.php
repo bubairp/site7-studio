@@ -27,6 +27,19 @@ class KitInstaller extends ThemeInstaller
     }
 
     /**
+     * The Theme sections a kit needs (docs/49 §2c): a page pack's own list,
+     * every optional section (null) for a full kit.
+     *
+     * @return string[]|null
+     */
+    public static function kitSections(string $packagePath): ?array
+    {
+        $meta = json_decode((string)@file_get_contents("{$packagePath}/" . KitBuilder::META_FILE), true) ?: [];
+
+        return !empty($meta['pack']) ? (array)($meta['sections'] ?? []) : null;
+    }
+
+    /**
      * @return array{errors: string[], warnings: string[], meta: array|null, theme: string|null, themeInstalled: bool}
      */
     public function validateKit(string $handle): array

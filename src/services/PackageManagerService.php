@@ -233,6 +233,10 @@ class PackageManagerService extends Component
                 && ($errors = (new TemplateInstaller())->preflight($record))) {
                 throw new \Exception(implode(' ', $errors));
             }
+            // Its sections first: its pages and their content go into them.
+            if (KitInstaller::isFormatV2($this->getPackagePath($handle))) {
+                (new \site7\studio\services\theme\ThemeInstaller())->addSections(KitInstaller::kitSections((string)$this->getPackagePath($handle)));
+            }
             $manifest = $record->getManifest();
             if ($manifest) {
                 foreach ($manifest->requires['templates'] ?? [] as $requiredHandle) {

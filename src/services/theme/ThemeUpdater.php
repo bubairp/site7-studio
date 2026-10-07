@@ -154,8 +154,20 @@ class ThemeUpdater extends ThemeInstaller
         $updater = new LibraryUpdater();
         $schemaService = new ThemeSchemaService();
 
-        $oldSchema = $schemaService->forThisSite(json_decode((string)file_get_contents("{$baseline}/" . ThemeSchemaService::FILE), true));
-        $newSchema = $schemaService->forThisSite(json_decode((string)file_get_contents("{$dir}/" . ThemeSchemaService::FILE), true));
+        // Optional sections this site doesn't have stay away (docs/49 §2c),
+        // with their settings content.
+        $oldMeta = json_decode((string)file_get_contents("{$baseline}/" . ThemeBuilder::META_FILE), true) ?: [];
+        $meta = json_decode((string)file_get_contents("{$dir}/" . ThemeBuilder::META_FILE), true) ?: [];
+        $absent = array_values(array_filter(
+            array_unique(array_merge($oldMeta['optionalSections'] ?? [], $meta['optionalSections'] ?? [])),
+            fn($sectionHandle) => Craft::$app->getEntries()->getSectionByHandle($sectionHandle) === null
+        ));
+        $skipIds = [];
+        foreach ($absent as $sectionHandle) {
+            $skipIds = array_merge($skipIds, $oldMeta['sectionContent'][$sectionHandle] ?? [], $meta['sectionContent'][$sectionHandle] ?? []);
+        }
+        $oldSchema = $schemaService->forThisSite(ThemeSchemaService::withoutSections(json_decode((string)file_get_contents("{$baseline}/" . ThemeSchemaService::FILE), true), $absent));
+        $newSchema = $schemaService->forThisSite(ThemeSchemaService::withoutSections(json_decode((string)file_get_contents("{$dir}/" . ThemeSchemaService::FILE), true), $absent));
         $oldItems = array_column($oldSchema['items'], 'config', 'path');
         $newItems = array_map(fn($item) => ['path' => $item['path'], 'label' => $item['path'] . " ({$item['handle']})", 'config' => $item['config']], $newSchema['items']);
         // The page-builder field ships without blocks; Section packages link
@@ -169,14 +181,13 @@ class ThemeUpdater extends ThemeInstaller
             array_keys($newExtras)
         ), $record);
 
-        $meta = json_decode((string)file_get_contents("{$dir}/" . ThemeBuilder::META_FILE), true) ?: [];
         $sectionUids = [];
         foreach ($meta['settingsSections'] ?? [] as $sectionHandle) {
             if ($section = Craft::$app->getEntries()->getSectionByHandle($sectionHandle)) {
                 $sectionUids[] = $section->uid;
             }
         }
-        $content = $updater->applyContent($baseline, $dir, ['sectionUids' => $sectionUids], ThemeBuilder::SETTINGS_PLUGIN_TABLES);
+        $content = $updater->applyContent($baseline, $dir, ['sectionUids' => $sectionUids], ThemeBuilder::SETTINGS_PLUGIN_TABLES, array_unique($skipIds));
 
         return LibraryUpdater::mergeReports($structure, $settings, $content);
     }

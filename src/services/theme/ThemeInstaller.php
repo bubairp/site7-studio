@@ -196,7 +196,7 @@ class ThemeInstaller extends SiteKitInstaller
         if (!$this->run([$php, $craft, 'site7-studio/theme/ensure-singles'], $root, 'singles', $result, $log)) {
             return $result;
         }
-        if (is_dir("{$dir}/content") && !$this->run([$php, $craft, 'site7-studio/site-kit/import-content', $dir], $root, 'settings content', $result, $log)) {
+        if (is_dir("{$dir}/content") && !$this->run([$php, $craft, 'site7-studio/theme/import-content', $handle], $root, 'settings content', $result, $log)) {
             return $result;
         }
 
@@ -223,7 +223,9 @@ class ThemeInstaller extends SiteKitInstaller
         \site7\studio\services\sitekit\SiteKitContent::reserveLibraryIds();
         $schemaService = new ThemeSchemaService();
         $schema = json_decode((string)file_get_contents("{$dir}/" . ThemeSchemaService::FILE), true);
-        $result = $schemaService->install($schema);
+        // Optional sections come with the pages that need them (addSections()).
+        $meta = json_decode((string)file_get_contents("{$dir}/" . ThemeBuilder::META_FILE), true) ?: [];
+        $result = $schemaService->install(ThemeSchemaService::withoutSections($schema, $meta['optionalSections'] ?? []));
 
         $projectConfig = Craft::$app->getProjectConfig();
         $extras = $schemaService->forThisSite(['sourceSites' => $schema['sourceSites'], 'sourceSiteGroups' => $schema['sourceSiteGroups']]
@@ -247,6 +249,81 @@ class ThemeInstaller extends SiteKitInstaller
         }
 
         return $result;
+    }
+
+    /**
+     * The settings content step: all of content/, or - with optional
+     * sections - only the base part; addSections() brings the rest.
+     *
+     * @return array<string, int> rows imported per table
+     */
+    public function importContent(string $handle): array
+    {
+        $dir = $this->packageDir($handle);
+        $meta = json_decode((string)file_get_contents("{$dir}/" . ThemeBuilder::META_FILE), true) ?: [];
+        $content = new \site7\studio\services\sitekit\SiteKitContent();
+        if (!isset($meta['baseContentIds'])) {
+            return $content->import($dir);
+        }
+
+        return $content->import($dir, $meta['baseContentIds'], [], ThemeBuilder::SETTINGS_PLUGIN_TABLES);
+    }
+
+    /**
+     * Adds optional sections of this site's Theme (docs/49 §2c) that aren't
+     * here yet, with their settings content: a page, page pack or Starter
+     * Kit that needs them calls this before its own content goes in.
+     * Sections that aren't optional, or are already here, are left alone.
+     *
+     * @param string[]|null $handles null: every optional section (a full Starter Kit)
+     * @return string[] the sections added
+     */
+    public function addSections(?array $handles): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $dir = null;
+        foreach ($packageManager->getAllPackages() as $record) {
+            if ($record->type === 'theme' && \site7\studio\services\PackageManagerService::hasSetUpTheSite($record)) {
+                $dir = $packageManager->getPackagePath($record->handle);
+            }
+        }
+        $meta = $dir ? (json_decode((string)@file_get_contents("{$dir}/" . ThemeBuilder::META_FILE), true) ?: []) : [];
+        $optional = $meta['optionalSections'] ?? [];
+        if (!$optional) {
+            return [];
+        }
+
+        $entries = Craft::$app->getEntries();
+        $add = array_values(array_filter(
+            array_unique($handles ?? $optional),
+            fn($sectionHandle) => in_array($sectionHandle, $optional, true) && $entries->getSectionByHandle($sectionHandle) === null
+        ));
+        if (!$add) {
+            return [];
+        }
+
+        $schema = json_decode((string)file_get_contents("{$dir}/" . ThemeSchemaService::FILE), true);
+        (new ThemeSchemaService())->install(ThemeSchemaService::onlySections($schema, $add));
+        foreach ($add as $sectionHandle) {
+            $section = $entries->getSectionByHandle($sectionHandle);
+            if ($section === null) {
+                throw new \Exception("Craft did not create the section '{$sectionHandle}'.");
+            }
+            if ($section->type === \craft\models\Section::TYPE_SINGLE) {
+                $entries->saveSection($section);
+            }
+        }
+
+        $ids = [];
+        foreach ($add as $sectionHandle) {
+            $ids = array_merge($ids, $meta['sectionContent'][$sectionHandle] ?? []);
+        }
+        if ($ids) {
+            (new \site7\studio\services\sitekit\SiteKitContent())->import($dir, array_values(array_unique($ids)));
+        }
+        Craft::info('Added the Theme sections ' . implode(', ', $add), 'site7-studio');
+
+        return $add;
     }
 
     /**

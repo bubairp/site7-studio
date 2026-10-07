@@ -73,6 +73,8 @@
         "testimonials/bms-system-2",
         "testimonials/bms-system"
     ],
+    "pack": false,
+    "sections": null,
     "demoSections": [
         "blogReview",
         "productReview"

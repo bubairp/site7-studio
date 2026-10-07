@@ -312,6 +312,10 @@ class LibraryUpdater extends Component
         $report = self::emptyReport();
         $packageManager = Site7Studio::getInstance()->packageManager;
         $manifest = json_decode((string)file_get_contents("{$dir}/manifest.json"), true) ?: [];
+        // Sections the new version needs that aren't here yet (docs/49 §2c).
+        if ($added = (new \site7\studio\services\theme\ThemeInstaller())->addSections(\site7\studio\services\starterkit\KitInstaller::kitSections($dir))) {
+            $report['added'][] = 'sections ' . implode(', ', $added);
+        }
         $catalog = (new LibraryDistribution())->catalog();
         $newTemplates = array_values(array_filter(
             $manifest['requires']['templates'] ?? [],
@@ -350,9 +354,11 @@ class LibraryUpdater extends Component
      * ['sectionUids' => [...]] (null: nothing here yet).
      *
      * @param string[] $pluginTables whole tables compared and replaced as one item
+     * @param int[] $skipIds elements left out: a Theme's content for sections this site doesn't have
      */
-    public function applyContent(string $baseline, string $dir, ?array $live, array $pluginTables = []): array
+    public function applyContent(string $baseline, string $dir, ?array $live, array $pluginTables = [], array $skipIds = []): array
     {
+        $skipSet = array_flip($skipIds);
         $report = self::emptyReport();
 
         // This site's current state, in the same format.
@@ -374,6 +380,9 @@ class LibraryUpdater extends Component
         $replace = [];
         $trash = [];
         foreach (array_unique(array_merge(array_keys($base), array_keys($incoming))) as $id) {
+            if (isset($skipSet[$id])) {
+                continue;
+            }
             $label = $titles[$id] ?? "element #{$id}";
             $b = $base[$id] ?? null;
             $l = $liveSignatures[$id] ?? (self::elementExists($id) ? 'outside-scope' : null);

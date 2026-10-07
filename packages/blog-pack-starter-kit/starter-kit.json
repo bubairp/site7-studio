@@ -16,6 +16,13 @@
         "blogs"
     ],
     "pack": true,
+    "sections": [
+        "authors",
+        "blogs",
+        "standardPages",
+        "blogCategories",
+        "blogReview"
+    ],
     "demoSections": [],
     "pluginTables": [],
     "content": {

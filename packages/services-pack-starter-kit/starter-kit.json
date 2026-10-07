@@ -19,6 +19,10 @@
         "services"
     ],
     "pack": true,
+    "sections": [
+        "services",
+        "standardPages"
+    ],
     "demoSections": [],
     "pluginTables": [],
     "content": {

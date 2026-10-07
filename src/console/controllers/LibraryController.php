@@ -52,6 +52,18 @@ class LibraryController extends Controller
     }
 
     /**
+     * Renames a Library package (the name customers see); the handle stays.
+     * Usage: php craft site7-studio/library/rename rp-craft-starter-kit "Site7 Full Kit"
+     */
+    public function actionRename(string $handle, string $name): int
+    {
+        (new LibraryDistribution())->setName($handle, $name);
+        $this->stdout("{$handle}: name \"{$name}\". Publish it again for Commerce24 to show it.\n", Console::FG_GREEN);
+
+        return ExitCode::OK;
+    }
+
+    /**
      * Sets a Library package's price type (free, premium, private, enterprise).
      * Usage: php craft site7-studio/library/pricing rp-craft-starter-kit premium
      */

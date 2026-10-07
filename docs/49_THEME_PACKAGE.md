@@ -46,15 +46,29 @@ Limits: a site on an older 5.x than the Library may not know newer field or bloc
 
 The Theme ships the site's built frontend - the folder holding Vite's manifest (`config/vite.php` `manifestPath`; rp-craft: `web/themes/front`), recorded as `builtFrontend` in `theme.json` (`ThemeBuilder::builtFrontendPath()`). Install copies it and skips npm, so a site works on hosting without npm or offline; `frontend/` still comes along to rebuild with `npm run build`. Theme updates deliver the built files through the file rule (a site that built its own keeps its manifest) and skip npm. Build the frontend on the author site before building the Theme.
 
+## 2c. Base and optional sections (2026-10-07)
+
+A site sees only the sections it uses: built with `--base-sections`, the Theme installs those, and every other section is **optional** - it installs when a page, page pack or Starter Kit needs it (`ThemeInstaller::addSections()`). Blocks already worked this way: the page builder ships empty and each Section package links its block in.
+
+- `theme.json`: `baseSections`, `optionalSections`, `baseContentIds` (the settings content a fresh install imports) and `sectionContent` (optional section => its settings content element IDs). `schema.json` and `content/` stay complete, so a Theme update compares like with like. A rebuild without `--base-sections` keeps the earlier list; a Theme without one installs every section, as before.
+- Install: `apply()` leaves the optional sections out (`ThemeSchemaService::withoutSections()`); `theme/import-content` imports the base part.
+- `addSections(handles)` creates the missing ones from the Theme's schema (same UIDs), saves a Single so it gets its entry, then imports their settings content. Called by: a Library Starter Kit before its pages (`KitInstaller::kitSections()`: a pack's `sections`, every optional section for a full kit), a Template package before its content (its own section), and a kit update (`LibraryUpdater::applyKit`). Also `php craft site7-studio/theme/add-sections blogs,blogCategories`.
+- Links between pages to a section that isn't here are skipped, as before; they're added when the other page arrives.
+- A section is never removed: not by a plan downgrade, a removed pack or a Theme update. A Theme update leaves out optional sections this site doesn't have, and their settings content (`applyContent()` `$skipIds`).
+
+rp-craft's base sections: Home, Contact, Standard Pages, Sitemap, Page Error, Page Maintenance, Page Not Found, General, Header, Footer, Theme Settings, Color Library, Font Library, Additional CSS & JS, Google Structure Data, LLMs Text. The 18 others come with the packs (`51` §2a).
+
 ## 3. Console
 
 ```
-php craft site7-studio/theme/build "RP Craft Theme"     # on the dev site
+php craft site7-studio/theme/build "RP Craft Theme" [--base-sections=home,contact,...]   # on the dev site
 php craft site7-studio/theme/validate rp-craft-theme    # on the target
 php craft site7-studio/theme/install rp-craft-theme
+php craft site7-studio/theme/add-sections blogs,blogCategories
+php craft site7-studio/library/rename rp-craft-theme "Site7 Theme"   # the name customers see; builds keep it
 ```
 
-`theme/apply <handle>` and `theme/ensure-singles` are internal steps of `install`. No CP screen yet.
+`theme/apply <handle>`, `theme/ensure-singles` and `theme/import-content <handle>` are internal steps of `install`. No CP screen yet. The build argument only decides the handle: the Theme is named "Site7 Theme" and the full kit "Site7 Full Kit" (2026-10-07), handles `rp-craft-theme` and `rp-craft-starter-kit` unchanged.
 
 ## 4. Install (`ThemeInstaller::installTheme`)
 

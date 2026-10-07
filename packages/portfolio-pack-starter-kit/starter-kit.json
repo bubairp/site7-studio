@@ -13,6 +13,11 @@
         "portfolios"
     ],
     "pack": true,
+    "sections": [
+        "portfolios",
+        "standardPages",
+        "portfolioCategories"
+    ],
     "demoSections": [],
     "pluginTables": [],
     "content": {

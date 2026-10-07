@@ -13,13 +13,22 @@ use yii\helpers\Console;
  */
 class ThemeController extends Controller
 {
+    /** @var string|null comma-separated handles of the sections every site gets; the rest install with the pages that need them */
+    public ?string $baseSections = null;
+
+    public function options($actionID): array
+    {
+        return array_merge(parent::options($actionID), $actionID === 'build' ? ['baseSections'] : []);
+    }
+
     /**
      * Builds a Theme package from this site into the Library.
-     * Usage: php craft site7-studio/theme/build "RP Craft Theme"
+     * Usage: php craft site7-studio/theme/build "RP Craft Theme" [--base-sections=home,contact,header,...]
      */
     public function actionBuild(string $name): int
     {
-        $result = (new ThemeBuilder())->build($name);
+        $base = $this->baseSections !== null ? array_values(array_filter(array_map('trim', explode(',', $this->baseSections)))) : null;
+        $result = (new ThemeBuilder())->build($name, null, $base);
         $meta = $result['meta'];
 
         $this->stdout("Built {$result['path']}\n", Console::FG_GREEN);
@@ -27,6 +36,9 @@ class ThemeController extends Controller
         $this->stdout('Structure: ' . json_encode($meta['structure']) . "\n");
         $this->stdout("Page builder '{$meta['pageBuilderField']}' without its {$meta['pageBuilderBlocks']} blocks (they're Section packages)\n");
         $this->stdout('Settings content: ' . implode(', ', $meta['settingsSections']) . ' - ' . json_encode($meta['content']['counts'] ?? []) . "\n");
+        if ($meta['optionalSections']) {
+            $this->stdout('Optional sections (installed with the pages that need them): ' . implode(', ', $meta['optionalSections']) . "\n");
+        }
 
         return ExitCode::OK;
     }
@@ -57,6 +69,30 @@ class ThemeController extends Controller
     {
         $result = (new ThemeInstaller())->apply($handle);
         $this->stdout("Structure: created {$result['created']}, reused {$result['reused']}\n");
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Internal: the settings content step of theme/install - the base part
+     * when the Theme has optional sections.
+     */
+    public function actionImportContent(string $handle): int
+    {
+        $counts = (new ThemeInstaller())->importContent($handle);
+        $this->stdout('Imported: ' . json_encode($counts) . "\n");
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Adds a Theme's optional sections to this site, with their settings content.
+     * Usage: php craft site7-studio/theme/add-sections blogs,blogCategories
+     */
+    public function actionAddSections(string $handles): int
+    {
+        $added = (new ThemeInstaller())->addSections(array_filter(array_map('trim', explode(',', $handles))));
+        $this->stdout('Added: ' . ($added ? implode(', ', $added) : 'nothing - already here or not optional') . "\n", Console::FG_GREEN);
 
         return ExitCode::OK;
     }

@@ -3,7 +3,7 @@
     "handle": "services-pack-starter-kit",
     "name": "Services Pack",
     "type": "starter-kit",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "Site7",
     "description": "13 pages for the rp-craft-theme Theme, with their blocks and content. Adds them to a site and leaves its menus as they are.",
     "requires": {

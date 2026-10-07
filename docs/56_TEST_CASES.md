@@ -131,7 +131,10 @@ A second fresh customer site, https://site7-qa.ddev.site (Craft 5.10.8.1, empty 
 | G27 | Business → Starter → Professional → Business | ✅ Pricing Pack, its page and Accordion, Pricing and Compare disabled with the 14-day date, Blog Pack stays; Professional re-enables Accordion only; Business the rest. ❌ → ✅ Extra Packages "5 / 5": packages the plan disabled counted |
 | G28 | Full RP Craft kit after the packs, then Team Pack | ✅ kit adds 68 pages and 62 menu items; Team Pack after it leaves the menus at 62; Extra Packages 0 / 50; every page 200 |
 | G29 | Theme install on fresh site7-qa | ❌ open: SEO and Wheel Form logged "Done" but had no `plugins` row afterwards (tables created), so every page was a 500 (`wheelform` variable missing). Fixed by hand on site7-qa (`43` #45) |
-| G10 | Unit tests (F1) | ✅ 214 tests (2026-10-07) |
+| G30 | Optional Theme sections (`49` §2c): fresh site7-qa, Starter, Blog Pack only | ✅ 20 sections (16 base + Blogs, Authors, Blog Categories, Blog Review), 3 blocks in the page builder, Color/Font Library content; `/`, `/blogs`, a post, an author page 200. ❌ → ✅ the Theme's settings content failed: the base part kept the structure roots of sections this site doesn't have |
+| G31 | Then Business + Pricing Pack | ✅ Packages, Package Features, Feature Groups added with their content; `/price` 200; Products, Services still absent. Open: `/contact` is a 500 until the Contact page is installed (`entries/singles/contact.twig` expects its content) - the Default Kit brings it |
+| G32 | Theme and full kit renamed "Site7 Theme" / "Site7 Full Kit" (`library/rename`, handles unchanged) | ✅ published as 1.1.4 / 2.0.6; a rebuild keeps the name |
+| G10 | Unit tests (F1) | ✅ 217 tests (2026-10-07) |
 
 ## Findings from this run
 

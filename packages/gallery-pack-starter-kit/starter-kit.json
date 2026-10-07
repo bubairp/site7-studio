@@ -11,6 +11,11 @@
         "gallery"
     ],
     "pack": true,
+    "sections": [
+        "gallery",
+        "standardPages",
+        "galleryCategory"
+    ],
     "demoSections": [],
     "pluginTables": [],
     "content": {

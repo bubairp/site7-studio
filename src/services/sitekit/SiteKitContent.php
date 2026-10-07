@@ -222,6 +222,22 @@ class SiteKitContent extends Component
     }
 
     /**
+     * The element IDs export() takes for these sections' entries: the
+     * entries, what's nested in them and the assets, categories and tags
+     * they relate to (a Theme splits its settings content by section with it).
+     *
+     * @param string[] $sectionUids
+     * @return int[]
+     */
+    public function elementIds(array $sectionUids): array
+    {
+        $sectionIds = $sectionUids ? (new Query())->select(['id'])->from('{{%sections}}')->where(['uid' => $sectionUids])->column() : [];
+        $roots = $sectionIds ? (new Query())->select(['id'])->from('{{%entries}}')->where(['sectionId' => $sectionIds])->column() : [];
+
+        return $this->subset($this->liveElementIds(), $roots);
+    }
+
+    /**
      * Live (not draft/revision/deleted) element IDs of the travelling types,
      * minus nested elements whose primary owner doesn't travel.
      *
@@ -771,6 +787,18 @@ class SiteKitContent extends Component
                     ? ($row['elementId'] === null || (isset($onlySet[$row['elementId']]) && !isset($replaceSet[$row['elementId']])))
                     : isset($onlySet[$row[$key]])));
             }
+            // A structure's root only with nodes of it: the others can be
+            // sections this site doesn't have (a Theme's optional sections).
+            $usedStructures = [];
+            foreach ($rowsByTable['structureelements'] as $row) {
+                if ($row['elementId'] !== null) {
+                    $usedStructures[$row['structureId']] = true;
+                }
+            }
+            $rowsByTable['structureelements'] = array_values(array_filter(
+                $rowsByTable['structureelements'],
+                fn($row) => $row['elementId'] !== null || isset($usedStructures[$row['structureId']])
+            ));
         }
 
         // Content can arrive in parts (a Theme's settings, then a Starter

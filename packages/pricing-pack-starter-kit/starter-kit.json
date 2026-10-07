@@ -7,6 +7,12 @@
         "price"
     ],
     "pack": true,
+    "sections": [
+        "standardPages",
+        "packages",
+        "packageFeatures",
+        "featureGroups"
+    ],
     "demoSections": [],
     "pluginTables": [],
     "content": {

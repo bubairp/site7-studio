@@ -23,20 +23,24 @@ class StarterKitController extends Controller
     /** @var string|null a page pack: comma-separated sections ("blogs") or pages ("standardPages/blogs") */
     public ?string $pages = null;
 
+    /** @var string|null a page pack's other Theme sections: comma-separated handles (blogCategories,blogReview) */
+    public ?string $sections = null;
+
     public function options($actionID): array
     {
-        return array_merge(parent::options($actionID), $actionID === 'build' ? ['theme', 'templates', 'pages'] : []);
+        return array_merge(parent::options($actionID), $actionID === 'build' ? ['theme', 'templates', 'pages', 'sections'] : []);
     }
 
     /**
      * Builds a Library Starter Kit from this site.
      * Usage: php craft site7-studio/starter-kit/build "RP Craft" [--templates=0]
-     *        php craft site7-studio/starter-kit/build "Blog Pack" --pages=blogs,authors,standardPages/blogs
+     *        php craft site7-studio/starter-kit/build "Blog Pack" --pages=blogs,authors,standardPages/blogs --sections=blogCategories,blogReview
      */
     public function actionBuild(string $name): int
     {
         $pages = $this->pages !== null ? array_values(array_filter(array_map('trim', explode(',', $this->pages)))) : null;
-        $result = (new KitBuilder())->build($name, $this->theme, $this->templates, null, $pages);
+        $sections = $this->sections !== null ? array_values(array_filter(array_map('trim', explode(',', $this->sections)))) : [];
+        $result = (new KitBuilder())->build($name, $this->theme, $this->templates, null, $pages, $sections);
         $meta = $result['meta'];
         $this->stdout("Built {$result['handle']}: Theme {$meta['theme']}, {$meta['templates']} pages, " . json_encode($meta['content']['counts']) . "\n", Console::FG_GREEN);
 

@@ -1,11 +1,11 @@
 {
     "schemaVersion": "1",
     "handle": "rp-craft-starter-kit",
-    "name": "RP Craft",
+    "name": "Site7 Full Kit",
     "type": "starter-kit",
-    "version": "2.0.5",
+    "version": "2.0.6",
     "author": "Site7",
-    "description": "The whole RP Craft site on a fresh Craft install: the rp-craft-theme Theme, 68 pages with their blocks, menus and demo content.",
+    "description": "The whole website on a fresh Craft install: the rp-craft-theme Theme, 68 pages with their blocks, menus and demo content.",
     "requires": {
         "themes": [
             "rp-craft-theme"

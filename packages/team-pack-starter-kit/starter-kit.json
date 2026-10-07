@@ -13,6 +13,10 @@
         "teams/santu-deyashi"
     ],
     "pack": true,
+    "sections": [
+        "standardPages",
+        "teamMembers"
+    ],
     "demoSections": [],
     "pluginTables": [],
     "content": {
