@@ -54,11 +54,10 @@ class DependencyResolverService extends Component
             $registryRow = $registry->getByHandle($handle);
             if (!$registryRow) {
                 // A Library site gets these fields from its Theme, which
-                // doesn't fill the registry: the live field is enough.
-                if (Craft::$app->getFields()->getFieldByHandle($handle)) {
-                    $resolved[] = ['handle' => $handle, 'status' => 'linked'];
-                    continue;
-                }
+                // doesn't fill the registry: register the live field.
+                $registryRow = $registry->registerLiveField($handle);
+            }
+            if (!$registryRow) {
                 $resolved[] = ['handle' => $handle, 'status' => 'missing'];
                 $warnings[] = "Shared Resource '{$handle}' is not registered - install skipped for it (warning only, install continues). Resolve it from the Shared Resources Library (Import/Create/Skip).";
                 continue;

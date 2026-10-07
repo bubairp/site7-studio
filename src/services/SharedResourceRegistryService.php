@@ -57,6 +57,55 @@ class SharedResourceRegistryService extends Component
         return $record;
     }
 
+    /**
+     * Registers a live Craft field as a Shared Resource unless it already
+     * is (an existing entry is never changed). Null when no field has that
+     * handle.
+     */
+    public function registerLiveField(string $handle): ?SharedResourceRecord
+    {
+        if ($record = $this->getByHandle($handle)) {
+            return $record;
+        }
+        $field = \Craft::$app->getFields()->getFieldByHandle($handle);
+        if (!$field) {
+            return null;
+        }
+
+        return $this->registerIfMissing([
+            'handle' => $field->handle,
+            'name' => $field->name,
+            'type' => $field instanceof \craft\fields\Matrix ? 'matrix' : 'field',
+            'craftUid' => $field->uid,
+            'craftId' => $field->id,
+        ]);
+    }
+
+    /**
+     * Registers the shared fields every installed package uses (its
+     * manifest's dependencies.sharedResources). A Library site gets these
+     * fields from its Theme, which doesn't register them; this fills the
+     * registry in, also for sites installed before installs registered them.
+     *
+     * @return int how many were added
+     */
+    public function registerFromInstalledPackages(): int
+    {
+        $added = 0;
+        foreach (\site7\studio\Site7Studio::getInstance()->packageManager->getAllPackages() as $package) {
+            if ($package->status === 'available') {
+                continue;
+            }
+            foreach ((array)($package->getManifest()?->dependencies['sharedResources'] ?? []) as $handle) {
+                if (is_string($handle) && $handle !== '' && !$this->getByHandle($handle) && $this->registerLiveField($handle)) {
+                    $added++;
+                }
+            }
+        }
+
+        return $added;
+    }
+
     public function getByHandle(string $handle): ?SharedResourceRecord
     {
         return SharedResourceRecord::find()->where(['handle' => $handle])->one();

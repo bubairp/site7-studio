@@ -36,6 +36,8 @@ class SharedResourceController extends Controller
     public function actionIndex()
     {
         $registry = Site7Studio::getInstance()->sharedResourceRegistry;
+        // Fills in what installed packages use but isn't registered yet.
+        $registry->registerFromInstalledPackages();
         $rows = [];
         foreach ($registry->getAll() as $record) {
             $rows[] = [
