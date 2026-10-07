@@ -291,6 +291,11 @@ class PackageService extends Component implements PackageProviderInterface
         if (!$this->isEligibleForRemoval($handle)) {
             throw new \Exception("'{$handle}' is not past its grace period yet.");
         }
+        // A Theme or Starter Kit set up this site: it stays (disabled, so no
+        // updates), and what it brought keeps not counting as extra packages.
+        if (Site7Studio::getInstance()->packageManager->setsUpTheSite($handle)) {
+            throw new \Exception("'{$handle}' set up this site, so it stays installed. It gets no updates until your plan includes it again.");
+        }
 
         // No separate "unset from pending" step needed - the row (and its
         // entitlementRemovableOn column) is gone along with everything else

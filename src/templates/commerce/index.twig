@@ -30,7 +30,7 @@
     {% elseif activeTab == 'license' %}
         {% include "site7-studio/commerce/_license" with {license: license} only %}
     {% elseif activeTab == 'packages' %}
-        {% include "site7-studio/commerce/_packages" with {installedPackages: installedPackages, purchasedHandles: purchasedHandles, freeHandles: freeHandles, premiumHandles: premiumHandles, pendingDeletions: pendingDeletions, availableToInstall: availableToInstall, siteSetupHandles: siteSetupHandles|default([]), lockedHandles: lockedHandles, lockedPlanNames: lockedPlanNames} only %}
+        {% include "site7-studio/commerce/_packages" with {installedPackages: installedPackages, purchasedHandles: purchasedHandles, freeHandles: freeHandles, premiumHandles: premiumHandles, pendingDeletions: pendingDeletions, setsUpTheSite: setsUpTheSite|default([]), availableToInstall: availableToInstall, siteSetupHandles: siteSetupHandles|default([]), lockedHandles: lockedHandles, lockedPlanNames: lockedPlanNames} only %}
         <hr>
         {% include "site7-studio/commerce/_downloads" with {purchasedPackages: purchasedPackages, purchasedAddOns: purchasedAddOns, downloadHistory: downloadHistory, importHistory: importHistory, exportHistory: exportHistory} only %}
     {% elseif activeTab == 'account' %}

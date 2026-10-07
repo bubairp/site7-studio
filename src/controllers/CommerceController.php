@@ -81,6 +81,8 @@ class CommerceController extends Controller
                 $data['freeHandles'] = $plugin->commercePackages->getFreePackages();
                 $data['premiumHandles'] = $plugin->commercePackages->getPremiumPackages();
                 $data['pendingDeletions'] = $plugin->commercePackages->getPendingDeletions();
+                // A Theme or Starter Kit is never removed for a plan change.
+                $data['setsUpTheSite'] = array_values(array_filter(array_keys($data['pendingDeletions']), fn($handle) => $plugin->packageManager->setsUpTheSite($handle)));
 
                 $allPlans = $plugin->plan->getAllPlans();
 
@@ -442,17 +444,20 @@ class CommerceController extends Controller
     private function flashEntitlementChanges(array $planResult): void
     {
         if (!empty($planResult['disabledHandles'])) {
+            $one = count($planResult['disabledHandles']) === 1;
             Craft::$app->getSession()->setError(
                 'Your plan no longer includes: ' . implode(', ', $planResult['disabledHandles'])
-                . '. They’ve been disabled and will be removable in '
+                . ($one ? '. It’s been disabled until you upgrade again.' : '. They’ve been disabled until you upgrade again.')
+                . ' Blocks and pages may be removed after '
                 . \site7\studio\services\commerce\PackageService::GRACE_PERIOD_DAYS
-                . ' days unless you upgrade again.'
+                . ' days; a Starter Kit or Theme stays, without updates.'
             );
         }
         if (!empty($planResult['reEnabledHandles'])) {
+            $one = count($planResult['reEnabledHandles']) === 1;
             Craft::$app->getSession()->setNotice(
                 'Your plan now includes: ' . implode(', ', $planResult['reEnabledHandles'])
-                . ' again. They’ve been automatically re-enabled.'
+                . ($one ? ' again. It’s been re-enabled.' : ' again. They’ve been re-enabled.')
             );
         }
     }

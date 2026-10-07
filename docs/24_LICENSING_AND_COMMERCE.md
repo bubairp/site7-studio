@@ -79,6 +79,11 @@ See table in `27_EVENTS_AND_HOOKS.md`. All dispatched via the shared `EventDispa
 
 A plan decides which Starter Kits a customer gets (`includedPackages`) and how many packages a site may install **beyond** its kit (`packageLimit`, Commerce24 `plans.package_limit`; null = unlimited). `PackageService::kitPackageHandles()` is the installed Library kit's closure - the kit, its Theme, its pages and their blocks, from the local manifests - and none of it counts. `extraPackageUsage()` counts every other installed package except this site's own saved Templates; Account & License → Overview shows it as "Extra Packages: used / limit". `assertWithinPackageLimit()` refuses a new install past the limit in Packages → Install (`installEntitled()`), the package page's Install and the Marketplace repository install; reinstalling something installed never counts. Packages a Template cascades into (its blocks) aren't checked one by one.
 
+
+### 10b. Plan changes (2026-10-07)
+
+Upgrade and downgrade apply at once (`refreshCurrentPlanAndSyncEntitlements()`). A downgrade disables packages the new plan doesn't cover (free ones never) and dates them removable after `GRACE_PERIOD_DAYS` (14); upgrading again re-enables them. A Theme or Starter Kit is never removed this way: it stays disabled - no updates - and keeps counting as the kit, not as extra packages (`43` #43). Cancel and renew change only the subscription.
+
 ## 11. Failure Scenarios
 
 | Scenario | Behavior |

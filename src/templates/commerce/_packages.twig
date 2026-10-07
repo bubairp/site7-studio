@@ -46,7 +46,9 @@
                         <td>
                             <div class="flex flex-nowrap flex-gap-s">
                                 <a href="{{ url('site7-studio/commerce', {tab: 'plans'}) }}" class="btn small submit">{{ "Upgrade to Keep"|t('site7-studio') }}</a>
-                                {% if isEligible %}
+                                {% if handle in (setsUpTheSite|default([])) %}
+                                    <span class="light">{{ "Set up this site: stays installed, without updates."|t('site7-studio') }}</span>
+                                {% elseif isEligible %}
                                     <form method="post" accept-charset="UTF-8">
                                         {{ csrfInput() }}
                                         {{ redirectInput('site7-studio/commerce?tab=packages') }}

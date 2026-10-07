@@ -123,6 +123,7 @@ A second fresh customer site, https://site7-qa.ddev.site (Craft 5.10.8.1, empty 
 | G19 | Block previews (`preview/preview.png`, screenshots of each block on site7-qa) | ✅ 16 of 27 blocks; served to the Content Browser (200 image/png). Still without: Hero Banner Item, Page Banner, Image Gallery (froze Chrome), CTA Banner and Accordion (not on site7-qa's pages as expected), and Contact, Form, Map, Select Entries, Single-video, Universal Card (on no page at all) |
 | G20 | Manual test on a fresh site: Library → Import Existing Section → a block the kit installed | ❌ → ✅ it was imported again as a second package; now listed "In Library" and refused (`43` #41) |
 | G21 | Shared Resources on a fresh site with the kit installed | ❌ → ✅ listed only 2 (from an accidental import); now the 11 shared fields the installed blocks use (`43` #42) |
+| G22 | Plan changes: Business → Professional → (14 days later) → Business, then cancel and renew | ✅ the paid kit is disabled and re-enabled, site and blocks untouched, Extra Packages follows the plan (0/50 → 0/20 → 0/50). ❌ → ✅ "Remove Now" was offered for the kit after 14 days; now refused (`43` #43) |
 | G10 | Unit tests (F1) | ✅ 212 tests (2026-10-07) |
 
 ## Findings from this run
