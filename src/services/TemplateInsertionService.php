@@ -357,7 +357,12 @@ class TemplateInsertionService extends Component
      */
     public function insertMode(string $handle): string
     {
-        $meta = $this->templateMeta($handle);
+        return self::modeFor($this->templateMeta($handle));
+    }
+
+    /** insertMode() for a template.json's data. */
+    public static function modeFor(array $meta): string
+    {
         if (in_array($meta['insert'] ?? null, [self::INSERT_CONTENT, self::INSERT_LAYOUT], true)) {
             return $meta['insert'];
         }
