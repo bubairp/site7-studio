@@ -36,7 +36,47 @@ class KitInstaller extends ThemeInstaller
     {
         $meta = json_decode((string)@file_get_contents("{$packagePath}/" . KitBuilder::META_FILE), true) ?: [];
 
-        return !empty($meta['pack']) ? (array)($meta['sections'] ?? []) : null;
+        return is_array($meta['sections'] ?? null) ? $meta['sections'] : null;
+    }
+
+    /** Whether a Starter Kit (full or base, not a page pack) has set up this site. */
+    public static function siteHasKit(): bool
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        foreach ($packageManager->getAllPackages() as $record) {
+            if ($record->type === 'starter-kit' && $packageManager->setsUpTheSite($record->handle) && PackageManagerService::hasSetUpTheSite($record)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Whether $handle is a page pack, here or in Commerce24's catalog. */
+    public function isPack(string $handle): bool
+    {
+        return Site7Studio::getInstance()->packageManager->isPack($handle)
+            || !empty((new LibraryDistribution())->catalog()[$handle]['metadata']['library']['pack']);
+    }
+
+    /** The base kit (docs/51 §2b) a page pack's site starts from: in this site's Library, or Commerce24's. */
+    public function baseKitHandle(): ?string
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        foreach ($packageManager->getAllPackages() as $record) {
+            $path = $record->type === 'starter-kit' ? $packageManager->getPackagePath($record->handle) : null;
+            $meta = self::isFormatV2($path) ? json_decode((string)file_get_contents("{$path}/" . KitBuilder::META_FILE), true) : null;
+            if (!empty($meta['base'])) {
+                return $record->handle;
+            }
+        }
+        foreach ((new LibraryDistribution())->catalog() as $handle => $entry) {
+            if (($entry['type'] ?? null) === 'starter-kit' && !empty($entry['metadata']['library']['base'])) {
+                return $handle;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -138,8 +178,22 @@ class KitInstaller extends ThemeInstaller
     public function installKit(string $handle, ?callable $log = null): array
     {
         $log ??= fn(string $line) => null;
+        // A page pack adds pages to a site: on a site no kit set up, the
+        // base kit comes first - Home, About, Contact, the menus.
+        $first = null;
+        if (!self::siteHasKit() && $this->isPack($handle)) {
+            $baseKit = $this->baseKitHandle();
+            if ($baseKit === null) {
+                return ['errors' => ['A page pack adds pages to a site set up by a Starter Kit - install one first.'], 'warnings' => [], 'backup' => null];
+            }
+            $log("A page pack adds pages to a website: installing {$baseKit} first…");
+            $first = $this->installKit($baseKit, $log);
+            if ($first['errors']) {
+                return $first;
+            }
+        }
         $validation = $this->validateKit($handle);
-        $result = ['errors' => $validation['errors'], 'warnings' => $validation['warnings'], 'backup' => null];
+        $result = ['errors' => $validation['errors'], 'warnings' => array_values(array_unique(array_merge($first['warnings'] ?? [], $validation['warnings']))), 'backup' => $first['backup'] ?? null];
         if ($result['errors']) {
             return $result;
         }

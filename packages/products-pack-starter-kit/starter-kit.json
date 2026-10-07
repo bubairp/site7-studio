@@ -15,6 +15,7 @@
         "products"
     ],
     "pack": true,
+    "base": false,
     "sections": [
         "productCategory",
         "products",

@@ -82,10 +82,16 @@ class InstallWizardController extends Controller
 
     private function renderIndex(?array $kitCheck = null)
     {
+        // The base kit first: it's where a website starts (docs/51 §2b).
+        $libraryKits = $this->libraryKits();
+        usort($libraryKits, fn($a, $b) => (int)!empty($b['meta']['base']) <=> (int)!empty($a['meta']['base']));
+        $remoteKits = (new \site7\studio\services\library\LibraryDistribution())->remoteKits();
+        usort($remoteKits, fn($a, $b) => (int)!empty($b['metadata']['library']['base']) <=> (int)!empty($a['metadata']['library']['base']));
+
         return $this->renderTemplate('site7-studio/install-wizard/index', [
             'kits' => Site7Studio::getInstance()->starterKitCatalog->listAvailable(),
-            'libraryKits' => $this->libraryKits(),
-            'remoteKits' => (new \site7\studio\services\library\LibraryDistribution())->remoteKits(),
+            'libraryKits' => $libraryKits,
+            'remoteKits' => $remoteKits,
             'kitCheck' => $kitCheck,
             // Whether each kit fits this site, shown before Check: a kit
             // adds its pages to a site with its Theme, and needs a fresh

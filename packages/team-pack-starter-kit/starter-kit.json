@@ -13,6 +13,7 @@
         "teams/santu-deyashi"
     ],
     "pack": true,
+    "base": false,
     "sections": [
         "standardPages",
         "teamMembers"

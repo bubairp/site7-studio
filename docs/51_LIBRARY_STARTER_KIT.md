@@ -42,6 +42,19 @@ rp-craft's packs (`.claude/build-packs.sh` in rp-craft):
 
 The packs, their pages and the blocks Accordion, Testimonials, Pricing and Compare, Image Gallery and Products are `premium`, so a plan decides them (`24` §10c). Home, About Us, Contact, Awards, Sitemap, Thanks and Test Page stay free.
 
+### 2b. Default Kit: a base kit (2026-10-07)
+
+A **base kit** sets up the site like a full kit, but with only some pages: `starter-kit.json` has `base: true`, `pack: false` and `sections` (its pages' own). Its content is the menus and HTML sitemap rows that point at its pages (`KitBuilder::keepPagesInPluginTables()`, `menuItemsFor()`): items linking to its pages by entry or by URI, text items, `#` placeholders and groups that still have items; links to other pages and absolute URLs (the author site's address) are dropped. Same menu handles, so the header and footer work. No demo content.
+
+rp-craft's **Default Kit** (`default-starter-kit`, free on every plan): Home, About Us and Contact, the header and footer, 14 menu items. Home and About Us are **Template variants** without the Services block (it lists Services entries, which this site doesn't have): `template-home-default` and `template-standard-pages-about-us-default`, built with `template/build home --variant=default --without-blocks=services` (`TemplateBuilder::dropBlocks()` removes the blocks, everything nested in them and their relations). A variant keeps its page's entry UID; a kit uses it only with `--variant=default`, and a full kit or pack never does. Installing the Site7 Full Kit on such a site keeps the simpler Home and About Us and adds the rest.
+
+**A page pack needs a kit:** on a site no Starter Kit (full or base) set up, `KitInstaller::installKit()` (Install screen, `starter-kit/install`) installs the base kit first (`baseKitHandle()`, here or in Commerce24's catalog); anywhere else (`installPackage()`) a pack is refused with "install the Default Kit first". The Install screen lists the base kit first.
+
+```
+php craft site7-studio/starter-kit/build "Default" --pages=home,contact,standardPages/about-us --base --variant=default
+php craft site7-studio/library/rename default-starter-kit "Default Kit"
+```
+
 ## 3. Console
 
 ```

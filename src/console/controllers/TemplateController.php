@@ -17,14 +17,25 @@ class TemplateController extends Controller
     /** @var string|null Theme package the pages belong to (default: the Library's only Theme) */
     public ?string $theme = null;
 
+    /** @var string|null build a variant of the page ("default") as its own package */
+    public ?string $variant = null;
+
+    /** @var string|null comma-separated block handles the variant leaves out */
+    public ?string $withoutBlocks = null;
+
     public function options($actionID): array
     {
-        return array_merge(parent::options($actionID), in_array($actionID, ['build', 'build-all'], true) ? ['theme'] : []);
+        return array_merge(
+            parent::options($actionID),
+            in_array($actionID, ['build', 'build-all'], true) ? ['theme'] : [],
+            $actionID === 'build' ? ['variant', 'withoutBlocks'] : []
+        );
     }
 
     /**
      * Builds a Template package from one page.
      * Usage: php craft site7-studio/template/build contact | services/web-development | 1234
+     *        php craft site7-studio/template/build home --variant=default --without-blocks=services
      */
     public function actionBuild(string $page): int
     {
@@ -33,7 +44,8 @@ class TemplateController extends Controller
             $this->stderr("No page '{$page}' (use <single section>, <section>/<slug> or an entry ID).\n", Console::FG_RED);
             return ExitCode::UNSPECIFIED_ERROR;
         }
-        $result = (new TemplateBuilder())->build($entry, $this->theme);
+        $without = $this->withoutBlocks !== null ? array_values(array_filter(array_map('trim', explode(',', $this->withoutBlocks)))) : [];
+        $result = (new TemplateBuilder())->build($entry, $this->theme, null, $this->variant, $without);
         $this->stdout("Built {$result['handle']}: " . json_encode($result['meta']['content']['counts']) . "\n", Console::FG_GREEN);
 
         return ExitCode::OK;

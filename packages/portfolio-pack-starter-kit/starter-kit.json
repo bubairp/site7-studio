@@ -13,6 +13,7 @@
         "portfolios"
     ],
     "pack": true,
+    "base": false,
     "sections": [
         "portfolios",
         "standardPages",

@@ -19,6 +19,7 @@
         "services"
     ],
     "pack": true,
+    "base": false,
     "sections": [
         "services",
         "standardPages"

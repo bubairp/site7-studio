@@ -233,6 +233,11 @@ class PackageManagerService extends Component
                 && ($errors = (new TemplateInstaller())->preflight($record))) {
                 throw new \Exception(implode(' ', $errors));
             }
+            // A page pack adds pages to a site a kit set up (KitInstaller::installKit()
+            // installs the base kit first on the Install screen).
+            if ($this->isPack($handle) && !KitInstaller::siteHasKit()) {
+                throw new \Exception('A page pack adds pages to a website: install the Default Kit (or another Starter Kit) first, from Site7 Studio → Install.');
+            }
             // Its sections first: its pages and their content go into them.
             if (KitInstaller::isFormatV2($this->getPackagePath($handle))) {
                 (new \site7\studio\services\theme\ThemeInstaller())->addSections(KitInstaller::kitSections((string)$this->getPackagePath($handle)));

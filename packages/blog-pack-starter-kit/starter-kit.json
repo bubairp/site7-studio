@@ -16,6 +16,7 @@
         "blogs"
     ],
     "pack": true,
+    "base": false,
     "sections": [
         "authors",
         "blogs",

@@ -25,6 +25,10 @@ use site7\studio\Site7Studio;
  *
  * The page's structure comes from the Theme and its blocks from Section
  * packages, so a Template carries content only.
+ *
+ * A variant (template-home-default) is the same page without some blocks,
+ * for a kit that leaves out what those blocks show (docs/51 §2b). It keeps
+ * the page's entry UID: a site has one of the two.
  */
 class TemplateBuilder extends Component
 {
@@ -33,10 +37,12 @@ class TemplateBuilder extends Component
     public const HANDLE_PREFIX = 'template-';
 
     /**
+     * @param string|null $variant a variant of the page ("default"): its own package, template-<page>-<variant>
+     * @param string[] $withoutBlocks block entry type handles the variant leaves out
      * @return array{handle: string, path: string, meta: array}
      * @throws \Exception
      */
-    public function build(Entry $entry, ?string $themeHandle = null, ?string $version = null): array
+    public function build(Entry $entry, ?string $themeHandle = null, ?string $version = null, ?string $variant = null, array $withoutBlocks = []): array
     {
         if ($entry->getIsDraft() || $entry->getIsRevision() || $entry->getPrimaryOwnerId() !== null || !$entry->getSection()) {
             throw new \Exception("Entry #{$entry->id} isn't a page (a live entry of a section).");
@@ -56,6 +62,10 @@ class TemplateBuilder extends Component
             $handle = self::handleFrom($section->handle, $section->type, str_replace('/', '-', (string)$entry->uri));
         }
         $name = $section->type === 'single' ? (string)$entry->title : "{$section->name}: {$entry->title}";
+        if ($variant !== null) {
+            $handle .= '-' . StringHelper::toKebabCase($variant);
+            $name .= ' (' . ucfirst($variant) . ')';
+        }
 
         // Built next to the package and swapped in at the end: a failed
         // rebuild leaves the package - with its version and price - as it was.
@@ -66,6 +76,14 @@ class TemplateBuilder extends Component
 
         try {
             $content = (new SiteKitContent())->exportToDir($dir, null, false, [(int)$entry->id]);
+            if ($withoutBlocks) {
+                $typeUids = [];
+                foreach ($withoutBlocks as $blockHandle) {
+                    $typeUids[] = Craft::$app->getEntries()->getEntryTypeByHandle($blockHandle)?->uid
+                        ?? throw new \Exception("No block '{$blockHandle}' on this site.");
+                }
+                $content['counts']['droppedBlocks'] = self::dropBlocks("{$dir}/content", (int)$entry->id, $pageBuilderUid, $typeUids);
+            }
             $maxId = max(array_column(json_decode((string)file_get_contents("{$dir}/content/tables/elements.json"), true) ?: [['id' => 0]], 'id'));
             if ($maxId >= SiteKitContent::LIBRARY_ID_LIMIT) {
                 throw new \Exception("Element #{$maxId} is above the Library's ID range (" . SiteKitContent::LIBRARY_ID_LIMIT . ').');
@@ -121,6 +139,10 @@ class TemplateBuilder extends Component
             'blocks' => count($blockTypeUids),
             'content' => $content,
         ];
+        if ($variant !== null) {
+            $meta['variant'] = $variant;
+            $meta['withoutBlocks'] = array_values($withoutBlocks);
+        }
         file_put_contents("{$dir}/" . self::META_FILE, $this->json($meta));
 
         file_put_contents("{$dir}/manifest.json", $this->json([
@@ -149,6 +171,68 @@ class TemplateBuilder extends Component
         }
 
         return ['handle' => $handle, 'path' => $dir, 'meta' => $meta];
+    }
+
+    /**
+     * Removes the page's page-builder blocks of these entry types from an
+     * exported content/ dir, with everything nested in them, their rows and
+     * their relations.
+     *
+     * @param string[] $typeUids
+     * @return int blocks removed
+     */
+    public static function dropBlocks(string $contentDir, int $pageId, string $pageBuilderUid, array $typeUids): int
+    {
+        $read = fn(string $table) => json_decode((string)@file_get_contents("{$contentDir}/tables/{$table}.json"), true) ?: [];
+        $entries = $read('entries');
+        $drop = [];
+        foreach ($entries as $row) {
+            if ((int)($row['primaryOwnerId'] ?? 0) === $pageId && ($row['fieldId'] ?? null) === "@uid:{$pageBuilderUid}"
+                && in_array(substr((string)($row['typeId'] ?? ''), 5), $typeUids, true)) {
+                $drop[(int)$row['id']] = true;
+            }
+        }
+        $blocks = count($drop);
+        $owned = array_merge($entries, $read('contentblocks'));
+        do {
+            $before = count($drop);
+            foreach ($owned as $row) {
+                if (isset($drop[(int)($row['primaryOwnerId'] ?? 0)])) {
+                    $drop[(int)$row['id']] = true;
+                }
+            }
+        } while (count($drop) > $before);
+        if (!$drop) {
+            return 0;
+        }
+
+        foreach (SiteKitContent::CORE_TABLES as $table => $rules) {
+            $file = "{$contentDir}/tables/{$table}.json";
+            if (!is_file($file)) {
+                continue;
+            }
+            // Relations go with their source; other rows with any element column.
+            $columns = $table === 'relations' ? ['sourceId'] : $rules['filter'];
+            $rows = array_values(array_filter($read($table), function($row) use ($columns, $drop) {
+                foreach ($columns as $column) {
+                    if (isset($row[$column]) && isset($drop[(int)$row[$column]])) {
+                        return false;
+                    }
+                }
+                return true;
+            }));
+            file_put_contents($file, json_encode($rows, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
+        $linksFile = dirname($contentDir) . '/' . SiteKitContent::LINKS_FILE;
+        if (is_file($linksFile)) {
+            $links = array_values(array_filter(
+                json_decode((string)file_get_contents($linksFile), true) ?: [],
+                fn($link) => !isset($drop[(int)$link['row']['sourceId']]) && !isset($drop[(int)$link['row']['targetId']])
+            ));
+            file_put_contents($linksFile, json_encode($links, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
+
+        return $blocks;
     }
 
     /**

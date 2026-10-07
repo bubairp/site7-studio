@@ -26,21 +26,28 @@ class StarterKitController extends Controller
     /** @var string|null a page pack's other Theme sections: comma-separated handles (blogCategories,blogReview) */
     public ?string $sections = null;
 
+    /** @var bool with --pages: a base kit that sets up the site with only these pages and their menu items */
+    public bool $base = false;
+
+    /** @var string|null use these Template variants where a page has one ("default") */
+    public ?string $variant = null;
+
     public function options($actionID): array
     {
-        return array_merge(parent::options($actionID), $actionID === 'build' ? ['theme', 'templates', 'pages', 'sections'] : []);
+        return array_merge(parent::options($actionID), $actionID === 'build' ? ['theme', 'templates', 'pages', 'sections', 'base', 'variant'] : []);
     }
 
     /**
      * Builds a Library Starter Kit from this site.
      * Usage: php craft site7-studio/starter-kit/build "RP Craft" [--templates=0]
      *        php craft site7-studio/starter-kit/build "Blog Pack" --pages=blogs,authors,standardPages/blogs --sections=blogCategories,blogReview
+     *        php craft site7-studio/starter-kit/build "Default" --pages=home,contact,standardPages/about-us --base --variant=default
      */
     public function actionBuild(string $name): int
     {
         $pages = $this->pages !== null ? array_values(array_filter(array_map('trim', explode(',', $this->pages)))) : null;
         $sections = $this->sections !== null ? array_values(array_filter(array_map('trim', explode(',', $this->sections)))) : [];
-        $result = (new KitBuilder())->build($name, $this->theme, $this->templates, null, $pages, $sections);
+        $result = (new KitBuilder())->build($name, $this->theme, $this->templates, null, $pages, $sections, $this->base, $this->variant);
         $meta = $result['meta'];
         $this->stdout("Built {$result['handle']}: Theme {$meta['theme']}, {$meta['templates']} pages, " . json_encode($meta['content']['counts']) . "\n", Console::FG_GREEN);
 

@@ -10,6 +10,7 @@
         "testimonials/bms-system"
     ],
     "pack": true,
+    "base": false,
     "sections": [
         "standardPages",
         "testimonials"

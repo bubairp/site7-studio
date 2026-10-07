@@ -11,6 +11,7 @@
         "casestudies"
     ],
     "pack": true,
+    "base": false,
     "sections": [
         "casestudies",
         "standardPages"
