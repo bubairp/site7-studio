@@ -45,6 +45,7 @@ Read what's relevant to the task, not the whole set.
 | Library distribution through Commerce24 (publish, catalog, signed downloads, entitlements; API contract) | `52` |
 | Library updates (versions on publish; three-way update of blocks, pages, Theme and kit on installed sites) | `53` |
 | Connecting a site to Commerce24 (`.env`, API key, signing key, troubleshooting) | `55` |
+| Authoring guide: create blocks, pages, kits; price, publish, assign to plans | `57` |
 | Testing | `33`; A-to-Z test cases with last results: `56` |
 | Reference | `34`–`42` |
 | Known issues (read before ANY architecture change) | `43` |
