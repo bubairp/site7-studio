@@ -1,0 +1,22 @@
+# Always LF in the working tree, on every OS: the plugin runs on Linux
+# servers, and Windows git would otherwise convert every file to CRLF.
+* text=auto eol=lf
+
+# Library packages are kept byte for byte: updates compare a package's
+# files with the copies installed on each site, so git must never convert them.
+packages/** -text
+
+# Binary files: never touched.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.zip binary
+*.s7pkg binary
