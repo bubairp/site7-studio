@@ -125,7 +125,13 @@ A second fresh customer site, https://site7-qa.ddev.site (Craft 5.10.8.1, empty 
 | G21 | Shared Resources on a fresh site with the kit installed | ❌ → ✅ listed only 2 (from an accidental import); now the 11 shared fields the installed blocks use (`43` #42) |
 | G22 | Plan changes: Business → Professional → (14 days later) → Business, then cancel and renew | ✅ the paid kit is disabled and re-enabled, site and blocks untouched, Extra Packages follows the plan (0/50 → 0/20 → 0/50). ❌ → ✅ "Remove Now" was offered for the kit after 14 days; now refused (`43` #43) |
 | G23 | After a downgrade, where the customer sees it (manual test) | ❌ → ✅ only in the one-time message; now a banner on the Dashboard and Account & License, a note on the package page, and the Packages section (`43` #44) |
-| G10 | Unit tests (F1) | ✅ 212 tests (2026-10-07) |
+| G24 | Page packs: 9 built on rp-craft (`51` §2a), 75 packages priced premium and published; plans set (`24` §10c) | ✅ Commerce24 suite 15 tests; Starter covers 15 packages, Business 99 |
+| G25 | Fresh site7-qa on Starter: Install screen → Blog Pack | ✅ Theme + 10 pages + 3 blocks, no menus; `/blogs`, a post and an author page 200; Pricing, Products and RP Craft "Locked: Business"; Extra Packages 0 / 5. ❌ → ✅ the pages were refused: the plugin only knew the plan's own list, not what the pack brings |
+| G26 | Business: Account & License → Packages → Install Pricing Pack | ✅ page, its blocks, `/price` 200; menus untouched |
+| G27 | Business → Starter → Professional → Business | ✅ Pricing Pack, its page and Accordion, Pricing and Compare disabled with the 14-day date, Blog Pack stays; Professional re-enables Accordion only; Business the rest. ❌ → ✅ Extra Packages "5 / 5": packages the plan disabled counted |
+| G28 | Full RP Craft kit after the packs, then Team Pack | ✅ kit adds 68 pages and 62 menu items; Team Pack after it leaves the menus at 62; Extra Packages 0 / 50; every page 200 |
+| G29 | Theme install on fresh site7-qa | ❌ open: SEO and Wheel Form logged "Done" but had no `plugins` row afterwards (tables created), so every page was a 500 (`wheelform` variable missing). Fixed by hand on site7-qa (`43` #45) |
+| G10 | Unit tests (F1) | ✅ 214 tests (2026-10-07) |
 
 ## Findings from this run
 

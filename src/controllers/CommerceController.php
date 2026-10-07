@@ -109,7 +109,7 @@ class CommerceController extends Controller
                 // screen installs it, not this tab's per-package Install.
                 $data['siteSetupHandles'] = array_keys(array_filter(
                     (new \site7\studio\services\library\LibraryDistribution())->catalog(),
-                    fn($entry) => in_array($entry['type'] ?? null, ['theme', 'starter-kit'], true)
+                    fn($entry) => in_array($entry['type'] ?? null, ['theme', 'starter-kit'], true) && empty($entry['metadata']['library']['pack'])
                 ));
                 foreach ($notInstalled as $handle) {
                     if ($plugin->commercePackages->isEntitled($handle)) {
@@ -359,7 +359,8 @@ class CommerceController extends Controller
         $handle = (string)Craft::$app->getRequest()->getRequiredBodyParam('handle');
         try {
             if (Site7Studio::getInstance()->commercePackages->installEntitled($handle)) {
-                Craft::$app->getSession()->setNotice("'{$handle}' was installed.");
+                $name = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle)?->name ?? $handle;
+                Craft::$app->getSession()->setNotice("{$name} was installed.");
             } else {
                 Craft::$app->getSession()->setError("Could not install '{$handle}'.");
             }

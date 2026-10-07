@@ -18,10 +18,35 @@ The kit itself holds only what no page owns, plus the list of what to install. T
 
 For rp-craft the kit is 136 KB (8 menus / 62 items, 79 sitemap rows, 3 reviews), so it is committed. The Template packages it requires are build output (`50` §2).
 
+### 2a. Page packs (2026-10-07)
+
+A page pack is a Library Starter Kit with only some of the Theme's pages: `starter-kit.json` has `pack: true`, no `content/`, no menus, no demo sections or plugin tables. It adds pages to a site and leaves its menus as they are. On a fresh site it installs its Theme first, like a full kit; on a site with that Theme it adds its pages (a page already installed is skipped).
+
+`--pages` takes sections (`blogs`: every page of it) and single pages (`standardPages/blogs`, section/URI) - `KitBuilder::inPages()`. A pack never rebuilds Template packages; build them first.
+
+Unlike a full kit, a pack doesn't set up the site (`PackageManagerService::isPack()`, so `setsUpTheSite()` is false): it installs from the Install screen, the package page or Account & License → Packages, disables and removes like a page, and a plan downgrade disables it with the 14-day grace (`24` §10b). While enabled, its pages and blocks count as the pack, not as extra packages (`24` §10a).
+
+rp-craft's packs (`.claude/build-packs.sh` in rp-craft):
+
+| Pack | `--pages` | Pages |
+|---|---|---|
+| Blog Pack | `blogs,authors,standardPages/blogs` | 10 |
+| Products Pack | `products,productCategory,standardPages/products` | 9 |
+| Pricing Pack | `standardPages/price` | 1 |
+| Case Studies Pack | `casestudies,standardPages/casestudies` | 5 |
+| Portfolio Pack | `portfolios,standardPages/portfolios` | 7 |
+| Services Pack | `services,standardPages/services` | 13 |
+| Team Pack | `teamMembers,standardPages/teams` | 7 |
+| Gallery Pack | `gallery,standardPages/gallery` | 5 |
+| Testimonials Pack | `testimonials,standardPages/testimonials` | 4 |
+
+The packs, their pages and the blocks Accordion, Testimonials, Pricing and Compare, Image Gallery and Products are `premium`, so a plan decides them (`24` §10c). Home, About Us, Contact, Awards, Sitemap, Thanks and Test Page stay free.
+
 ## 3. Console
 
 ```
 php craft site7-studio/starter-kit/build "RP Craft"        # on the dev site; rebuilds every Template first (--templates=0 to skip)
+php craft site7-studio/starter-kit/build "Blog Pack" --pages=blogs,authors,standardPages/blogs   # a page pack (§2a)
 php craft site7-studio/starter-kit/validate rp-craft-starter-kit
 php craft site7-studio/starter-kit/install rp-craft-starter-kit
 ```

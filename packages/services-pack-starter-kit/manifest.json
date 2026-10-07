@@ -1,0 +1,30 @@
+{
+    "schemaVersion": "1",
+    "handle": "services-pack-starter-kit",
+    "name": "Services Pack",
+    "type": "starter-kit",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "13 pages for the rp-craft-theme Theme, with their blocks and content. Adds them to a site and leaves its menus as they are.",
+    "requires": {
+        "themes": [
+            "rp-craft-theme"
+        ],
+        "templates": [
+            "template-services-craftcms-migration",
+            "template-services-custom-craftcms-development",
+            "template-services-graphic-design",
+            "template-services-mobile-development",
+            "template-services-not-sure-which-service-you-need",
+            "template-services-ongoing-support-maintenance",
+            "template-services-performance-optimization",
+            "template-services-plugin-module-development",
+            "template-services-web-design",
+            "template-services-web-design-2",
+            "template-services-web-development",
+            "template-services-web-development-2",
+            "template-standard-pages-services"
+        ]
+    },
+    "pricingType": "premium"
+}

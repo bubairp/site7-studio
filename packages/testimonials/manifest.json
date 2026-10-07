@@ -3,7 +3,7 @@
     "handle": "testimonials",
     "name": "Testimonials",
     "type": "section",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "author": "Site7",
     "description": "Customer quotes and reviews.",
     "category": "Collections",
@@ -28,5 +28,6 @@
         "sourceHash": "4a47a3740bbf0b1e729224396f0ef2a3e43e7d75baf1e16bc89ed17946917de5",
         "importedAt": "2026-10-02T04:09:16-07:00",
         "importedBy": null
-    }
+    },
+    "pricingType": "premium"
 }

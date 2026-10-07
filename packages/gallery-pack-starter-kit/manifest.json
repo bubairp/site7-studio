@@ -1,0 +1,22 @@
+{
+    "schemaVersion": "1",
+    "handle": "gallery-pack-starter-kit",
+    "name": "Gallery Pack",
+    "type": "starter-kit",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "5 pages for the rp-craft-theme Theme, with their blocks and content. Adds them to a site and leaves its menus as they are.",
+    "requires": {
+        "themes": [
+            "rp-craft-theme"
+        ],
+        "templates": [
+            "template-gallery-gallery-01",
+            "template-gallery-gallery-02",
+            "template-gallery-gallery-03",
+            "template-gallery-gallery-04",
+            "template-standard-pages-gallery"
+        ]
+    },
+    "pricingType": "premium"
+}

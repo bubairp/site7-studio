@@ -1,0 +1,23 @@
+{
+    "formatVersion": 2,
+    "craftVersion": "5.10.8.1",
+    "theme": "rp-craft-theme",
+    "templates": 7,
+    "pages": [
+        "portfolios/portfolio-01",
+        "portfolios/portfolio-02",
+        "portfolios/portfolio-03",
+        "portfolios/portfolio-04",
+        "portfolios/portfolio-05",
+        "portfolios/portfolio-06",
+        "portfolios"
+    ],
+    "pack": true,
+    "demoSections": [],
+    "pluginTables": [],
+    "content": {
+        "counts": [],
+        "skipped": [],
+        "assetFiles": []
+    }
+}

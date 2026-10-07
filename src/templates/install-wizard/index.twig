@@ -34,7 +34,11 @@
                     <td><strong>{{ kit.name }}</strong> <span class="light">v{{ kit.version }}</span><br><span class="light">{{ kit.description }}</span></td>
                     <td>
                         {{ "Theme"|t('site7-studio') }} <code>{{ m.theme ?? '?' }}</code><br>
-                        {{ "{pages} pages, {menuItems} menu items, {entries} demo entries"|t('site7-studio', {pages: m.templates ?? '?', menuItems: m.content.counts.simplerpmenu_items ?? 0, entries: m.content.counts.entries ?? 0}) }}
+                        {% if m.pack ?? false %}
+                            {{ "{pages} pages - a page pack: keeps your menus"|t('site7-studio', {pages: m.templates ?? '?'}) }}
+                        {% else %}
+                            {{ "{pages} pages, {menuItems} menu items, {entries} demo entries"|t('site7-studio', {pages: m.templates ?? '?', menuItems: m.content.counts.simplerpmenu_items ?? 0, entries: m.content.counts.entries ?? 0}) }}
+                        {% endif %}
                     </td>
                     <td>
                         <span class="status blue"></span>Commerce24{% if kit.pricingType != 'free' %} · {{ kit.pricingType|title }}{% endif %}
@@ -59,7 +63,11 @@
                     <td><strong>{{ kit.name }}</strong> <span class="light">v{{ kit.version }}</span><br><span class="light">{{ kit.description }}</span></td>
                     <td>
                         {{ "Theme"|t('site7-studio') }} <code>{{ kit.meta.theme }}</code><br>
-                        {{ "{pages} pages, {menuItems} menu items, {entries} demo entries"|t('site7-studio', {pages: kit.meta.templates, menuItems: kit.meta.content.counts.simplerpmenu_items ?? 0, entries: kit.meta.content.counts.entries ?? 0}) }}
+                        {% if kit.meta.pack ?? false %}
+                            {{ "{pages} pages - a page pack: keeps your menus"|t('site7-studio', {pages: kit.meta.templates}) }}
+                        {% else %}
+                            {{ "{pages} pages, {menuItems} menu items, {entries} demo entries"|t('site7-studio', {pages: kit.meta.templates, menuItems: kit.meta.content.counts.simplerpmenu_items ?? 0, entries: kit.meta.content.counts.entries ?? 0}) }}
+                        {% endif %}
                     </td>
                     {# Installed once it set up the site, even if it was disabled before Disable was taken away. #}
                     {% set installed = kit.status in ['enabled', 'disabled'] %}

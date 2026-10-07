@@ -3,7 +3,7 @@
     "handle": "products",
     "name": "Products",
     "type": "section",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "author": "Site7",
     "description": "Products as cards.",
     "category": "Collections",
@@ -28,5 +28,6 @@
         "sourceHash": "433ca292520539f709b9d155a9e5f76ebddf4906d900ec07b1cc6bdb25fe1aac",
         "importedAt": "2026-10-02T04:09:15-07:00",
         "importedBy": null
-    }
+    },
+    "pricingType": "premium"
 }

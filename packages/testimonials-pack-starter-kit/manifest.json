@@ -1,0 +1,21 @@
+{
+    "schemaVersion": "1",
+    "handle": "testimonials-pack-starter-kit",
+    "name": "Testimonials Pack",
+    "type": "starter-kit",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "4 pages for the rp-craft-theme Theme, with their blocks and content. Adds them to a site and leaves its menus as they are.",
+    "requires": {
+        "themes": [
+            "rp-craft-theme"
+        ],
+        "templates": [
+            "template-standard-pages-testimonials",
+            "template-testimonials-bms-system",
+            "template-testimonials-bms-system-2",
+            "template-testimonials-bms-system-2-2"
+        ]
+    },
+    "pricingType": "premium"
+}

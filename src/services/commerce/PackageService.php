@@ -85,8 +85,11 @@ class PackageService extends Component implements PackageProviderInterface
     public function isEntitled(string $handle): bool
     {
         $entitlements = $this->getEntitlements();
+        // Commerce24's lists include what a bought or plan package requires
+        // (a pack's pages and their blocks, Commerce24 Entitlements::closure()).
         if (in_array($handle, $entitlements['purchased'] ?? [], true)
-            || in_array($handle, $entitlements['free'] ?? [], true)) {
+            || in_array($handle, $entitlements['free'] ?? [], true)
+            || in_array($handle, $entitlements['premium'] ?? [], true)) {
             return true;
         }
 
@@ -200,7 +203,10 @@ class PackageService extends Component implements PackageProviderInterface
             // a package the developer authored locally and never listed
             // with Commerce24 at all isn't "premium," it's just theirs, and
             // plan changes have no opinion on it.
-            if (!in_array($record->handle, $managedHandles, true)) {
+            // A paid package is managed even when no plan names it: a pack's
+            // pages come with the pack, so they go when the pack does.
+            if (!in_array($record->handle, $managedHandles, true)
+                && ($record->creatorId !== null || !$this->isPaidPackage($record))) {
                 continue;
             }
 
@@ -324,7 +330,9 @@ class PackageService extends Component implements PackageProviderInterface
 
         $packageManager = Site7Studio::getInstance()->packageManager;
         $distribution = new LibraryDistribution();
-        if ($packageManager->setsUpTheSite($handle) || in_array($distribution->catalog()[$handle]['type'] ?? null, ['theme', 'starter-kit'], true)) {
+        $entry = $distribution->catalog()[$handle] ?? [];
+        $isPack = $packageManager->isPack($handle) || !empty($entry['metadata']['library']['pack']);
+        if (!$isPack && ($packageManager->setsUpTheSite($handle) || in_array($entry['type'] ?? null, ['theme', 'starter-kit'], true))) {
             throw new \Exception("'{$handle}' sets up the whole site: install it from Site7 Studio → Install.");
         }
         if (!$packageManager->getPackagePath($handle) && ($errors = $distribution->downloadWithRequirements($handle))) {
@@ -392,8 +400,12 @@ class PackageService extends Component implements PackageProviderInterface
         }
         $handles = [];
         foreach ($records as $record) {
-            if ($record->type === 'starter-kit' && $packageManager->setsUpTheSite($record->handle)
-                && \site7\studio\services\PackageManagerService::hasSetUpTheSite($record)) {
+            // A page pack's pages count as the pack while it's enabled; a
+            // pack the plan no longer includes is disabled and its pages count.
+            $isKit = $record->type === 'starter-kit' && $packageManager->setsUpTheSite($record->handle)
+                && \site7\studio\services\PackageManagerService::hasSetUpTheSite($record);
+            $isPack = $record->type === 'starter-kit' && $record->status === 'enabled' && $packageManager->isPack($record->handle);
+            if ($isKit || $isPack) {
                 foreach (LibraryDistribution::closure($record->handle, $local)['handles'] as $handle) {
                     $handles[$handle] = true;
                 }
@@ -405,8 +417,9 @@ class PackageService extends Component implements PackageProviderInterface
 
     /**
      * Packages installed beyond the Starter Kit, against the plan's
-     * packageLimit (null = unlimited). Not counted: what the kit brought, and
-     * pages this site saved as its own Templates.
+     * packageLimit (null = unlimited). Not counted: what the kit brought,
+     * pages this site saved as its own Templates, and packages a plan change
+     * disabled (they can't be used until the plan includes them again).
      *
      * @return array{used: int, limit: int|null}
      */
@@ -415,7 +428,8 @@ class PackageService extends Component implements PackageProviderInterface
         $kit = $this->kitPackageHandles();
         $used = 0;
         foreach (Site7Studio::getInstance()->packageManager->getAllPackages() as $record) {
-            if ($record->status !== 'available' && !isset($kit[$record->handle]) && $record->creatorId === null) {
+            if ($record->status !== 'available' && !isset($kit[$record->handle]) && $record->creatorId === null
+                && $record->entitlementRemovableOn === null) {
                 $used++;
             }
         }

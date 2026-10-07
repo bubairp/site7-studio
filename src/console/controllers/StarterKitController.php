@@ -20,18 +20,23 @@ class StarterKitController extends Controller
     /** @var bool rebuild every page's Template package first */
     public bool $templates = true;
 
+    /** @var string|null a page pack: comma-separated sections ("blogs") or pages ("standardPages/blogs") */
+    public ?string $pages = null;
+
     public function options($actionID): array
     {
-        return array_merge(parent::options($actionID), $actionID === 'build' ? ['theme', 'templates'] : []);
+        return array_merge(parent::options($actionID), $actionID === 'build' ? ['theme', 'templates', 'pages'] : []);
     }
 
     /**
      * Builds a Library Starter Kit from this site.
      * Usage: php craft site7-studio/starter-kit/build "RP Craft" [--templates=0]
+     *        php craft site7-studio/starter-kit/build "Blog Pack" --pages=blogs,authors,standardPages/blogs
      */
     public function actionBuild(string $name): int
     {
-        $result = (new KitBuilder())->build($name, $this->theme, $this->templates);
+        $pages = $this->pages !== null ? array_values(array_filter(array_map('trim', explode(',', $this->pages)))) : null;
+        $result = (new KitBuilder())->build($name, $this->theme, $this->templates, null, $pages);
         $meta = $result['meta'];
         $this->stdout("Built {$result['handle']}: Theme {$meta['theme']}, {$meta['templates']} pages, " . json_encode($meta['content']['counts']) . "\n", Console::FG_GREEN);
 

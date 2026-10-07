@@ -18,4 +18,19 @@ class KitBuilderTest extends Unit
     {
         $this->assertSame('rp-craft-starter-kit', KitBuilder::handleFor('RP Craft Starter Kit'));
     }
+
+    public function testAPackTakesAWholeSection(): void
+    {
+        $post = ['section' => 'blogs', 'uri' => 'blogs/new-goal-4'];
+        $this->assertTrue(KitBuilder::inPages($post, ['blogs']));
+        $this->assertFalse(KitBuilder::inPages($post, ['products']));
+    }
+
+    public function testAPackTakesOnePageOfASection(): void
+    {
+        $listing = ['section' => 'standardPages', 'uri' => 'blogs'];
+        $this->assertTrue(KitBuilder::inPages($listing, ['blogs', 'standardPages/blogs']));
+        $this->assertFalse(KitBuilder::inPages(['section' => 'standardPages', 'uri' => 'about'], ['standardPages/blogs']));
+        $this->assertFalse(KitBuilder::inPages($listing, ['standardPages/price']));
+    }
 }

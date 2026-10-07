@@ -746,7 +746,24 @@ class PackageManagerService extends Component
         $record = $this->getPackageByHandle($handle);
 
         return $record !== null && ($record->type === 'theme'
-            || ($record->type === 'starter-kit' && \site7\studio\services\starterkit\KitInstaller::isFormatV2($this->getPackagePath($handle))));
+            || ($record->type === 'starter-kit' && \site7\studio\services\starterkit\KitInstaller::isFormatV2($this->getPackagePath($handle))
+                && !$this->isPack($handle)));
+    }
+
+    /**
+     * A page pack (docs/51 §2a): a Library Starter Kit with only some pages,
+     * no menus or demo content. It adds pages to a site, so it installs,
+     * disables and is removed like a page - it doesn't set up the site.
+     */
+    public function isPack(string $handle): bool
+    {
+        $path = $this->getPackagePath($handle);
+        if (!\site7\studio\services\starterkit\KitInstaller::isFormatV2($path)) {
+            return false;
+        }
+        $meta = json_decode((string)file_get_contents("{$path}/" . \site7\studio\services\starterkit\KitBuilder::META_FILE), true);
+
+        return !empty($meta['pack']);
     }
 
     /** Whether a Theme or Library Starter Kit has set up this site: enabled, or disabled before that was refused. */

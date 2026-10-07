@@ -159,7 +159,7 @@ class KitInstaller extends ThemeInstaller
 
         $root = $this->root();
         $php = App::phpExecutable() ?? 'php';
-        $log('Installing ' . ($validation['meta']['templates'] ?? '') . ' pages with their blocks, then menus and demo content…');
+        $log('Installing ' . ($validation['meta']['templates'] ?? '') . ' pages with their blocks' . (empty($validation['meta']['pack']) ? ', then menus and demo content…' : '…'));
         if ($this->run([$php, "{$root}/craft", 'site7-studio/starter-kit/apply', $handle], $root, 'pages and content', $result, $log)) {
             $this->run([$php, "{$root}/craft", 'clear-caches/all'], $root, 'caches', $result, $log);
         }

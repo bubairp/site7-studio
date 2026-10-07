@@ -1,0 +1,26 @@
+{
+    "schemaVersion": "1",
+    "handle": "products-pack-starter-kit",
+    "name": "Products Pack",
+    "type": "starter-kit",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "9 pages for the rp-craft-theme Theme, with their blocks and content. Adds them to a site and leaves its menus as they are.",
+    "requires": {
+        "themes": [
+            "rp-craft-theme"
+        ],
+        "templates": [
+            "template-product-category-asd",
+            "template-products-bags",
+            "template-products-cap",
+            "template-products-flower-vase",
+            "template-products-pant",
+            "template-products-shoes",
+            "template-products-shoes-2",
+            "template-products-tshirt",
+            "template-standard-pages-products"
+        ]
+    },
+    "pricingType": "premium"
+}

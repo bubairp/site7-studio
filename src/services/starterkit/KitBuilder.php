@@ -37,8 +37,17 @@ class KitBuilder extends Component
      * @return array{handle: string, path: string, meta: array}
      * @throws \Exception
      */
-    public function build(string $name, ?string $themeHandle = null, bool $buildTemplates = true, ?string $version = null): array
+    /**
+     * @param string[]|null $onlyPages null: the whole site (every page, menus,
+     *   demo content). Otherwise a page pack: only the pages of these
+     *   sections ("blogs") or these pages ("standardPages/blogs"), with
+     *   no menus or demo content - it adds pages to a site (docs/51 §2a).
+     *   A pack never rebuilds or removes Template packages.
+     */
+    public function build(string $name, ?string $themeHandle = null, bool $buildTemplates = true, ?string $version = null, ?array $onlyPages = null): array
     {
+        $isPack = $onlyPages !== null;
+        $buildTemplates = $buildTemplates && !$isPack;
         $plugin = Site7Studio::getInstance();
         $themeHandle ??= TemplateBuilder::libraryTheme();
         $handle = self::handleFor($name);
@@ -64,6 +73,9 @@ class KitBuilder extends Component
                 continue;
             }
             $meta = json_decode((string)file_get_contents($file), true) ?: [];
+            if ($isPack && !self::inPages($meta, $onlyPages)) {
+                continue;
+            }
             $stale = !\craft\elements\Entry::find()->uid($meta['entryUid'] ?? '')->status(null)->exists()
                 || ($buildTemplates && !isset($justBuilt[$manifest['handle']]));
             if ($stale) {
@@ -82,7 +94,9 @@ class KitBuilder extends Component
         }
         sort($templates);
         if (!$templates) {
-            throw new \Exception("The Library has no Template packages for the Theme '{$themeHandle}'.");
+            throw new \Exception($isPack
+                ? 'No Template packages match ' . implode(', ', $onlyPages) . " for the Theme '{$themeHandle}'."
+                : "The Library has no Template packages for the Theme '{$themeHandle}'.");
         }
 
         $projectConfig = Craft::$app->getProjectConfig();
@@ -96,7 +110,10 @@ class KitBuilder extends Component
         $dir = ThemeBuilder::startStaging($final);
 
         try {
-            $content = (new SiteKitContent())->exportToDir($dir, array_keys($demoSections), self::PLUGIN_TABLES);
+            // A pack has no content of its own: no menus, no demo entries.
+            $content = $isPack
+                ? ['counts' => [], 'skipped' => [], 'assetFiles' => []]
+                : (new SiteKitContent())->exportToDir($dir, array_keys($demoSections), self::PLUGIN_TABLES);
         } catch (\Throwable $e) {
             FileHelper::removeDirectory($dir);
             throw $e;
@@ -108,8 +125,9 @@ class KitBuilder extends Component
             'theme' => $themeHandle,
             'templates' => count($templates),
             'pages' => array_values(array_filter($pages, fn($uri) => $uri !== null)),
-            'demoSections' => array_values(array_map(fn($uid) => $projectConfig->get("sections.{$uid}.handle"), array_keys($demoSections))),
-            'pluginTables' => self::PLUGIN_TABLES,
+            'pack' => $isPack,
+            'demoSections' => $isPack ? [] : array_values(array_map(fn($uid) => $projectConfig->get("sections.{$uid}.handle"), array_keys($demoSections))),
+            'pluginTables' => $isPack ? [] : self::PLUGIN_TABLES,
             'content' => $content,
         ];
         file_put_contents("{$dir}/" . self::META_FILE, $this->json($meta));
@@ -121,7 +139,9 @@ class KitBuilder extends Component
             'type' => 'starter-kit',
             'version' => $version,
             'author' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? 'Site7',
-            'description' => "The whole {$name} site on a fresh Craft install: the {$themeHandle} Theme, " . count($templates) . ' pages with their blocks, menus and demo content.',
+            'description' => $isPack
+                ? count($templates) . " pages for the {$themeHandle} Theme, with their blocks and content. Adds them to a site and leaves its menus as they are."
+                : "The whole {$name} site on a fresh Craft install: the {$themeHandle} Theme, " . count($templates) . ' pages with their blocks, menus and demo content.',
             'requires' => ['themes' => [$themeHandle], 'templates' => $templates],
             'pricingType' => $pricingType,
         ]));
@@ -136,6 +156,15 @@ class KitBuilder extends Component
         }
 
         return ['handle' => $handle, 'path' => $dir, 'meta' => $meta];
+    }
+
+    /** Whether a Template's page is one of a pack's: its section ("blogs") or the page itself ("standardPages/blogs"). */
+    public static function inPages(array $templateMeta, array $pages): bool
+    {
+        $section = (string)($templateMeta['section'] ?? '');
+        $uri = (string)($templateMeta['uri'] ?? '');
+
+        return in_array($section, $pages, true) || in_array("{$section}/{$uri}", $pages, true);
     }
 
     /** "RP Craft" => rp-craft-starter-kit */

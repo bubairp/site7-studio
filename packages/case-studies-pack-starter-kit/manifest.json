@@ -1,0 +1,22 @@
+{
+    "schemaVersion": "1",
+    "handle": "case-studies-pack-starter-kit",
+    "name": "Case Studies Pack",
+    "type": "starter-kit",
+    "version": "1.0.0",
+    "author": "Site7",
+    "description": "5 pages for the rp-craft-theme Theme, with their blocks and content. Adds them to a site and leaves its menus as they are.",
+    "requires": {
+        "themes": [
+            "rp-craft-theme"
+        ],
+        "templates": [
+            "template-casestudies-case-1",
+            "template-casestudies-case-2",
+            "template-casestudies-case-3",
+            "template-casestudies-case-4",
+            "template-standard-pages-casestudies"
+        ]
+    },
+    "pricingType": "premium"
+}

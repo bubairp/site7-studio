@@ -1,0 +1,17 @@
+{
+    "formatVersion": 2,
+    "craftVersion": "5.10.8.1",
+    "theme": "rp-craft-theme",
+    "templates": 1,
+    "pages": [
+        "price"
+    ],
+    "pack": true,
+    "demoSections": [],
+    "pluginTables": [],
+    "content": {
+        "counts": [],
+        "skipped": [],
+        "assetFiles": []
+    }
+}

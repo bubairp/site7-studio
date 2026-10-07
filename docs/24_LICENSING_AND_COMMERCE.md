@@ -84,6 +84,19 @@ A plan decides which Starter Kits a customer gets (`includedPackages`) and how m
 
 Upgrade and downgrade apply at once (`refreshCurrentPlanAndSyncEntitlements()`). A downgrade disables packages the new plan doesn't cover (free ones never) and dates them removable after `GRACE_PERIOD_DAYS` (14); upgrading again re-enables them. A Theme or Starter Kit is never removed this way: it stays disabled - no updates - and keeps counting as the kit, not as extra packages (`43` #43). Cancel and renew change only the subscription.
 
+### 10c. What each plan includes (2026-10-07)
+
+Commerce24 entitles a customer to a bought or plan package **and everything it requires**, transitively (`Entitlements::closure()` over each package's latest `requires`): a kit or page pack brings its Theme, pages and their blocks, even premium ones. A plan's `included_packages` of `["*"]` is every paid package. The plugin gets the expanded lists from `/packages/entitlements`, so it agrees without its own closure.
+
+| Plan | Includes | Extra packages |
+|---|---|---|
+| Starter | Blog Pack | 5 |
+| Professional | + Services, Portfolio and Team packs, Accordion, Testimonials | 20 |
+| Business | + Products, Pricing, Case Studies, Gallery and Testimonials packs, the RP Craft kit, Pricing and Compare, Image Gallery, Products | 50 |
+| Enterprise | `*` | unlimited |
+
+Commerce24's `PlanSeeder` sets these; the admin's Plans page can change them.
+
 ## 11. Failure Scenarios
 
 | Scenario | Behavior |
