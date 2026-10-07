@@ -704,6 +704,36 @@ class PackageManagerService extends Component
         return $result;
     }
 
+    /** @var array<string, string>|null block (entry type) handle => Section package handle */
+    private ?array $_sectionPackagesByBlock = null;
+
+    /**
+     * The Section package in this site's Library that provides a block type
+     * (its matrix.yaml), whether it was imported here or came from the
+     * Library (Commerce24, a Starter Kit) - so the same block is never
+     * imported again as a second package.
+     */
+    public function sectionPackageForEntryType(string $entryTypeHandle): ?PackageRecord
+    {
+        if ($this->_sectionPackagesByBlock === null) {
+            $this->_sectionPackagesByBlock = [];
+            foreach ($this->getAllPackages() as $record) {
+                $path = $record->type === 'section' ? $this->getPackagePath($record->handle) : null;
+                if (!$path || !is_file("{$path}/matrix.yaml")) {
+                    continue;
+                }
+                foreach ((array)(\Symfony\Component\Yaml\Yaml::parseFile("{$path}/matrix.yaml")['blocks'] ?? []) as $block) {
+                    if (!empty($block['handle'])) {
+                        $this->_sectionPackagesByBlock[$block['handle']] ??= $record->handle;
+                    }
+                }
+            }
+        }
+        $handle = $this->_sectionPackagesByBlock[$entryTypeHandle] ?? null;
+
+        return $handle ? $this->getPackageByHandle($handle) : null;
+    }
+
     /**
      * A Theme or Library Starter Kit (docs/49, 51): it sets up a whole site,
      * so it installs only through the Install screen (ThemeInstaller /

@@ -354,6 +354,15 @@ class CraftResourceDiscoveryService extends Component
     {
         $sourceRecord = (new SectionImportSourceRepository())->findBySourceUid($entryType->uid);
         if (!$sourceRecord) {
+            // Not imported here, but a Library package (from Commerce24 or a
+            // Starter Kit) already provides this block.
+            $libraryPackage = Site7Studio::getInstance()->packageManager->sectionPackageForEntryType($entryType->handle);
+            if ($libraryPackage) {
+                $result->importStatus = 'in-library';
+                $result->existingPackageHandle = $libraryPackage->handle;
+                $result->existingPackageId = (int)$libraryPackage->id;
+                return;
+            }
             $result->importStatus = 'not-imported';
             return;
         }

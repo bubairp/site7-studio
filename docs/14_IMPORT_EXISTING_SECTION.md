@@ -140,3 +140,5 @@ None confirmed beyond the general Section-package "one template file" assumption
 **Verified 2026-10-02:**
 - rp-craft: 27 of 27 `matrixContent` blocks imported (27 Sections, 17 Shared Resources); rp-craft unchanged - still 170 fields / 104 entry types, the only project config change is the plugin's `matrixFieldUid`, 12 content pages identical to a pre-import baseline.
 - Fresh Craft with rp-craft's plugins and no structure: installing the 27 packages through `PackageManagerService` created 78 fields + 45 entry types, **123 of 123 identical** to rp-craft's project config, 90 per-layout handles kept, 27 `_blocks` templates; installing again created nothing.
+
+**Blocks already in the Library (2026-10-07).** A block type that a Library package provides - installed from Commerce24 or by a Starter Kit, so it has no import-source row on this site - is listed as **In Library**, can't be selected, and `importFromEntryType()` refuses it (`43` #41).

@@ -272,16 +272,22 @@
                         // an Update Package workflow (in the Package Editor)
                         // is the only way to sync a changed source.
                         const importStatus = item.importStatus || 'not-imported';
-                        const isLocked = importStatus === 'imported' || importStatus === 'update-available';
+                        // 'in-library': a Library package (Commerce24, a Starter
+                        // Kit) already provides this block.
+                        const isLocked = importStatus === 'imported' || importStatus === 'update-available' || importStatus === 'in-library';
                         let importBadge = '';
                         let openLink = '';
                         if (importStatus === 'imported') {
                             importBadge = ' <span class="status-label gray" style="flex-shrink:0;">Imported</span>';
                         } else if (importStatus === 'update-available') {
                             importBadge = ' <span class="status-label amber" style="flex-shrink:0;">Update Available</span>';
+                        } else if (importStatus === 'in-library') {
+                            importBadge = ' <span class="status-label gray" style="flex-shrink:0;">In Library</span>';
                         }
                         if (isLocked && item.existingPackageHandle) {
-                            const editUrl = Craft.getCpUrl('site7-studio/packages/' + item.existingPackageHandle + '/edit');
+                            const editUrl = importStatus === 'in-library'
+                                ? Craft.getCpUrl('site7-studio/library/package/' + item.existingPackageHandle)
+                                : Craft.getCpUrl('site7-studio/packages/' + item.existingPackageHandle + '/edit');
                             const linkLabel = importStatus === 'update-available' ? 'Review Update' : 'Open Package';
                             openLink = ' <a href="' + Craft.escapeHtml(editUrl) + '" target="_blank" rel="noopener" style="flex-shrink:0;">' + linkLabel + ' &rarr;</a>';
                         }

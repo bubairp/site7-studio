@@ -57,6 +57,10 @@ class MatrixEntryTypeImportService extends Component
             $existingHandle = $existingPackage?->handle ?? $existingSource->sourceHandle;
             throw new \Exception("This Entry Type has already been imported as the Section package '{$existingHandle}'.");
         }
+        $libraryPackage = \site7\studio\Site7Studio::getInstance()->packageManager->sectionPackageForEntryType($entryType->handle);
+        if ($libraryPackage) {
+            throw new \Exception("This block is already in your Library as the Section package '{$libraryPackage->name}' ({$libraryPackage->handle}).");
+        }
 
         [$detectedFields, $importableFields, $sharedResourceHandles, $pluginDependencies, $excludedFields] = $this->detectFields($entryType);
         $sourceHash = (new EntryTypeSourceHasher())->computeHash($entryType);
