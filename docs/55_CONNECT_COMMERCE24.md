@@ -110,13 +110,25 @@ ddev craft site7-studio/library/catalog                          # packages Comm
 
 ## 4. A customer site
 
-1. Start from a fresh Craft that has the **same Craft version** as the author site, then install Site7 Studio (§5). The Library starts empty.
+1. Start from a fresh Craft that has the **same Craft version** as the author site, then install Site7 Studio (§5). The Library starts empty: the plugin ships code only. When Composer installed the plugin (in `vendor/`), the Library is `storage/site7-studio/packages/` (`06` §8), so updating the plugin with Composer keeps it.
 2. Connect it (§2) and activate a licence.
 3. **Install → Library Starter Kits:** pick a kit, click **Check**, then **Install**. The kit, its Theme and its Templates are downloaded from Commerce24 (each signature-verified) and installed as a background job.
 4. **Updates** lists newer Library versions; update them there. Local edits are kept (`53`).
 5. **Paid packages** (`pricingType` not free) download only when they're in the active plan or bought. Otherwise the plugin shows "Not in your plan" and Commerce24 answers 403.
 
 ## 5. Adding the plugin to a fresh Craft site (local)
+
+**From its Git repository** (what a customer does; `.claude/new-site-from-repo.sh` in rp-craft scripts it):
+
+```bash
+composer config repositories.site7-studio vcs https://github.com/bubairp/site7-studio.git
+composer require site7/studio:dev-main
+php craft plugin/install site7-studio
+```
+
+Then create `config/site7-studio.php` (§1) and fill in `.env` (§2.5). The Theme brings the plugin folders it needs (`49` §2d).
+
+**From rp-craft's folder** (the earlier local setup):
 
 ```bash
 mkdir -p plugins && rsync -a --exclude .git --exclude '/packages/*' --exclude /tests ~/my-project/rp-craft/plugins/site7-studio/ plugins/site7-studio/

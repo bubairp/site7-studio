@@ -96,6 +96,16 @@ flowchart LR
 
 ## 8. Filesystem Impact
 
+**Where the Library is** (2026-10-08): `@packages`, set once from `Site7Studio::getLibraryPath()`. Every path to a package goes through it (`PackageManagerService::getPackagePath()`, the builders, the installers).
+
+| The plugin is… | Library |
+|---|---|
+| in its own folder (author sites: `plugins/site7-studio`, also when `vendor/` links to it) | `plugins/site7-studio/packages/` |
+| installed by Composer in `vendor/` (customer sites) | `storage/site7-studio/packages/` - a Composer update of the plugin never replaces it or refuses because of it |
+| any, with the `libraryPath` setting (`config/site7-studio.php`, aliases and `$ENV` work) | that folder |
+
+Packages left in `vendor/site7/studio/packages` by an earlier version are copied to the Library once (marker file `.site7-library`). The plugin's repository doesn't contain `packages/` (`.gitignore`): a site's Library starts empty and every package comes from Commerce24; on rp-craft the files stay in `packages/` and are published from there.
+
 **Created**: `packages/{handle}/` and its contents, at creation/import time.
 **Modified**: by sync, authoring edits, import overwrite, rollback restore.
 **Deleted**: on permanent delete only (`12_PACKAGE_UNINSTALLATION.md`).

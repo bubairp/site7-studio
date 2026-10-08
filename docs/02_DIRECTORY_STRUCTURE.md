@@ -35,7 +35,7 @@ plugins/site7-studio/
 │   │                                  # depended on by this new docs/site7-studio/ set (see 00_OVERVIEW.md)
 │   └── site7-studio/                 # THIS documentation set
 ├── tests/                            # Codeception/PHPUnit test suite - see 33_TESTING_ARCHITECTURE.md
-├── packages/                         # Package SOURCE directory - the plugin's own managed storage
+├── packages/                         # Package SOURCE directory (the Library) on author sites - not in Git; a Composer-installed plugin uses storage/site7-studio/packages instead (06 §8)
 ├── codeception.yml, phpunit.xml.dist
 └── composer.json
 ```
