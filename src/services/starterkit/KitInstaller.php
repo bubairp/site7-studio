@@ -113,10 +113,17 @@ class KitInstaller extends ThemeInstaller
         $theme = $manifest['requires']['themes'][0] ?? null;
         $result['theme'] = $theme;
 
-        foreach ($manifest['requires']['templates'] ?? [] as $template) {
-            if (!$packageManager->getPackagePath($template)) {
-                $result['errors'][] = "The Template package '{$template}' isn't in this site's Library.";
-            }
+        $missingTemplates = array_values(array_filter(
+            $manifest['requires']['templates'] ?? [],
+            fn($template) => !$packageManager->getPackagePath($template)
+        ));
+        // A kit that came with the plugin (packages/ in its repository)
+        // without its pages: they come from Commerce24, like a remote kit's.
+        if ($missingTemplates && Site7Studio::getInstance()->commerceClient->isConfigured()) {
+            return $this->validateRemoteKit($handle, $result);
+        }
+        foreach ($missingTemplates as $template) {
+            $result['errors'][] = "The Template package '{$template}' isn't in this site's Library.";
         }
         if ($result['errors']) {
             return $result;
