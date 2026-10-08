@@ -6,6 +6,7 @@ use Craft;
 use craft\elements\Entry;
 use craft\helpers\App;
 use site7\studio\models\Settings;
+use site7\studio\services\sitekit\ComposerFiles;
 use site7\studio\services\sitekit\SiteKitFiles;
 use site7\studio\services\sitekit\SiteKitInstaller;
 use site7\studio\services\support\CraftVersion;
@@ -51,8 +52,12 @@ class ThemeInstaller extends SiteKitInstaller
         if ($sections > 0 || Entry::find()->status(null)->count() > 0) {
             $result['errors'][] = "This site already has content structure ({$sections} sections). A Theme sets up a fresh Craft install.";
         }
+        // Folders the Theme brings are fine, and so is Site7 Studio's own
+        // (a Theme built before docs/49 §2d still lists it): the site keeps its own.
+        $themeLock = json_decode((string)@file_get_contents("{$dir}/files/composer.lock"), true) ?: [];
+        $site7Paths = ComposerFiles::packagePaths($themeLock, ComposerFiles::SITE7_PACKAGE);
         foreach ($meta['pathRepositories'] ?? [] as $path) {
-            if (!is_dir("{$root}/{$path}")) {
+            if (!is_dir("{$root}/{$path}") && !is_dir("{$dir}/files/{$path}") && !in_array($path, $site7Paths, true)) {
                 $result['errors'][] = "Package source '{$path}' is a local folder on the source site and isn't here - publish it to a Git repository or put it at {$path}/.";
             }
         }
@@ -78,6 +83,7 @@ class ThemeInstaller extends SiteKitInstaller
      */
     protected function installPackages(string $kit, string $root, array &$result, callable $log): bool
     {
+        $kit = $this->withThisSitesPlugin($kit, $root);
         $siteCraft = Craft::$app->getVersion();
         $lockedCraft = self::lockedVersion("{$kit}/composer.lock", 'craftcms/cms');
         if ($lockedCraft === null || ltrim($lockedCraft, 'v') === $siteCraft) {
@@ -93,6 +99,36 @@ class ThemeInstaller extends SiteKitInstaller
 
         return $this->run([$php, $composerPhar, 'require', "craftcms/cms:{$siteCraft}", '--update-with-all-dependencies', '--no-interaction', '--no-scripts', '--working-dir=' . $root], $root, 'composer install', $result, $log)
             && $this->run([$php, "{$root}/craft", 'migrate/all', '--interactive=0'], $root, 'craft migrate/all', $result, $log);
+    }
+
+    /**
+     * A copy of the Theme's composer.json/lock with this site's own Site7
+     * Studio - its require line, repository and locked version - in place
+     * of whatever the Theme has (docs/49 §2d). Composer then keeps the plugin
+     * as this site installed it: from Git, a folder or Packagist.
+     *
+     * @return string the folder holding the two files
+     */
+    protected function withThisSitesPlugin(string $kit, string $root): string
+    {
+        $siteJson = json_decode((string)@file_get_contents("{$root}/composer.json"), true);
+        $siteLock = json_decode((string)@file_get_contents("{$root}/composer.lock"), true);
+        if (!is_array($siteJson) || !is_array($siteLock)) {
+            return $kit;
+        }
+        [$json, $lock] = ComposerFiles::withPackageFrom(
+            json_decode((string)file_get_contents("{$kit}/composer.json"), true),
+            json_decode((string)file_get_contents("{$kit}/composer.lock"), true),
+            $siteJson,
+            $siteLock,
+            ComposerFiles::SITE7_PACKAGE
+        );
+        $merged = Craft::$app->getRuntimePath() . '/site7-theme-composer';
+        \craft\helpers\FileHelper::createDirectory($merged);
+        file_put_contents("{$merged}/composer.json", ComposerFiles::encode($json));
+        file_put_contents("{$merged}/composer.lock", ComposerFiles::encode($lock));
+
+        return $merged;
     }
 
     /** The version of $package in a composer.lock, or null. */
@@ -166,6 +202,12 @@ class ThemeInstaller extends SiteKitInstaller
         if ($builtFrontend && is_dir("{$dir}/files/{$builtFrontend}")) {
             \craft\helpers\FileHelper::copyDirectory("{$dir}/files/{$builtFrontend}", "{$root}/{$builtFrontend}");
             $log("Copied the built frontend ({$builtFrontend}/)");
+        }
+        foreach ($validation['meta']['bundledPaths'] ?? [] as $path) {
+            if (is_dir("{$dir}/files/{$path}")) {
+                \craft\helpers\FileHelper::copyDirectory("{$dir}/files/{$path}", "{$root}/{$path}");
+                $log("Copied the plugin folder {$path}/");
+            }
         }
         if (!$this->installPackages("{$dir}/files", $root, $result, $log)) {
             return $result;

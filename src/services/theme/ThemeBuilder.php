@@ -6,6 +6,7 @@ use Craft;
 use craft\base\Component;
 use craft\helpers\FileHelper;
 use craft\helpers\StringHelper;
+use site7\studio\services\sitekit\ComposerFiles;
 use site7\studio\services\sitekit\SiteKitContent;
 use site7\studio\services\sitekit\SiteKitFiles;
 use site7\studio\Site7Studio;
@@ -134,8 +135,27 @@ class ThemeBuilder extends Component
             }
             $configFiles[] = $entry;
         }
-        copy("{$root}/composer.json", "{$dir}/files/composer.json");
-        copy("{$root}/composer.lock", "{$dir}/files/composer.lock");
+        // Composer files without Site7 Studio: a site keeps its own, however
+        // it was installed (ThemeInstaller::withThisSitesPlugin()). The other
+        // local plugin folders travel with the Theme, installed as copies
+        // (docs/49 §2d).
+        [$composerJson, $composerLock] = ComposerFiles::withoutPackage(
+            json_decode((string)file_get_contents("{$root}/composer.json"), true),
+            json_decode((string)file_get_contents("{$root}/composer.lock"), true),
+            ComposerFiles::SITE7_PACKAGE
+        );
+        $bundledPaths = [];
+        foreach (SiteKitFiles::pathRepositories($composerJson) as $path) {
+            if (is_dir("{$root}/{$path}")) {
+                FileHelper::copyDirectory("{$root}/{$path}", "{$dir}/files/{$path}", [
+                    'filter' => fn(string $file) => in_array(basename($file), [...SiteKitFiles::EXCLUDED_DIRECTORY_NAMES, 'vendor'], true) ? false : null,
+                ]);
+                $bundledPaths[] = $path;
+            }
+        }
+        [$composerJson, $composerLock] = ComposerFiles::copyPathRepositories($composerJson, $composerLock, $bundledPaths);
+        file_put_contents("{$dir}/files/composer.json", ComposerFiles::encode($composerJson));
+        file_put_contents("{$dir}/files/composer.lock", ComposerFiles::encode($composerLock));
 
         // Settings and data content: sections without URLs (header, footer,
         // pricing plans, colour options...), except sections visitors post
@@ -169,7 +189,6 @@ class ThemeBuilder extends Component
             }
         }
 
-        $composerJson = json_decode((string)file_get_contents("{$root}/composer.json"), true);
         $meta = [
             'craftVersion' => Craft::$app->getVersion(),
             'plugins' => array_keys($pluginConfigs),
@@ -185,6 +204,7 @@ class ThemeBuilder extends Component
             'configFiles' => $configFiles,
             'builtFrontend' => $builtFrontend,
             'pathRepositories' => SiteKitFiles::pathRepositories($composerJson),
+            'bundledPaths' => $bundledPaths,
             'envKeys' => is_file("{$root}/.env") ? SiteKitFiles::envKeys((string)file_get_contents("{$root}/.env")) : [],
         ];
         file_put_contents("{$dir}/" . self::META_FILE, $this->json($meta));

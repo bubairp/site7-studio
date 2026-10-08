@@ -83,7 +83,8 @@ class SiteKitFiles
             }
         }
 
-        return $paths;
+        // `composer config repositories.<name>` can add a second entry for a folder.
+        return array_values(array_unique($paths));
     }
 
     /**

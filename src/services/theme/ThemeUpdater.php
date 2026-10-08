@@ -105,14 +105,19 @@ class ThemeUpdater extends ThemeInstaller
             if (str_starts_with($path, 'config/project/')) {
                 continue;
             }
-            $base = "{$baselineFiles}/{$path}";
-            $live = "{$root}/{$path}";
-            $incoming = "{$newFiles}/{$path}";
+            $target = "{$root}/{$path}";
+            $source = "{$newFiles}/{$path}";
+            [$base, $live, $incoming] = ["{$baselineFiles}/{$path}", $target, $source];
+            // The site's composer files hold its own Site7 Studio, the Theme's
+            // don't (docs/49 §2d): compare all three without it.
+            if (in_array($path, ['composer.json', 'composer.lock'], true)) {
+                [$base, $live, $incoming] = [self::withoutSite7($baselineFiles, $path), self::withoutSite7($root, $path), self::withoutSite7($newFiles, $path)];
+            }
             if (!is_file($incoming)) {
                 // Gone from the Theme: removed here too, unless edited here.
                 if (is_file($base) && is_file($live)) {
                     if (PackageArchiveHelper::computeFileChecksum($live) === PackageArchiveHelper::computeFileChecksum($base)) {
-                        unlink($live);
+                        unlink($target);
                         $report['trashed'][] = "file {$path}";
                         $changed[] = $path;
                     } else {
@@ -123,9 +128,9 @@ class ThemeUpdater extends ThemeInstaller
             }
             $decision = LibraryUpdater::decideFile($base, $live, $incoming);
             if ($decision === 'apply') {
-                $report[is_file($live) ? 'updated' : 'added'][] = "file {$path}";
-                FileHelper::createDirectory(dirname($live));
-                copy($incoming, $live);
+                $report[is_file($target) ? 'updated' : 'added'][] = "file {$path}";
+                FileHelper::createDirectory(dirname($target));
+                copy($source, $target);
                 $changed[] = $path;
             } elseif ($decision === 'kept') {
                 $report['kept'][] = "file {$path}";
@@ -212,6 +217,24 @@ class ThemeUpdater extends ThemeInstaller
         }
 
         return $items;
+    }
+
+    /**
+     * A temporary copy of $dir/$file (composer.json or composer.lock)
+     * without Site7 Studio, for comparing; the original when it can't be read.
+     */
+    private static function withoutSite7(string $dir, string $file): string
+    {
+        $json = json_decode((string)@file_get_contents("{$dir}/composer.json"), true);
+        $lock = json_decode((string)@file_get_contents("{$dir}/composer.lock"), true);
+        if (!is_array($json) || !is_array($lock)) {
+            return "{$dir}/{$file}";
+        }
+        [$json, $lock] = \site7\studio\services\sitekit\ComposerFiles::withoutPackage($json, $lock, \site7\studio\services\sitekit\ComposerFiles::SITE7_PACKAGE);
+        $temp = Craft::$app->getRuntimePath() . '/site7-theme-compare-' . md5($dir) . "-{$file}";
+        file_put_contents($temp, \site7\studio\services\sitekit\ComposerFiles::encode($file === 'composer.json' ? $json : $lock));
+
+        return $temp;
     }
 
     /** @return string[] paths relative to $dir */
