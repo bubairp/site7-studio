@@ -418,6 +418,6 @@ class ThemeInstaller extends SiteKitInstaller
 
     private function packageDir(string $handle): string
     {
-        return dirname(Craft::getAlias('@site7/studio')) . '/packages/' . basename($handle);
+        return Craft::getAlias('@packages') . '/' . basename($handle);
     }
 }

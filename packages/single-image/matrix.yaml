@@ -1,6 +1,0 @@
-name: 'Single-image Matrix'
-blocks:
-    -
-        handle: image
-        name: Single-image
-        fields: {  }

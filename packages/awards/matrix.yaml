@@ -1,9 +1,0 @@
-name: 'Awards Matrix'
-blocks:
-    -
-        handle: awards
-        name: Awards
-        fields:
-            - awardContentGroup
-            - displayMode
-            - columnPerRow

@@ -1,9 +1,0 @@
-name: 'Case Studies Matrix'
-blocks:
-    -
-        handle: casestudies
-        name: 'Case Studies'
-        fields:
-            - selectCasestudies
-            - caseStudyPerRow
-            - paginations

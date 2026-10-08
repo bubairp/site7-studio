@@ -1,7 +1,0 @@
-name: 'Multi-image Fields'
-fields:
-    -
-        handle: columnPerRow
-        name: 'Image Per Row'
-        type: Dropdown
-        instructions: ''

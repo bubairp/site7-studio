@@ -1,8 +1,0 @@
-name: 'Testimonials Matrix'
-blocks:
-    -
-        handle: testimonials
-        name: Testimonials
-        fields:
-            - selectTestimonials
-            - testimonialPerRow

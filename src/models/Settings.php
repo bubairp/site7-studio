@@ -121,6 +121,14 @@ class Settings extends Model
     public int $commerceTimeout = 10;
 
     /**
+     * Where the Library (package sources) lives. Empty: the plugin's own
+     * packages/ folder, or storage/site7-studio/packages when Composer
+     * installed the plugin in vendor/ (Site7Studio::getLibraryPath(), docs/06).
+     * Aliases and $ENV values work, e.g. '@root/site7-library'.
+     */
+    public ?string $libraryPath = null;
+
+    /**
      * Feature handles FeatureGateService still allows when no plan can be
      * resolved (Commerce24 unconfigured/unreachable). Empty by default -
      * FeatureGateService fails closed.
@@ -135,7 +143,7 @@ class Settings extends Model
     protected function defineRules(): array
     {
         $rules = parent::defineRules();
-        $rules[] = [['matrixFieldUid', 'defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment'], 'string'];
+        $rules[] = [['matrixFieldUid', 'defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment', 'libraryPath'], 'string'];
         $rules[] = [
             ['defaultPackageAuthor', 'defaultPackageLicense', 'defaultPackageVersion'],
             'string',

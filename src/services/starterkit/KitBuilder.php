@@ -73,7 +73,7 @@ class KitBuilder extends Component
         // its new handle, and its old package must go.
         $byEntry = [];
         $justBuilt = array_flip($built['built'] ?? []);
-        foreach (glob(dirname(Craft::getAlias('@site7/studio')) . '/packages/' . TemplateBuilder::HANDLE_PREFIX . '*/' . TemplateBuilder::META_FILE) ?: [] as $file) {
+        foreach (glob(Craft::getAlias('@packages') . '/' . TemplateBuilder::HANDLE_PREFIX . '*/' . TemplateBuilder::META_FILE) ?: [] as $file) {
             $manifest = json_decode((string)@file_get_contents(dirname($file) . '/manifest.json'), true);
             if (!in_array($themeHandle, $manifest['requires']['themes'] ?? [], true)) {
                 continue;
@@ -121,7 +121,7 @@ class KitBuilder extends Component
 
         // Built next to the package and swapped in at the end: a failed
         // rebuild leaves the package - with its version and price - as it was.
-        $final = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
+        $final = Craft::getAlias('@packages') . "/{$handle}";
         $name = ThemeBuilder::existingName($final) ?? $name;
         $pricingType = ThemeBuilder::existingPricingType($final);
         $version ??= ThemeBuilder::existingVersion($final);

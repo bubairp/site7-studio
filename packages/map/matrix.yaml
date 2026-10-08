@@ -1,6 +1,0 @@
-name: 'Map Matrix'
-blocks:
-    -
-        handle: map
-        name: Map
-        fields: {  }

@@ -1,7 +1,0 @@
-name: 'Buttons Matrix'
-blocks:
-    -
-        handle: buttons
-        name: Buttons
-        fields:
-            - align

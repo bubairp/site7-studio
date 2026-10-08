@@ -57,7 +57,7 @@ class TemplateBuilder extends Component
         $handle = self::handleFor($entry);
         // Slugs repeat under different parents in a Structure: when the
         // handle belongs to another page, name this one by its URI.
-        $existing = json_decode((string)@file_get_contents(dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}/" . self::META_FILE), true);
+        $existing = json_decode((string)@file_get_contents(Craft::getAlias('@packages') . "/{$handle}/" . self::META_FILE), true);
         if (!empty($existing['entryUid']) && $existing['entryUid'] !== $entry->uid) {
             $handle = self::handleFrom($section->handle, $section->type, str_replace('/', '-', (string)$entry->uri));
         }
@@ -69,7 +69,7 @@ class TemplateBuilder extends Component
 
         // Built next to the package and swapped in at the end: a failed
         // rebuild leaves the package - with its version and price - as it was.
-        $final = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
+        $final = Craft::getAlias('@packages') . "/{$handle}";
         $pricingType = \site7\studio\services\theme\ThemeBuilder::existingPricingType($final);
         $version ??= \site7\studio\services\theme\ThemeBuilder::existingVersion($final);
         $dir = \site7\studio\services\theme\ThemeBuilder::startStaging($final);
@@ -282,7 +282,7 @@ class TemplateBuilder extends Component
     public static function libraryTheme(): string
     {
         $themes = [];
-        foreach (glob(dirname(Craft::getAlias('@site7/studio')) . '/packages/*/manifest.json') ?: [] as $file) {
+        foreach (glob(Craft::getAlias('@packages') . '/*/manifest.json') ?: [] as $file) {
             $manifest = json_decode((string)file_get_contents($file), true);
             if (($manifest['type'] ?? null) === 'theme') {
                 $themes[] = $manifest['handle'];
@@ -299,7 +299,7 @@ class TemplateBuilder extends Component
     private function libraryBlocks(): array
     {
         $blocks = [];
-        foreach (glob(dirname(Craft::getAlias('@site7/studio')) . '/packages/*/' . SectionSchemaService::FILE) ?: [] as $file) {
+        foreach (glob(Craft::getAlias('@packages') . '/*/' . SectionSchemaService::FILE) ?: [] as $file) {
             $schema = json_decode((string)file_get_contents($file), true);
             $manifest = json_decode((string)@file_get_contents(dirname($file) . '/manifest.json'), true);
             if (($manifest['type'] ?? null) === 'section' && !empty($schema['entryType'])) {

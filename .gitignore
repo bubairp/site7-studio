@@ -2,7 +2,8 @@
 /tests/_output/
 /tests/_support/_generated/
 
-# Template packages (page content + images, ~250 MB for rp-craft) are build
-# output: rebuild with php craft site7-studio/template/build-all (docs/50).
-/packages/template-*/
-/packages/*.building/
+# The Library (packages/) is not part of the plugin: every package - Theme,
+# blocks, pages, kits - comes from Commerce24 (docs/06, docs/55). On the
+# author site (rp-craft) the files stay in packages/ and are published from
+# there; Commerce24 keeps every published version.
+/packages/

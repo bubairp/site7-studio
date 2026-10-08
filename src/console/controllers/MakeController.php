@@ -138,8 +138,7 @@ class MakeController extends Controller
         $type = $this->packageType ?: $this->prompt("Package Type (section, template, starter-kit, theme):", ['required' => true, 'default' => 'section']);
         $description = $this->packageDescription ?: $this->prompt("Description:");
 
-        $pluginPath = Craft::getAlias('@site7/studio');
-        $packagesPath = dirname($pluginPath) . '/packages';
+        $packagesPath = Craft::getAlias('@packages');
         
         $packageDir = $packagesPath . '/' . $handle;
 

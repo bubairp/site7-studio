@@ -1,8 +1,0 @@
-name: 'Teams Matrix'
-blocks:
-    -
-        handle: teams
-        name: Teams
-        fields:
-            - selectTeamMembers
-            - teamMemberPerRow

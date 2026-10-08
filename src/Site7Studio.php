@@ -103,7 +103,8 @@ class Site7Studio extends Plugin
     {
         parent::init();
 
-        Craft::setAlias('@packages', dirname($this->getBasePath()) . '/packages');
+        Craft::setAlias('@packages', $this->getLibraryPath());
+        $this->moveLibraryOutOfVendor();
 
         // Defer most setup tasks until Craft is fully initialized
         Craft::$app->onInit(function() {
@@ -112,6 +113,63 @@ class Site7Studio extends Plugin
             $this->get('log');
             $this->attachEventHandlers();
         });
+    }
+
+    /**
+     * The Library's folder - package sources, downloaded or built (docs/06).
+     * The libraryPath setting wins; otherwise a plugin Composer installed in
+     * vendor/ keeps it in storage/site7-studio/packages, where a Composer
+     * update can't replace or refuse it, and a plugin in a folder of its own
+     * (an author site: plugins/site7-studio) keeps it in its packages/.
+     */
+    public function getLibraryPath(): string
+    {
+        $configured = $this->getSettings()->libraryPath;
+        if (is_string($configured) && trim($configured) !== '') {
+            return rtrim(str_replace('\\', '/', Craft::getAlias(\craft\helpers\App::parseEnv(trim($configured)))), '/');
+        }
+
+        return self::defaultLibraryPath(dirname($this->getBasePath()), (string)Craft::getAlias('@vendor'), (string)Craft::getAlias('@storage'));
+    }
+
+    /**
+     * storage/site7-studio/packages for a plugin inside vendor/ (resolving
+     * symlinks: a path repository links vendor/ to the plugin's own folder),
+     * otherwise the plugin folder's packages/.
+     */
+    public static function defaultLibraryPath(string $pluginRoot, string $vendorPath, string $storagePath): string
+    {
+        $real = static fn(string $path) => rtrim(str_replace('\\', '/', realpath($path) ?: $path), '/');
+        $inVendor = $vendorPath !== '' && str_starts_with($real($pluginRoot) . '/', $real($vendorPath) . '/');
+
+        return $inVendor ? rtrim(str_replace('\\', '/', $storagePath), '/') . '/site7-studio/packages' : $real($pluginRoot) . '/packages';
+    }
+
+    /**
+     * Once: packages still in the plugin's own folder inside vendor/ (a
+     * Library from before getLibraryPath()) are copied to the Library.
+     * Packages already there are left alone.
+     */
+    private function moveLibraryOutOfVendor(): void
+    {
+        $library = (string)Craft::getAlias('@packages');
+        $old = dirname($this->getBasePath()) . '/packages';
+        $marker = "{$library}/.site7-library";
+        // The same folder (also through a symlinked vendor/ path): nothing to copy.
+        if (is_file($marker) || !is_dir($old) || realpath($old) === realpath($library)) {
+            return;
+        }
+        try {
+            \craft\helpers\FileHelper::createDirectory($library);
+            foreach (glob("{$old}/*", GLOB_ONLYDIR) ?: [] as $dir) {
+                if (!str_ends_with($dir, '.building') && !is_dir("{$library}/" . basename($dir))) {
+                    \craft\helpers\FileHelper::copyDirectory($dir, "{$library}/" . basename($dir));
+                }
+            }
+            file_put_contents($marker, "Site7 Studio Library (docs/06). Copied from {$old} on " . date('c') . "\n");
+        } catch (\Throwable $e) {
+            Craft::warning('Could not copy the Library out of vendor/: ' . $e->getMessage(), 'site7-studio');
+        }
     }
 
     /**

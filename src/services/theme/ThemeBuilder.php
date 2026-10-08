@@ -56,7 +56,7 @@ class ThemeBuilder extends Component
 
         // Built next to the package and swapped in at the end: a failed
         // rebuild leaves the package - with its version and price - as it was.
-        $final = dirname(Craft::getAlias('@site7/studio')) . "/packages/{$handle}";
+        $final = Craft::getAlias('@packages') . "/{$handle}";
         $pricingType = self::existingPricingType($final);
         $version ??= self::existingVersion($final);
         $name = self::existingName($final) ?? $name;

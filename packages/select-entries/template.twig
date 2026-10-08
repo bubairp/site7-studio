@@ -1,8 +1,0 @@
-{{block.type.handle }}
-{% set selectEntries = block.entriesList %}
-{% if selectEntries is defined and selectEntries|length %}
-	{% for entryData in selectEntries %}
-            {% set handlerName = entryData.type.handle %}
-            {% include ["_blocks/" ~ handlerName] with { block: entryData } %}
-	{% endfor %}
-{% endif %}

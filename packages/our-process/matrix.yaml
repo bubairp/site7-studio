@@ -1,8 +1,0 @@
-name: 'Our Process Matrix'
-blocks:
-    -
-        handle: ourProcess
-        name: 'Our Process'
-        fields:
-            - processItems
-            - processStyle

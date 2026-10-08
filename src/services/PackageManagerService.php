@@ -88,8 +88,7 @@ class PackageManagerService extends Component
      */
     public function discoverPackages(): int
     {
-        $pluginPath = Craft::getAlias('@site7/studio');
-        $packagesPath = dirname($pluginPath) . '/packages'; // /plugins/site7-studio/packages
+        $packagesPath = Craft::getAlias('@packages'); // the Library (Site7Studio::getLibraryPath())
 
         $totalDiscovered = 0;
 
@@ -145,9 +144,7 @@ class PackageManagerService extends Component
         if ($handle === '' || preg_match('#[/\\\\]|\.\.#', $handle)) {
             return null;
         }
-        $pluginPath = Craft::getAlias('@site7/studio');
-        $basePath = dirname($pluginPath);
-        $packagePath = $basePath . '/packages/' . $handle;
+        $packagePath = Craft::getAlias('@packages') . '/' . $handle;
         return is_dir($packagePath) ? $packagePath : null;
     }
 
@@ -269,7 +266,7 @@ class PackageManagerService extends Component
         // We assume the package is in our local source for MVP
         $pluginPath = Craft::getAlias('@site7/studio'); // resolves to src/
         $basePath = dirname($pluginPath); // resolves to plugins/site7-studio/
-        $packagePath = $basePath . '/packages/' . $handle;
+        $packagePath = Craft::getAlias('@packages') . '/' . $handle;
         if (!is_dir($packagePath)) {
             $packagePath = $basePath . '/tests/fixtures/packages/' . $handle;
         }
