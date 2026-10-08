@@ -320,7 +320,7 @@ class LibraryDistribution extends Component
             if (empty($entry['entitled']) && array_key_exists('entitled', $entry)) {
                 $result['errors'][] = "'" . ($entry['name'] ?? $handle) . "' is a paid package that isn't in your plan or purchases.";
             }
-            if (!$packageManager->getPackagePath($handle)) {
+            if (!$packageManager->getPackagePath($handle) || self::isOutdatedUninstalled($handle, $entry)) {
                 $result['download'][] = $handle;
                 $result['downloadSize'] += (int)($entry['size'] ?? 0);
             }
@@ -370,9 +370,15 @@ class LibraryDistribution extends Component
         $packageManager = Site7Studio::getInstance()->packageManager;
         $errors = [];
         $count = count($handles);
+        $catalog = null;
         foreach (array_values($handles) as $i => $handle) {
+            $replace = false;
             if ($packageManager->getPackagePath($handle)) {
-                continue;
+                $catalog ??= $this->catalog();
+                if (!self::isOutdatedUninstalled($handle, $catalog[$handle] ?? [])) {
+                    continue;
+                }
+                $replace = true;
             }
             try {
                 $path = $repository->fetchPackage($handle);
@@ -380,7 +386,7 @@ class LibraryDistribution extends Component
                 if (!$validation->valid) {
                     throw new \Exception(implode(' ', $validation->errors));
                 }
-                $summary = $importer->importPackage($validation, ['install' => false]);
+                $summary = $importer->importPackage($validation, ['install' => false, 'overwriteConflicts' => $replace]);
                 if ($summary['errors']) {
                     throw new \Exception(implode(' ', $summary['errors']));
                 }
@@ -397,6 +403,20 @@ class LibraryDistribution extends Component
     }
 
     // ----------------------------------------------------------------- helpers
+
+    /**
+     * A Library package this site has but never installed, older than
+     * Commerce24's - e.g. one that came with the plugin's repository. A kit
+     * install takes the newer version; installed packages update through
+     * Updates instead (docs/53), and this site's own packages never change.
+     */
+    public static function isOutdatedUninstalled(string $handle, array $catalogEntry): bool
+    {
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+
+        return $record !== null && $record->status === 'available' && $record->creatorId === null
+            && !empty($catalogEntry['version']) && version_compare((string)$catalogEntry['version'], (string)$record->version, '>');
+    }
 
     public static function isCurrentFormat(string $type, string $path): bool
     {

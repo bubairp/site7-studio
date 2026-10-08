@@ -118,9 +118,20 @@ class KitInstaller extends ThemeInstaller
             fn($template) => !$packageManager->getPackagePath($template)
         ));
         // A kit that came with the plugin (packages/ in its repository)
-        // without its pages: they come from Commerce24, like a remote kit's.
-        if ($missingTemplates && Site7Studio::getInstance()->commerceClient->isConfigured()) {
-            return $this->validateRemoteKit($handle, $result);
+        // without its pages, or with an older kit, Theme or page than
+        // Commerce24 has (never installed here): they come from Commerce24,
+        // like a remote kit's.
+        if (Site7Studio::getInstance()->commerceClient->isConfigured()) {
+            $outdated = false;
+            if (!$missingTemplates) {
+                $catalog = (new LibraryDistribution())->catalog();
+                foreach (array_merge([$handle], $manifest['requires']['themes'] ?? [], $manifest['requires']['templates'] ?? []) as $required) {
+                    $outdated = $outdated || LibraryDistribution::isOutdatedUninstalled($required, $catalog[$required] ?? []);
+                }
+            }
+            if ($missingTemplates || $outdated) {
+                return $this->validateRemoteKit($handle, $result);
+            }
         }
         foreach ($missingTemplates as $template) {
             $result['errors'][] = "The Template package '{$template}' isn't in this site's Library.";
