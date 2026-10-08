@@ -135,7 +135,10 @@ A second fresh customer site, https://site7-qa.ddev.site (Craft 5.10.8.1, empty 
 | G31 | Then Business + Pricing Pack | ✅ Packages, Package Features, Feature Groups added with their content; `/price` 200; Products, Services still absent. `/contact` was a 500 without the Contact page; the Default Kit brings it (G33) |
 | G32 | Theme and full kit renamed "Site7 Theme" / "Site7 Full Kit" (`library/rename`, handles unchanged) | ✅ published as 1.1.4 / 2.0.6; a rebuild keeps the name |
 | G33 | Default Kit (`51` §2b) on fresh site7-qa, Starter: Install → Blog Pack only | ✅ the Default Kit installs first (Theme, Home, About Us, Contact, 14 menu items), then the pack; 20 sections; header menu Home / About Us / Contact; `/`, `/about-us`, `/contact`, `/blogs`, a post 200, `/price` 404. Fixes the manual test's empty Home, missing menu and Contact error (a site with packs and no kit) |
-| G10 | Unit tests (F1) | ✅ 218 tests (2026-10-07) |
+| G34 | New site `site7-repo` (2026-10-08): fresh Craft, Site7 Studio installed with Composer from its Git repository (not from rp-craft), Commerce24 connected (Business) | ✅ plugin installs and connects. ❌ → ✅ the Default Kit was refused: the repository's kit had no pages (`KitInstaller::validateKit()` now downloads them) |
+| G35 | The same site: Install → Default Kit | ❌ → ✅ the Theme stopped on `plugins/site7-studio` (and would have replaced the site's composer files), then used the repository's older Theme copy, then Composer refused the merged `repositories` (`49` §2d, `43` #46). Now: Theme 1.1.5 installs, its 3 plugin folders (`plugins/rp/...`) are copied and installed as copies, Site7 Studio stays `dev-main` from Git; 16 sections, menu Home / About Us / Contact, `/`, `/about-us`, `/contact`, `/payment-demo`, `/sitemap` 200; SEO and Wheel Form installed |
+| G36 | Then Blog Pack | ✅ 20 sections, menu unchanged (14 items), blog pages 200. Open: the Library lives in `vendor/site7/studio/packages`, so downloads show as changes there and a later `composer update` of Site7 Studio refuses or discards them; a Theme install that fails in `composer install` leaves the Theme's `config/app.php` behind (console broken until restored from the backup) |
+| G10 | Unit tests (F1) | ✅ 226 tests (2026-10-08) |
 
 ## Findings from this run
 

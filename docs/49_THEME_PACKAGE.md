@@ -58,6 +58,15 @@ A site sees only the sections it uses: built with `--base-sections`, the Theme i
 
 rp-craft's base sections: Home, Contact, Standard Pages, Sitemap, Page Error, Page Maintenance, Page Not Found, General, Header, Footer, Theme Settings, Color Library, Font Library, Additional CSS & JS, Google Structure Data, LLMs Text. The 18 others come with the packs (`51` §2a).
 
+## 2d. Composer: Site7 Studio stays the site's own, plugin folders travel (2026-10-08)
+
+A site can install Site7 Studio from Git, a local folder or Packagist, so the Theme never decides how (`ComposerFiles`, unit-tested):
+
+- **Build:** the Theme's `files/composer.json`/`composer.lock` are the author site's **without Site7 Studio** - its `require` line, the repository it comes from and its locked entry (`ComposerFiles::withoutPackage()`). Every other local path repository (rp-craft: `plugins/rp/ai-chat`, `plugins/rp/htmlsitemap`, `plugins/rp/payment-gateway`, the `craftcms-plugins` repo) is **copied into the Theme** (`files/<path>`, without `.git`/`vendor`/`node_modules`) and set to install as a copy (`"symlink": false`, also in the lock). `theme.json` `bundledPaths` lists them.
+- **Install:** the folder check accepts a path the Theme brings (or Site7 Studio's own, from a Theme built before this). The bundled folders are copied to the site. Before `composer install`, the site's own Site7 Studio - require line, repository, locked entry - goes back into the Theme's files (`ThemeInstaller::withThisSitesPlugin()`, `ComposerFiles::withPackageFrom()`), so Composer keeps the plugin as installed.
+- **Updates:** composer.json/lock go through the file rule compared without Site7 Studio on all three sides (`ThemeUpdater::withoutSite7()`), otherwise every site would look edited. A bundled plugin's code changes reach `vendor/` when its `version` (so the lock) changes.
+- The lock's `content-hash` is recomputed with Composer's own algorithm (`ComposerFiles::contentHash()`, checked against rp-craft's lock).
+
 ## 3. Console
 
 ```
