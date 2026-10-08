@@ -41,8 +41,8 @@ class ComposerFiles
     {
         $locked = self::lockedPackage($lock, $package);
         unset($json['require'][$package], $json['require-dev'][$package]);
-        if ($locked !== null && isset($json['repositories'])) {
-            $json['repositories'] = self::filterRepositories($json['repositories'], fn(array $repository) => !self::provides($repository, $locked));
+        if (isset($json['repositories'])) {
+            $json['repositories'] = self::filterRepositories($json['repositories'], fn(array $repository) => $locked === null || !self::provides($repository, $locked));
         }
         foreach (['packages', 'packages-dev'] as $key) {
             if (isset($lock[$key])) {
@@ -71,16 +71,8 @@ class ComposerFiles
         }
 
         $json['require'][$package] = $constraint;
-        $repositories = $json['repositories'] ?? [];
         $own = self::filterRepositories($siteJson['repositories'] ?? [], fn(array $repository) => self::provides($repository, $locked));
-        foreach ($own as $key => $repository) {
-            if (self::isAssociative($repositories)) {
-                $repositories[is_string($key) ? $key : 'site7-studio'] = $repository;
-            } else {
-                $repositories[] = $repository;
-            }
-        }
-        $json['repositories'] = $repositories;
+        $json['repositories'] = array_merge($json['repositories'] ?? [], $own);
         $lock['packages'][] = $locked;
         usort($lock['packages'], fn(array $a, array $b) => strcmp((string)$a['name'], (string)$b['name']));
         $lock['content-hash'] = self::contentHash($json);
@@ -160,17 +152,14 @@ class ComposerFiles
         return false;
     }
 
-    /** Keeps the repositories $keep accepts, as a list or keyed, as they came. */
+    /**
+     * The repositories $keep accepts, always as a list: Composer refuses a
+     * keyed object whose entries carry "name" (what `composer config
+     * repositories.<name>` writes), and a list takes both.
+     */
     private static function filterRepositories(array $repositories, callable $keep): array
     {
         // Entries without a URL ({"packagist.org": false}) never provide a package.
-        $kept = array_filter($repositories, fn($repository) => $keep(is_array($repository) ? $repository : []));
-
-        return self::isAssociative($repositories) ? $kept : array_values($kept);
-    }
-
-    private static function isAssociative(array $array): bool
-    {
-        return $array !== [] && array_keys($array) !== range(0, count($array) - 1);
+        return array_values(array_filter($repositories, fn($repository) => $keep(is_array($repository) ? $repository : [])));
     }
 }

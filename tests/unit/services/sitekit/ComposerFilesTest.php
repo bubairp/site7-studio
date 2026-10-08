@@ -86,6 +86,21 @@ class ComposerFilesTest extends Unit
         $this->assertSame(['dev-main'], array_column(array_filter($lock['packages'], fn($p) => $p['name'] === 'site7/studio'), 'version'));
     }
 
+    public function testRepositoriesAlwaysEndUpAsAList(): void
+    {
+        // rp-craft after `composer config repositories.ai-chat ...`: keyed, and a
+        // customer site whose entry carries "name" - Composer refuses that mix.
+        [$json, $lock] = $this->authorSite();
+        $json['repositories'] = ['0' => $json['repositories'][0], 'ai-chat' => $json['repositories'][2], '3' => $json['repositories'][3]];
+        [$siteJson, $siteLock] = $this->customerSite();
+        $siteJson['repositories'] = [['name' => 'site7-studio', 'type' => 'vcs', 'url' => 'https://github.com/bubairp/site7-studio.git']];
+
+        [$json] = ComposerFiles::withPackageFrom($json, $lock, $siteJson, $siteLock, 'site7/studio');
+
+        $this->assertTrue(array_is_list($json['repositories']));
+        $this->assertSame(['https://composer.craftcms.com', 'plugins/rp/ai-chat', 'https://github.com/bubairp/site7-studio.git'], array_column($json['repositories'], 'url'));
+    }
+
     public function testBundledPluginFoldersInstallAsCopies(): void
     {
         [$json, $lock] = ComposerFiles::copyPathRepositories(...$this->authorSite(), ...[['plugins/rp/ai-chat']]);
