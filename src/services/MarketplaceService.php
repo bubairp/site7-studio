@@ -198,12 +198,21 @@ class MarketplaceService extends Component
      * current files on disk, preserving its enable state. Useful when a
      * package's Craft resources (fields/entry types) have drifted from its
      * package files, without needing a full re-import.
+     *
+     * Refused for a Theme or Library Starter Kit (setsUpTheSite()): they
+     * install only through the Install screen, and running a kit's install
+     * again re-applies its menus and demo content over the live site -
+     * verified 2026-10-09, it dropped the site's own pages from the sitemap.
      */
     public function reinstallPackage(string $handle): bool
     {
         $packageManager = Site7Studio::getInstance()->packageManager;
         $record = $packageManager->getPackageByHandle($handle);
         if (!$record) {
+            return false;
+        }
+        if ($packageManager->setsUpTheSite($handle)) {
+            Craft::warning("Not reinstalling '{$handle}': a Theme or Starter Kit sets up the whole site.", __METHOD__);
             return false;
         }
 

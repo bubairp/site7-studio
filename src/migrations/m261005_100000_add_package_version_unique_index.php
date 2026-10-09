@@ -5,6 +5,7 @@ namespace site7\studio\migrations;
 use Craft;
 use craft\db\Migration;
 use craft\db\Query;
+use craft\helpers\Db;
 
 /**
  * m261005_100000_add_package_version_unique_index migration.
@@ -47,8 +48,16 @@ class m261005_100000_add_package_version_unique_index extends Migration
 
     public function safeDown(): bool
     {
+        $table = '{{%site7_package_versions}}';
         if ($this->hasIndex()) {
-            $this->dropIndex(self::INDEX, '{{%site7_package_versions}}');
+            // MySQL drops the packageId foreign key's own index once this
+            // index covers it, then refuses to drop this one (error 1553,
+            // "needed in a foreign key constraint") - which failed every
+            // plugin uninstall. Give the key a plain index first.
+            if (Db::findIndex($table, ['packageId'], false, $this->db) === null) {
+                $this->createIndex(null, $table, ['packageId'], false);
+            }
+            $this->dropIndex(self::INDEX, $table);
         }
 
         return true;

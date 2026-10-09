@@ -59,6 +59,8 @@
                                         <button type="submit" class="btn small submit">{{ "Update"|t('site7-studio') }}</button>
                                     </form>
                                 {% endif %}
+                                {# A Theme or Starter Kit set up the site: reinstalling would re-apply its content (MarketplaceService::reinstallPackage()). #}
+                                {% if not craft.app.plugins.getPlugin('site7-studio').packageManager.setsUpTheSite(package.handle) %}
                                 <form method="post" accept-charset="UTF-8">
                                     {{ csrfInput() }}
                                     <input type="hidden" name="action" value="site7-studio/marketplace/reinstall-package">
@@ -67,6 +69,7 @@
                                         onclick="if(confirm('Reinstall {{ package.name|e('js') }}? This removes and regenerates its Craft resources from the files currently on disk.')) { this.closest('form').submit(); }"
                                     >{{ "Reinstall"|t('site7-studio') }}</button>
                                 </form>
+                                {% endif %}
                                 <form method="post" accept-charset="UTF-8">
                                     {{ csrfInput() }}
                                     <input type="hidden" name="action" value="site7-studio/marketplace/repair-package">

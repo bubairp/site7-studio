@@ -256,6 +256,11 @@ class MarketplaceController extends Controller
         $this->requirePermission('manageMarketplace');
         $handle = (string)Craft::$app->getRequest()->getRequiredBodyParam('handle');
 
+        if (Site7Studio::getInstance()->packageManager->setsUpTheSite($handle)) {
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'A Theme or Starter Kit sets up the whole site, so it can\'t be reinstalled: update it from Updates instead.'));
+            return $this->redirect('site7-studio/marketplace?tab=installed');
+        }
+
         $success = Site7Studio::getInstance()->marketplace->reinstallPackage($handle);
         $success
             ? Craft::$app->getSession()->setNotice("'{$handle}' was reinstalled.")
