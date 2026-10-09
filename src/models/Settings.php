@@ -33,9 +33,35 @@ class Settings extends Model
     public static function mergeWithStored(array $changes): array
     {
         $stored = Craft::$app->getProjectConfig()->get('plugins.site7-studio.settings') ?? [];
-        $overridden = Craft::$app->getConfig()->getConfigFromFile('site7-studio');
 
-        return array_diff_key(array_merge($stored, $changes), $overridden);
+        return array_diff_key(array_merge($stored, $changes), array_flip(self::overriddenKeys()));
+    }
+
+    /**
+     * Setting names config/site7-studio.php sets on this environment. Craft
+     * merges that file over the stored settings (Plugins::createPlugin()),
+     * so the model already holds the file's values for these, and saving
+     * them from the CP has no effect.
+     *
+     * @return string[]
+     */
+    public static function overriddenKeys(): array
+    {
+        return array_keys(Craft::$app->getConfig()->getConfigFromFile('site7-studio'));
+    }
+
+    /**
+     * Which of $keys the Settings screen may edit: none when admin changes
+     * are off (project config is read-only there, and savePluginSettings()
+     * writes it), otherwise those the config file doesn't override.
+     *
+     * @param string[] $keys
+     * @param string[] $overriddenKeys
+     * @return string[]
+     */
+    public static function editableKeys(array $keys, array $overriddenKeys, bool $allowAdminChanges): array
+    {
+        return $allowAdminChanges ? array_values(array_diff($keys, $overriddenKeys)) : [];
     }
 
     /**

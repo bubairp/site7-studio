@@ -40,4 +40,28 @@ class SettingsTest extends TestCase
     {
         $this->assertNull((new Settings())->matrixFieldId);
     }
+
+    /**
+     * The Settings screen edits only what the config file doesn't set
+     * (saving those has no effect).
+     */
+    public function testEditableKeysLeaveOutConfigFileOverrides(): void
+    {
+        $keys = ['commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'defaultPackageAuthor'];
+
+        $this->assertSame(
+            ['commerceStoreIdentifier', 'defaultPackageAuthor'],
+            Settings::editableKeys($keys, ['commerceApiEndpoint', 'commerceApiKey', 'trustedSigningKeys'], true)
+        );
+        $this->assertSame($keys, Settings::editableKeys($keys, [], true));
+    }
+
+    /**
+     * Without allowAdminChanges nothing is editable: saving writes project
+     * config, which such environments take from git only.
+     */
+    public function testNothingIsEditableWithoutAdminChanges(): void
+    {
+        $this->assertSame([], Settings::editableKeys(['commerceStoreIdentifier', 'defaultPackageAuthor'], [], false));
+    }
 }

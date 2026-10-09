@@ -9,8 +9,33 @@
     about: { label: 'About'|t('site7-studio'), url: '#about' }
 } %}
 
+{#
+    Read-only fields: disabled, so the browser doesn't submit them. A field is
+    read-only when it isn't in editableKeys - either admin changes are off on
+    this environment, or config/site7-studio.php overrides it (overriddenKeys;
+    the model then holds the file's value). A form whose fields are all
+    read-only has no Save button. See SettingsController::actionIndex().
+#}
+{% if not allowAdminChanges %}
+    {% set contentNotice = readOnlyNotice() %}
+{% endif %}
+
+{% macro lockNote(key, overriddenKeys) %}
+    {% if key in overriddenKeys %}
+        <p class="site7-config-note light" style="margin-top: 4px;">{{ "Set in config/site7-studio.php - edit it there (or its .env value), not here."|t('site7-studio') }}</p>
+    {% endif %}
+{% endmacro %}
+
+{% macro readOnlyPane() %}
+    <div class="pane" style="border-left: 4px solid var(--gray-400); margin-bottom: 16px;">
+        <p>{{ "Settings on this environment come from .env, config/site7-studio.php and project config, which change through git - not from this screen."|t('site7-studio') }}</p>
+    </div>
+{% endmacro %}
+
 {% block content %}
+    {% from _self import lockNote, readOnlyPane %}
     <div id="general" class="site7-settings-section">
+        {% if not allowAdminChanges %}{{ readOnlyPane() }}{% endif %}
         <h2>{{ "Page Builder"|t('site7-studio') }}</h2>
         <p class="light">{{ "The Matrix field Site7 Sections are added to and the Content Browser opens on. Installing a Starter Kit sets it to the kit's own page builder, so change it only on a site that authors packages or has its own page builder."|t('site7-studio') }}</p>
         <form method="post" accept-charset="UTF-8" style="margin-bottom: 32px;">
@@ -20,8 +45,8 @@
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7set-page-builder">{{ "Page Builder Field"|t('site7-studio') }}</label></div>
                 <div class="input ltr">
-                    <div class="select">
-                        <select id="site7set-page-builder" name="settings[matrixFieldUid]">
+                    <div class="select{{ 'matrixFieldUid' not in editableKeys ? ' disabled' }}">
+                        <select id="site7set-page-builder" name="settings[matrixFieldUid]" {{ 'matrixFieldUid' not in editableKeys ? 'disabled' }}>
                             <option value="">{{ "None"|t('site7-studio') }}</option>
                             {% for field in matrixFields %}
                                 <option value="{{ field.uid }}" {{ field.uid == settings.matrixFieldUid ? 'selected' }}>{{ field.name }} ({{ field.handle }})</option>
@@ -29,8 +54,11 @@
                         </select>
                     </div>
                 </div>
+                {{ lockNote('matrixFieldUid', overriddenKeys) }}
             </div>
-            <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
+            {% if 'matrixFieldUid' in editableKeys %}
+                <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
+            {% endif %}
         </form>
         <hr>
 
@@ -45,17 +73,20 @@
 
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7set-pkg-author">{{ "Default Package Author"|t('site7-studio') }}</label></div>
-                <div class="input ltr"><input id="site7set-pkg-author" class="text fullwidth" type="text" name="settings[defaultPackageAuthor]" value="{{ settings.defaultPackageAuthor }}" autocomplete="off"></div>
+                <div class="input ltr"><input id="site7set-pkg-author" class="text fullwidth{{ 'defaultPackageAuthor' not in editableKeys ? ' disabled' }}" type="text" name="settings[defaultPackageAuthor]" value="{{ settings.defaultPackageAuthor }}" autocomplete="off" {{ 'defaultPackageAuthor' not in editableKeys ? 'disabled' }}></div>
+                {{ lockNote('defaultPackageAuthor', overriddenKeys) }}
             </div>
 
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7set-pkg-license">{{ "Default Package License"|t('site7-studio') }}</label></div>
-                <div class="input ltr"><input id="site7set-pkg-license" class="text fullwidth code" type="text" name="settings[defaultPackageLicense]" value="{{ settings.defaultPackageLicense }}" autocomplete="off"></div>
+                <div class="input ltr"><input id="site7set-pkg-license" class="text fullwidth code{{ 'defaultPackageLicense' not in editableKeys ? ' disabled' }}" type="text" name="settings[defaultPackageLicense]" value="{{ settings.defaultPackageLicense }}" autocomplete="off" {{ 'defaultPackageLicense' not in editableKeys ? 'disabled' }}></div>
+                {{ lockNote('defaultPackageLicense', overriddenKeys) }}
             </div>
 
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7set-pkg-version">{{ "Default Package Version"|t('site7-studio') }}</label></div>
-                <div class="input ltr"><input id="site7set-pkg-version" class="text fullwidth code" type="text" name="settings[defaultPackageVersion]" value="{{ settings.defaultPackageVersion }}" autocomplete="off"></div>
+                <div class="input ltr"><input id="site7set-pkg-version" class="text fullwidth code{{ 'defaultPackageVersion' not in editableKeys ? ' disabled' }}" type="text" name="settings[defaultPackageVersion]" value="{{ settings.defaultPackageVersion }}" autocomplete="off" {{ 'defaultPackageVersion' not in editableKeys ? 'disabled' }}></div>
+                {{ lockNote('defaultPackageVersion', overriddenKeys) }}
             </div>
 
             <div class="field" style="margin-bottom: 16px;">
@@ -63,14 +94,18 @@
                     <label for="site7set-pkg-categories">{{ "Package Categories"|t('site7-studio') }}</label>
                     <div class="instructions"><p>{{ "One per line. Populates the Category dropdown on the New Package wizard and the Publish wizard's Metadata step."|t('site7-studio') }}</p></div>
                 </div>
-                <div class="input ltr"><textarea id="site7set-pkg-categories" class="text fullwidth code" name="settings[packageCategories]" rows="5">{{ settings.packageCategories|join("\n") }}</textarea></div>
+                <div class="input ltr"><textarea id="site7set-pkg-categories" class="text fullwidth code{{ 'packageCategories' not in editableKeys ? ' disabled' }}" name="settings[packageCategories]" rows="5" {{ 'packageCategories' not in editableKeys ? 'disabled' }}>{{ settings.packageCategories|join("\n") }}</textarea></div>
+                {{ lockNote('packageCategories', overriddenKeys) }}
             </div>
 
-            <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
+            {% if ['defaultPackageAuthor', 'defaultPackageLicense', 'defaultPackageVersion', 'packageCategories']|filter(k => k in editableKeys) is not empty %}
+                <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
+            {% endif %}
         </form>
     </div>
 
     <div id="commerce" class="site7-settings-section hidden">
+        {% if not allowAdminChanges %}{{ readOnlyPane() }}{% endif %}
         <h2>{{ "Commerce"|t('site7-studio') }}</h2>
         <p class="light">{{ "Connection settings for Commerce24 - the backend for products, plans, licenses, subscriptions, and package entitlements. See the Account & License page for license/subscription management."|t('site7-studio') }}</p>
         <hr>
@@ -79,7 +114,11 @@
 
         {% if not commerceConfigured %}
             <div class="pane" style="border-left: 4px solid var(--gray-400); margin-bottom: 16px;">
-                <p>{{ "Commerce24 is not connected. Set an API Endpoint and API Key below to enable licensing, plans, and package entitlements."|t('site7-studio') }}</p>
+                {% if 'commerceApiEndpoint' in editableKeys or 'commerceApiKey' in editableKeys %}
+                    <p>{{ "Commerce24 is not connected. Set an API Endpoint and API Key below to enable licensing, plans, and package entitlements."|t('site7-studio') }}</p>
+                {% else %}
+                    <p>{{ "Commerce24 is not connected. Set the API Endpoint and API Key in .env or config/site7-studio.php to enable licensing, plans, and package entitlements."|t('site7-studio') }}</p>
+                {% endif %}
             </div>
         {% endif %}
 
@@ -90,12 +129,14 @@
 
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7set-api-endpoint">{{ "Commerce24 API Endpoint"|t('site7-studio') }}</label></div>
-                <div class="input ltr"><input id="site7set-api-endpoint" class="text fullwidth" type="text" name="settings[commerceApiEndpoint]" value="{{ settings.commerceApiEndpoint }}" placeholder="https://api.commerce24.example.com" autocomplete="off"></div>
+                <div class="input ltr"><input id="site7set-api-endpoint" class="text fullwidth{{ 'commerceApiEndpoint' not in editableKeys ? ' disabled' }}" type="text" name="settings[commerceApiEndpoint]" value="{{ settings.commerceApiEndpoint }}" placeholder="https://api.commerce24.example.com" autocomplete="off" {{ 'commerceApiEndpoint' not in editableKeys ? 'disabled' }}></div>
+                {{ lockNote('commerceApiEndpoint', overriddenKeys) }}
             </div>
 
             <div class="field" style="margin-bottom: 16px;">
                 <div class="heading"><label for="site7set-store-id">{{ "Store Identifier"|t('site7-studio') }}</label></div>
-                <div class="input ltr"><input id="site7set-store-id" class="text fullwidth code" type="text" name="settings[commerceStoreIdentifier]" value="{{ settings.commerceStoreIdentifier }}" autocomplete="off"></div>
+                <div class="input ltr"><input id="site7set-store-id" class="text fullwidth code{{ 'commerceStoreIdentifier' not in editableKeys ? ' disabled' }}" type="text" name="settings[commerceStoreIdentifier]" value="{{ settings.commerceStoreIdentifier }}" autocomplete="off" {{ 'commerceStoreIdentifier' not in editableKeys ? 'disabled' }}></div>
+                {{ lockNote('commerceStoreIdentifier', overriddenKeys) }}
             </div>
 
             <div class="field" style="margin-bottom: 16px;">
@@ -103,7 +144,13 @@
                     <label for="site7set-api-key">{{ "API Key"|t('site7-studio') }}</label>
                     <div class="instructions"><p>{{ "Supports Craft's $ENV_VAR_NAME syntax to keep the real key out of the database."|t('site7-studio') }}</p></div>
                 </div>
-                <div class="input ltr"><input id="site7set-api-key" class="text fullwidth code" type="password" name="settings[commerceApiKey]" value="{{ settings.commerceApiKey }}" placeholder="$COMMERCE24_API_KEY" autocomplete="off"></div>
+                {% if 'commerceApiKey' in editableKeys %}
+                    <div class="input ltr"><input id="site7set-api-key" class="text fullwidth code" type="password" name="settings[commerceApiKey]" value="{{ settings.commerceApiKey }}" placeholder="$COMMERCE24_API_KEY" autocomplete="off"></div>
+                {% else %}
+                    {# Read-only: never print the key, only whether one is set. #}
+                    <div class="input ltr"><input id="site7set-api-key" class="text fullwidth code disabled" type="text" value="{{ settings.commerceApiKey ? '••••••••••••' }}" placeholder="{{ 'Not set'|t('site7-studio') }}" autocomplete="off" disabled></div>
+                {% endif %}
+                {{ lockNote('commerceApiKey', overriddenKeys) }}
             </div>
 
             <div class="field" style="margin-bottom: 16px;">
@@ -123,7 +170,9 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
+            {% if ['commerceApiEndpoint', 'commerceStoreIdentifier', 'commerceApiKey']|filter(k => k in editableKeys) is not empty %}
+                <button type="submit" class="btn submit">{{ "Save"|t('site7-studio') }}</button>
+            {% endif %}
         </form>
     </div>
 

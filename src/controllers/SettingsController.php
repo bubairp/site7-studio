@@ -13,9 +13,18 @@ class SettingsController extends Controller
     {
         $this->view->registerAssetBundle(\site7\studio\assetbundles\SettingsBundle::class);
 
+        $settings = Site7Studio::getInstance()->getSettings();
+        $allowAdminChanges = Craft::$app->getConfig()->getGeneral()->allowAdminChanges;
+        $overriddenKeys = \site7\studio\models\Settings::overriddenKeys();
+
         return $this->renderTemplate('site7-studio/settings', [
             'title' => 'Settings',
-            'settings' => Site7Studio::getInstance()->getSettings(),
+            'settings' => $settings,
+            // Fields not listed in editableKeys render disabled (so they're
+            // not submitted); overriddenKeys show the config file's value.
+            'allowAdminChanges' => $allowAdminChanges,
+            'overriddenKeys' => $overriddenKeys,
+            'editableKeys' => \site7\studio\models\Settings::editableKeys(array_keys($settings->getAttributes()), $overriddenKeys, $allowAdminChanges),
             'matrixFields' => array_values(array_filter(Craft::$app->getFields()->getAllFields(), fn($field) => $field instanceof Matrix)),
             'system' => $this->getSystemInfo(),
             'links' => $this->getAboutLinks(),
@@ -92,6 +101,9 @@ class SettingsController extends Controller
     public function actionSave()
     {
         $this->requirePostRequest();
+        // Also refuses (403) when allowAdminChanges is off: requireAdmin()'s
+        // $requireAdminChanges defaults to true. savePluginSettings() writes
+        // project config, which such environments only get through git.
         $this->requireAdmin();
 
         $request = Craft::$app->getRequest();

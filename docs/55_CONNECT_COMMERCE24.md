@@ -33,7 +33,7 @@ return array_filter([
 ], fn($value) => $value !== null);
 ```
 
-A config file overrides the CP settings (Settings → Commerce), so each environment keeps its own connection, and secrets stay out of project config.
+A config file overrides the CP settings (Settings → Commerce), so each environment keeps its own connection, and secrets stay out of project config. Settings → Commerce shows the keys it sets as read-only, with the values in use (API key masked). On a server with `allowAdminChanges` off, the whole Settings screen is read-only: change `.env` there, not the CP (Save would write project config, which such servers can't write; `29` §9a).
 
 ## 2. Step by step (local)
 
@@ -159,5 +159,6 @@ The RP Craft Theme also expects these plugin folders, copied the same way: `plug
 | "Commerce24: Your plan allows N website(s) (HTTP 422)" | The licence is already active on the plan's maximum number of sites. Deactivate one, or choose a bigger plan. |
 | A download fails with "signature … untrusted" / "unsigned" | `COMMERCE24_SIGNING_*` doesn't match Commerce24's key. Copy it again (§2.4). |
 | A paid package shows "Not in your plan" / 403 | Expected: give the customer a plan that includes it, or a purchase, in the Commerce24 admin. |
+| Saving Settings fails: "Unable to write new project config files … Permission denied" | The server's `config/project` isn't writable, and its `allowAdminChanges` is on. Turn it off there (`CRAFT_ALLOW_ADMIN_CHANGES=false`); the Settings screen then turns read-only. Set the connection in `.env` (§1). |
 | Account & License shows old data | Commerce24 answers are cached for 5 minutes (Settings → Commerce cache duration). Any change made from the plugin clears the cache straight away. The Updates list and a kit's Check always read the catalog fresh. |
 | A "Manage subscription" link opens an address that doesn't exist | Commerce24's `APP_URL` must be its public address (fixed in the local app). |

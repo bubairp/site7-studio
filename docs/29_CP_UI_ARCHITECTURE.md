@@ -68,6 +68,8 @@ The menu has two audiences: the sites that use the Library (customers), and the 
 | Site Kits | Dev Mode | Full Site Kits (`48`) |
 | Settings | always | General · Commerce · System · About |
 
+**Settings read-only states (2026-10-09).** Saving (`SettingsController::actionSave()` → `savePluginSettings()`) writes project config, so: with `allowAdminChanges` off, General and Commerce render every field disabled, show Craft's `readOnlyNotice()` plus a note that settings come from `.env` / `config/site7-studio.php` / project config through git, and hide every Save button. The action itself already refuses that case: Craft 5's `requireAdmin()` checks `allowAdminChanges` by default (403). Separately, any key `config/site7-studio.php` sets (`Settings::overriddenKeys()`, the same list `mergeWithStored()` drops) renders disabled with the effective value and "Set in config/site7-studio.php"; the API key only shows as masked. A form with no editable field has no Save. `Settings::editableKeys()` decides; Test Connection always stays available.
+
 Removed from view, code kept: Commerce's Updates tab (`?tab=updates` redirects to Updates; its actions redirect there too), Team tab (no backend yet, `_team.twig`), and the empty Theme Settings tab. Old `?tab=plans`/`downloads`/`team` links land on the tab that now holds them. Dev Mode screens hidden from the menu still work by URL for users with the permissions.
 
 ## 10. Validation and Safety

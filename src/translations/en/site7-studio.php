@@ -23,4 +23,9 @@ return [
     'A snapshot from {date} is waiting to be restored.' => 'A snapshot from {date} is waiting to be restored.',
     'Last restored: {file}' => 'Last restored: {file}',
     'A Theme or Starter Kit sets up the whole site, so it can\'t be reinstalled: update it from Updates instead.' => 'A Theme or Starter Kit sets up the whole site, so it can\'t be reinstalled: update it from Updates instead.',
+    // Settings screen read-only states (docs/29, docs/55 §1)
+    'Set in config/site7-studio.php - edit it there (or its .env value), not here.' => 'Set in config/site7-studio.php - edit it there (or its .env value), not here.',
+    'Settings on this environment come from .env, config/site7-studio.php and project config, which change through git - not from this screen.' => 'Settings on this environment come from .env, config/site7-studio.php and project config, which change through git - not from this screen.',
+    'Commerce24 is not connected. Set the API Endpoint and API Key in .env or config/site7-studio.php to enable licensing, plans, and package entitlements.' => 'Commerce24 is not connected. Set the API Endpoint and API Key in .env or config/site7-studio.php to enable licensing, plans, and package entitlements.',
+    'Not set' => 'Not set',
 ];
