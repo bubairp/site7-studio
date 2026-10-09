@@ -180,6 +180,18 @@
                 </div>
             </div>
         </div>
+
+        <h2>{{ "Uninstalling Site7 Studio"|t('site7-studio') }}</h2>
+        <div class="pane padded">
+            <p>{{ "Uninstalling the plugin (Settings → Plugins) keeps your website: sections, fields, blocks, the page builder, entries, assets and templates stay as they are."|t('site7-studio') }}</p>
+            <p>{{ "It removes the plugin's own tables - which packages are installed, their versions and file checksums, import links and sync history. Just before that, Site7 Studio saves them to {path}, and restores them automatically when you install the plugin again, so Library updates keep working and packages aren't installed twice."|t('site7-studio', { path: system.uninstallSnapshot.path }) }}</p>
+            <p>{{ "Licences and entitlements are not saved: they come back from Commerce24 once the plugin is connected again. Without a snapshot, run php craft site7-studio/library/reconcile to match the Library to the blocks already on the site."|t('site7-studio') }}</p>
+            {% if system.uninstallSnapshot.pendingDate %}
+                <p class="warning with-icon">{{ "A snapshot from {date} is waiting to be restored."|t('site7-studio', { date: system.uninstallSnapshot.pendingDate }) }}</p>
+            {% elseif system.uninstallSnapshot.lastRestored %}
+                <p class="light">{{ "Last restored: {file}"|t('site7-studio', { file: system.uninstallSnapshot.lastRestored }) }}</p>
+            {% endif %}
+        </div>
     </div>
 
     <div id="about" class="site7-settings-section hidden">

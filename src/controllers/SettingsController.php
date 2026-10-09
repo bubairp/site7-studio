@@ -60,6 +60,25 @@ class SettingsController extends Controller
             'installedPackageCount' => count($plugin->packageManager->getAllPackages()),
             'marketplaceConnected' => $plugin->commerceClient->isConfigured(),
             'licenseStatus' => $plugin->license->getLicense()->status,
+            'uninstallSnapshot' => $this->getUninstallSnapshotInfo(),
+        ];
+    }
+
+    /**
+     * For the System tab's uninstall notice (docs/58): where the snapshot
+     * goes, and whether one is waiting to be restored or was restored.
+     */
+    private function getUninstallSnapshotInfo(): array
+    {
+        $dir = \site7\studio\services\library\TrackingSnapshot::directory();
+        $pending = \site7\studio\services\library\TrackingSnapshot::path();
+        $restored = glob("{$dir}/uninstall-snapshot.restored-*.json") ?: [];
+        rsort($restored);
+
+        return [
+            'path' => 'storage/site7-studio/' . \site7\studio\services\library\TrackingSnapshot::FILE,
+            'pendingDate' => is_file($pending) ? date('Y-m-d H:i', (int)filemtime($pending)) : null,
+            'lastRestored' => $restored ? basename($restored[0]) : null,
         ];
     }
 

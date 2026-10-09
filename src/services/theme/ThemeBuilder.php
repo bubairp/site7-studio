@@ -120,6 +120,11 @@ class ThemeBuilder extends Component
         if ($builtFrontend !== null) {
             FileHelper::copyDirectory("{$root}/{$builtFrontend}", "{$dir}/files/{$builtFrontend}");
         }
+        // The Tailwind classes of every Library block, with the @source line
+        // in the copied app.css, so a customer's `npm run build` keeps the
+        // styles of blocks it hasn't installed yet (docs/59). Only the
+        // Theme's copy changes; this site's own frontend/ is left alone.
+        TailwindSafelist::merge("{$dir}/files", TailwindSafelist::libraryClasses());
         // Config files, except site7-studio.php: it holds this install's own
         // Commerce24 connection and trusted signing keys.
         $configFiles = [];

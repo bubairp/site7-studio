@@ -32,7 +32,9 @@ SPECIAL CASE: InstallController::actionRunStage($sessionUid) is not meant
 | Controller | File | Actions |
 |---|---|---|
 | `ClearController` | `src/console/controllers/ClearController.php` | actionSettings() |
+| `FrontendController` | `src/console/controllers/FrontendController.php` | actionCheck() (installed blocks' classes missing from the built CSS), actionSafelist() (back-fills the Tailwind safelist) - `59` |
 | `InstallController` | `src/console/controllers/InstallController.php` | actionList(), actionValidate(string $handle), actionRun(string $handle) (supports `--dryRun`/`-d`), actionRunStage(string $sessionUid) — subprocess-only entry point, never invoked directly by a user |
+| `LibraryController` | `src/console/controllers/LibraryController.php` | Library distribution/updates (`52`, `53`): actionPublish(), actionRename(), actionPricing(), actionCatalog(), actionUpdates(), actionUpdate(), actionDownload(). Plugin uninstall/reinstall (`58`): actionReconcile() (`--dry-run`, `--site-content`), actionRestore(?string $path) (`--dry-run`), actionSnapshot() |
 | `MakeController` | `src/console/controllers/MakeController.php` | actionRelinkMatrix(string $handle), actionSetupMatrixField() (`--field=<handle>` required: sets the page builder; no longer creates `site7Components`), actionStarterKit(string $name), actionPackage(string $handle) |
 | `PackageController` | `src/console/controllers/PackageController.php` | actionSync() |
 | `UpdateController` | `src/console/controllers/UpdateController.php` | actionList(), actionPlan(string $handle), actionRun(string $handle, string $removals = ''), actionApplyRemovals(string $sessionUid) |

@@ -298,6 +298,13 @@ class PackageManagerService extends Component
                         );
                     }
                 }
+
+                // Its Tailwind classes into the frontend's safelist, and a
+                // note when the built CSS lacks them (docs/59). Never runs npm.
+                $styles = \site7\studio\services\theme\TailwindSafelist::afterBlockInstalled($record->name, "{$packagePath}/template.twig");
+                if ($styles !== null) {
+                    $this->_lastInstallWarnings[] = $styles;
+                }
             }
 
             // Step 8.2: install every explicitly package-owned file (Step
@@ -724,20 +731,42 @@ class PackageManagerService extends Component
         if ($this->_sectionPackagesByBlock === null) {
             $this->_sectionPackagesByBlock = [];
             foreach ($this->getAllPackages() as $record) {
-                $path = $record->type === 'section' ? $this->getPackagePath($record->handle) : null;
-                if (!$path || !is_file("{$path}/matrix.yaml")) {
+                if ($record->type !== 'section') {
                     continue;
                 }
-                foreach ((array)(\Symfony\Component\Yaml\Yaml::parseFile("{$path}/matrix.yaml")['blocks'] ?? []) as $block) {
-                    if (!empty($block['handle'])) {
-                        $this->_sectionPackagesByBlock[$block['handle']] ??= $record->handle;
-                    }
+                foreach ($this->sectionBlockHandles($record->handle) as $blockHandle) {
+                    $this->_sectionPackagesByBlock[$blockHandle] ??= $record->handle;
                 }
             }
         }
         $handle = $this->_sectionPackagesByBlock[$entryTypeHandle] ?? null;
 
         return $handle ? $this->getPackageByHandle($handle) : null;
+    }
+
+    /**
+     * The block (entry type) handles a Section package's matrix.yaml
+     * declares, in file order - the first one is the block its
+     * template.twig is installed for (CraftResourceService). Empty when the
+     * package isn't in the Library or has no matrix.yaml.
+     *
+     * @return string[]
+     */
+    public function sectionBlockHandles(string $handle): array
+    {
+        $path = $this->getPackagePath($handle);
+        if (!$path || !is_file("{$path}/matrix.yaml")) {
+            return [];
+        }
+
+        $handles = [];
+        foreach ((array)(\Symfony\Component\Yaml\Yaml::parseFile("{$path}/matrix.yaml")['blocks'] ?? []) as $block) {
+            if (!empty($block['handle'])) {
+                $handles[] = (string)$block['handle'];
+            }
+        }
+
+        return $handles;
     }
 
     /**

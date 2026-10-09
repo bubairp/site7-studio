@@ -95,7 +95,7 @@ If you need "undo an accidental import without touching anything it linked to": 
 
 ## 13. Related Features
 
-`11_PACKAGE_INSTALLATION.md`, `13_TEMPLATE_ARCHITECTURE.md`, `16_INSTALLED_FILE_BASELINE.md`, `26_BACKUP_AND_RECOVERY.md`.
+`11_PACKAGE_INSTALLATION.md`, `13_TEMPLATE_ARCHITECTURE.md`, `16_INSTALLED_FILE_BASELINE.md`, `26_BACKUP_AND_RECOVERY.md`. Uninstalling the **plugin** itself (not a package) is `58_PLUGIN_UNINSTALL_AND_REINSTALL.md`.
 
 ## 14. Known Limitations
 

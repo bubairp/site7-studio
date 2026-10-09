@@ -107,6 +107,21 @@ class ThemeUpdater extends ThemeInstaller
             }
             $target = "{$root}/{$path}";
             $source = "{$newFiles}/{$path}";
+            // The Tailwind safelist only grows: this site's list (its own
+            // blocks merged in) plus the new Theme's, never replaced (docs/59).
+            if (basename($path) === TailwindSafelist::FILE) {
+                $incomingList = is_file($source) ? TailwindSafelist::parseList((string)file_get_contents($source)) : [];
+                $liveList = is_file($target) ? TailwindSafelist::parseList((string)file_get_contents($target)) : [];
+                if (array_diff($incomingList, $liveList)) {
+                    FileHelper::createDirectory(dirname($target));
+                    file_put_contents($target, TailwindSafelist::render(array_merge($liveList, $incomingList)));
+                    $report[$liveList ? 'updated' : 'added'][] = "file {$path} (merged)";
+                    $changed[] = $path;
+                } else {
+                    $report['unchanged']++;
+                }
+                continue;
+            }
             [$base, $live, $incoming] = ["{$baselineFiles}/{$path}", $target, $source];
             // The site's composer files hold its own Site7 Studio, the Theme's
             // don't (docs/49 §2d): compare all three without it.

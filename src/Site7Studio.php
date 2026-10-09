@@ -232,6 +232,24 @@ class Site7Studio extends Plugin
                     Craft::$app->getView()->registerAssetBundle(\site7\studio\assetbundles\PatternMatrixBundle::class);
                 }
             );
+
+            // Settings → Plugins: Craft's Uninstall confirmation says all of
+            // the plugin's data is lost. Say what really happens (docs/58)
+            // under the plugin's own row.
+            \yii\base\Event::on(
+                \craft\web\View::class,
+                \craft\web\View::EVENT_BEFORE_RENDER_PAGE_TEMPLATE,
+                function (\craft\events\TemplateEvent $event) {
+                    if (!in_array(trim($event->template, '/'), ['settings/plugins', 'settings/plugins/index'], true)) {
+                        return;
+                    }
+                    $note = Craft::t('site7-studio', 'Uninstalling keeps your site and content. What Site7 Studio tracks is saved to storage/site7-studio and restored when you install it again; licences come back from Commerce24.');
+                    Craft::$app->getView()->registerJs(
+                        '(function(){var row=document.getElementById("plugin-site7-studio");var details=row&&row.querySelector(".plugin-details");'
+                        . 'if(!details){return;}var p=document.createElement("p");p.className="light smalltext";p.textContent=' . json_encode($note) . ';details.appendChild(p);})();'
+                    );
+                }
+            );
         }
 
         // Add "Save as Template" to the entry edit screen's existing Save dropdown.
@@ -336,6 +354,38 @@ class Site7Studio extends Plugin
                 // Full Site Kit (docs/48 §11) - POST actions use the action param.
                 $event->rules['site7-studio/site-kits'] = 'site7-studio/site-kits/index';
                 $event->rules['site7-studio/site-kits/job/<id:[\w\-]+>'] = 'site7-studio/site-kits/job';
+            }
+        );
+    }
+
+    /**
+     * Uninstalling drops every plugin table; the site keeps its fields,
+     * blocks and content. Keep what the plugin tracked in storage first, so
+     * a reinstall restores it (docs/58). Never blocks the uninstall.
+     */
+    protected function beforeUninstall(): void
+    {
+        parent::beforeUninstall();
+        (new \site7\studio\services\library\TrackingSnapshot())->writeBeforeUninstall();
+    }
+
+    /**
+     * Restores the uninstall snapshot - or, without one, reconciles the
+     * Library with the site - once Craft has finished installing the
+     * plugin: after its install transaction and after it has written the
+     * plugin's project config, which would otherwise replace restored
+     * settings (docs/58).
+     */
+    protected function afterInstall(): void
+    {
+        parent::afterInstall();
+        \yii\base\Event::on(
+            \craft\services\Plugins::class,
+            \craft\services\Plugins::EVENT_AFTER_INSTALL_PLUGIN,
+            function (\craft\events\PluginEvent $event) {
+                if ($event->plugin === $this) {
+                    (new \site7\studio\services\library\TrackingSnapshot())->restoreAfterInstall();
+                }
             }
         );
     }

@@ -248,6 +248,16 @@ class KitInstaller extends ThemeInstaller
         if ($this->run([$php, "{$root}/craft", 'site7-studio/starter-kit/apply', $handle], $root, 'pages and content', $result, $log)) {
             $this->run([$php, "{$root}/craft", 'clear-caches/all'], $root, 'caches', $result, $log);
         }
+        // Its blocks were installed in that process; their styles are checked
+        // here, against this site's built CSS (docs/59). Never runs npm.
+        try {
+            \site7\studio\Site7Studio::getInstance()->packageManager->discoverPackages();
+            if ($styles = \site7\studio\services\theme\TailwindSafelist::rebuildMessage(\site7\studio\services\theme\TailwindSafelist::missingByBlock($root))) {
+                $result['warnings'][] = $styles;
+            }
+        } catch (\Throwable $e) {
+            Craft::warning('Could not check the frontend styles: ' . $e->getMessage(), 'site7-studio');
+        }
 
         return $result;
     }

@@ -236,6 +236,10 @@ class LibraryUpdater extends Component
             } else {
                 $report['unchanged']++;
             }
+            // The new version's Tailwind classes (docs/59); never runs npm.
+            if (($styles = \site7\studio\services\theme\TailwindSafelist::afterBlockInstalled($record->name, $live)) !== null) {
+                $report['notes'][] = $styles;
+            }
         }
 
         return $report;

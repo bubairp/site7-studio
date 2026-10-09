@@ -5,7 +5,9 @@ namespace site7\studio\console\controllers;
 use Craft;
 use craft\console\Controller;
 use site7\studio\services\library\LibraryDistribution;
+use site7\studio\services\library\LibraryReconciler;
 use site7\studio\services\library\LibraryUpdater;
+use site7\studio\services\library\TrackingSnapshot;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
@@ -26,13 +28,91 @@ class LibraryController extends Controller
     /** @var bool update every Library package that has an update */
     public bool $all = false;
 
+    /** @var bool report what reconcile/restore would do, change nothing */
+    public bool $dryRun = false;
+
+    /** @var bool reconcile also matches Themes, Templates and Starter Kits (customer sites only, not the author site) */
+    public bool $siteContent = false;
+
     public function options($actionID): array
     {
         return array_merge(parent::options($actionID), match ($actionID) {
             'publish' => ['bump', 'force', 'notes'],
             'update' => ['all'],
+            'reconcile' => ['dryRun', 'siteContent'],
+            'restore' => ['dryRun'],
             default => [],
         });
+    }
+
+    /**
+     * Marks Library packages whose blocks are already on this site as
+     * installed, and adds their missing file baselines - for a plugin
+     * reinstalled without an uninstall snapshot (docs/58).
+     * --site-content also matches Themes, Templates and Starter Kits: only on a site that installed them from the Library, never the author site.
+     * Usage: php craft site7-studio/library/reconcile [--dry-run] [--site-content]
+     */
+    public function actionReconcile(): int
+    {
+        $report = (new LibraryReconciler())->reconcile($this->dryRun, $this->siteContent);
+        $verb = $this->dryRun ? 'Would mark' : 'Marked';
+        if ($report['matrixField'] !== null) {
+            $this->stdout(($this->dryRun ? 'Would set' : 'Set') . " the page builder field: {$report['matrixField']}\n");
+        }
+        foreach ($report['packages'] as $handle => $change) {
+            $this->stdout(sprintf("  %-40s %s -> %s  (%s)\n", $handle, $change['from'], $change['to'], implode(', ', $change['blocks'])));
+        }
+        foreach ($report['baselines'] as $targetPath => $note) {
+            $this->stdout("  baseline {$targetPath}: {$note}\n");
+        }
+        foreach ($report['notes'] as $note) {
+            $this->stdout("  Note: {$note}\n", Console::FG_YELLOW);
+        }
+        $this->stdout("{$verb} " . count($report['packages']) . ' packages installed, ' . count($report['baselines']) . " baselines added\n", Console::FG_GREEN);
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Writes the tracking snapshot an uninstall writes (storage/site7-studio/uninstall-snapshot.json), without uninstalling.
+     * Usage: php craft site7-studio/library/snapshot
+     */
+    public function actionSnapshot(): int
+    {
+        $path = (new TrackingSnapshot())->write();
+        $this->stdout("Snapshot written: {$path}\n", Console::FG_GREEN);
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Restores the uninstall snapshot (normally automatic on reinstall). Only fills in: existing tracking is kept.
+     * Usage: php craft site7-studio/library/restore [path] [--dry-run]
+     */
+    public function actionRestore(?string $path = null): int
+    {
+        $report = (new TrackingSnapshot())->restore($this->dryRun, $path);
+        if ($report['error'] !== null) {
+            $this->stderr("Error: {$report['error']}\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+        foreach ($report['settings'] as $key => $value) {
+            $this->stdout("  setting {$key}: " . json_encode($value) . "\n");
+        }
+        foreach (['restored', 'kept', 'skipped'] as $kind) {
+            foreach ($report['packages'][$kind] as $handle => $detail) {
+                $this->stdout(sprintf("  %-9s %-40s %s\n", $kind, $handle, $detail));
+            }
+        }
+        foreach ($report['rows'] as $table => $counts) {
+            $this->stdout(sprintf("  %-36s restored %d, skipped %d\n", $table, $counts['restored'], $counts['skipped']));
+        }
+        foreach ($report['flags'] as $flag) {
+            $this->stdout("  ! {$flag}\n", Console::FG_YELLOW);
+        }
+        $this->stdout(($this->dryRun ? 'Dry run - nothing was changed.' : 'Restored' . ($report['renamedTo'] ? "; snapshot renamed to {$report['renamedTo']}" : '') . '.') . "\n", Console::FG_GREEN);
+
+        return ExitCode::OK;
     }
 
     /**

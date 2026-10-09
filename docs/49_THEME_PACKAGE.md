@@ -44,7 +44,7 @@ A Theme, Starter Kit or Template installs and updates on any Craft of the **majo
 Limits: a site on an older 5.x than the Library may not know newer field or block settings; and after the Composer step changes `composer.lock`, a later Theme update counts the lock as the customer's own (`53` §6: merge by hand).
 ## 2b. Built frontend (2026-10-06)
 
-The Theme ships the site's built frontend - the folder holding Vite's manifest (`config/vite.php` `manifestPath`; rp-craft: `web/themes/front`), recorded as `builtFrontend` in `theme.json` (`ThemeBuilder::builtFrontendPath()`). Install copies it and skips npm, so a site works on hosting without npm or offline; `frontend/` still comes along to rebuild with `npm run build`. Theme updates deliver the built files through the file rule (a site that built its own keeps its manifest) and skip npm. Build the frontend on the author site before building the Theme.
+The Theme ships the site's built frontend - the folder holding Vite's manifest (`config/vite.php` `manifestPath`; rp-craft: `web/themes/front`), recorded as `builtFrontend` in `theme.json` (`ThemeBuilder::builtFrontendPath()`). Install copies it and skips npm, so a site works on hosting without npm or offline; `frontend/` still comes along to rebuild with `npm run build`. Theme updates deliver the built files through the file rule (a site that built its own keeps its manifest) and skip npm. Build the frontend on the author site before building the Theme. The Theme's `app.css` also gets `site7-library.safelist` (the classes of every Library block), so a customer's `npm run build` keeps the styles of blocks installed later (`59`).
 
 ## 2c. Base and optional sections (2026-10-07)
 

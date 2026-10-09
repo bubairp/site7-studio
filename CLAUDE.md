@@ -46,6 +46,8 @@ Read what's relevant to the task, not the whole set.
 | Library updates (versions on publish; three-way update of blocks, pages, Theme and kit on installed sites) | `53` |
 | Connecting a site to Commerce24 (`.env`, API key, signing key, troubleshooting) | `55` |
 | Authoring guide: create blocks, pages, kits; price, publish, assign to plans | `57` |
+| Plugin uninstall/reinstall: tracking snapshot, restore, Library reconcile | `58` |
+| Tailwind safelist: Library block classes survive a customer `npm run build`; rebuild notices | `59` |
 | Testing | `33`; A-to-Z test cases with last results: `56` |
 | Reference | `34`–`42` |
 | Known issues (read before ANY architecture change) | `43` |
