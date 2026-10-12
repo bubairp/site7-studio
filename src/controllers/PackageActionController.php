@@ -51,7 +51,8 @@ class PackageActionController extends Controller
                 Craft::$app->getSession()->setNotice(Craft::t('site7-studio', 'Package installed successfully.'));
             }
         } else {
-            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Could not install package.'));
+            $reason = $packageManager->getLastInstallError();
+            Craft::$app->getSession()->setError(Craft::t('site7-studio', 'Could not install package.') . ($reason ? ' ' . $reason : ''));
         }
 
         return $this->redirectToPostedUrl();

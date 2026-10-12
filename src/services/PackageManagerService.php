@@ -48,6 +48,17 @@ class PackageManagerService extends Component
     }
 
     /**
+     * Why the last installPackage() call returned false, for the CP and
+     * console to show (null when it succeeded).
+     */
+    private ?string $_lastInstallError = null;
+
+    public function getLastInstallError(): ?string
+    {
+        return $this->_lastInstallError;
+    }
+
+    /**
      * Fields/Entry Types the most recent deletePackage() call deliberately
      * left in place because they're still used elsewhere (by real content or
      * another Section/field layout) - surfaced by PackageActionController as
@@ -154,13 +165,16 @@ class PackageManagerService extends Component
     public function installPackage(string $handle): bool
     {
         $this->_lastInstallWarnings = [];
+        $this->_lastInstallError = null;
 
         $record = $this->getPackageByHandle($handle);
         if (!$record) {
+            $this->_lastInstallError = "'{$handle}' is not in this site's Library.";
             return false;
         }
 
         if (!$this->isLicensed($handle)) {
+            $this->_lastInstallError = "'{$handle}' is not included in your current plan or purchases.";
             return false;
         }
 
@@ -341,8 +355,8 @@ class PackageManagerService extends Component
             $transaction->rollBack();
             // Rollback generated project config resources
             \site7\studio\Site7Studio::getInstance()->craftResourceGenerator->removeResources($generatedResources);
-            Craft::error("Installation failed for {$handle}: " . $e->getMessage(), __METHOD__);
-            echo "Exception: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n";
+            Craft::error("Installation failed for {$handle}: " . $e->getMessage() . "\n" . $e->getTraceAsString(), __METHOD__);
+            $this->_lastInstallError = $e->getMessage();
             return false;
         }
     }

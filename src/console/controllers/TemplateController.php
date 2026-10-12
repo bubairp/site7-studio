@@ -85,7 +85,8 @@ class TemplateController extends Controller
             $this->stdout("Warning: {$warning}\n", Console::FG_YELLOW);
         }
         if (!$ok) {
-            $this->stderr("'{$handle}' was not installed.\n", Console::FG_RED);
+            $reason = $packageManager->getLastInstallError();
+            $this->stderr("'{$handle}' was not installed." . ($reason ? " {$reason}" : '') . "\n", Console::FG_RED);
             return ExitCode::UNSPECIFIED_ERROR;
         }
         $this->stdout("Installed {$handle}.\n", Console::FG_GREEN);
