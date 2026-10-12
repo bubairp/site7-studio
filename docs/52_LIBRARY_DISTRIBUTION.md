@@ -57,7 +57,7 @@ library/publish ── one archive per ──> POST /marketplace/publish
 - `validateKit()` on a kit that isn't in the Library runs `validateRemoteKit()`: `check()` plus the fresh-site check. The Theme's own checks run after download.
 - `installKit()` downloads first (logged per package in the job), checks the kit again locally, then installs as in `51` §5.
 - The Install screen lists Commerce24's Library kits that aren't in the Library (`remoteKits()`): source, price, "Not in your plan". **Check** shows the download count and size.
-- Console: `library/catalog`, `library/download <handle>` (download only), `starter-kit/validate|install <handle>`, which work the same for Commerce24 kits.
+- Console: `library/catalog`, `library/download <handle>` (download only; `--all`: every package the site is entitled to, theme → sections → templates → kits, skipping what's already in the Library - how a deployed copy of the author site fills its Library), `starter-kit/validate|install <handle>`, which work the same for Commerce24 kits.
 
 **Licence gate** (`commerce/PackageService::canInstallOrEnable()`, `24` §10): it still applies when packages are installed. A downloaded package counts as paid by its **signed** `verifiedPricingType`. Since 2026-10-03 a free Commerce24 package installs without an active plan; it used to need one.
 

@@ -356,6 +356,30 @@ class LibraryDistribution extends Component
     }
 
     /**
+     * Downloads every package Commerce24 offers this site into its Library
+     * (not installed), skipping paid ones it isn't entitled to.
+     *
+     * @return string[] errors
+     */
+    public function downloadAll(?callable $log = null): array
+    {
+        $log ??= fn(string $line) => null;
+        // What a package requires first, as downloadWithRequirements()'s closure does.
+        $rank = ['theme' => 0, 'section' => 1, 'template' => 2, 'starter-kit' => 3];
+        $handles = [];
+        foreach ($this->catalog(true) as $handle => $entry) {
+            if (array_key_exists('entitled', $entry) && empty($entry['entitled'])) {
+                $log("{$handle}: not in your plan or purchases - skipped");
+                continue;
+            }
+            $handles[(string)$handle] = $rank[$entry['type'] ?? ''] ?? 4;
+        }
+        asort($handles);
+
+        return $this->download(array_keys($handles), $log);
+    }
+
+    /**
      * Downloads packages into this site's Library (not installed). Each
      * archive must carry a valid Commerce24 signature.
      *

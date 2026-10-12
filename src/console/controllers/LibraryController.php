@@ -25,7 +25,7 @@ class LibraryController extends Controller
     /** @var string|null release notes for this publish */
     public ?string $notes = null;
 
-    /** @var bool update every Library package that has an update */
+    /** @var bool update: every Library package that has an update; download: every package Commerce24 offers this site */
     public bool $all = false;
 
     /** @var bool report what reconcile/restore would do, change nothing */
@@ -38,7 +38,7 @@ class LibraryController extends Controller
     {
         return array_merge(parent::options($actionID), match ($actionID) {
             'publish' => ['bump', 'force', 'notes'],
-            'update' => ['all'],
+            'update', 'download' => ['all'],
             'reconcile' => ['dryRun', 'siteContent'],
             'restore' => ['dryRun'],
             default => [],
@@ -222,11 +222,19 @@ class LibraryController extends Controller
 
     /**
      * Downloads a package and everything it requires into this site's Library, without installing.
-     * Usage: php craft site7-studio/library/download rp-craft-starter-kit
+     * --all: every package Commerce24 offers this site (entitled ones), e.g. to fill a deployed copy of the author site.
+     * Packages already in the Library are skipped.
+     * Usage: php craft site7-studio/library/download rp-craft-starter-kit | --all
      */
-    public function actionDownload(string $handle): int
+    public function actionDownload(?string $handle = null): int
     {
-        $errors = (new LibraryDistribution())->downloadWithRequirements($handle, fn(string $line) => $this->stdout("  {$line}\n"));
+        if ($handle === null && !$this->all) {
+            $this->stderr("Give a package handle, or --all.\n", Console::FG_RED);
+            return ExitCode::USAGE;
+        }
+        $log = fn(string $line) => $this->stdout("  {$line}\n");
+        $distribution = new LibraryDistribution();
+        $errors = $handle === null ? $distribution->downloadAll($log) : $distribution->downloadWithRequirements($handle, $log);
         foreach ($errors as $error) {
             $this->stderr("Error: {$error}\n", Console::FG_RED);
         }
