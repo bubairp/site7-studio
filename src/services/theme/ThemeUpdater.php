@@ -126,6 +126,7 @@ class ThemeUpdater extends ThemeInstaller
         }
         $log('Structure, plugin settings and settings content: ' . LibraryUpdater::summary($applied));
         $report = LibraryUpdater::mergeReports($report, $applied);
+        self::reloadProjectConfig();
 
         // A Theme that ships its built frontend updates it through the file
         // rule above; only one without it is rebuilt here.
@@ -417,6 +418,21 @@ class ThemeUpdater extends ThemeInstaller
         }
 
         return array_values(array_unique($keep));
+    }
+
+    /**
+     * The structure step ran in another process and raised the stored project
+     * config version; this process still has the old one loaded, so its next
+     * project config write (a block or page installed later in the same run)
+     * failed with "The loaded project config is out-of-date" (docs/43 #54).
+     * Reload it, and the fields and entry types that process changed.
+     */
+    private static function reloadProjectConfig(): void
+    {
+        Craft::$app->getIsInstalled(true);
+        Craft::$app->getProjectConfig()->reset();
+        Craft::$app->getFields()->refreshFields();
+        Craft::$app->getEntries()->refreshEntryTypes();
     }
 
     /** Whether a decoded composer.json requires Site7 Studio. */
