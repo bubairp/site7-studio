@@ -41,6 +41,37 @@ class ThemeUpdater extends ThemeInstaller
             throw new \Exception('This version of the Theme is for Craft ' . \site7\studio\services\support\CraftVersion::range((string)$new['craftVersion']) . '; this site runs Craft ' . Craft::$app->getVersion() . '.');
         }
         $root = $this->root();
+
+        // Every file this update may write or delete is kept aside first; if any
+        // step fails, they're put back (and vendor/ follows the restored lock),
+        // so the site keeps working on the installed version (docs/43 #52).
+        $backup = $this->backupFiles("{$baseline}/files", "{$dir}/files", $root);
+        $composerTouched = false;
+        try {
+            $report = $this->updateThemeSteps($record, $baseline, $dir, $old, $new, $root, $log, $composerTouched);
+        } catch (\Throwable $e) {
+            $restored = $this->restoreFiles($backup, $root);
+            $message = $e->getMessage() . " The Theme's files were put back as they were ({$restored} files).";
+            if ($composerTouched) {
+                $result = ['errors' => [], 'warnings' => []];
+                $message .= $this->composerInstall($root, $result, $log)
+                    ? ' composer install was run again, so vendor/ matches them.'
+                    : ' composer install could not be run again: ' . implode(' ', $result['errors']) . ' Run composer install yourself.';
+            }
+            throw new \Exception($message, 0, $e);
+        }
+        FileHelper::removeDirectory($backup['dir']);
+
+        return $report;
+    }
+
+    /**
+     * The steps of updateTheme() after its backup; any exception means
+     * "put the files back". $composerTouched tells the caller whether
+     * vendor/ may have changed.
+     */
+    private function updateThemeSteps(PackageRecord $record, string $baseline, string $dir, array $old, array $new, string $root, callable $log, bool &$composerTouched): array
+    {
         $php = App::phpExecutable() ?? 'php';
         $result = ['errors' => [], 'warnings' => []];
 
@@ -59,6 +90,7 @@ class ThemeUpdater extends ThemeInstaller
             if (self::requiresSite7($this->siteComposerBefore['json'] ?? null) && !self::requiresSite7(json_decode((string)@file_get_contents("{$root}/composer.json"), true))) {
                 throw new \Exception('The new composer.json would remove Site7 Studio from this site, so Composer was not run. Nothing was installed or removed.');
             }
+            $composerTouched = true;
             if (!$this->installPackages("{$dir}/files", $root, $result, $log)) {
                 throw new \Exception(implode(' ', $result['errors']));
             }
@@ -75,6 +107,11 @@ class ThemeUpdater extends ThemeInstaller
             $report['added'][] = "plugin {$pluginHandle}";
         }
 
+        // QA only: SITE7_TEST_FAIL_THEME_UPDATE=structure (Craft devMode) makes
+        // this step fail, to test the restore above (docs/56).
+        if (Craft::$app->getConfig()->getGeneral()->devMode && App::env('SITE7_TEST_FAIL_THEME_UPDATE') === 'structure') {
+            throw new \Exception('Applying the structure and settings failed: forced by SITE7_TEST_FAIL_THEME_UPDATE.');
+        }
         $process = new Process([$php, "{$root}/craft", 'site7-studio/library/apply-theme', $record->handle, $baseline], $root);
         $process->setTimeout(1200);
         $process->run();
@@ -99,6 +136,67 @@ class ThemeUpdater extends ThemeInstaller
         }
 
         return $report;
+    }
+
+    /**
+     * Copies every site file the installed or the new Theme version ships
+     * (plus composer.json/lock) to storage/site7-studio/update-backups/,
+     * and lists those that don't exist yet, so restoreFiles() can undo
+     * whatever this update writes, adds or deletes.
+     *
+     * @return array{dir: string, missing: string[]}
+     */
+    public function backupFiles(string $baselineFiles, string $newFiles, string $root): array
+    {
+        $dir = Craft::getAlias('@storage') . '/site7-studio/update-backups/' . date('Ymd-His') . '-theme-' . substr(md5(uniqid('', true)), 0, 6);
+        FileHelper::createDirectory("{$dir}/files");
+        $missing = [];
+        foreach (array_unique(array_merge(self::relativeFiles($baselineFiles), self::relativeFiles($newFiles), ['composer.json', 'composer.lock'])) as $path) {
+            if (str_starts_with($path, 'config/project/')) {
+                continue;
+            }
+            if (is_file("{$root}/{$path}")) {
+                FileHelper::createDirectory(dirname("{$dir}/files/{$path}"));
+                copy("{$root}/{$path}", "{$dir}/files/{$path}");
+            } else {
+                $missing[] = $path;
+            }
+        }
+        file_put_contents("{$dir}/missing.json", json_encode($missing));
+
+        return ['dir' => $dir, 'missing' => $missing];
+    }
+
+    /** Puts backupFiles()'s copies back and deletes the files that didn't exist; returns how many files changed. */
+    public function restoreFiles(array $backup, string $root): int
+    {
+        $count = 0;
+        foreach (self::relativeFiles("{$backup['dir']}/files") as $path) {
+            $target = "{$root}/{$path}";
+            if (!is_file($target) || PackageArchiveHelper::computeFileChecksum($target) !== PackageArchiveHelper::computeFileChecksum("{$backup['dir']}/files/{$path}")) {
+                FileHelper::createDirectory(dirname($target));
+                copy("{$backup['dir']}/files/{$path}", $target);
+                $count++;
+            }
+        }
+        foreach ($backup['missing'] as $path) {
+            if (is_file("{$root}/{$path}")) {
+                unlink("{$root}/{$path}");
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /** composer install from this site's own composer.lock, as installPackages() runs it. */
+    private function composerInstall(string $root, array &$result, callable $log): bool
+    {
+        $php = App::phpExecutable() ?? 'php';
+        $composerPhar = Craft::$app->getRuntimePath() . '/composer.phar';
+        copy(Craft::getAlias('@lib/composer.phar'), $composerPhar);
+
+        return $this->run([$php, $composerPhar, 'install', '--no-interaction', '--no-scripts', '--working-dir=' . $root], $root, 'composer install (restore)', $result, $log);
     }
 
     /**

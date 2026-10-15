@@ -96,9 +96,17 @@ class LibraryUpdater extends Component
         }
 
         $log('Backing up the database…');
-        $log('Backup: ' . Craft::$app->getDb()->backup());
+        $dbBackup = Craft::$app->getDb()->backup();
+        $log('Backup: ' . $dbBackup);
 
         foreach ($updates as $handle => $update) {
+            // Blocks, pages and kits are built on the Theme: after a failed
+            // Theme update they're not attempted (docs/43 #52).
+            if ($result['themeFailed'] ?? false) {
+                $result['skipped'][] = $handle;
+                $log("NOT ATTEMPTED {$handle}: the Theme update failed");
+                continue;
+            }
             if (!$update['entitled']) {
                 $result['errors'][] = "{$handle}: not in your plan or purchases";
                 $log("FAILED {$handle}: not in your plan or purchases");
@@ -116,10 +124,18 @@ class LibraryUpdater extends Component
                     $log("  note: {$note}");
                 }
             } catch (\Throwable $e) {
-                $result['errors'][] = "{$handle}: {$e->getMessage()}";
-                $log("FAILED {$handle}: {$e->getMessage()}");
+                $message = $e->getMessage();
+                if ($update['type'] === 'theme') {
+                    $result['themeFailed'] = true;
+                    // The database is not restored automatically: that would also
+                    // undo content edited while the update ran (docs/53 §4).
+                    $message .= " The database was backed up before this update: {$dbBackup}. If the site doesn't work, restore it with: php craft db/restore {$dbBackup}";
+                }
+                $result['errors'][] = "{$handle}: {$message}";
+                $log("FAILED {$handle}: {$message}");
             }
         }
+        unset($result['themeFailed']);
 
         // Also invalidates {% cache %} blocks, which are tagged by element.
         Craft::$app->getElements()->invalidateAllCaches();

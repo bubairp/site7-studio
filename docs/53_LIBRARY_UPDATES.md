@@ -80,6 +80,7 @@ php craft site7-studio/library/publish [--bump=patch|minor|major] [--notes="…"
      - Its content goes through the rule: demo entries element by element, and the menu and sitemap plugin tables each as one item (`pluginTableSignatures()`). Changing any menu item here keeps the whole menu table.
    - **Order** within one run: Theme, Sections, Templates, kit.
 5. **If downloading or applying fails,** the previous Library copy is restored, so running the update again compares against what the site really has. Items already applied then count as done.
+6. **A failed Theme update (2026-10-15, `43` #52):** before writing anything, `ThemeUpdater::backupFiles()` copies every site file the installed or the new version ships, plus `composer.json`/`.lock`, to `storage/site7-studio/update-backups/`. On any failure, `restoreFiles()` puts them back (files the update added are deleted), and if Composer ran, `composer install` runs again with the restored lock. The rest of the run is not attempted (blocks, pages and kits are built on the Theme). The database is **not** restored automatically, because that would also undo content edited while the update ran; the failure message names the run's database backup and the `php craft db/restore <path>` command. The backup folder is removed after a successful update. QA: `SITE7_TEST_FAIL_THEME_UPDATE=structure` (Craft devMode only) forces the structure step to fail.
 
 ## 5. Verified (2026-10-03)
 
