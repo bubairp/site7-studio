@@ -45,7 +45,12 @@ On a site without a kit, installing a pack installs the Default Kit first.
    ```
 6. **Publish it** (§7).
 
-**Changing a block later:** change it on rp-craft, open its package in the Library and click Sync From Source, then publish. Customers see the new version under Updates. Their own edits are kept (`53`).
+**Changing a block later:** change it on rp-craft, then refresh its package: open it in the Library and click **Review & Update**, or for many blocks at once:
+   ```
+   ddev craft site7-studio/library/sync-sections --all --dry-run   # which blocks differ, and what
+   ddev craft site7-studio/library/sync-sections --all
+   ```
+   Then publish. Customers see the new version under Updates. Their own edits are kept (`53`). The Theme build doesn't refresh blocks, and `library/publish` warns when a block still differs (`18` §5b).
 
 ## 4. Create a page (Template package)
 

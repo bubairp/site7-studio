@@ -177,20 +177,15 @@ class SectionUpdateService extends Component
             throw new \Exception('Package not found on disk.');
         }
 
-        $existingFieldsByHandle = $this->readExistingFields($packageHandle);
-        $fieldsDiff = $this->compareFields($existingFieldsByHandle, $importableFields);
-        $twigDiff = $this->diffTwig($packagePath, $entryType->handle);
         $manifest = $record->getManifest();
-        $ownedFilesDiff = $manifest ? $this->diffOwnedFiles($packagePath, $manifest->ownedFiles) : [];
-        $changedOwnedFiles = array_values(array_filter($ownedFilesDiff, fn(array $f) => $f['changed']));
-
-        $fieldsChanged = !empty($fieldsDiff['added']) || !empty($fieldsDiff['removed']) || !empty($fieldsDiff['changed']);
-
-        // Format v2 (schema.json) also changes on things v1 doesn't see
-        // (conditions, layout handles, nested blocks, field settings).
-        $schema = (new SectionSchemaService())->capture($entryType);
-        $schemaPath = $packagePath . '/' . SectionSchemaService::FILE;
-        $schemaChanged = !is_file($schemaPath) || json_decode((string)file_get_contents($schemaPath), true) != $schema;
+        [
+            'fieldsDiff' => $fieldsDiff,
+            'fieldsChanged' => $fieldsChanged,
+            'schema' => $schema,
+            'schemaChanged' => $schemaChanged,
+            'twigDiff' => $twigDiff,
+            'changedOwnedFiles' => $changedOwnedFiles,
+        ] = $this->detectChanges($packageHandle, $packagePath, $entryType, $importableFields, $manifest);
 
         if (!$fieldsChanged && !$schemaChanged && !$twigDiff['changed'] && empty($changedOwnedFiles)) {
             // Nothing meaningful changed since the last sync - not even the
@@ -266,6 +261,101 @@ class SectionUpdateService extends Component
         $record->refresh();
 
         return $record;
+    }
+
+    /**
+     * What Sync From Source would change, without changing anything: the
+     * same detection updateInPlace() runs before deciding whether to write
+     * (fields, schema.json, template.twig, owned files). For
+     * `library/sync-sections --dry-run` (docs/18 §5b).
+     *
+     * @return array{fields: bool, schema: bool, twig: bool, ownedFiles: string[], summary: string}
+     * @throws \Exception if the package isn't an imported Section, or its source Entry Type no longer exists.
+     */
+    public function pendingChanges(string $packageHandle): array
+    {
+        [$record, $entryType, $importableFields] = $this->resolve($packageHandle);
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($packageHandle);
+        if (!$packagePath) {
+            throw new \Exception('Package not found on disk.');
+        }
+
+        $changes = $this->detectChanges($packageHandle, $packagePath, $entryType, $importableFields, $record->getManifest());
+        $ownedFiles = array_map(fn(array $f) => $f['targetPath'], $changes['changedOwnedFiles']);
+        $parts = [];
+        if ($changes['fieldsChanged']) {
+            $parts[] = 'fields';
+        }
+        if ($changes['schemaChanged']) {
+            $parts[] = 'field settings (schema.json)';
+        }
+        if ($changes['twigDiff']['changed']) {
+            $parts[] = 'template';
+        }
+        if ($ownedFiles) {
+            $parts[] = count($ownedFiles) . ' owned file(s)';
+        }
+
+        return [
+            'fields' => $changes['fieldsChanged'],
+            'schema' => $changes['schemaChanged'],
+            'twig' => $changes['twigDiff']['changed'],
+            'ownedFiles' => $ownedFiles,
+            'summary' => $parts ? implode(', ', $parts) : '',
+        ];
+    }
+
+    /**
+     * True when the live template or an owned file differs from the
+     * package copy - the parts of a block the Entry Type source hash
+     * doesn't cover (PackageAuthoringService::getSectionImportStatus()).
+     * Checksums only, so it's cheap enough for a page view.
+     */
+    public function filesChanged(string $packageHandle, string $sourceHandle): bool
+    {
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($packageHandle);
+        $packagePath = Site7Studio::getInstance()->packageManager->getPackagePath($packageHandle);
+        if (!$record || !$packagePath) {
+            return false;
+        }
+        if ($this->diffTwig($packagePath, $sourceHandle)['changed']) {
+            return true;
+        }
+        $manifest = $record->getManifest();
+        foreach ($manifest ? $this->diffOwnedFiles($packagePath, $manifest->ownedFiles) : [] as $file) {
+            if ($file['changed']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The one change detection Sync From Source uses (updateInPlace() and
+     * pendingChanges()), so a dry run reports exactly what an update writes.
+     *
+     * @return array{fieldsDiff: array, fieldsChanged: bool, schema: array, schemaChanged: bool, twigDiff: array, changedOwnedFiles: array}
+     */
+    private function detectChanges(string $packageHandle, string $packagePath, EntryType $entryType, array $importableFields, $manifest): array
+    {
+        $fieldsDiff = $this->compareFields($this->readExistingFields($packageHandle), $importableFields);
+        $twigDiff = $this->diffTwig($packagePath, $entryType->handle);
+        $ownedFilesDiff = $manifest ? $this->diffOwnedFiles($packagePath, $manifest->ownedFiles) : [];
+
+        // Format v2 (schema.json) also changes on things v1 doesn't see
+        // (conditions, layout handles, nested blocks, field settings).
+        $schema = (new SectionSchemaService())->capture($entryType);
+        $schemaPath = $packagePath . '/' . SectionSchemaService::FILE;
+
+        return [
+            'fieldsDiff' => $fieldsDiff,
+            'fieldsChanged' => !empty($fieldsDiff['added']) || !empty($fieldsDiff['removed']) || !empty($fieldsDiff['changed']),
+            'schema' => $schema,
+            'schemaChanged' => !is_file($schemaPath) || json_decode((string)file_get_contents($schemaPath), true) != $schema,
+            'twigDiff' => $twigDiff,
+            'changedOwnedFiles' => array_values(array_filter($ownedFilesDiff, fn(array $f) => $f['changed'])),
+        ];
     }
 
     private function summarizeSyncChanges(array $fieldsDiff, array $twigDiff, array $changedOwnedFiles, string $sourceHandle): string

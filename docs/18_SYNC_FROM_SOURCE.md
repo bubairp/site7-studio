@@ -70,6 +70,12 @@ The old behaviour, for reference — `PageUpdateService::updateInPlace()` was a 
 
 Net effect (before the fix): only Section packages satisfied this document's "no-op unless changed, exactly one version via `VersionManagerService`" guarantee. Both package types do now.
 
+## 5b. Many blocks at once, and template-only changes (2026-10-15)
+
+- **Console:** `php craft site7-studio/library/sync-sections <handle,handle...> | --all [--dry-run]` runs `updateInPlace()` for each imported block package (one with a `SectionImportSourceRecord`). `--dry-run` reports what would change through `SectionUpdateService::pendingChanges()` and writes nothing. `updateInPlace()` and `pendingChanges()` share one detection, `detectChanges()` (fields, `schema.json`, `template.twig`, owned files), so a dry run reports exactly what a sync writes.
+- **CP:** Review & Update shows when `PackageAuthoringService::getSectionImportStatus()` reports `updateAvailable`. That used to compare only the Entry Type source hash, so a block whose `_blocks/<handle>.twig` or owned files changed (a restyle) showed no button and could not be synced at all (`43` #50). It now also checks `SectionUpdateService::filesChanged()` (checksums only). The Starter Kit reference resolver (`StarterKitReferenceResolverService`) reads the same flag, so kit drift now includes template changes too.
+- **Publish:** `library/publish` (console) warns which imported blocks still differ from the site before publishing, because no build step refreshes blocks.
+
 ## 6. Important Classes
 
 **`SectionUpdateService`**

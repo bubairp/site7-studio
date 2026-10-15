@@ -14,6 +14,7 @@ use site7\studio\repositories\SectionImportSourceRepository;
 use site7\studio\repositories\WebsiteImportSourceRepository;
 use site7\studio\services\import\EntrySourceHasher;
 use site7\studio\services\import\EntryTypeSourceHasher;
+use site7\studio\services\import\SectionUpdateService;
 use site7\studio\services\import\StarterKitSyncService;
 use site7\studio\services\support\PackageBackupService;
 use Symfony\Component\Yaml\Yaml;
@@ -340,8 +341,12 @@ class PackageAuthoringService extends Component
         }
 
         $entryType = (new \site7\studio\services\CraftResourceRegistry())->findByUid(\site7\studio\services\CraftResourceRegistry::KIND_ENTRY_TYPE, $sourceRecord->sourceUid)?->resource;
+        // The source hash covers the Entry Type (fields, layout) but not
+        // _blocks/<handle>.twig or owned files, so a template-only change
+        // (e.g. a restyle) also counts as an update (docs/43 #50).
         $updateAvailable = $entryType instanceof \craft\models\EntryType
-            && (new EntryTypeSourceHasher())->computeHash($entryType) !== $sourceRecord->sourceHash;
+            && ((new EntryTypeSourceHasher())->computeHash($entryType) !== $sourceRecord->sourceHash
+                || (new SectionUpdateService())->filesChanged($handle, $entryType->handle));
 
         return [
             'isImported' => true,

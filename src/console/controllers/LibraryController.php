@@ -4,10 +4,13 @@ namespace site7\studio\console\controllers;
 
 use Craft;
 use craft\console\Controller;
+use site7\studio\repositories\SectionImportSourceRepository;
+use site7\studio\services\import\SectionUpdateService;
 use site7\studio\services\library\LibraryDistribution;
 use site7\studio\services\library\LibraryReconciler;
 use site7\studio\services\library\LibraryUpdater;
 use site7\studio\services\library\TrackingSnapshot;
+use site7\studio\Site7Studio;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
@@ -25,10 +28,10 @@ class LibraryController extends Controller
     /** @var string|null release notes for this publish */
     public ?string $notes = null;
 
-    /** @var bool update: every Library package that has an update; download: every package Commerce24 offers this site */
+    /** @var bool update: every Library package that has an update; download: every package Commerce24 offers this site; sync-sections: every imported block */
     public bool $all = false;
 
-    /** @var bool report what reconcile/restore would do, change nothing */
+    /** @var bool report what reconcile/restore/sync-sections would do, change nothing */
     public bool $dryRun = false;
 
     /** @var bool reconcile also matches Themes, Templates and Starter Kits (customer sites only, not the author site) */
@@ -41,6 +44,7 @@ class LibraryController extends Controller
             'update', 'download' => ['all'],
             'reconcile' => ['dryRun', 'siteContent'],
             'restore' => ['dryRun'],
+            'sync-sections' => ['all', 'dryRun'],
             default => [],
         });
     }
@@ -122,6 +126,14 @@ class LibraryController extends Controller
      */
     public function actionPublish(array $handles = []): int
     {
+        // Blocks are only refreshed by Sync From Source, which no build step runs (docs/43 #50):
+        // say so before publishing old block templates.
+        $stale = $this->blocksDifferingFromSource($handles);
+        if ($stale) {
+            $this->stdout('Warning: ' . count($stale) . ' block packages differ from this site and would be published as they were: '
+                . implode(', ', $stale) . ". Run library/sync-sections --all first.\n", Console::FG_YELLOW);
+        }
+
         $result = (new LibraryDistribution())->publish($handles, fn(string $line) => $this->stdout("  {$line}\n"), $this->bump, $this->force, $this->notes);
         $this->stdout('Published ' . count($result['published']) . ' packages, ' . count($result['unchanged']) . " unchanged\n", Console::FG_GREEN);
         foreach ($result['errors'] as $error) {
@@ -129,6 +141,94 @@ class LibraryController extends Controller
         }
 
         return $result['errors'] ? ExitCode::UNSPECIFIED_ERROR : ExitCode::OK;
+    }
+
+    /**
+     * Sync From Source for block (Section) packages on the author site: each
+     * imported block whose live fields, field settings, `_blocks/<handle>.twig`
+     * or owned files differ from its package gets the live version and one new
+     * version, exactly like Review & Update in the CP (docs/18 §5b). Unchanged
+     * blocks are left alone. --dry-run lists what differs and changes nothing.
+     * Usage: php craft site7-studio/library/sync-sections <handle,handle...> | --all [--dry-run]
+     */
+    public function actionSyncSections(array $handles = []): int
+    {
+        if (!$handles && !$this->all) {
+            $this->stderr("Name the block packages to sync, or pass --all.\n", Console::FG_RED);
+            return ExitCode::USAGE;
+        }
+
+        $sync = new SectionUpdateService();
+        $sources = new SectionImportSourceRepository();
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $records = $packageManager->getAllPackages();
+        if (!$this->all) {
+            $records = array_filter($records, fn($record) => in_array($record->handle, $handles, true));
+            foreach (array_diff($handles, array_map(fn($record) => $record->handle, $records)) as $missing) {
+                $this->stderr("Error: no package '{$missing}' in this Library.\n", Console::FG_RED);
+            }
+        }
+
+        $changed = $unchanged = 0;
+        $errors = [];
+        foreach ($records as $record) {
+            if ($record->type !== 'section' || !$sources->findByPackageId($record->id)) {
+                if (!$this->all) {
+                    $errors[] = "{$record->handle}: not an imported block package, nothing to sync from.";
+                }
+                continue;
+            }
+            try {
+                $pending = $sync->pendingChanges($record->handle);
+                if ($pending['summary'] === '') {
+                    $unchanged++;
+                    continue;
+                }
+                $changed++;
+                if ($this->dryRun) {
+                    $this->stdout(sprintf("  %-24s %-8s differs: %s\n", $record->handle, $record->version, $pending['summary']));
+                    continue;
+                }
+                $updated = $sync->updateInPlace($record->handle);
+                $this->stdout(sprintf("  %-24s %s -> %s  (%s)\n", $record->handle, $record->version, $updated->version, $pending['summary']), Console::FG_GREEN);
+            } catch (\Throwable $e) {
+                $errors[] = "{$record->handle}: {$e->getMessage()}";
+            }
+        }
+
+        $this->stdout(($this->dryRun ? "{$changed} would be synced" : "Synced {$changed}") . ", {$unchanged} unchanged"
+            . ($this->dryRun ? '. Dry run - nothing was changed.' : '. Publish them with library/publish.') . "\n", Console::FG_GREEN);
+        foreach ($errors as $error) {
+            $this->stderr("Error: {$error}\n", Console::FG_RED);
+        }
+
+        return $errors ? ExitCode::UNSPECIFIED_ERROR : ExitCode::OK;
+    }
+
+    /**
+     * Handles of imported block packages (all, or those in $handles) that Sync From Source would change.
+     *
+     * @return string[]
+     */
+    private function blocksDifferingFromSource(array $handles): array
+    {
+        $sync = new SectionUpdateService();
+        $sources = new SectionImportSourceRepository();
+        $stale = [];
+        foreach (Site7Studio::getInstance()->packageManager->getAllPackages() as $record) {
+            if ($record->type !== 'section' || ($handles && !in_array($record->handle, $handles, true)) || !$sources->findByPackageId($record->id)) {
+                continue;
+            }
+            try {
+                if ($sync->pendingChanges($record->handle)['summary'] !== '') {
+                    $stale[] = $record->handle;
+                }
+            } catch (\Throwable) {
+                // No live source to compare with (e.g. its Entry Type was removed): nothing to warn about here.
+            }
+        }
+
+        return $stale;
     }
 
     /**
