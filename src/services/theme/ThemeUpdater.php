@@ -27,6 +27,12 @@ class ThemeUpdater extends ThemeInstaller
 {
     public const REPORT_PREFIX = 'REPORT:';
 
+    /** @var array{json: mixed, lock: mixed}|null this site's composer.json/lock before applyFiles() wrote anything */
+    private ?array $siteComposerBefore = null;
+
+    /** @var string[] Craft plugins the new Theme dropped that composer.json kept, for the report */
+    private array $keptSitePlugins = [];
+
     public function updateTheme(PackageRecord $record, string $baseline, string $dir, callable $log): array
     {
         $old = json_decode((string)file_get_contents("{$baseline}/" . ThemeBuilder::META_FILE), true) ?: [];
@@ -48,6 +54,11 @@ class ThemeUpdater extends ThemeInstaller
         // when neither is the customer's own.
         $composerKept = (bool)array_intersect($report['kept'], ['file composer.json', 'file composer.lock']);
         if (array_intersect($arrived, ['composer.json', 'composer.lock']) && !$composerKept) {
+            // Never run Composer with files that would uninstall this site's
+            // own Site7 Studio (docs/43 #51).
+            if (self::requiresSite7($this->siteComposerBefore['json'] ?? null) && !self::requiresSite7(json_decode((string)@file_get_contents("{$root}/composer.json"), true))) {
+                throw new \Exception('The new composer.json would remove Site7 Studio from this site, so Composer was not run. Nothing was installed or removed.');
+            }
             if (!$this->installPackages("{$dir}/files", $root, $result, $log)) {
                 throw new \Exception(implode(' ', $result['errors']));
             }
@@ -101,6 +112,25 @@ class ThemeUpdater extends ThemeInstaller
     {
         $report = LibraryUpdater::emptyReport();
         $changed = [];
+        // This site's Composer files as they were, read before either is
+        // written: the Theme's are applied with this site's own Site7 Studio
+        // merged in (docs/49 §2d), and installPackages() reads them afterwards.
+        $this->siteComposerBefore = [
+            'json' => json_decode((string)@file_get_contents("{$root}/composer.json"), true),
+            'lock' => json_decode((string)@file_get_contents("{$root}/composer.lock"), true),
+        ];
+        // composer.lock is compared against composer.json (its content-hash),
+        // so both are compared as they were: comparing the lock against an
+        // already-written new composer.json made it look up to date, and it
+        // was never written (docs/43 #51).
+        $siteComposer = Craft::$app->getRuntimePath() . '/site7-theme-site-composer-' . md5($root);
+        FileHelper::createDirectory($siteComposer);
+        foreach (['composer.json', 'composer.lock'] as $composerFile) {
+            @unlink("{$siteComposer}/{$composerFile}");
+            if (is_file("{$root}/{$composerFile}")) {
+                copy("{$root}/{$composerFile}", "{$siteComposer}/{$composerFile}");
+            }
+        }
         foreach (array_unique(array_merge(self::relativeFiles($baselineFiles), self::relativeFiles($newFiles))) as $path) {
             if (str_starts_with($path, 'config/project/')) {
                 continue;
@@ -126,7 +156,7 @@ class ThemeUpdater extends ThemeInstaller
             // The site's composer files hold its own Site7 Studio, the Theme's
             // don't (docs/49 §2d): compare all three without it.
             if (in_array($path, ['composer.json', 'composer.lock'], true)) {
-                [$base, $live, $incoming] = [self::withoutSite7($baselineFiles, $path), self::withoutSite7($root, $path), self::withoutSite7($newFiles, $path)];
+                [$base, $live, $incoming] = [self::withoutSite7($baselineFiles, $path), self::withoutSite7($siteComposer, $path), self::withoutSite7($newFiles, $path)];
             }
             if (!is_file($incoming)) {
                 // Gone from the Theme: removed here too, unless edited here.
@@ -145,7 +175,17 @@ class ThemeUpdater extends ThemeInstaller
             if ($decision === 'apply') {
                 $report[is_file($target) ? 'updated' : 'added'][] = "file {$path}";
                 FileHelper::createDirectory(dirname($target));
-                copy($source, $target);
+                if (in_array($path, ['composer.json', 'composer.lock'], true)) {
+                    // The Theme's file, with this site's Site7 Studio kept (docs/43 #51).
+                    file_put_contents($target, $this->composerFileWithSite7($newFiles, $path));
+                    if ($path === 'composer.json') {
+                        foreach ($this->keptSitePlugins as $package) {
+                            $report['notes'][] = "The Theme no longer uses {$package}; it was kept because this site has it installed. Remove it with composer remove {$package} when it's no longer needed.";
+                        }
+                    }
+                } else {
+                    copy($source, $target);
+                }
                 $changed[] = $path;
             } elseif ($decision === 'kept') {
                 $report['kept'][] = "file {$path}";
@@ -232,6 +272,59 @@ class ThemeUpdater extends ThemeInstaller
         }
 
         return $items;
+    }
+
+    /**
+     * The Theme's $file (composer.json or composer.lock) with this site's own
+     * Site7 Studio - require line, repository, locked version - as it was
+     * before this update wrote anything, and every other Craft plugin this
+     * site requires that the new Theme no longer has: Composer would delete
+     * its code while Craft still has it installed (docs/43 #51). The Theme's
+     * file unchanged when this site's Composer files can't be read.
+     */
+    private function composerFileWithSite7(string $newFiles, string $file): string
+    {
+        $incoming = (string)file_get_contents("{$newFiles}/{$file}");
+        $json = json_decode((string)@file_get_contents("{$newFiles}/composer.json"), true);
+        $lock = json_decode((string)@file_get_contents("{$newFiles}/composer.lock"), true);
+        $siteJson = $this->siteComposerBefore['json'] ?? null;
+        $siteLock = $this->siteComposerBefore['lock'] ?? null;
+        if (!is_array($json) || !is_array($lock) || !is_array($siteJson) || !is_array($siteLock)) {
+            return $incoming;
+        }
+        $keep = $this->sitePluginsToKeep($lock, $siteJson, $siteLock);
+        $this->keptSitePlugins = array_values(array_filter($keep, fn($package) => $package !== \site7\studio\services\sitekit\ComposerFiles::SITE7_PACKAGE && isset($siteJson['require'][$package])));
+        foreach ($keep as $package) {
+            [$json, $lock] = \site7\studio\services\sitekit\ComposerFiles::withPackageFrom($json, $lock, $siteJson, $siteLock, $package);
+        }
+
+        return \site7\studio\services\sitekit\ComposerFiles::encode($file === 'composer.json' ? $json : $lock);
+    }
+
+    /**
+     * Site7 Studio, plus the Craft plugins (type craft-plugin) this site
+     * requires that the new Theme's lock doesn't have.
+     *
+     * @return string[] package names
+     */
+    private function sitePluginsToKeep(array $newLock, array $siteJson, array $siteLock): array
+    {
+        $incoming = array_column($newLock['packages'] ?? [], 'name');
+        $keep = [\site7\studio\services\sitekit\ComposerFiles::SITE7_PACKAGE];
+        foreach ($siteLock['packages'] ?? [] as $entry) {
+            $name = $entry['name'] ?? null;
+            if ($name && ($entry['type'] ?? null) === 'craft-plugin' && isset($siteJson['require'][$name]) && !in_array($name, $incoming, true)) {
+                $keep[] = $name;
+            }
+        }
+
+        return array_values(array_unique($keep));
+    }
+
+    /** Whether a decoded composer.json requires Site7 Studio. */
+    private static function requiresSite7(mixed $json): bool
+    {
+        return is_array($json) && isset($json['require'][\site7\studio\services\sitekit\ComposerFiles::SITE7_PACKAGE]);
     }
 
     /**
