@@ -32,6 +32,8 @@
                             {{ u.releaseNotes ?: '–' }}
                             {% if not u.supported %}<br><span class="warning">{{ u.type|title }} updates aren't supported yet.</span>{% endif %}
                             {% if not u.entitled %}<br><span class="error">Not in your plan.</span>{% endif %}
+                            {% if u.alsoInstalls ?? [] %}<br><span class="light">Also installs: {{ u.alsoInstalls|join(', ') }}</span>{% endif %}
+                            {% if u.needsPlan ?? [] %}<br><span class="warning">Uses {{ u.needsPlan|join(', ') }}, which your plan doesn't include: this page keeps its current version.</span>{% endif %}
                         </td>
                     </tr>
                 {% endfor %}

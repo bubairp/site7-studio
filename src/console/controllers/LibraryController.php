@@ -285,6 +285,12 @@ class LibraryController extends Controller
         foreach ($updates as $update) {
             $this->stdout(sprintf("  %-40s %-10s %s -> %s%s%s\n", $update['handle'], $update['type'], $update['from'], $update['to'],
                 $update['supported'] ? '' : '  (not supported yet)', $update['releaseNotes'] ? "  - {$update['releaseNotes']}" : ''));
+            if (!empty($update['alsoInstalls'])) {
+                $this->stdout('      also installs: ' . implode(', ', $update['alsoInstalls']) . "\n");
+            }
+            if (!empty($update['needsPlan'])) {
+                $this->stdout('      skipped unless the plan includes: ' . implode(', ', $update['needsPlan']) . "\n", Console::FG_YELLOW);
+            }
         }
 
         return ExitCode::OK;

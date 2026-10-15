@@ -67,6 +67,10 @@ class LibraryUpdater extends Component
                 'entitled' => $entry['entitled'] ?? true,
                 'supported' => isset(self::TYPE_ORDER[$record->type]),
             ];
+            // A page's new version can need blocks this site doesn't have yet (docs/43 #53).
+            $blocks = $record->type === 'template' ? $this->missingBlocks((array)($entry['requires']['sections'] ?? []), $catalog) : ['install' => [], 'needsPlan' => []];
+            $updates[array_key_last($updates)]['alsoInstalls'] = array_map(fn($handle) => $catalog[$handle]['name'] ?? $handle, $blocks['install']);
+            $updates[array_key_last($updates)]['needsPlan'] = array_map(fn($handle) => $catalog[$handle]['name'] ?? $handle, $blocks['needsPlan']);
         }
         usort($updates, fn($a, $b) => [self::TYPE_ORDER[$a['type']] ?? 9, $a['handle']] <=> [self::TYPE_ORDER[$b['type']] ?? 9, $b['handle']]);
 
@@ -123,6 +127,10 @@ class LibraryUpdater extends Component
                 foreach ($report['notes'] ?? [] as $note) {
                     $log("  note: {$note}");
                 }
+            } catch (UpdateSkippedException $e) {
+                // Not applied, on purpose: the installed version stays (updatePackage() put its Library copy back).
+                $result['skipped'][] = $handle;
+                $log("SKIPPED {$handle}: {$e->getMessage()}");
             } catch (\Throwable $e) {
                 $message = $e->getMessage();
                 if ($update['type'] === 'theme') {
@@ -197,7 +205,7 @@ class LibraryUpdater extends Component
 
             return match ($update['type']) {
                 'section' => $this->applySection($record, $baseline, $dir),
-                'template' => $this->applyTemplate($baseline, $dir),
+                'template' => $this->applyTemplate($baseline, $dir, $log),
                 'theme' => (new ThemeUpdater())->updateTheme($record, $baseline, $dir, $log),
                 'starter-kit' => $this->applyKit($record, $baseline, $dir, $log),
             };
@@ -314,12 +322,69 @@ class LibraryUpdater extends Component
 
     // ---------------------------------------------------------------- content
 
-    private function applyTemplate(string $baseline, string $dir): array
+    /**
+     * A page: first the blocks its new version needs that aren't installed
+     * here (downloaded and installed, like applyKit() does for pages), then
+     * its content through the rule. A block the site's plan doesn't include
+     * skips the whole page update, so the page stays complete (docs/43 #53).
+     */
+    private function applyTemplate(string $baseline, string $dir, callable $log): array
     {
+        $report = self::emptyReport();
+        $manifest = json_decode((string)file_get_contents("{$dir}/manifest.json"), true) ?: [];
+        $needed = (array)($manifest['requires']['sections'] ?? []);
+        if ($this->missingBlocks($needed, null)['install']) {
+            $catalog = (new LibraryDistribution())->catalog();
+            $blocks = $this->missingBlocks($needed, $catalog);
+            if ($blocks['needsPlan']) {
+                $names = implode(', ', array_map(fn($handle) => $catalog[$handle]['name'] ?? $handle, $blocks['needsPlan']));
+                throw new UpdateSkippedException("the new version uses {$names}, which this site's plan doesn't include. The page keeps its current version; it updates once the plan includes " . (count($blocks['needsPlan']) > 1 ? 'them' : 'it') . '.');
+            }
+            $download = [];
+            foreach ($blocks['install'] as $handle) {
+                $download = array_merge($download, LibraryDistribution::closure($handle, $catalog)['handles']);
+            }
+            if ($errors = (new LibraryDistribution())->download(array_unique($download), $log)) {
+                throw new \Exception(implode(' ', $errors));
+            }
+            $packageManager = Site7Studio::getInstance()->packageManager;
+            foreach ($blocks['install'] as $handle) {
+                if (!$packageManager->installPackage($handle) || !$packageManager->enablePackage($handle)) {
+                    throw new \Exception("The block '{$handle}' the new version needs could not be installed: " . implode(' ', $packageManager->getLastInstallWarnings()));
+                }
+                $report['added'][] = "block {$handle}";
+                $log("Installed block {$handle}, which the new version uses");
+            }
+        }
+
         $meta = json_decode((string)file_get_contents("{$dir}/" . TemplateBuilder::META_FILE), true) ?: [];
         $pageId = (int)(new \craft\db\Query())->select(['id'])->from('{{%elements}}')->where(['uid' => $meta['entryUid'] ?? ''])->scalar();
 
-        return $this->applyContent($baseline, $dir, $pageId ? ['entryIds' => [$pageId]] : null);
+        return self::mergeReports($report, $this->applyContent($baseline, $dir, $pageId ? ['entryIds' => [$pageId]] : null));
+    }
+
+    /**
+     * Of these block (Section) packages, the ones not installed here, split
+     * into those this site can install and those its plan doesn't include
+     * (Commerce24's `entitled`). Without a catalog every missing block counts
+     * as installable - a cheap "anything missing?" check.
+     *
+     * @param string[] $sectionHandles
+     * @return array{install: string[], needsPlan: string[]}
+     */
+    private function missingBlocks(array $sectionHandles, ?array $catalog): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $result = ['install' => [], 'needsPlan' => []];
+        foreach (array_unique($sectionHandles) as $handle) {
+            if (in_array($packageManager->getPackageByHandle($handle)?->status, ['installed', 'enabled'], true)) {
+                continue;
+            }
+            $entitled = $catalog === null || (isset($catalog[$handle]) && ($catalog[$handle]['entitled'] ?? true));
+            $result[$entitled ? 'install' : 'needsPlan'][] = $handle;
+        }
+
+        return $result;
     }
 
     /**
