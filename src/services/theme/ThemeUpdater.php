@@ -127,6 +127,9 @@ class ThemeUpdater extends ThemeInstaller
         $log('Structure, plugin settings and settings content: ' . LibraryUpdater::summary($applied));
         $report = LibraryUpdater::mergeReports($report, $applied);
         self::reloadProjectConfig();
+        if ($note = RecaptchaGuard::switchOffWithoutKeys()) {
+            $report['notes'][] = $note;
+        }
 
         // A Theme that ships its built frontend updates it through the file
         // rule above; only one without it is rebuilt here.

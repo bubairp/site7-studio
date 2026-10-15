@@ -241,6 +241,10 @@ class ThemeInstaller extends SiteKitInstaller
         if (is_dir("{$dir}/content") && !$this->run([$php, $craft, 'site7-studio/theme/import-content', $handle], $root, 'settings content', $result, $log)) {
             return $result;
         }
+        if ($note = RecaptchaGuard::switchOffWithoutKeys()) {
+            $result['warnings'][] = $note;
+            $log($note);
+        }
 
         if ($builtFrontend) {
             $log('Frontend: built files copied, npm not needed (run npm run build in frontend/ to rebuild)');

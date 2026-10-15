@@ -55,6 +55,13 @@
             </div>
         </div>
 
+        {% if recaptchaKeysMissing ?? false %}
+            <div class="site7-notice site7-notice--warning">
+                <strong>{{ "Forms run without reCAPTCHA."|t('site7-studio') }}</strong>
+                {{ "RECAPTCHA_SITE_KEY and RECAPTCHA_SECRET_KEY aren't set in .env, so reCAPTCHA is off on the site's forms (with it on, every submit would fail). Add both keys, then switch reCAPTCHA back on in Wheel Form → Forms."|t('site7-studio') }}
+            </div>
+        {% endif %}
+
         {% if not isSetupComplete %}
             <div class="site7-notice site7-notice--warning">
                 <strong>{{ "No page builder yet."|t('site7-studio') }}</strong> {{ "Install a Starter Kit: its Theme brings the page builder."|t('site7-studio') }}

@@ -42,6 +42,8 @@ class DefaultController extends Controller
             'byType' => $byType,
             'byStatus' => $byStatus,
             'version' => $pluginInfo['version'] ?? '1.0.0',
+            // Forms run without reCAPTCHA while its keys are missing (docs/43 #57).
+            'recaptchaKeysMissing' => \site7\studio\services\theme\RecaptchaGuard::keysMissing(),
         ]);
     }
 }
