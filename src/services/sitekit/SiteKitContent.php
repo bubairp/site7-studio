@@ -914,8 +914,47 @@ class SiteKitContent extends Component
             $this->placeNodes($nodesToPlace);
             $counts['placedNodes'] = count($nodesToPlace);
         }
+        // The rows went in directly, so Craft's search index never saw them (docs/43 #58).
+        $counts['searchIndexed'] = $this->indexForSearch($rowsByTable['elements']);
 
         return $counts;
+    }
+
+    /**
+     * Adds the imported elements to Craft's search index, on each site they're on
+     * here. Looked up by UID: the rows still hold the source's site references.
+     * Nested entries are indexed too: their owners' searchable fields read them.
+     *
+     * @return int elements indexed (per site)
+     */
+    private function indexForSearch(array $elementRows): int
+    {
+        $typesByUid = array_column($elementRows, 'type', 'uid');
+        if (!$typesByUid) {
+            return 0;
+        }
+        $siteRows = (new Query())->select(['e.id', 'e.uid', 'es.siteId'])->from(['e' => '{{%elements}}'])
+            ->innerJoin(['es' => '{{%elements_sites}}'], '[[es.elementId]] = [[e.id]]')
+            ->where(['e.uid' => array_keys($typesByUid)])->all();
+        $search = Craft::$app->getSearch();
+        $indexed = 0;
+        foreach ($siteRows as $row) {
+            $id = (int)$row['id'];
+            $type = $typesByUid[$row['uid']] ?? null;
+            if (!$type || !class_exists($type)) {
+                continue;
+            }
+            try {
+                $element = Craft::$app->getElements()->getElementById($id, $type, (int)$row['siteId']);
+                if ($element && $search->indexElementAttributes($element)) {
+                    $indexed++;
+                }
+            } catch (\Throwable $e) {
+                Craft::warning("Could not index element {$id} for search: {$e->getMessage()}", 'site7-studio');
+            }
+        }
+
+        return $indexed;
     }
 
     /**

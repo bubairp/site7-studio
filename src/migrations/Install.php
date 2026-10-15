@@ -50,6 +50,7 @@ class Install extends Migration
             m261002_000000_store_matrix_field_uid::class,
             m261002_100000_add_package_signature_columns::class,
             m261005_100000_add_package_version_unique_index::class,
+            m261015_120000_reindex_library_content::class,
         ];
     }
 
