@@ -387,8 +387,12 @@ class SiteKitContent extends Component
         return ['counts' => $result['counts'], 'skipped' => $result['skipped'], 'assetFiles' => $result['assetFiles']];
     }
 
-    /** Columns that differ between sites or change by themselves, left out of signatures(). */
-    private const VOLATILE_COLUMNS = ['dateCreated', 'dateUpdated', 'dateLastMerged', 'folderId', 'siteId', 'sourceSiteId'];
+    /**
+     * Columns that differ between sites or change by themselves, left out of
+     * signatures(). `uri` is built from the slug (compared) and the section's
+     * URI format, which a Theme update can change (docs/43 #65).
+     */
+    private const VOLATILE_COLUMNS = ['dateCreated', 'dateUpdated', 'dateLastMerged', 'folderId', 'siteId', 'sourceSiteId', 'uri'];
 
     /**
      * One hash per element of a content directory, over its rows in every
