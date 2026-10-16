@@ -147,6 +147,8 @@ ddev craft site7-studio/library/publish blog-pack-starter-kit,accordion   # only
 
 Each package changed since its last publish gets a new version (patch by default; `--bump=minor` or `--bump=major`). An unchanged package isn't published again. Customers get new versions under Site7 Studio → Updates.
 
+After a day of changes on rp-craft, release them with the process in §12 instead of publishing by hand: it tests the release as an existing and a new customer first.
+
 ## 8. Assign to a plan (Commerce24)
 
 1. Open the Commerce24 admin → **Plans**.
@@ -168,6 +170,8 @@ Today's plans:
 The Default Kit is free, so it isn't in any plan.
 
 ## 9. Check it on a fresh site
+
+`scripts/release.sh test` (§12) builds a fresh site and installs the Default Kit for you. The steps below are for checking another kit or a plan by hand. Note: `rebuild-site7-qa.sh` still connects to the retired Laravel Commerce24 (`~/my-project/commerce24`); for the stand-in, use the connection steps in `55`.
 
 1. `bash ~/my-project/rp-craft/.claude/rebuild-site7-qa.sh` builds site7-qa from scratch, connected to Commerce24 as the Demo Customer.
 2. Put the Demo Customer on the plan you want to test: Commerce24 admin → the Demo Customer's page → Subscription.
@@ -217,3 +221,48 @@ The Default Kit is free, so it isn't in any plan.
 - Pages may link to pages in other packs. A link whose page isn't installed is skipped, and it's added when the other page arrives.
 - A section is never removed from a customer site: not by a downgrade, a removed pack or a Theme update.
 - After a change, test on a fresh site (§9). Unit tests don't catch what a real install does.
+
+## 12. Releasing a day of changes
+
+Use this whenever rp-craft changed: blocks, templates, fields, sections, settings, plugins installed or removed, Craft or plugin versions. Customers only get what is packaged, published and **tested on a copy of a customer site first**. On 2026-10-15 a release was published without that test; the next day's test found three bugs that would have reached every customer (`43` #61, #63, #64).
+
+### 12.1 Where each kind of change goes
+
+| Changed on rp-craft | Goes into |
+|---|---|
+| A block's fields or its `_blocks/*.twig` | That block's Section package (block sync) |
+| Header, footer, layouts, CSS/JS, settings, `config/` | The Theme |
+| A new section, or a field outside the blocks | The Theme (rebuilt) |
+| A plugin installed or uninstalled | The Theme (its plugin list and `composer.json`) |
+| Craft or plugin versions | The Theme (its `composer.lock`) |
+| A page's content, or a renamed page | Its Template package, and the packs that include it |
+| Which pages a pack has | That pack (Starter Kit) |
+| Site7 Studio's own code | The plugin repository, released separately (step 1) |
+
+### 12.2 The steps
+
+`scripts/release.sh` in rp-craft runs steps 2 to 5 and stops at the first failure. It never commits, pushes or deploys.
+
+1. **Plugin first.** Commit, test and push any Site7 Studio change, then `ddev composer update site7/studio` on rp-craft and commit the lock. Packages are built by the plugin, so it must be final before building.
+2. **Check:** `bash scripts/release.sh check`. Both repositories committed and pushed, rp-craft's lock on the plugin's latest commit, unit tests green, migrations and project config in sync. It lists what the release would change: blocks that differ from their packages, pages renamed since their package was built (customers' old URLs stop working), plugins that the Theme build will add or drop, and a frontend build older than its sources.
+3. **Build:** `bash scripts/release.sh build`. Database backup, frontend build, block sync (`library/sync-sections --all`), Theme, pages and packs (`build-packs.sh --theme`).
+4. **Publish to the local stand-in:** `bash scripts/release.sh publish --bump=minor --notes="What changed"`. Customers don't see it yet: the stand-in reaches them only when it's deployed (step 7). Use `--bump=minor` when the Theme's Craft or a plugin's major version changes, otherwise the default patch.
+5. **Test:** `bash scripts/release.sh test`.
+   - **Existing customer:** site7-qa is restored from its baseline (what customers have now), gets the new plugin and runs every update. It fails if an update fails, if anything other than the forms and sitemap tables is kept as "edited here" (nobody edited this site), if updates are still listed afterwards, if a page isn't 200, if a relation is doubled, if the Contact form doesn't submit, or if new errors are logged. URLs that disappeared (renamed pages) are listed as warnings.
+   - **New customer:** a fresh site on rp-craft's Craft version installs the Default Kit, with the same checks plus every Theme plugin installed and blocks in the Add Section browser.
+   - `bash scripts/release.sh all --bump=… --notes="…"` runs steps 2 to 5 in one go.
+6. **On a failure:** fix it in the plugin (step 1) or on rp-craft, then run `test` again; it restores site7-qa from the baseline every time. Publishing a version again is refused once it differs (archives are immutable, `52`), so a fix that changes a package is published as the next version.
+7. **When it passes:** read the warnings, commit and push rp-craft (the release files are in `commerce24/packages/`), run `bash scripts/release.sh baseline` so the next release is tested against this one, and deploy.
+
+### 12.3 Things that change customer sites more than they look
+
+- **Renaming a page** gives it a new Template handle. The update moves the page to it in place (`43` #64), but its old URL stops working and Craft adds no redirect.
+- **Removing a plugin from rp-craft** drops it from the next Theme. New sites don't get it; existing sites keep theirs (`43` #51).
+- **A newer Craft on rp-craft** upgrades every customer site on an older Craft of the same major version when they take the Theme (`43` #63). Never let rp-craft fall behind what customers run: a Theme never downgrades Craft.
+- **A plugin's major version** (CKEditor 4 to 5) runs its migrations on every customer site. Test it here first; that is what step 5 is for.
+
+### 12.4 Before the first run
+
+- Make a baseline: put site7-qa in the state customers have now, then `bash scripts/release.sh baseline`.
+- The script keeps its baseline, logs and the test site's API key in `~/my-project/.site7-release/` (outside both repositories; the key file is private and never printed).
+- GitHub's anonymous API allows 60 requests an hour. `check` warns when few are left; Composer on older sites may fail until the reset (`55` §7).
