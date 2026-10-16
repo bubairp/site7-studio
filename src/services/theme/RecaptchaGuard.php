@@ -15,16 +15,20 @@ use craft\helpers\App;
  */
 class RecaptchaGuard
 {
-    /** Whether Wheel Form is installed and its reCAPTCHA secret resolves to nothing. */
+    /**
+     * Whether Wheel Form is installed and its reCAPTCHA secret resolves to nothing.
+     * Reads project config, not the plugin: a Theme install adds Wheel Form in
+     * another process, so this one never loaded it.
+     */
     public static function keysMissing(): bool
     {
-        $plugin = Craft::$app->getPlugins()->getPlugin('wheelform');
-        if (!$plugin) {
+        $config = Craft::$app->getProjectConfig()->get('plugins.wheelform');
+        if (empty($config['enabled'])) {
             return false;
         }
-        $settings = $plugin->getSettings();
-        $secret = App::parseEnv((string)($settings->recaptcha_secret ?? ''));
-        $public = App::parseEnv((string)($settings->recaptcha_public ?? ''));
+        $settings = $config['settings'] ?? [];
+        $secret = App::parseEnv((string)($settings['recaptcha_secret'] ?? ''));
+        $public = App::parseEnv((string)($settings['recaptcha_public'] ?? ''));
 
         return trim((string)$secret) === '' || trim((string)$public) === '' || str_starts_with((string)$secret, '$');
     }
@@ -47,6 +51,8 @@ class RecaptchaGuard
      */
     public static function switchOffWithoutKeys(): ?string
     {
+        // The structure step ran in another process and installed the plugins.
+        Craft::$app->getProjectConfig()->reset();
         if (!self::keysMissing() || ($count = self::formsUsingIt()) === 0) {
             return null;
         }
