@@ -147,4 +147,4 @@ PackageManagerService::applySafeFileUpdate() (execution)
 ## 14. Known Limitations
 
 - The install-time mapping assumes a Section package's `matrix.yaml` has exactly one block, and maps to exactly one `_blocks/` target file (an explicit "MVP: assume first block handle" simplification in `CraftResourceService`).
-- `templates/site7-components/` still contains one leftover file (`clientLogos.twig`) predating this architecture — harmless, never read/written by any current code path, not cleaned up (documentation-only task scope — see `43_KNOWN_ISSUES_AND_TECHNICAL_DEBT.md`).
+- `templates/site7-components/` no longer exists (its last leftover file, `clientLogos.twig`, is gone; checked 2026-10-16).

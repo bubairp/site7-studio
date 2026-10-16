@@ -54,7 +54,7 @@ Read what's relevant to the task, not the whole set.
 
 ## Non-negotiable architecture invariants
 
-1. **Template rendering** is `templates/_includes/matrix-container.twig` → `templates/_blocks/{handle}.twig` only. `templates/site7-components/` is dead (one harmless leftover file) — never make it a renderer again. (`13`)
+1. **Template rendering** is `templates/_includes/matrix-container.twig` → `templates/_blocks/{handle}.twig` only. `templates/site7-components/` is dead (the folder is gone) — never make it a renderer again. (`13`)
 2. **Package source** (`packages/{handle}/`) and **installed resources** (`templates/_blocks/`, live Craft Fields/Entry Types) are different concerns with different safety rules — never conflate overwriting one with overwriting the other. (`06`)
 3. **Versioning is single-path**: `VersionManagerService::createVersion()` → `PackageExportService`/`PackageArchiveHelper` → `MarketplaceService::recordVersion()`. Never hand-roll a second version-recording mechanism. Archives are immutable — never rewrite or delete a historical `.s7pkg`. (`17`)
    - `PageUpdateService` used to bypass this path; fixed 2026-10-05 (`18` §5a). Its older version rows have no `archivePath`.

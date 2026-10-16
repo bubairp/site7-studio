@@ -57,4 +57,4 @@ This document is written specifically for an AI coding agent (or a new developer
 
 ## Known Issues to Not Re-Discover as New Bugs
 
-See `43_KNOWN_ISSUES_AND_TECHNICAL_DEBT.md` for the full, consolidated list — includes the 3 test files with a `protected clone $tester;` parse error, the leftover `templates/site7-components/clientLogos.twig` file, package signing's stub state, and Website-import capture gaps.
+See `43_KNOWN_ISSUES_AND_TECHNICAL_DEBT.md` for the full, consolidated list — what is still open, and what each fixed issue was.

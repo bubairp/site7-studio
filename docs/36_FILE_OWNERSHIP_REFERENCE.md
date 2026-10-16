@@ -8,7 +8,7 @@ A single lookup table for "who is allowed to write this path, and under what con
 | `templates/_blocks/{handle}.twig` | `CraftResourceService` (install), then shared with the developer | First write: content-compare guarded. Subsequent writes: only via `PackageUpdatePlanner::classify()` = `RESULT_SAFE_UPDATE` | `13_TEMPLATE_ARCHITECTURE.md`, `19_UPDATE_AND_CONFLICT_HANDLING.md` |
 | Owned-file targets (arbitrary CSS/JS/config paths) | `PackageManagerService::installOwnedFiles()` / `applySafeFileUpdate()` | Identical three-way guard as templates — reuses the same planner | `21_FRONTEND_FILE_OWNERSHIP.md` |
 | `templates/_includes/matrix-container.twig` | Host site (RP Craft), pre-existing | **Never touched by Site7 Studio** | `13_TEMPLATE_ARCHITECTURE.md` |
-| `templates/site7-components/*` | Dead — no current code path reads/writes here | N/A — confirmed dead, one harmless leftover file (`clientLogos.twig`) | `13_TEMPLATE_ARCHITECTURE.md` |
+| `templates/site7-components/*` | Dead — no current code path reads/writes here | N/A — confirmed dead; the folder no longer exists | `13_TEMPLATE_ARCHITECTURE.md` |
 | `storage/site7-studio/exports/*.s7pkg` | `PackageExportService` | On explicit export/version-creation | `09_PACKAGE_BUILD_AND_EXPORT.md` |
 | `storage/site7-studio/marketplace-repo/*.s7pkg` | `PackageBackupService` (auto-backup) + `PackagePublisherService` (explicit publish to Local repo) | Latest-only retention per handle for auto-backup | `26_BACKUP_AND_RECOVERY.md`, `23_MARKETPLACE_ARCHITECTURE.md` |
 | `storage/site7-studio/commerce24-cache/*` | `Commerce24MarketplaceRepository::fetchPackage()` | On Commerce24 download | `23_MARKETPLACE_ARCHITECTURE.md` |
