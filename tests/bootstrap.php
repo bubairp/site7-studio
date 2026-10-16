@@ -15,6 +15,17 @@ foreach ([dirname(__DIR__) . '/vendor/autoload.php', dirname(__DIR__, 3) . '/ven
     }
 }
 
+// A host project that installs the plugin from Git has its own copy in
+// vendor/site7/studio (in its optimized class map); test this working tree.
+spl_autoload_register(function(string $class) {
+    if (str_starts_with($class, 'site7\\studio\\')) {
+        $file = dirname(__DIR__) . '/src/' . str_replace('\\', '/', substr($class, strlen('site7\\studio\\'))) . '.php';
+        if (is_file($file)) {
+            require $file;
+        }
+    }
+}, true, true);
+
 // Yii and Craft are plain class files, not autoloaded. Code under test calls
 // Craft::error() and Yii validators call Yii::createObject(), so load both.
 // Craft::$app stays null - a test that reaches it must stub it itself.

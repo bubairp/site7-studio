@@ -61,6 +61,26 @@ class SiteKitFilesTest extends Unit
         $this->assertSame(['STRIPE_SECRET_KEY'], SiteKitFiles::missingEnvKeys(['CRAFT_APP_ID', 'STRIPE_SECRET_KEY'], ['CRAFT_APP_ID', 'OTHER']));
     }
 
+    public function testOnlyEnvKeysThePackageUsesAreReported(): void
+    {
+        $dir = sys_get_temp_dir() . '/site7-env-' . uniqid();
+        mkdir("{$dir}/files/config", 0777, true);
+        mkdir("{$dir}/files/web", 0777, true);
+        file_put_contents("{$dir}/files/config/vite.php", "<?php return ['devServerPublic' => App::env('VITE_DEV_SERVER')];");
+        file_put_contents("{$dir}/plugins.json", '{"wheelform":{"recaptcha_secret":"$RECAPTCHA_SECRET_KEY"}}');
+        file_put_contents("{$dir}/files/web/app.js", 'SITE7_LIBRARY_PATH');
+        file_put_contents("{$dir}/theme.json", '{"envKeys":["CRAFT_DB_TABLE_PREFIX","VITE_DEV_SERVER"]}');
+
+        $keys = ['CRAFT_DB_TABLE_PREFIX', 'VITE_DEV_SERVER', 'RECAPTCHA_SECRET_KEY', 'SITE7_LIBRARY_PATH', 'VITE_DEV'];
+        $this->assertSame(['VITE_DEV_SERVER', 'RECAPTCHA_SECRET_KEY'], SiteKitFiles::referencedEnvKeys($keys, $dir, ['theme.json']));
+
+        array_map('unlink', ["{$dir}/files/config/vite.php", "{$dir}/plugins.json", "{$dir}/files/web/app.js", "{$dir}/theme.json"]);
+        rmdir("{$dir}/files/config");
+        rmdir("{$dir}/files/web");
+        rmdir("{$dir}/files");
+        rmdir($dir);
+    }
+
     public function testInstallSpecificConfigFilesDontTravel(): void
     {
         $this->assertFalse(SiteKitFiles::isTravellingConfigFile('db.php'));

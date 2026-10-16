@@ -102,6 +102,44 @@ class SiteKitFiles
     }
 
     /**
+     * The names in $keys that a package's own files mention. The source site's
+     * .env also holds names only that site needs (its DB prefix, Commerce24
+     * signing secret, Library path); asking a customer to set those is wrong,
+     * and a copied DB prefix would break their site.
+     *
+     * @param string[] $keys
+     * @param string[] $skipFiles basenames not to read (the file listing $keys)
+     * @return string[]
+     */
+    public static function referencedEnvKeys(array $keys, string $dir, array $skipFiles = []): array
+    {
+        $left = array_fill_keys($keys, true);
+        if (!$left || !is_dir($dir)) {
+            return [];
+        }
+        $files = new \RecursiveIteratorIterator(new \RecursiveCallbackFilterIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            fn(\SplFileInfo $file) => $file->isDir()
+                ? !in_array($file->getFilename(), [...self::EXCLUDED_DIRECTORY_NAMES, 'web'], true)
+                : in_array(strtolower($file->getExtension()), ['php', 'twig', 'json', 'yaml', 'yml', 'js', 'ts', 'html'], true)
+                    && !in_array($file->getFilename(), $skipFiles, true)
+        ));
+        foreach ($files as $file) {
+            $text = (string)@file_get_contents($file->getPathname());
+            foreach (array_keys($left) as $key) {
+                if (preg_match('/\b' . preg_quote((string)$key, '/') . '\b/', $text)) {
+                    unset($left[$key]);
+                }
+            }
+            if (!$left) {
+                break;
+            }
+        }
+
+        return array_values(array_filter($keys, fn($key) => !isset($left[$key])));
+    }
+
+    /**
      * Variable names defined in a .env file's contents. Values are ignored.
      *
      * @return string[]

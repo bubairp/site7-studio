@@ -68,7 +68,8 @@ class ThemeInstaller extends SiteKitInstaller
             $result['warnings'][] = 'npm was not found - the frontend will not be built.';
         }
         $targetEnvKeys = array_merge(is_file("{$root}/.env") ? SiteKitFiles::envKeys((string)file_get_contents("{$root}/.env")) : [], array_keys(getenv()));
-        if ($missing = SiteKitFiles::missingEnvKeys($meta['envKeys'] ?? [], $targetEnvKeys)) {
+        $themeEnvKeys = SiteKitFiles::referencedEnvKeys($meta['envKeys'] ?? [], $dir, [ThemeBuilder::META_FILE]);
+        if ($missing = SiteKitFiles::missingEnvKeys($themeEnvKeys, $targetEnvKeys)) {
             $result['warnings'][] = 'Add these to .env (values are never copied): ' . implode(', ', $missing);
         }
 
