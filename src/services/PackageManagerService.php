@@ -340,8 +340,13 @@ class PackageManagerService extends Component
 
             // NOTE: Install does NOT link to Matrix. User must click "Enable" to do that.
 
-            // 2. Update status
-            $record->status = 'installed';
+            // 2. Update status. Re-installing an enabled or disabled package
+            // (Sync From Source, Review & Update, library/sync-sections) keeps
+            // that status: it is still linked to the page builder, and
+            // dropping it to 'installed' hid it from the Content Browser.
+            if (!in_array($record->status, ['enabled', 'disabled'], true)) {
+                $record->status = 'installed';
+            }
             if (!$record->save()) {
                 throw new \Exception("Could not save package status.");
             }
