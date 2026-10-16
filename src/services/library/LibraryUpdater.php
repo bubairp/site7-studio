@@ -459,28 +459,37 @@ class LibraryUpdater extends Component
     /**
      * What SiteKitContent::signatures() needs to read a content directory as
      * this site would hold it now: the field layout element UIDs this site
-     * has, and the elements it references that are trashed or missing here.
+     * has, and the elements it references that this site can't hold there
+     * any more - trashed or missing here, or of a type the field no longer
+     * relates to (blog categories became entries, docs/43 #65).
      */
     private static function asOnThisSite(string $contentDir): array
     {
         $fieldKeys = [];
+        $relatesTo = []; // layout element UID or field UID => element type a relation field holds
         foreach (Craft::$app->getFields()->getAllLayouts() as $layout) {
             foreach ($layout->getCustomFieldElements() as $element) {
                 $fieldKeys[$element->uid] = true;
+                $field = $element->getField();
+                if ($field instanceof \craft\fields\BaseRelationField) {
+                    $relatesTo[$element->uid] = $field::elementType();
+                    $relatesTo[$field->uid] = $field::elementType();
+                }
             }
         }
 
-        $referenced = [];
+        $referenced = []; // id => element types the referencing fields hold (null: unknown)
         foreach (json_decode((string)@file_get_contents("{$contentDir}/tables/relations.json"), true) ?: [] as $row) {
-            $referenced[(int)$row['targetId']] = true;
+            $fieldUid = is_string($row['fieldId'] ?? null) && str_starts_with($row['fieldId'], '@uid:') ? substr($row['fieldId'], 5) : null;
+            $referenced[(int)$row['targetId']][] = $fieldUid !== null ? ($relatesTo[$fieldUid] ?? null) : null;
         }
         foreach (json_decode((string)@file_get_contents("{$contentDir}/tables/elements_sites.json"), true) ?: [] as $row) {
             $decoded = is_string($row['content'] ?? null) ? (json_decode($row['content'], true) ?: []) : [];
-            foreach ($decoded as $value) {
+            foreach ($decoded as $key => $value) {
                 if (is_array($value) && array_is_list($value)) {
                     foreach ($value as $item) {
                         if (is_int($item)) {
-                            $referenced[$item] = true;
+                            $referenced[$item][] = $relatesTo[$key] ?? null;
                         }
                     }
                 }
@@ -488,9 +497,15 @@ class LibraryUpdater extends Component
         }
         $missing = [];
         if ($referenced) {
-            $alive = (new \craft\db\Query())->select(['id'])->from('{{%elements}}')
-                ->where(['id' => array_keys($referenced), 'dateDeleted' => null])->column();
-            $missing = array_diff_key($referenced, array_flip(array_map('intval', $alive)));
+            $types = (new \craft\db\Query())->select(['id', 'type'])->from('{{%elements}}')
+                ->where(['id' => array_keys($referenced), 'dateDeleted' => null])->pairs();
+            foreach ($referenced as $id => $fieldTypes) {
+                $type = $types[$id] ?? null;
+                $fits = fn($fieldType) => $fieldType === null || is_a((string)$type, $fieldType, true);
+                if ($type === null || !array_filter($fieldTypes, $fits)) {
+                    $missing[$id] = true;
+                }
+            }
         }
 
         return ['fieldKeys' => $fieldKeys, 'missingIds' => $missing];
