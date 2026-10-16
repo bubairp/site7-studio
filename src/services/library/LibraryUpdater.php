@@ -457,6 +457,46 @@ class LibraryUpdater extends Component
     }
 
     /**
+     * What SiteKitContent::signatures() needs to read a content directory as
+     * this site would hold it now: the field layout element UIDs this site
+     * has, and the elements it references that are trashed or missing here.
+     */
+    private static function asOnThisSite(string $contentDir): array
+    {
+        $fieldKeys = [];
+        foreach (Craft::$app->getFields()->getAllLayouts() as $layout) {
+            foreach ($layout->getCustomFieldElements() as $element) {
+                $fieldKeys[$element->uid] = true;
+            }
+        }
+
+        $referenced = [];
+        foreach (json_decode((string)@file_get_contents("{$contentDir}/tables/relations.json"), true) ?: [] as $row) {
+            $referenced[(int)$row['targetId']] = true;
+        }
+        foreach (json_decode((string)@file_get_contents("{$contentDir}/tables/elements_sites.json"), true) ?: [] as $row) {
+            $decoded = is_string($row['content'] ?? null) ? (json_decode($row['content'], true) ?: []) : [];
+            foreach ($decoded as $value) {
+                if (is_array($value) && array_is_list($value)) {
+                    foreach ($value as $item) {
+                        if (is_int($item)) {
+                            $referenced[$item] = true;
+                        }
+                    }
+                }
+            }
+        }
+        $missing = [];
+        if ($referenced) {
+            $alive = (new \craft\db\Query())->select(['id'])->from('{{%elements}}')
+                ->where(['id' => array_keys($referenced), 'dateDeleted' => null])->column();
+            $missing = array_diff_key($referenced, array_flip(array_map('intval', $alive)));
+        }
+
+        return ['fieldKeys' => $fieldKeys, 'missingIds' => $missing];
+    }
+
+    /**
      * The page (entry UID) each Template package installed here builds.
      *
      * @return array<string, string> handle => entryUid
@@ -521,7 +561,9 @@ class LibraryUpdater extends Component
             $liveTables = SiteKitContent::pluginTableSignatures("{$liveDir}/content", $pluginTables);
             FileHelper::removeDirectory($liveDir);
         }
-        $base = SiteKitContent::signatures("{$baseline}/content");
+        // The installed version as this site would hold it now: fields and
+        // elements an earlier update removed here aren't the customer's edits.
+        $base = SiteKitContent::signatures("{$baseline}/content", self::asOnThisSite("{$baseline}/content"));
         $incoming = SiteKitContent::signatures("{$dir}/content");
         // Named as installed: "kept your version" refers to what this site had.
         $titles = self::titles("{$baseline}/content") + self::titles("{$dir}/content");

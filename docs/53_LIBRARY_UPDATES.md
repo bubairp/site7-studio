@@ -32,6 +32,8 @@ Every item of a package is checked separately: each file, each field / entry typ
 
 JSON text is compared by value, not by text: MySQL's JSON column reformats it, while rp-craft stores compact text. Without this, every page looked edited.
 
+Field values (`comparableContent()`, 2026-10-16, `43` #65): an empty value (`null`, `''`, `[]`, `false`) counts as no value, since Craft writes one for every layout field whenever an entry is saved. The **installed version** is read as this site would hold it now (`LibraryUpdater::asOnThisSite()`): values of fields the site no longer has and references to elements trashed or missing here are left out, along with their relation rows. What an earlier update changed on the site is then not mistaken for the customer's edit.
+
 ## 3. Author side
 
 `library/publish` (`52` §3) versions through the plugin's one versioning path (CLAUDE.md invariant 3):

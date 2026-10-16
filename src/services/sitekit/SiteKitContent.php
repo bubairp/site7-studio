@@ -397,10 +397,13 @@ class SiteKitContent extends Component
      * content exported from a site it was installed on: site IDs and site
      * references in text are normalised (a Theme maps the source site to
      * the target's primary site), folder IDs and timestamps are left out.
+     * Field values compare through comparableContent().
      *
+     * @param array|null $asOnThisSite ['fieldKeys' => [uid => true], 'missingIds' => [id => true]]:
+     *   read an older version as this site would hold it now (relations to missing elements left out too)
      * @return array<int, string> element ID => hash
      */
-    public static function signatures(string $contentDir): array
+    public static function signatures(string $contentDir, ?array $asOnThisSite = null): array
     {
         $rowsByElement = [];
         foreach (self::CORE_TABLES as $table => $rules) {
@@ -410,6 +413,12 @@ class SiteKitContent extends Component
             $file = "{$contentDir}/tables/{$table}.json";
             foreach (is_file($file) ? (json_decode((string)file_get_contents($file), true) ?: []) : [] as $row) {
                 $elementId = (int)$row[$rules['filter'][0]];
+                if ($table === 'relations' && isset($asOnThisSite['missingIds'][(int)$row['targetId']])) {
+                    continue;
+                }
+                if ($table === 'elements_sites' && is_string($row['content'] ?? null) && is_array($decoded = json_decode($row['content'], true))) {
+                    $row['content'] = self::canonicalJson(self::comparableContent($decoded, $asOnThisSite['fieldKeys'] ?? null, $asOnThisSite['missingIds'] ?? []));
+                }
                 unset($row['id']);
                 foreach (self::VOLATILE_COLUMNS as $column) {
                     unset($row[$column]);
@@ -474,6 +483,47 @@ class SiteKitContent extends Component
         }
 
         return $hashes;
+    }
+
+    /**
+     * Field values (elements_sites.content) as compared, not as stored. An
+     * empty value (null, '', [], false) counts as no value: Craft writes them
+     * for every field in the layout when an element is saved, so a save with
+     * no change made an untouched page look edited (docs/43 #32). With
+     * $fieldKeys (the layout element UIDs this site has), values of fields
+     * this site no longer has are left out; IDs in $missingIds (elements
+     * trashed or missing here) are left out of reference lists. Both describe
+     * an older version as it would be on this site now (docs/53 §1).
+     *
+     * @param array<string, true>|null $fieldKeys
+     * @param array<int, true> $missingIds
+     */
+    public static function comparableContent(array $content, ?array $fieldKeys = null, array $missingIds = []): array
+    {
+        $clean = function($value) use (&$clean, $missingIds) {
+            if (!is_array($value)) {
+                return $value;
+            }
+            $isList = array_is_list($value);
+            $out = [];
+            foreach ($value as $key => $item) {
+                if ($isList && is_int($item) && isset($missingIds[$item])) {
+                    continue;
+                }
+                $item = $clean($item);
+                if ($item === null || $item === '' || $item === [] || $item === false) {
+                    continue;
+                }
+                $out[$key] = $item;
+            }
+
+            return $isList ? array_values($out) : $out;
+        };
+        if ($fieldKeys !== null) {
+            $content = array_intersect_key($content, $fieldKeys);
+        }
+
+        return $clean($content);
     }
 
     private static function canonicalJson(array $data): string
