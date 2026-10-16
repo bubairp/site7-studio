@@ -1121,8 +1121,27 @@ class SiteKitContent extends Component
             }
         }
         $rows = $this->withoutExisting('relations', $rows, 'sourceId', []);
+        // The same link can be here under another UID (made on this site, or
+        // by an earlier version): adding it again doubled it (docs/43 #65).
+        $rows = array_values(array_filter($rows, fn($row) => !self::sameRelationExists($row)));
 
         return $this->insertRows('relations', $rows, array_keys(self::CORE_TABLES['relations']['structural']), $resolve, $resolveUid);
+    }
+
+    /** Whether this site already relates the row's source to its target through the same field. */
+    private static function sameRelationExists(array $row): bool
+    {
+        $fieldId = $row['fieldId'] ?? null;
+        if (is_string($fieldId) && str_starts_with($fieldId, '@uid:')) {
+            $fieldId = Craft::$app->getFields()->getFieldByUid(substr($fieldId, 5))?->id;
+        }
+        if (!$fieldId) {
+            return false;
+        }
+
+        return (new Query())->from('{{%relations}}')
+            ->where(['fieldId' => (int)$fieldId, 'sourceId' => (int)$row['sourceId'], 'targetId' => (int)$row['targetId']])
+            ->exists();
     }
 
     /**

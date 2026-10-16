@@ -605,6 +605,13 @@ class LibraryUpdater extends Component
                 }
                 continue;
             }
+            if ($b === null && $l === 'outside-scope') {
+                // New to this package but already on this site, outside it: an
+                // image or entry another page uses. Left as it is; the
+                // package's links to it still arrive (not the customer's edit).
+                $report['unchanged']++;
+                continue;
+            }
             $decision = self::decide($b, $l, $i);
             if ($decision === 'apply') {
                 if ($l === null) {
