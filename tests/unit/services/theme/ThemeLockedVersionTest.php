@@ -35,6 +35,17 @@ class ThemeLockedVersionTest extends Unit
         $this->assertSame('5.10.8.1', $this->locked($lock, 'craftcms/cms'));
     }
 
+    public function testAnOlderSiteCraftTakesTheThemesLockANewerOneIsKept(): void
+    {
+        $this->assertFalse(ThemeInstaller::keepsSiteCraft('5.10.8.1', '5.11.5.1'));
+        $this->assertFalse(ThemeInstaller::keepsSiteCraft('5.11.5.1', '5.11.5.1'));
+        $this->assertFalse(ThemeInstaller::keepsSiteCraft('5.9.0', 'v5.11.5.1'));
+        $this->assertTrue(ThemeInstaller::keepsSiteCraft('5.11.5.1', '5.10.8.1'));
+        $this->assertTrue(ThemeInstaller::keepsSiteCraft('5.10.8.1', '5.10.8'));
+        $this->assertTrue(ThemeInstaller::keepsSiteCraft('4.14.0', '5.11.5.1'));
+        $this->assertTrue(ThemeInstaller::keepsSiteCraft('6.0.0', '5.11.5.1'));
+    }
+
     public function testMissingPackageOrFile(): void
     {
         $this->assertNull($this->locked(json_encode(['packages' => []]), 'craftcms/cms'));

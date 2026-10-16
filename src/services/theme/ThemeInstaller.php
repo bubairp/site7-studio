@@ -77,17 +77,23 @@ class ThemeInstaller extends SiteKitInstaller
     }
 
     /**
-     * Installs the Theme's Composer packages, keeping this site's own Craft
-     * version: the Theme's composer.lock pins the Craft it was built on, and
-     * a different one would up- or downgrade Craft under this site's
-     * database. Same version: `composer install` from the lock, as before.
+     * Installs the Theme's Composer packages. The Theme's composer.lock pins
+     * the Craft it was built on. A site on an older Craft of the same major
+     * version installs that lock and is upgraded to it (`craft migrate/all`
+     * follows); a site on a newer Craft, or another major version, keeps its
+     * own, since Craft must never be downgraded under a site's database.
+     * Keeping an older Craft failed once Composer's audit blocked it
+     * (Craft 5.10.8.1, docs/43 #63).
      */
     protected function installPackages(string $kit, string $root, array &$result, callable $log): bool
     {
         $kit = $this->withThisSitesPlugin($kit, $root);
         $siteCraft = Craft::$app->getVersion();
         $lockedCraft = self::lockedVersion("{$kit}/composer.lock", 'craftcms/cms');
-        if ($lockedCraft === null || ltrim($lockedCraft, 'v') === $siteCraft) {
+        if ($lockedCraft === null || !self::keepsSiteCraft($siteCraft, $lockedCraft)) {
+            if ($lockedCraft !== null && ltrim($lockedCraft, 'v') !== $siteCraft) {
+                $log("The Theme was built on Craft {$lockedCraft}; upgrading this site from Craft {$siteCraft}.");
+            }
             return parent::installPackages($kit, $root, $result, $log);
         }
 
@@ -130,6 +136,22 @@ class ThemeInstaller extends SiteKitInstaller
         file_put_contents("{$merged}/composer.lock", ComposerFiles::encode($lock));
 
         return $merged;
+    }
+
+    /**
+     * Whether a Theme install keeps this site's Craft instead of the Theme's
+     * locked one: when the site's is newer (never downgrade) or another major
+     * version. Same version or an older one of the same major: the lock wins.
+     */
+    public static function keepsSiteCraft(string $siteCraft, string $lockedCraft): bool
+    {
+        $site = ltrim($siteCraft, 'v');
+        $locked = ltrim($lockedCraft, 'v');
+        if (strtok($site, '.') !== strtok($locked, '.')) {
+            return true;
+        }
+
+        return version_compare($site, $locked, '>');
     }
 
     /** The version of $package in a composer.lock, or null. */
