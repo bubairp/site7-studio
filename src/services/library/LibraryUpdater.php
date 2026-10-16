@@ -572,7 +572,8 @@ class LibraryUpdater extends Component
         $liveTables = [];
         if ($live !== null) {
             (new SiteKitContent())->exportToDir($liveDir, $live['sectionUids'] ?? null, $pluginTables ?: false, $live['entryIds'] ?? null, false);
-            $liveSignatures = SiteKitContent::signatures("{$liveDir}/content");
+            // Its relation rows can outlive a field's type change, too.
+            $liveSignatures = SiteKitContent::signatures("{$liveDir}/content", self::asOnThisSite("{$liveDir}/content"));
             $liveTables = SiteKitContent::pluginTableSignatures("{$liveDir}/content", $pluginTables);
             FileHelper::removeDirectory($liveDir);
         }
