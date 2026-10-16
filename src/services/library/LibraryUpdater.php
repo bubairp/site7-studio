@@ -414,11 +414,34 @@ class LibraryUpdater extends Component
             if ($errors = (new LibraryDistribution())->download(array_unique($download), $log)) {
                 throw new \Exception(implode(' ', $errors));
             }
+            $installedPages = $this->installedTemplatePages();
             foreach ($newTemplates as $handle) {
+                // A page renamed on the dev site comes back under a new
+                // handle (handles follow the slug) but is the same entry.
+                // Installing it as new kept this site's page and added the
+                // new blocks into it (docs/43 #64): update it from the
+                // package this site installed it with instead.
+                $newDir = (string)$packageManager->getPackagePath($handle);
+                $entryUid = (json_decode((string)@file_get_contents("{$newDir}/" . TemplateBuilder::META_FILE), true) ?: [])['entryUid'] ?? '';
+                $oldHandle = self::pageOwner($installedPages, (string)$entryUid, $handle);
+                if ($oldHandle !== null) {
+                    $oldDir = (string)$packageManager->getPackagePath($oldHandle);
+                    $report = self::mergeReports($report, $this->applyTemplate($oldDir, $newDir, $log));
+                }
                 if (!$packageManager->installPackage($handle) || !$packageManager->enablePackage($handle)) {
                     throw new \Exception("The new page '{$handle}' could not be installed: " . implode(' ', $packageManager->getLastInstallWarnings()));
                 }
-                $report['added'][] = "page {$handle}";
+                if ($oldHandle !== null) {
+                    $old = $packageManager->getPackageByHandle($oldHandle);
+                    $old->status = 'available';
+                    $old->save();
+                    unset($installedPages[$oldHandle]);
+                    $installedPages[$handle] = $entryUid;
+                    $report['updated'][] = "page {$oldHandle} (now {$handle})";
+                    $log("Page {$oldHandle} is now {$handle}: updated in place");
+                } else {
+                    $report['added'][] = "page {$handle}";
+                }
             }
         }
 
@@ -431,6 +454,48 @@ class LibraryUpdater extends Component
         }
 
         return self::mergeReports($report, $this->applyContent($baseline, $dir, ['sectionUids' => $sectionUids], KitBuilder::PLUGIN_TABLES));
+    }
+
+    /**
+     * The page (entry UID) each Template package installed here builds.
+     *
+     * @return array<string, string> handle => entryUid
+     */
+    private function installedTemplatePages(): array
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $pages = [];
+        foreach ($packageManager->getAllPackages() as $record) {
+            if ($record->type !== 'template' || !in_array($record->status, ['installed', 'enabled'], true)) {
+                continue;
+            }
+            $meta = json_decode((string)@file_get_contents($packageManager->getPackagePath($record->handle) . '/' . TemplateBuilder::META_FILE), true) ?: [];
+            if (!empty($meta['entryUid'])) {
+                $pages[$record->handle] = $meta['entryUid'];
+            }
+        }
+
+        return $pages;
+    }
+
+    /**
+     * The installed Template package, other than $handle, that builds the
+     * page $entryUid, or null.
+     *
+     * @param array<string, string> $installedPages handle => entryUid
+     */
+    public static function pageOwner(array $installedPages, string $entryUid, string $handle): ?string
+    {
+        if ($entryUid === '') {
+            return null;
+        }
+        foreach ($installedPages as $installed => $uid) {
+            if ($uid === $entryUid && $installed !== $handle) {
+                return $installed;
+            }
+        }
+
+        return null;
     }
 
     /**

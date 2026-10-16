@@ -20,6 +20,15 @@ class LibraryUpdaterTest extends Unit
         $this->assertSame('kept', LibraryUpdater::decide('a', 'mine', 'a'), 'edited here, unchanged upstream');
     }
 
+    public function testARenamedPageIsFoundUnderItsInstalledHandle(): void
+    {
+        $installed = ['template-blogs-new-goal-4' => 'uid-a', 'template-contact' => 'uid-b'];
+        $this->assertSame('template-blogs-new-goal-4', LibraryUpdater::pageOwner($installed, 'uid-a', 'template-blogs-choosing-a-cms'));
+        $this->assertNull(LibraryUpdater::pageOwner($installed, 'uid-c', 'template-blogs-choosing-a-cms'), 'a new page');
+        $this->assertNull(LibraryUpdater::pageOwner($installed, 'uid-b', 'template-contact'), 'itself');
+        $this->assertNull(LibraryUpdater::pageOwner($installed, '', 'template-x'), 'no entry UID');
+    }
+
     public function testNothingToDo(): void
     {
         $this->assertSame('none', LibraryUpdater::decide('a', 'a', 'a'));

@@ -77,6 +77,7 @@ php craft site7-studio/library/publish [--bump=patch|minor|major] [--notes="…"
      Steps 2 and 5 run for every file the Theme changed that this site now has as the new version has it, whichever run wrote it. So a retry after a failed update still runs Composer and the build. Plugins already installed are skipped.
    - **Library Starter Kit:**
      - Templates the new version requires that aren't installed are downloaded (signed) and installed with their blocks.
+     - **A renamed page** (2026-10-16, `43` #64): a new Template handle whose page (`entryUid`) an installed Template package already builds is the same page under its new slug. It's updated from that package (Template rule above, the old package as the baseline), then the new package is recorded as installed and the old one set back to `available`.
      - Its content goes through the rule: demo entries element by element, and the menu and sitemap plugin tables each as one item (`pluginTableSignatures()`). Changing any menu item here keeps the whole menu table.
    - **Order** within one run: Theme, Sections, Templates, kit.
 5. **If downloading or applying fails,** the previous Library copy is restored, so running the update again compares against what the site really has. Items already applied then count as done.
