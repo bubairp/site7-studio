@@ -1,0 +1,111 @@
+{% extends "_layouts/cp" %}
+{% set title = "Appearance" %}
+{% set selectedSubnavItem = "appearance" %}
+
+{% set content %}
+<p class="light">A design changes how the whole site looks: templates, CSS and fonts. Content and fields stay as they are, so you can switch back at any time. Preview a design before you activate it.</p>
+
+{% if not canChange %}
+    <div class="readable" style="margin-bottom: 24px;">
+        <p class="notice"><strong>This environment is read-only.</strong> Install and activate designs on your development site, then commit <code>config/project</code> and deploy. Preview links work here.</p>
+    </div>
+{% elseif envOverride %}
+    <div class="readable" style="margin-bottom: 24px;">
+        <p class="warning"><code>SITE7_DESIGN</code> in <code>.env</code> sets the active design on this environment (<strong>{{ envOverride }}</strong>). Remove it to switch designs here.</p>
+    </div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+{% for d in designs %}
+    <div class="pane" style="margin: 0; display: flex; flex-direction: column; gap: 10px; {{ d.active ? 'box-shadow: 0 0 0 2px var(--enabled-color, #27ab83);' }}">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px;">
+            <h2 style="margin: 0;">{{ d.name }}</h2>
+            <div>
+                {% if d.active %}<span class="status-label green"><span class="status green"></span><span class="status-label-text">Active</span></span>{% endif %}
+            </div>
+        </div>
+        <p class="light" style="margin: 0;">{{ d.description }}</p>
+
+        <div class="light smalltext">
+            {% if d.handle is null %}
+                Always available
+            {% elseif d.installed %}
+                Installed {{ d.version }}{% if d.latest and d.latest != d.version %} · <strong>{{ d.latest }} available</strong>{% endif %}
+            {% elseif d.onDisk %}
+                Authored on this site (<code>designs/{{ d.handle }}</code>){% if d.latest %} · published {{ d.latest }}{% endif %}
+            {% elseif d.package %}
+                Not installed · {{ d.latest ?? '' }} · {{ d.pricingType == 'free' ? 'Free' : d.pricingType|title }}
+            {% endif %}
+        </div>
+
+        {% if d.package and not d.entitled %}
+            <p class="error smalltext" style="margin: 0;">Not in your plan or purchases.{% if d.active %} It keeps working, without updates.{% endif %}</p>
+        {% endif %}
+        {% if d.theme and not d.themeMatches %}
+            <p class="warning smalltext" style="margin: 0;">Built on {{ d.theme.handle }} {{ d.theme.version }}; this site has a different Theme version. Check it with Preview.</p>
+        {% endif %}
+        {% if d.changedBases is not empty %}
+            <p class="warning smalltext" style="margin: 0;">These templates changed since the design was built, and the design's copy hides the change: {{ d.changedBases|join(', ') }}</p>
+        {% endif %}
+        {% if d.installed and d.handle and not d.onDisk %}
+            <p class="error smalltext" style="margin: 0;"><code>designs/{{ d.handle }}</code> is missing on this site.</p>
+        {% endif %}
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 8px;">
+            {% if d.handle and (d.installed or d.onDisk) %}
+                <a class="btn" target="_blank" rel="noopener" href="{{ actionUrl('site7-studio/appearance/preview', { design: d.handle }) }}">Preview</a>
+            {% endif %}
+
+            {% if canChange and not envOverride and not d.active and (d.handle is null or d.onDisk) and (d.entitled or d.handle is null) %}
+                <form method="post">
+                    {{ csrfInput() }}{{ actionInput('site7-studio/appearance/activate') }}
+                    <input type="hidden" name="design" value="{{ d.handle ?? 'default' }}">
+                    <button class="btn submit" type="submit">Activate</button>
+                </form>
+            {% endif %}
+
+            {% if canChange and d.package %}
+                {% if not d.installed %}
+                    {# Files already on disk without an install: authored here (rp-craft) - never overwrite the source. #}
+                    {% if d.entitled and not d.onDisk %}
+                        <form method="post">
+                            {{ csrfInput() }}{{ actionInput('site7-studio/appearance/install') }}
+                            <input type="hidden" name="package" value="{{ d.package }}">
+                            <button class="btn" type="submit">Install</button>
+                        </form>
+                    {% endif %}
+                {% else %}
+                    {% if d.latest and d.latest != d.version and d.entitled %}
+                        <form method="post">
+                            {{ csrfInput() }}{{ actionInput('site7-studio/appearance/update') }}
+                            <input type="hidden" name="package" value="{{ d.package }}">
+                            <button class="btn" type="submit">Update to {{ d.latest }}</button>
+                        </form>
+                    {% endif %}
+                    {% set others = (versions[d.package] ?? [])|filter(v => v != d.version) %}
+                    {% if others is not empty and d.entitled %}
+                        <form method="post" style="display: flex; gap: 4px;">
+                            {{ csrfInput() }}{{ actionInput('site7-studio/appearance/version') }}
+                            <input type="hidden" name="package" value="{{ d.package }}">
+                            <div class="select"><select name="version" aria-label="Version">
+                                {% for v in others %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+                            </select></div>
+                            <button class="btn" type="submit">Use version</button>
+                        </form>
+                    {% endif %}
+                    {% if not d.active %}
+                        <form method="post" onsubmit="return confirm('Remove {{ d.name|e('js') }}? Files you edited stay.');">
+                            {{ csrfInput() }}{{ actionInput('site7-studio/appearance/remove') }}
+                            <input type="hidden" name="package" value="{{ d.package }}">
+                            <button class="btn" type="submit">Remove</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+{% endfor %}
+</div>
+
+<p class="light smalltext" style="margin-top: 24px;">Files you edit in a design (in <code>designs/&lt;handle&gt;</code>) are kept when it's updated or changes version. After activating, commit <code>config/project</code> and deploy; each server builds the design's CSS with <code>npm run build</code>.</p>
+{% endset %}

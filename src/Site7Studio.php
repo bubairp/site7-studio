@@ -114,6 +114,8 @@ class Site7Studio extends Plugin
             $this->attachEventHandlers();
             // Page requests render the active design (docs/60)
             \site7\studio\services\design\DesignLoader::register();
+            // A deploy that changes the active design clears template caches
+            \site7\studio\services\design\DesignService::registerProjectConfigListener();
         });
     }
 
@@ -352,6 +354,8 @@ class Site7Studio extends Plugin
                 $event->rules['site7-studio/install/summary/<sessionUid:[\w-]+>'] = 'site7-studio/install-wizard/summary';
                 // Synchronization & Update Engine (Phase 8) - same convention as Phase 7's wizard above.
                 $event->rules['site7-studio/update'] = 'site7-studio/update-wizard/index';
+                // Switchable designs (docs/60 §4c); POST actions use the action param.
+                $event->rules['site7-studio/appearance'] = 'site7-studio/appearance/index';
                 $event->rules['site7-studio/update/summary/<sessionUid:[\w-]+>'] = 'site7-studio/update-wizard/summary';
                 // Full Site Kit (docs/48 §11) - POST actions use the action param.
                 $event->rules['site7-studio/site-kits'] = 'site7-studio/site-kits/index';

@@ -85,9 +85,21 @@ All of these run on the development site only (`allowAdminChanges`, `DesignInsta
 
 Verified 2026-10-22 on site7-qa (Theme 1.3.1, the stand-in): versions listed; installed from Commerce24 (signature `c24-local`, 3 + 35 files, 3 baseline rows); a preview link renders Canopy, 14 pages 200; remove kept an edited `DESIGN.md` and deleted the rest; reinstall kept it again; an unsigned design archive is refused. With 0.1.1 published (a changed `canopy.css` and `DESIGN.md`): `library/updates` lists it; the update changed `canopy.css` and the build and kept the edited `DESIGN.md` ("kept your version"); `design/version … 0.1.0` went back with the same result, and forward again; no backup folder left behind.
 
+## 4c. Appearance screen (phase 4, 2026-10-22)
+
+Site7 Studio → **Appearance** (`site7-studio/appearance`, `AppearanceController`, permission `manageDesigns`, template `appearance/index.twig`, model `DesignService::designs()`): one card per design: the default first, then designs in the Library (installed, or authored here in `designs/<handle>`), then designs the Commerce24 catalog offers. Each card shows the version (installed / latest), plan status, and warnings: built on another Theme version; base templates that changed since the design was built (`DesignService::changedBases()` over `design.json` `overrides`, the design's copy hides those changes); `designs/<handle>` missing.
+
+Actions:
+- **Preview**: `appearance/preview` redirects to a signed 24-hour preview link (works on read-only servers).
+- **Activate** (immediate, `DesignService::activate()`): refused when admin changes are off, when `SITE7_DESIGN` overrides the setting, when the design isn't on disk, and for a paid design no longer in the plan unless it's already the active one. Saves `activeDesign` with `Settings::mergeWithStored()` and clears template caches (`TagDependency::invalidate(cache, 'template')` + element caches), then fires `DesignService::EVENT_AFTER_ACTIVATE_DESIGN`. `DesignService::registerProjectConfigListener()` clears the same caches when a deploy (`craft up`) applies a changed `activeDesign`.
+- **Install / Update to … / Use version / Remove**: background jobs (`siteKitJobs->start()` with the console commands of §4b) with the live progress page, like Library updates. Install shows only when the design isn't on disk, so a design authored on this site is never overwritten.
+- Read-only environments show the list and Preview, with "install and activate on your development site, then deploy".
+
+Verified 2026-10-22 on rp-craft in headless Chromium (logged in with `users/impersonate`): the screen renders; Activate on Canopy saved `activeDesign: canopy` and the site switched to Canopy's build; Activate on Default switched back.
+
 ## 5. Important classes
 
-`services/design/DesignLoader` (`register()`, `resolve()`, `validHandle()`, `previewUrl()`, `previewHandle()`), `services/design/DesignInstaller` (`install()`, `remove()`, `replaceBuild()`), `services/design/DesignUpdater` (`apply()`), `LibraryUpdater::changeVersion()`, `services/design/DesignBuilder` (`build()`, `forbiddenFiles()`, `isAllowedFile()`, `overrides()`, `entries()`, `frontendHash()`), `models/packages/DesignPackage`, `models/Settings::$activeDesign`, `console/controllers/DesignController` (`preview-url`, `build`, `versions`), `LibraryDistribution::versions()`. Tests: `tests/unit/services/design/DesignLoaderTest`, `DesignBuilderTest`.
+`services/design/DesignLoader` (`register()`, `resolve()`, `validHandle()`, `previewUrl()`, `previewHandle()`), `services/design/DesignService` (`designs()`, `activate()`, `clearCaches()`, `changedBases()`), `controllers/AppearanceController`, `services/design/DesignInstaller` (`install()`, `remove()`, `replaceBuild()`), `services/design/DesignUpdater` (`apply()`), `LibraryUpdater::changeVersion()`, `services/design/DesignBuilder` (`build()`, `forbiddenFiles()`, `isAllowedFile()`, `overrides()`, `entries()`, `frontendHash()`), `models/packages/DesignPackage`, `models/Settings::$activeDesign`, `console/controllers/DesignController` (`preview-url`, `build`, `versions`), `LibraryDistribution::versions()`. Tests: `tests/unit/services/design/DesignLoaderTest`, `DesignBuilderTest`.
 
 ## 6. Known limitations
 
@@ -98,5 +110,5 @@ Verified 2026-10-22 on site7-qa (Theme 1.3.1, the stand-in): versions listed; in
 
 2. ~~Package type `design`~~ (done, §4a). Still open: the versions endpoint in the Laravel Commerce24 app.
 3. ~~`DesignInstaller` / `DesignUpdater`, signature required~~ (done and verified, §4b).
-4. Appearance screen (list, preview, activate with cache clearing).
+4. ~~Appearance screen~~ (done, §4c).
 5. `release.sh`, `build-packs.sh`, `deploy.sh`; live tests on site7-qa.

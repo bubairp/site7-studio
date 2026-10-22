@@ -65,6 +65,7 @@ class CpSubscriber implements EventSubscriberInterface
         $subnav = [
             'dashboard' => ['label' => 'Dashboard', 'url' => 'site7-studio'],
             'library' => ['label' => 'Library', 'url' => 'site7-studio/library'],
+            'appearance' => ['label' => 'Appearance', 'url' => 'site7-studio/appearance'],
             'install' => ['label' => 'Install', 'url' => 'site7-studio/install'],
             'update' => ['label' => 'Updates', 'url' => 'site7-studio/update'],
             'commerce' => ['label' => 'Account & License', 'url' => 'site7-studio/commerce'],
@@ -109,6 +110,7 @@ class CpSubscriber implements EventSubscriberInterface
             'manageMarketplace' => 'Manage Marketplace',
             'managePackages' => 'Manage Packages',
             'manageUpdates' => 'Manage Updates',
+            'manageDesigns' => 'Manage Designs (Appearance)',
             'manageTeam' => 'Manage Team',
         ] as $handle => $label) {
             $event->registry->registerPermission('Site7 Studio', $handle, ['label' => $label]);
