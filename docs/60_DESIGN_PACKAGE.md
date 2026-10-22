@@ -83,7 +83,7 @@ All of these run on the development site only (`allowAdminChanges`, `DesignInsta
 - **Signed only.** `PackageImportService::checkSignature()` refuses any archive containing a `design` that isn't signed by a trusted key, on every path in (download, upload, local repository). Uploading one (`MarketplaceController::actionImportUpload()`) also needs an admin in Dev Mode.
 - **A design that only restyles** has no `templates/` after install (archives drop empty folders): the loader recognises a design by `designs/<h>/design.json` and then only swaps the CSS/JS.
 
-Verified 2026-10-22 on site7-qa (Theme 1.3.1, the stand-in): versions listed; installed from Commerce24 (signature `c24-local`, 3 + 35 files, 3 baseline rows); a preview link renders Canopy, 14 pages 200; remove kept an edited `DESIGN.md` and deleted the rest; reinstall kept it again; an unsigned design archive is refused.
+Verified 2026-10-22 on site7-qa (Theme 1.3.1, the stand-in): versions listed; installed from Commerce24 (signature `c24-local`, 3 + 35 files, 3 baseline rows); a preview link renders Canopy, 14 pages 200; remove kept an edited `DESIGN.md` and deleted the rest; reinstall kept it again; an unsigned design archive is refused. With 0.1.1 published (a changed `canopy.css` and `DESIGN.md`): `library/updates` lists it; the update changed `canopy.css` and the build and kept the edited `DESIGN.md` ("kept your version"); `design/version … 0.1.0` went back with the same result, and forward again; no backup folder left behind.
 
 ## 5. Important classes
 
@@ -97,6 +97,6 @@ Verified 2026-10-22 on site7-qa (Theme 1.3.1, the stand-in): versions listed; in
 ## 7. Planned phases
 
 2. ~~Package type `design`~~ (done, §4a). Still open: the versions endpoint in the Laravel Commerce24 app.
-3. ~~`DesignInstaller` / `DesignUpdater`, signature required~~ (done, §4b). Still to verify live: an update and a version change between two published versions with a customer edit.
+3. ~~`DesignInstaller` / `DesignUpdater`, signature required~~ (done and verified, §4b).
 4. Appearance screen (list, preview, activate with cache clearing).
 5. `release.sh`, `build-packs.sh`, `deploy.sh`; live tests on site7-qa.
