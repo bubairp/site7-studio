@@ -428,7 +428,9 @@ class LibraryUpdater extends Component
                     $oldDir = (string)$packageManager->getPackagePath($oldHandle);
                     $report = self::mergeReports($report, $this->applyTemplate($oldDir, $newDir, $log));
                 }
-                if (!$packageManager->installPackage($handle) || !$packageManager->enablePackage($handle)) {
+                // A renamed page's content went through the rule above; importing
+                // it again would add back the blocks of a page kept whole.
+                if (!$packageManager->installPackage($handle, $oldHandle === null) || !$packageManager->enablePackage($handle)) {
                     throw new \Exception("The new page '{$handle}' could not be installed: " . implode(' ', $packageManager->getLastInstallWarnings()));
                 }
                 if ($oldHandle !== null) {
@@ -554,6 +556,67 @@ class LibraryUpdater extends Component
     }
 
     /**
+     * Each nested entry's owner (a block's page, a nested block's block) in
+     * a content directory.
+     *
+     * @return array<int, int> element ID => owner ID
+     */
+    private static function owners(string $contentDir): array
+    {
+        $owners = [];
+        foreach (json_decode((string)@file_get_contents("{$contentDir}/tables/entries.json"), true) ?: [] as $row) {
+            if (!empty($row['primaryOwnerId'])) {
+                $owners[(int)$row['id']] = (int)$row['primaryOwnerId'];
+            }
+        }
+
+        return $owners;
+    }
+
+    /**
+     * The top-level element (the page) an element belongs to: itself when it
+     * has no owner.
+     *
+     * @param array<int, int> $ownerOf element ID => owner ID
+     */
+    public static function pageOf(int $id, array $ownerOf): int
+    {
+        $seen = [];
+        while (isset($ownerOf[$id]) && !isset($seen[$id])) {
+            $seen[$id] = true;
+            $id = $ownerOf[$id];
+        }
+
+        return $id;
+    }
+
+    /**
+     * Pages with blocks in which any element is kept as edited here. Their
+     * other elements aren't updated either, so the page stays as the
+     * customer has it. An element without blocks keeps the per-element rule.
+     *
+     * @param array<int, string> $actions element ID => insert | replace | trash | kept | kept-removed | none
+     * @param array<int, int> $ownerOf element ID => owner ID
+     * @return array<int, true> page ID => true
+     */
+    public static function pagesKeptWhole(array $actions, array $ownerOf): array
+    {
+        $hasBlocks = [];
+        $edited = [];
+        foreach ($actions as $id => $action) {
+            $page = self::pageOf($id, $ownerOf);
+            if ($page !== $id) {
+                $hasBlocks[$page] = true;
+            }
+            if ($action === 'kept' || $action === 'kept-removed') {
+                $edited[$page] = true;
+            }
+        }
+
+        return array_intersect_key($edited, $hasBlocks);
+    }
+
+    /**
      * Content elements and plugin tables through the rule. $live says what
      * to export as this site's current state: ['entryIds' => [...]] or
      * ['sectionUids' => [...]] (null: nothing here yet).
@@ -570,13 +633,16 @@ class LibraryUpdater extends Component
         $liveDir = Craft::$app->getRuntimePath() . '/site7-library-live-' . \craft\helpers\StringHelper::randomString(6);
         $liveSignatures = [];
         $liveTables = [];
+        $ownerOf = [];
         if ($live !== null) {
             (new SiteKitContent())->exportToDir($liveDir, $live['sectionUids'] ?? null, $pluginTables ?: false, $live['entryIds'] ?? null, false);
             // Its relation rows can outlive a field's type change, too.
             $liveSignatures = SiteKitContent::signatures("{$liveDir}/content", self::asOnThisSite("{$liveDir}/content"));
             $liveTables = SiteKitContent::pluginTableSignatures("{$liveDir}/content", $pluginTables);
+            $ownerOf = self::owners("{$liveDir}/content");
             FileHelper::removeDirectory($liveDir);
         }
+        $ownerOf += self::owners("{$baseline}/content") + self::owners("{$dir}/content");
         // The installed version as this site would hold it now: fields and
         // elements an earlier update removed here aren't the customer's edits.
         $base = SiteKitContent::signatures("{$baseline}/content", self::asOnThisSite("{$baseline}/content"));
@@ -584,48 +650,68 @@ class LibraryUpdater extends Component
         // Named as installed: "kept your version" refers to what this site had.
         $titles = self::titles("{$baseline}/content") + self::titles("{$dir}/content");
 
-        $insert = [];
-        $replace = [];
-        $trash = [];
+        $actions = []; // id => insert | replace | trash | kept | kept-removed | none
         foreach (array_unique(array_merge(array_keys($base), array_keys($incoming))) as $id) {
             if (isset($skipSet[$id])) {
                 continue;
             }
-            $label = $titles[$id] ?? "element #{$id}";
             $b = $base[$id] ?? null;
             $l = $liveSignatures[$id] ?? (self::elementExists($id) ? 'outside-scope' : null);
             $i = $incoming[$id] ?? null;
 
             if ($i === null) {
-                if ($b !== null && $l === $b) {
-                    $trash[] = $id;
-                    $report['trashed'][] = $label;
-                } elseif ($l !== null && $l !== $b) {
-                    $report['kept'][] = "{$label} (removed upstream, edited here)";
-                }
+                $actions[$id] = $b !== null && $l === $b ? 'trash' : ($l !== null && $l !== $b ? 'kept-removed' : 'none');
                 continue;
             }
             if ($b === null && $l === 'outside-scope') {
                 // New to this package but already on this site, outside it: an
                 // image or entry another page uses. Left as it is; the
                 // package's links to it still arrive (not the customer's edit).
-                $report['unchanged']++;
+                $actions[$id] = 'none';
                 continue;
             }
             $decision = self::decide($b, $l, $i);
-            if ($decision === 'apply') {
-                if ($l === null) {
-                    $insert[] = $id;
-                    $report['added'][] = $label;
-                } else {
-                    $replace[] = $id;
-                    $report['updated'][] = $label;
-                }
-            } elseif ($decision === 'kept') {
+            $actions[$id] = $decision === 'apply' ? ($l === null ? 'insert' : 'replace') : $decision;
+        }
+
+        // A page is kept whole when any part of it was edited here: updating
+        // only the parts the customer didn't touch could put their title over
+        // a different article (docs/53 §2).
+        $keptPages = self::pagesKeptWhole($actions, $ownerOf);
+        $notApplied = array_fill_keys(array_keys($keptPages), 0);
+        foreach ($actions as $id => $action) {
+            $page = self::pageOf($id, $ownerOf);
+            if (isset($keptPages[$page]) && $action !== 'none') {
+                $notApplied[$page] += in_array($action, ['insert', 'replace', 'trash'], true) ? 1 : 0;
+                $actions[$id] = 'page-kept';
+            }
+        }
+
+        $insert = [];
+        $replace = [];
+        $trash = [];
+        foreach ($actions as $id => $action) {
+            $label = $titles[$id] ?? "element #{$id}";
+            if ($action === 'insert') {
+                $insert[] = $id;
+                $report['added'][] = $label;
+            } elseif ($action === 'replace') {
+                $replace[] = $id;
+                $report['updated'][] = $label;
+            } elseif ($action === 'trash') {
+                $trash[] = $id;
+                $report['trashed'][] = $label;
+            } elseif ($action === 'kept') {
                 $report['kept'][] = $label;
-            } else {
+            } elseif ($action === 'kept-removed') {
+                $report['kept'][] = "{$label} (removed upstream, edited here)";
+            } elseif ($action === 'none') {
                 $report['unchanged']++;
             }
+        }
+        foreach ($notApplied as $page => $count) {
+            $report['kept'][] = ($titles[$page] ?? "element #{$page}") . ' (whole page: edited here'
+                . ($count ? ", {$count} upstream " . ($count === 1 ? 'change' : 'changes') . ' not applied' : '') . ')';
         }
 
         $baseTables = SiteKitContent::pluginTableSignatures("{$baseline}/content", $pluginTables);

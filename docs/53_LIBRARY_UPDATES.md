@@ -23,6 +23,8 @@ Every item of a package is checked separately: each file, each field / entry typ
 | — (new item) | added | **added**, unless something different already exists there (then kept) |
 | unchanged | removed | content: **moved to the trash** (restorable); structure: kept |
 
+**A page is kept whole (2026-10-22).** Content elements are grouped by their page: a block's `primaryOwnerId` leads to its page, a nested block's to its block (`LibraryUpdater::pagesKeptWhole()`). When any element of a page is kept as edited here (the page's title or any of its blocks), none of that page's elements are updated, added or trashed, and the report says `"Title" (whole page: edited here, N upstream changes not applied)`. Before this, a customer's edited title stayed while the author's replaced blocks arrived beneath it (a renamed blog post showed the customer's title over a different article). Elements without blocks (images, tags, categories) keep the per-element rule. This also applies to the Theme's settings singles (header, footer): one edited block keeps the whole single.
+
 **Shared fields.** The Theme carries every field (`49` §2), and blocks share fields (`plainText` is in many). So a field's live config may be what the Theme or another block installed, not this package's version. Live counts as **untouched** when it matches what **any** installed Library package ships for that item (`libraryConfigHashes()`).
 
 **Content comparison** (`SiteKitContent::signatures()`): one hash per element over its rows in the core content tables, excluding:
@@ -79,7 +81,7 @@ php craft site7-studio/library/publish [--bump=patch|minor|major] [--notes="…"
      Steps 2 and 5 run for every file the Theme changed that this site now has as the new version has it, whichever run wrote it. So a retry after a failed update still runs Composer and the build. Plugins already installed are skipped.
    - **Library Starter Kit:**
      - Templates the new version requires that aren't installed are downloaded (signed) and installed with their blocks.
-     - **A renamed page** (2026-10-16, `43` #64): a new Template handle whose page (`entryUid`) an installed Template package already builds is the same page under its new slug. It's updated from that package (Template rule above, the old package as the baseline), then the new package is recorded as installed and the old one set back to `available`.
+     - **A renamed page** (2026-10-16, `43` #64): a new Template handle whose page (`entryUid`) an installed Template package already builds is the same page under its new slug. It's updated from that package (Template rule above, the old package as the baseline), then the new package is recorded as installed (`installPackage($handle, false)`: its content isn't imported again, which would add back the blocks of a page kept whole, §2) and the old one set back to `available`.
      - Its content goes through the rule: demo entries element by element, and the menu and sitemap plugin tables each as one item (`pluginTableSignatures()`). Changing any menu item here keeps the whole menu table.
    - **Order** within one run: Theme, Sections, Templates, kit.
 5. **If downloading or applying fails,** the previous Library copy is restored, so running the update again compares against what the site really has. Items already applied then count as done.
@@ -118,7 +120,7 @@ php craft site7-studio/library/publish [--bump=patch|minor|major] [--notes="…"
 
 ## 6. Known limitations
 
-- **No merge within one item.** When the customer edited an element or a field config, the whole item is kept, even if the author changed a different part of it.
+- **No merge within one item.** When the customer edited an element or a field config, the whole item is kept, even if the author changed a different part of it. For content the item is the whole page with its blocks (§2).
 - **Structure removed upstream** (a field dropped from a block) is never deleted.
 - **No rollback command.** Use the database backup and `library-baselines/`.
 - **Sections are updated one package at a time.** A field shared by several packages takes the version of whichever is updated last, unless the customer changed it.

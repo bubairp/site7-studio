@@ -161,8 +161,12 @@ class PackageManagerService extends Component
 
     /**
      * Installs a package.
+     *
+     * @param bool $withContent false: a Template or Starter Kit package's
+     * content isn't imported (a library update already applied it through
+     * the update rule, docs/53 §4)
      */
-    public function installPackage(string $handle): bool
+    public function installPackage(string $handle, bool $withContent = true): bool
     {
         $this->_lastInstallWarnings = [];
         $this->_lastInstallError = null;
@@ -331,10 +335,10 @@ class PackageManagerService extends Component
                 $this->installOwnedFiles($record, $packagePath);
             }
 
-            if ($record->type === 'template' && TemplateInstaller::isFormatV2($packagePath)) {
+            if ($withContent && $record->type === 'template' && TemplateInstaller::isFormatV2($packagePath)) {
                 (new TemplateInstaller())->installContent($packagePath);
             }
-            if ($record->type === 'starter-kit' && KitInstaller::isFormatV2($packagePath)) {
+            if ($withContent && $record->type === 'starter-kit' && KitInstaller::isFormatV2($packagePath)) {
                 (new KitInstaller())->installContent($record, $packagePath);
             }
 
