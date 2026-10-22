@@ -5,6 +5,7 @@ namespace site7\studio\console\controllers;
 use craft\console\Controller;
 use site7\studio\services\design\DesignBuilder;
 use site7\studio\services\design\DesignLoader;
+use site7\studio\services\design\DesignService;
 use site7\studio\services\design\DesignInstaller;
 use site7\studio\services\library\LibraryDistribution;
 use site7\studio\services\library\LibraryUpdater;
@@ -138,6 +139,24 @@ class DesignController extends Controller
             return ExitCode::UNSPECIFIED_ERROR;
         }
         $this->stdout("Removed {$packageHandle}.\n", Console::FG_GREEN);
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Makes a design (or "default") the one every page renders and clears the
+     * template caches. Development site only; deploy config/project afterwards.
+     * Usage: php craft site7-studio/design/activate canopy
+     */
+    public function actionActivate(string $handle): int
+    {
+        try {
+            (new DesignService())->activate(DesignLoader::validHandle($handle));
+        } catch (\Throwable $e) {
+            $this->stderr($e->getMessage() . "\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+        $this->stdout(($handle === DesignLoader::DEFAULT_HANDLE ? 'The default design' : $handle) . " is active; template caches cleared.\n", Console::FG_GREEN);
 
         return ExitCode::OK;
     }

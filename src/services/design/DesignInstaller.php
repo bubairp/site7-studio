@@ -131,6 +131,12 @@ class DesignInstaller
         if ($forbidden) {
             throw new \Exception('The design build contains files a design may not carry: ' . implode(', ', array_slice($forbidden, 0, 5)));
         }
+        // Built output never goes into the site's git: each server builds it
+        // with `npm run build` (docs/60 §4), whatever the root .gitignore says.
+        FileHelper::createDirectory("{$root}/web/designs");
+        if (!is_file("{$root}/web/designs/.gitignore")) {
+            file_put_contents("{$root}/web/designs/.gitignore", "# Built by `npm run build` on each server (Site7 Studio designs)\n*\n!.gitignore\n");
+        }
         $target = "{$root}/web/designs/{$handle}";
         $staging = "{$target}.installing";
         if (is_dir($staging)) {

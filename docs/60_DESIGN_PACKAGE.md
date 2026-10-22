@@ -97,13 +97,19 @@ Actions:
 
 Verified 2026-10-22 on rp-craft in headless Chromium (logged in with `users/impersonate`): the screen renders; Activate on Canopy saved `activeDesign: canopy` and the site switched to Canopy's build; Activate on Default switched back.
 
+## 4d. Release and deploy (phase 5, 2026-10-22)
+
+- **Every server builds its designs.** The site's `frontend/package.json` `build` script runs `build-designs.mjs` after its own build: every `designs/<handle>` with `src/css/<handle>.css` is built with `vite.design.mjs` into `web/designs/<handle>`. A deploy that runs `npm run build` (rp-craft's `pipelines/deploy.sh`, customer servers) builds the designs installed there with the JS it has, so no deploy script needs to know about designs. `npm run build:designs` builds only the designs. Both files are in `frontend/`, so they reach customer sites with the Theme.
+- **Never in git.** `DesignInstaller` writes `web/designs/.gitignore` (`*`, `!.gitignore`) the first time it installs a design, so a customer repository never tracks built output whatever its root `.gitignore` says; rp-craft also ignores `/web/designs`. `designs/<handle>` (the design's source and the customer's edits) is tracked and deployed.
+- **`scripts/release.sh`** (rp-craft): `check` validates each `designs/*/design.json`; `build` runs `npm run build` (designs included) and `design/build` per design; `publish` publishes design packages like the others; `test` (existing customer) installs each design on site7-qa from Commerce24, opens every page through a preview link, activates it, activates the default again and removes it (`qa_designs`). Console `site7-studio/design/activate <handle|default>` exists for this.
+
 ## 5. Important classes
 
 `services/design/DesignLoader` (`register()`, `resolve()`, `validHandle()`, `previewUrl()`, `previewHandle()`), `services/design/DesignService` (`designs()`, `activate()`, `clearCaches()`, `changedBases()`), `controllers/AppearanceController`, `services/design/DesignInstaller` (`install()`, `remove()`, `replaceBuild()`), `services/design/DesignUpdater` (`apply()`), `LibraryUpdater::changeVersion()`, `services/design/DesignBuilder` (`build()`, `forbiddenFiles()`, `isAllowedFile()`, `overrides()`, `entries()`, `frontendHash()`), `models/packages/DesignPackage`, `models/Settings::$activeDesign`, `console/controllers/DesignController` (`preview-url`, `build`, `versions`), `LibraryDistribution::versions()`. Tests: `tests/unit/services/design/DesignLoaderTest`, `DesignBuilderTest`.
 
 ## 6. Known limitations
 
-- A design's build contains the site's frontend JS as it was when the design was built; a Theme update to that JS reaches a design site only when the design is rebuilt (or built on the server, §4).
+- A design's build contains the site's frontend JS as it was when it was built. Servers rebuild designs with `npm run build` at deploy (§4d), so this only matters between installing on the development site and the next build there; `design.json` `frontendHash` records which JS a published build has.
 - A design's copy of a template hides later Theme or block updates to that file.
 
 ## 7. Planned phases
@@ -111,4 +117,4 @@ Verified 2026-10-22 on rp-craft in headless Chromium (logged in with `users/impe
 2. ~~Package type `design`~~ (done, §4a). Still open: the versions endpoint in the Laravel Commerce24 app.
 3. ~~`DesignInstaller` / `DesignUpdater`, signature required~~ (done and verified, §4b).
 4. ~~Appearance screen~~ (done, §4c).
-5. `release.sh`, `build-packs.sh`, `deploy.sh`; live tests on site7-qa.
+5. ~~Release and deploy~~ (done, §4d).
