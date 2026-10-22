@@ -29,6 +29,8 @@ This is the RP Craft host site's own, pre-existing template architecture (docume
 
 **`templates/site7-components/` is CONFIRMED DEAD.** Direct verification: `CraftResourceService::generateResources()` and `CraftResourceService::removePackageResources()` — the only two methods in this entire plugin that touch an installed template file — both explicitly target `@templates/_blocks/`, with an in-code comment repudiating the old sandbox by name ("not the old site7-components sandbox... unlike that sandbox, `_blocks/` can already contain a real, hand-maintained file for this handle"). No current code path reads from or writes to `templates/site7-components/`. If you find an older document (including this plugin's own `docs/*.md`, or the repo-root `docs/21_TEMPLATE_ARCHITECTURE.md`) describing it as active, that document is stale — trust this one, verified against the code directly.
 
+**With a design active (`60`, 2026-10-22)** the path is the same; only where Craft finds a template changes. `services/design/DesignLoader` makes `designs/<handle>/templates` the site templates path for page requests and keeps `templates/` as the fallback, so `_blocks/{handle}` is the design's copy when it has one, otherwise `templates/_blocks/{handle}.twig`. Installs and updates still write `templates/_blocks/` (they never run in a page request).
+
 > **AI DEVELOPMENT NOTE**: do not resurrect `templates/site7-components/` and do not create any second Twig rendering path. `templates/_blocks/{handle}.twig` is the only production template path, permanently.
 
 ## 5. Execution Flow — the complete file lifecycle

@@ -48,6 +48,7 @@ Read what's relevant to the task, not the whole set.
 | Authoring guide: create blocks, pages, kits; price, publish, assign to plans | `57` |
 | Plugin uninstall/reinstall: tracking snapshot, restore, Library reconcile | `58` |
 | Tailwind safelist: Library block classes survive a customer `npm run build`; rebuild notices | `59` |
+| Design packages (switchable designs): loader, active design, preview links, planned packaging | `60` |
 | Testing | `33`; A-to-Z test cases with last results: `56` |
 | Reference | `34`–`42` |
 | Known issues (read before ANY architecture change) | `43` |

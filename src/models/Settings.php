@@ -164,12 +164,20 @@ class Settings extends Model
     public array $commerceOfflineFeatures = [];
 
     /**
+     * The design page requests render (docs/60): a handle in designs/, or
+     * null for the site's own templates. Project config, so it's set on the
+     * development site and deployed like other structure; SITE7_DESIGN in
+     * .env overrides it through config/site7-studio.php.
+     */
+    public ?string $activeDesign = null;
+
+    /**
      * @inheritdoc
      */
     protected function defineRules(): array
     {
         $rules = parent::defineRules();
-        $rules[] = [['matrixFieldUid', 'defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment', 'libraryPath'], 'string'];
+        $rules[] = [['matrixFieldUid', 'defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment', 'libraryPath', 'activeDesign'], 'string'];
         $rules[] = [
             ['defaultPackageAuthor', 'defaultPackageLicense', 'defaultPackageVersion'],
             'string',
