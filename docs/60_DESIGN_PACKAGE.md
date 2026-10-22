@@ -6,7 +6,7 @@ A site keeps its content and CMS structure and can switch its whole look between
 
 The **default design** is the site's own `templates/` and `frontend/` (on rp-craft: "Editorial", handle `default`). It is never a package and is always there to fall back to.
 
-Status (2026-10-22): phase 1 of the plan is built (loader, setting, preview links). Packaging, distribution, the Appearance screen and release steps follow (§7).
+Status (2026-10-22): phases 1 (loader, setting, preview links) and 2 (package type, build, catalog, versions endpoint) are built. Install/update, the Appearance screen and release steps follow (§7).
 
 ## 2. A design on disk
 
@@ -51,9 +51,29 @@ Activating a design (phase 4) must clear template caches: with caching on, a swi
 - Designs don't count toward a plan's package limit. After a downgrade an active paid design keeps working without updates, but can't be activated again once switched away.
 - Built output: under discussion whether servers build `web/designs/<handle>` at deploy (like the main frontend) or customer repositories track it.
 
+## 4a. The package (phase 2, 2026-10-22)
+
+`site7-studio/design/build <handle>` (`services/design/DesignBuilder`) builds `packages/design-<handle>/` from `designs/<handle>/` and `web/designs/<handle>/`, in a staging folder swapped in at the end (`ThemeBuilder::startStaging()` / `commitStaging()`, keeping version, name and price):
+
+```
+manifest.json   type "design", requires {themes: [<the Theme on this site>]}
+design.json     the design's design.json + formatVersion, theme {handle, version},
+                frontendHash (frontend/src JS), overrides {path: checksum of
+                templates/<path> now, or null for a file only the design has}
+README.md       the design's DESIGN.md
+files/designs/<handle>/       templates, src, design.json, DESIGN.md
+files/web/designs/<handle>/   the build
+```
+
+The build refuses: an invalid handle; a `design.json` with another handle; no `templates/`; no build, or a build older than `designs/<handle>/src` or `frontend/src`; a build missing entries the site's own manifest has; any file that could run as code or reconfigure the server (`.php` and friends anywhere in the name, `.htaccess`, `.user.ini`, `web.config`, shell scripts) or a symlink (`DesignBuilder::forbiddenFiles()`). It never runs npm. `version` in the design's `design.json` is only the first version; `library/publish` raises it from then on.
+
+Distribution: `design` is a `LibraryDistribution::KINDS` type (marker `design.json`), its `design.json` goes into the catalog metadata as `library` (Theme version, overrides), it downloads right after the Theme, and `LibraryDistribution::versions($handle)` lists the published versions (`GET /marketplace/versions/{handle}`, `52` §5; console `site7-studio/design/versions <package>`).
+
+A Canopy package is about 4.6 MB, mostly the bundled icon font.
+
 ## 5. Important classes
 
-`services/design/DesignLoader` (`register()`, `resolve()`, `validHandle()`, `previewUrl()`, `previewHandle()`), `models/Settings::$activeDesign`, `console/controllers/DesignController` (`preview-url`). Tests: `tests/unit/services/design/DesignLoaderTest`.
+`services/design/DesignLoader` (`register()`, `resolve()`, `validHandle()`, `previewUrl()`, `previewHandle()`), `services/design/DesignBuilder` (`build()`, `forbiddenFiles()`, `isAllowedFile()`, `overrides()`, `entries()`, `frontendHash()`), `models/packages/DesignPackage`, `models/Settings::$activeDesign`, `console/controllers/DesignController` (`preview-url`, `build`, `versions`), `LibraryDistribution::versions()`. Tests: `tests/unit/services/design/DesignLoaderTest`, `DesignBuilderTest`.
 
 ## 6. Known limitations
 
@@ -62,7 +82,7 @@ Activating a design (phase 4) must clear template caches: with caching on, a swi
 
 ## 7. Planned phases
 
-2. Package type `design`: `DesignBuilder`, `LibraryDistribution` KINDS / catalog metadata, a versions endpoint on Commerce24.
+2. ~~Package type `design`~~ (done, §4a). Still open: the versions endpoint in the Laravel Commerce24 app.
 3. `DesignInstaller` / `DesignUpdater` (three-way file rule, version change, remove), signature required for design archives.
 4. Appearance screen (list, preview, activate with cache clearing).
 5. `release.sh`, `build-packs.sh`, `deploy.sh`; live tests on site7-qa.

@@ -3,7 +3,9 @@
 namespace site7\studio\console\controllers;
 
 use craft\console\Controller;
+use site7\studio\services\design\DesignBuilder;
 use site7\studio\services\design\DesignLoader;
+use site7\studio\services\library\LibraryDistribution;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
@@ -35,6 +37,48 @@ class DesignController extends Controller
             $this->stderr("designs/{$handle}/templates doesn't exist on this site; the link would show the default design.\n", Console::FG_YELLOW);
         }
         $this->stdout(DesignLoader::previewUrl($handle, max(1, $this->hours) * 3600, $url) . "\n");
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Builds the Library package design-<handle> from designs/<handle> and its
+     * build in web/designs/<handle> (run the Vite design build first).
+     * Usage: php craft site7-studio/design/build canopy
+     */
+    public function actionBuild(string $handle): int
+    {
+        try {
+            $result = (new DesignBuilder())->build($handle);
+        } catch (\Throwable $e) {
+            $this->stderr($e->getMessage() . "\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+        $meta = $result['meta'];
+        $this->stdout("Built {$result['handle']}: " . count($meta['overrides']) . ' template overrides'
+            . ($meta['theme'] ? ", on {$meta['theme']['handle']} {$meta['theme']['version']}" : '') . "\n", Console::FG_GREEN);
+        foreach ($meta['overrides'] as $path => $checksum) {
+            $this->stdout('  ' . ($checksum === null ? 'adds     ' : 'replaces ') . "{$path}\n");
+        }
+        $this->stdout("Publish it with site7-studio/library/publish.\n");
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Lists the published versions of a package on Commerce24, newest first.
+     * Usage: php craft site7-studio/design/versions design-canopy
+     */
+    public function actionVersions(string $packageHandle): int
+    {
+        $versions = (new LibraryDistribution())->versions($packageHandle);
+        if (!$versions) {
+            $this->stdout("No published versions of {$packageHandle} (or Commerce24 isn't connected).\n", Console::FG_YELLOW);
+            return ExitCode::OK;
+        }
+        foreach ($versions as $v) {
+            $this->stdout(sprintf("  %-10s %-26s %s\n", $v['version'], $v['publishedAt'] ?? '', $v['releaseNotes'] ?? ''));
+        }
 
         return ExitCode::OK;
     }

@@ -8,6 +8,7 @@ use site7\studio\models\commerce\CommerceApiException;
 use site7\studio\models\marketplace\PackageBundleManifest;
 use site7\studio\repositories\marketplace\Commerce24MarketplaceRepository;
 use site7\studio\repositories\marketplace\Commerce24PublishTarget;
+use site7\studio\services\design\DesignBuilder;
 use site7\studio\services\import\SectionSchemaService;
 use site7\studio\services\PackageExportService;
 use site7\studio\services\PackageImportService;
@@ -37,6 +38,7 @@ class LibraryDistribution extends Component
         'theme' => ThemeBuilder::META_FILE,
         'template' => TemplateBuilder::META_FILE,
         'starter-kit' => KitBuilder::META_FILE,
+        'design' => DesignBuilder::META_FILE,
     ];
 
     /** requires keys that point at other Library packages */
@@ -178,7 +180,7 @@ class LibraryDistribution extends Component
         $path = (string)$packageManager->getPackagePath($handle);
         $manifest = json_decode((string)file_get_contents("{$path}/manifest.json"), true) ?: [];
         $library = null;
-        if (in_array($record->type, ['theme', 'template', 'starter-kit'], true)) {
+        if (in_array($record->type, ['theme', 'template', 'starter-kit', 'design'], true)) {
             $library = json_decode((string)@file_get_contents("{$path}/" . self::KINDS[$record->type]), true);
             unset($library['envKeys']);
         }
@@ -246,6 +248,31 @@ class LibraryDistribution extends Component
         }
 
         return $catalog;
+    }
+
+    /**
+     * Every published version of a package, newest first, for choosing one to
+     * install or go back to (docs/60): Commerce24's
+     * GET /marketplace/versions/{handle} (same entitlement rule as download).
+     *
+     * @return array<int, array{version: string, releaseNotes?: string, publishedAt?: string, size?: int}>
+     */
+    public function versions(string $handle): array
+    {
+        $client = Site7Studio::getInstance()->commerceClient;
+        if (!$client->isConfigured()) {
+            return [];
+        }
+        try {
+            $data = $client->request('GET', '/marketplace/versions/' . rawurlencode($handle), ['fresh' => true]);
+        } catch (CommerceApiException $e) {
+            Craft::warning("Could not read the versions of '{$handle}': " . $e->getMessage(), 'site7-studio');
+            return [];
+        }
+        $versions = array_values(array_filter($data['versions'] ?? [], fn($v) => is_array($v) && !empty($v['version'])));
+        usort($versions, fn($a, $b) => version_compare((string)$b['version'], (string)$a['version']));
+
+        return $versions;
     }
 
     /**
@@ -365,14 +392,14 @@ class LibraryDistribution extends Component
     {
         $log ??= fn(string $line) => null;
         // What a package requires first, as downloadWithRequirements()'s closure does.
-        $rank = ['theme' => 0, 'section' => 1, 'template' => 2, 'starter-kit' => 3];
+        $rank = ['theme' => 0, 'design' => 1, 'section' => 2, 'template' => 3, 'starter-kit' => 4];
         $handles = [];
         foreach ($this->catalog(true) as $handle => $entry) {
             if (array_key_exists('entitled', $entry) && empty($entry['entitled'])) {
                 $log("{$handle}: not in your plan or purchases - skipped");
                 continue;
             }
-            $handles[(string)$handle] = $rank[$entry['type'] ?? ''] ?? 4;
+            $handles[(string)$handle] = $rank[$entry['type'] ?? ''] ?? 5;
         }
         asort($handles);
 

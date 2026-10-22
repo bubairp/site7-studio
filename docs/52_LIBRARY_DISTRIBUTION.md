@@ -84,6 +84,8 @@ All requests send `Authorization: Bearer <api key>`, `X-Site7-Environment` and `
 - with `Accept` including `application/zip`: the raw archive, `Content-Type: application/zip` (preferred; the plugin sends this `Accept` and streams to disk);
 - otherwise: `{"contentsBase64": "…"}`, the original envelope, still accepted.
 
+**`GET /marketplace/versions/{handle}`** (2026-10-22, `60`). Every published version, newest first: `{"handle", "latest", "versions": [{"version", "releaseNotes", "publishedAt", "size", "checksum"}]}`, with the same entitlement rule and 404 as download. `GET /marketplace/download/{handle}?version=` already serves any of them. Implemented in the stand-in (`rp-craft/commerce24/src/Commerce24.php::versions`); the Laravel app still needs it. Read by `LibraryDistribution::versions()`.
+
 **`GET /packages/entitlements`**. `free` should list every free published package; `purchased` and `premium` (plan) as before.
 
 ## 5a. Local Laravel Commerce24 (`~/my-project/commerce24`, since 2026-10-05)

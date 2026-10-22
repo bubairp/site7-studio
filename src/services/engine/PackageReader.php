@@ -71,6 +71,8 @@ class PackageReader extends Component
                 return new StarterKitPackage();
             case 'theme':
                 return new ThemePackage();
+            case 'design':
+                return new \site7\studio\models\packages\DesignPackage();
             default:
                 throw new Exception("Unknown package type: {$type}");
         }
