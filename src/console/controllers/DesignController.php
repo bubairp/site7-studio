@@ -5,7 +5,10 @@ namespace site7\studio\console\controllers;
 use craft\console\Controller;
 use site7\studio\services\design\DesignBuilder;
 use site7\studio\services\design\DesignLoader;
+use site7\studio\services\design\DesignInstaller;
 use site7\studio\services\library\LibraryDistribution;
+use site7\studio\services\library\LibraryUpdater;
+use site7\studio\Site7Studio;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
@@ -33,8 +36,8 @@ class DesignController extends Controller
             $this->stderr("'{$handle}' isn't a design handle.\n", Console::FG_RED);
             return ExitCode::USAGE;
         }
-        if (!is_dir(\Craft::getAlias("@root/designs/{$handle}/templates"))) {
-            $this->stderr("designs/{$handle}/templates doesn't exist on this site; the link would show the default design.\n", Console::FG_YELLOW);
+        if (!is_file(\Craft::getAlias("@root/designs/{$handle}/design.json"))) {
+            $this->stderr("designs/{$handle} isn't installed on this site; the link would show the default design.\n", Console::FG_YELLOW);
         }
         $this->stdout(DesignLoader::previewUrl($handle, max(1, $this->hours) * 3600, $url) . "\n");
 
@@ -61,6 +64,80 @@ class DesignController extends Controller
             $this->stdout('  ' . ($checksum === null ? 'adds     ' : 'replaces ') . "{$path}\n");
         }
         $this->stdout("Publish it with site7-studio/library/publish.\n");
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Installs a design package: from this site's Library, or downloaded from
+     * Commerce24 first (signed, plan checked). Development site only.
+     * Usage: php craft site7-studio/design/install design-canopy
+     */
+    public function actionInstall(string $packageHandle): int
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $record = $packageManager->getPackageByHandle($packageHandle);
+        if (!$record) {
+            $errors = (new LibraryDistribution())->downloadWithRequirements($packageHandle, fn(string $line) => $this->stdout("  {$line}\n"));
+            if ($errors) {
+                $this->stderr(implode("\n", $errors) . "\n", Console::FG_RED);
+                return ExitCode::UNSPECIFIED_ERROR;
+            }
+            $record = $packageManager->getPackageByHandle($packageHandle);
+        }
+        if (!$record || $record->type !== 'design') {
+            $this->stderr("'{$packageHandle}' isn't a design package.\n", Console::FG_RED);
+            return ExitCode::USAGE;
+        }
+        if (!$packageManager->installPackage($packageHandle)) {
+            $this->stderr(($packageManager->getLastInstallError() ?? 'Not installed.') . "\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+        foreach ($packageManager->getLastInstallWarnings() as $warning) {
+            $this->stdout("  {$warning}\n", Console::FG_YELLOW);
+        }
+        $this->stdout("Installed {$packageHandle} {$record->version}. Preview: site7-studio/design/preview-url " . DesignInstaller::designHandle((string)$packageManager->getPackagePath($packageHandle)) . "\n", Console::FG_GREEN);
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Moves an installed design to any published version, newer or older;
+     * files edited here are kept.
+     * Usage: php craft site7-studio/design/version design-canopy 0.1.0
+     */
+    public function actionVersion(string $packageHandle, string $version): int
+    {
+        $result = (new LibraryUpdater())->changeVersion($packageHandle, $version, fn(string $line) => $this->stdout("{$line}\n"));
+        if ($result['errors']) {
+            $this->stderr(implode("\n", $result['errors']) . "\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Removes an installed design (not the active one): untouched files go,
+     * edited ones stay. It stays in the Library.
+     * Usage: php craft site7-studio/design/remove design-canopy
+     */
+    public function actionRemove(string $packageHandle): int
+    {
+        $packageManager = Site7Studio::getInstance()->packageManager;
+        $record = $packageManager->getPackageByHandle($packageHandle);
+        if (!$record || $record->type !== 'design') {
+            $this->stderr("'{$packageHandle}' isn't a design package.\n", Console::FG_RED);
+            return ExitCode::USAGE;
+        }
+        $ok = $packageManager->uninstallPackage($packageHandle);
+        foreach ($packageManager->getLastDeleteWarnings() as $warning) {
+            $this->stdout("  {$warning}\n", $ok ? Console::FG_YELLOW : Console::FG_RED);
+        }
+        if (!$ok) {
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+        $this->stdout("Removed {$packageHandle}.\n", Console::FG_GREEN);
 
         return ExitCode::OK;
     }

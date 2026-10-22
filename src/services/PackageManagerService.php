@@ -182,6 +182,20 @@ class PackageManagerService extends Component
             return false;
         }
 
+        // A design writes designs/<handle> and web/designs/<handle> only (docs/60).
+        if ($record->type === 'design') {
+            try {
+                $report = (new \site7\studio\services\design\DesignInstaller())->install($record);
+                foreach ($report['kept'] as $kept) {
+                    $this->_lastInstallWarnings[] = "Kept this site's {$kept}: a file of that name was already here.";
+                }
+                return true;
+            } catch (\Throwable $e) {
+                $this->_lastInstallError = $e->getMessage();
+                return false;
+            }
+        }
+
         // Resolve Shared Resource dependencies (Phase 16's Dependency Engine)
         // ahead of the existing per-type cascade below - a genuinely new edge
         // (Section/any package -> Shared Resource) that cascade doesn't cover.
@@ -642,6 +656,11 @@ class PackageManagerService extends Component
         }
 
         $record = $this->getPackageByHandle($handle);
+        // Designs are installed or not; which one is live is the activeDesign setting (docs/60).
+        if ($record && $record->type === 'design') {
+            $this->_lastInstallError = 'Designs aren\'t enabled: activate one in Site7 Studio → Appearance.';
+            return false;
+        }
         if ($record && $record->type === 'section') {
             $this->linkToMatrix($handle);
         }
@@ -686,6 +705,9 @@ class PackageManagerService extends Component
     public function removePackage(string $handle): bool
     {
         $record = $this->getPackageByHandle($handle);
+        if ($record && $record->type === 'design') {
+            return $this->uninstallPackage($handle);
+        }
         if ($record && $record->type === 'section') {
             // Deliberately does NOT call craftResourceGenerator->removePackageResources()
             // here - that deletes the entry type outright, which cascades into Craft
@@ -720,6 +742,20 @@ class PackageManagerService extends Component
         $record = $this->getPackageByHandle($handle);
         if (!$record) {
             return false;
+        }
+
+        if ($record->type === 'design') {
+            try {
+                $report = (new \site7\studio\services\design\DesignInstaller())->remove($record);
+            } catch (\Throwable $e) {
+                $this->_lastDeleteWarnings[] = $e->getMessage();
+                return false;
+            }
+            foreach ($report['kept'] as $kept) {
+                $this->_lastDeleteWarnings[] = "Kept {$kept}.";
+            }
+            $this->invalidateCraftCaches();
+            return true;
         }
 
         if ($record->type === 'section') {

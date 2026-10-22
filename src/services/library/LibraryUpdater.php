@@ -37,7 +37,7 @@ use site7\studio\Site7Studio;
 class LibraryUpdater extends Component
 {
     /** Update order: structure and code first, pages next, the kit's own content last. */
-    public const TYPE_ORDER = ['theme' => 0, 'section' => 1, 'template' => 2, 'starter-kit' => 3];
+    public const TYPE_ORDER = ['theme' => 0, 'design' => 1, 'section' => 2, 'template' => 3, 'starter-kit' => 4];
 
     /**
      * Installed Library packages that Commerce24 has a newer version of.
@@ -151,6 +151,57 @@ class LibraryUpdater extends Component
         return $result;
     }
 
+    /**
+     * Moves one installed package to any published version, newer or older
+     * (docs/60: choosing a design version). Same rule as an update: files
+     * edited here are kept and reported.
+     *
+     * @return array{updated: string[], skipped: string[], errors: string[], report: array<string, array>}
+     */
+    public function changeVersion(string $handle, string $version, ?callable $log = null): array
+    {
+        $log ??= fn(string $line) => null;
+        $result = ['updated' => [], 'skipped' => [], 'errors' => [], 'report' => []];
+        $record = Site7Studio::getInstance()->packageManager->getPackageByHandle($handle);
+        if (!$record || !in_array($record->status, ['installed', 'enabled'], true)) {
+            $result['errors'][] = "{$handle}: not installed on this site";
+            return $result;
+        }
+        if (!isset(self::TYPE_ORDER[$record->type])) {
+            $result['errors'][] = "{$handle}: its type can't change version";
+            return $result;
+        }
+        if ((string)$record->version === $version) {
+            $result['skipped'][] = $handle;
+            $log("{$handle} is already {$version}");
+            return $result;
+        }
+        $published = array_column((new LibraryDistribution())->versions($handle), 'version');
+        if (!in_array($version, $published, true)) {
+            $result['errors'][] = "{$handle}: version {$version} isn't published" . ($published ? ' (published: ' . implode(', ', $published) . ')' : '');
+            return $result;
+        }
+        $update = ['handle' => $handle, 'type' => $record->type, 'name' => $record->name, 'from' => (string)$record->version, 'to' => $version];
+
+        $log('Backing up the database…');
+        $log('Backup: ' . Craft::$app->getDb()->backup());
+        try {
+            $report = $this->updatePackage($handle, $update, $log);
+            $result['updated'][] = $handle;
+            $result['report'][$handle] = $report;
+            $log(sprintf('Changed %s %s -> %s: %s', $handle, $update['from'], $version, self::summary($report)));
+            foreach ($report['kept'] as $kept) {
+                $log("  kept your version: {$kept}");
+            }
+        } catch (\Throwable $e) {
+            $result['errors'][] = "{$handle}: {$e->getMessage()}";
+            $log("FAILED {$handle}: {$e->getMessage()}");
+        }
+        Craft::$app->getElements()->invalidateAllCaches();
+
+        return $result;
+    }
+
     public static function emptyReport(): array
     {
         return ['updated' => [], 'added' => [], 'kept' => [], 'trashed' => [], 'unchanged' => 0, 'notes' => []];
@@ -185,7 +236,8 @@ class LibraryUpdater extends Component
         $this->libraryConfigIndex = null;
 
         try {
-            $path = (new Commerce24MarketplaceRepository())->fetchPackage($handle);
+            // The version this update is for: the latest, or the one changeVersion() asked for.
+            $path = (new Commerce24MarketplaceRepository())->fetchPackage($handle, $update['to'] ?? null);
             $importer = new PackageImportService();
             $validation = $importer->validatePackage($path, true);
             if (!$validation->valid) {
@@ -208,6 +260,7 @@ class LibraryUpdater extends Component
                 'template' => $this->applyTemplate($baseline, $dir, $log),
                 'theme' => (new ThemeUpdater())->updateTheme($record, $baseline, $dir, $log),
                 'starter-kit' => $this->applyKit($record, $baseline, $dir, $log),
+                'design' => (new \site7\studio\services\design\DesignUpdater())->apply($record, $baseline, $dir, $log),
             };
         } catch (\Throwable $e) {
             // Back to the installed version, so running the update again

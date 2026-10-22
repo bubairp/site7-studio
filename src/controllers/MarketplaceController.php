@@ -134,6 +134,14 @@ class MarketplaceController extends Controller
         $validation = (new PackageImportService())->validatePackage($tempUploadPath);
         @unlink($tempUploadPath);
 
+        // Uploading a design is for the Site7 team (admin, Dev Mode); customers
+        // get designs from the Library (docs/60 §4).
+        $hasDesign = array_filter($validation->bundle?->packages ?? [], fn($entry) => ($entry['type'] ?? '') === 'design') !== [];
+        if ($hasDesign && !(Craft::$app->getUser()->getIsAdmin() && Craft::$app->getConfig()->getGeneral()->devMode)) {
+            $validation->errors[] = 'Design packages can only be uploaded by an admin in Dev Mode. Install designs from Site7 Studio → Library.';
+            $validation->valid = false;
+        }
+
         $this->discardPendingImport();
         Craft::$app->getSession()->set(self::SESSION_KEY, $validation);
 

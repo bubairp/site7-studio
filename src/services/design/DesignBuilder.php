@@ -50,9 +50,6 @@ class DesignBuilder extends Component
         if (($own['handle'] ?? $designHandle) !== $designHandle) {
             throw new \Exception("designs/{$designHandle}/design.json says its handle is '{$own['handle']}'.");
         }
-        if (!is_dir("{$source}/templates")) {
-            throw new \Exception("designs/{$designHandle}/templates is missing.");
-        }
         $manifest = "{$built}/.vite/manifest.json";
         if (!is_file($manifest)) {
             throw new \Exception("No build in web/designs/{$designHandle}. In frontend/: DESIGN={$designHandle} npx vite build --config vite.design.mjs");

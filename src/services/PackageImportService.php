@@ -200,6 +200,14 @@ class PackageImportService extends Component
             return;
         }
 
+        // Designs carry Twig templates, which run with Craft's access: never
+        // unsigned, whatever the path in (upload, local repository) - docs/60.
+        $designs = array_filter($result->bundle?->packages ?? [], fn($entry) => ($entry['type'] ?? '') === 'design');
+        if ($designs !== []) {
+            $result->errors[] = 'Design packages must be signed (by Commerce24 or the Site7 team key, site7-studio/signing/sign): ' . implode(', ', array_column($designs, 'handle')) . '.';
+            return;
+        }
+
         $paid = array_keys(array_filter($result->pricingTypes, [PackageService::class, 'isPaidPricingType']));
         if ($paid !== []) {
             $result->errors[] = 'This archive is not signed but contains paid packages (' . implode(', ', $paid) . '). Paid packages must come signed from Commerce24.';

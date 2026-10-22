@@ -27,7 +27,8 @@ use yii\base\Event;
  *   3. the activeDesign setting (project config; SITE7_DESIGN in .env
  *      overrides it through config/site7-studio.php);
  *   4. the default design.
- * A design without a designs/<handle>/templates folder renders the default.
+ * A handle without designs/<handle>/design.json renders the default; a
+ * design without a templates/ folder only swaps the CSS/JS.
  *
  * Only page requests: console, CP and action requests keep templates/, since
  * installs and updates write into @templates there.
@@ -60,9 +61,12 @@ class DesignLoader
 
         $base = FileHelper::normalizePath(Craft::$app->getPath()->getSiteTemplatesPath());
         $designPath = FileHelper::normalizePath(Craft::getAlias("@root/designs/{$handle}/templates"));
-        if (!is_dir($designPath) || $base === $designPath) {
-            return; // unknown design, or already applied
+        if (!is_file(Craft::getAlias("@root/designs/{$handle}/design.json")) || $base === $designPath) {
+            return; // not a design on this site, or already applied
         }
+        // A design that only restyles has no templates/ (a package drops
+        // empty folders): it keeps the site's templates and swaps the CSS.
+        $hasTemplates = is_dir($designPath);
 
         // Preview HTML must never reach (or come from) the template caches,
         // which don't know which design rendered them.
@@ -71,16 +75,18 @@ class DesignLoader
             Craft::$app->getResponse()->getHeaders()->set('Cache-Control', 'no-store');
         }
 
-        Event::on(View::class, View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS, function(RegisterTemplateRootsEvent $event) use ($base) {
-            $event->roots[''][] = $base;
-        });
+        if ($hasTemplates) {
+            Event::on(View::class, View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS, function(RegisterTemplateRootsEvent $event) use ($base) {
+                $event->roots[''][] = $base;
+            });
 
-        // Craft resets the templates path to @templates whenever the template
-        // mode changes (a plugin rendering a CP template mid-page switches to
-        // CP mode and back), so @templates itself points at the design for
-        // this request.
-        Craft::setAlias('@templates', $designPath);
-        Craft::$app->getView()->setTemplatesPath($designPath);
+            // Craft resets the templates path to @templates whenever the template
+            // mode changes (a plugin rendering a CP template mid-page switches to
+            // CP mode and back), so @templates itself points at the design for
+            // this request.
+            Craft::setAlias('@templates', $designPath);
+            Craft::$app->getView()->setTemplatesPath($designPath);
+        }
 
         // The design's own build: the same entries as the site's (templates
         // keep calling craft.vite.script('src/index.js')), its own CSS.

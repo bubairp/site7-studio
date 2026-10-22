@@ -49,7 +49,7 @@ Activating a design (phase 4) must clear template caches: with caching on, a swi
 - Package handle: `design-<handle>` (e.g. `design-canopy`).
 - Customers get designs from the Library (Commerce24, signed, plan check, priced like packs). `.s7pkg` upload is for the team only: admin + Dev Mode, signature required.
 - Designs don't count toward a plan's package limit. After a downgrade an active paid design keeps working without updates, but can't be activated again once switched away.
-- Built output: under discussion whether servers build `web/designs/<handle>` at deploy (like the main frontend) or customer repositories track it.
+- Built output: servers build `web/designs/<handle>` at deploy, like the main frontend (`DESIGN=<handle> npx vite build --config vite.design.mjs`), so `web/designs/` stays out of git; the package still ships a build so a design works on the development site right after install. This also keeps a design's JS current with the Theme's.
 
 ## 4a. The package (phase 2, 2026-10-22)
 
@@ -71,9 +71,23 @@ Distribution: `design` is a `LibraryDistribution::KINDS` type (marker `design.js
 
 A Canopy package is about 4.6 MB, mostly the bundled icon font.
 
+## 4b. Install, update, version, remove (phase 3, 2026-10-22)
+
+All of these run on the development site only (`allowAdminChanges`, `DesignInstaller::assertCanChangeFiles()`), then the result is deployed.
+
+- **Install** (`DesignInstaller::install()`, through `PackageManagerService::installPackage()`; console `site7-studio/design/install <package>`, which downloads it first when it isn't in the Library): `files/designs/<h>` → `designs/<h>`, one `InstalledFileBaselineService` row per file with the package's checksum. A file of the same name already here with other content is the site's: kept and reported, never overwritten. `files/web/designs/<h>` replaces `web/designs/<h>` whole (written next to it, then swapped). Status `installed`.
+- **Never `enabled`.** `enablePackage()` refuses designs: which design is live is the `activeDesign` setting, and a plan change disables enabled packages, which must never change a live site's look.
+- **Update** (`LibraryUpdater` → `DesignUpdater::apply()`, order: right after the Theme): each design file through `LibraryUpdater::decide()` with the baseline row's checksum (it travels with the database; the previous Library copy is the fallback). Untouched here → the new version's; edited here → kept ("kept your version"); gone upstream → deleted if untouched, else kept. The build is replaced whole. Any failure puts `designs/<h>` and `web/designs/<h>` back from a copy taken first.
+- **Any version** (`LibraryUpdater::changeVersion()`, console `site7-studio/design/version <package> <version>`): checks the version is published (`versions()`), then the same path with that version (`updatePackage()` now downloads `$update['to']`), so going back works with the same rule.
+- **Remove** (`DesignInstaller::remove()`, through `uninstallPackage()` / `removePackage()`; console `site7-studio/design/remove <package>`): refused for the active design. Untouched files are deleted, edited ones kept and reported, the build deleted, baseline rows removed, status `available` (it stays in the Library).
+- **Signed only.** `PackageImportService::checkSignature()` refuses any archive containing a `design` that isn't signed by a trusted key, on every path in (download, upload, local repository). Uploading one (`MarketplaceController::actionImportUpload()`) also needs an admin in Dev Mode.
+- **A design that only restyles** has no `templates/` after install (archives drop empty folders): the loader recognises a design by `designs/<h>/design.json` and then only swaps the CSS/JS.
+
+Verified 2026-10-22 on site7-qa (Theme 1.3.1, the stand-in): versions listed; installed from Commerce24 (signature `c24-local`, 3 + 35 files, 3 baseline rows); a preview link renders Canopy, 14 pages 200; remove kept an edited `DESIGN.md` and deleted the rest; reinstall kept it again; an unsigned design archive is refused.
+
 ## 5. Important classes
 
-`services/design/DesignLoader` (`register()`, `resolve()`, `validHandle()`, `previewUrl()`, `previewHandle()`), `services/design/DesignBuilder` (`build()`, `forbiddenFiles()`, `isAllowedFile()`, `overrides()`, `entries()`, `frontendHash()`), `models/packages/DesignPackage`, `models/Settings::$activeDesign`, `console/controllers/DesignController` (`preview-url`, `build`, `versions`), `LibraryDistribution::versions()`. Tests: `tests/unit/services/design/DesignLoaderTest`, `DesignBuilderTest`.
+`services/design/DesignLoader` (`register()`, `resolve()`, `validHandle()`, `previewUrl()`, `previewHandle()`), `services/design/DesignInstaller` (`install()`, `remove()`, `replaceBuild()`), `services/design/DesignUpdater` (`apply()`), `LibraryUpdater::changeVersion()`, `services/design/DesignBuilder` (`build()`, `forbiddenFiles()`, `isAllowedFile()`, `overrides()`, `entries()`, `frontendHash()`), `models/packages/DesignPackage`, `models/Settings::$activeDesign`, `console/controllers/DesignController` (`preview-url`, `build`, `versions`), `LibraryDistribution::versions()`. Tests: `tests/unit/services/design/DesignLoaderTest`, `DesignBuilderTest`.
 
 ## 6. Known limitations
 
@@ -83,6 +97,6 @@ A Canopy package is about 4.6 MB, mostly the bundled icon font.
 ## 7. Planned phases
 
 2. ~~Package type `design`~~ (done, §4a). Still open: the versions endpoint in the Laravel Commerce24 app.
-3. `DesignInstaller` / `DesignUpdater` (three-way file rule, version change, remove), signature required for design archives.
+3. ~~`DesignInstaller` / `DesignUpdater`, signature required~~ (done, §4b). Still to verify live: an update and a version change between two published versions with a customer edit.
 4. Appearance screen (list, preview, activate with cache clearing).
 5. `release.sh`, `build-packs.sh`, `deploy.sh`; live tests on site7-qa.
