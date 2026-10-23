@@ -5,6 +5,7 @@ namespace site7\studio\console\controllers;
 use craft\console\Controller;
 use site7\studio\services\design\DesignBuilder;
 use site7\studio\services\design\DesignLoader;
+use site7\studio\services\design\DesignReachability;
 use site7\studio\services\design\DesignService;
 use site7\studio\services\design\DesignInstaller;
 use site7\studio\services\library\LibraryDistribution;
@@ -98,6 +99,7 @@ class DesignController extends Controller
             $this->stdout("  {$warning}\n", Console::FG_YELLOW);
         }
         $this->stdout("Installed {$packageHandle} {$record->version}. Preview: site7-studio/design/preview-url " . DesignInstaller::designHandle((string)$packageManager->getPackagePath($packageHandle)) . "\n", Console::FG_GREEN);
+        $this->warnUnreachable($packageHandle);
 
         return ExitCode::OK;
     }
@@ -114,8 +116,32 @@ class DesignController extends Controller
             $this->stderr(implode("\n", $result['errors']) . "\n", Console::FG_RED);
             return ExitCode::UNSPECIFIED_ERROR;
         }
+        $this->warnUnreachable($packageHandle);
 
         return ExitCode::OK;
+    }
+
+    /**
+     * Templates the design uses that this site lacks, and overrides this site's
+     * templates never include (DesignReachability).
+     */
+    private function warnUnreachable(string $packageHandle): void
+    {
+        $path = Site7Studio::getInstance()->packageManager->getPackagePath($packageHandle);
+        $meta = json_decode((string)@file_get_contents("{$path}/" . DesignBuilder::META_FILE), true) ?: [];
+        $handle = DesignLoader::validHandle($meta['handle'] ?? null);
+        if ($handle === null) {
+            return;
+        }
+        $name = (string)($meta['name'] ?? $handle);
+        $root = (string)\Craft::getAlias('@root');
+        foreach (DesignReachability::missingMessages($name, DesignReachability::missingForSite($handle, $root)) as $line) {
+            $this->stdout("  Warning: {$line}\n", Console::FG_RED);
+        }
+        $unreachable = DesignReachability::forSite($handle, (array)($meta['includedBy'] ?? []), $root);
+        foreach (DesignReachability::messages($name, $unreachable) as $line) {
+            $this->stdout("  Warning: {$line}\n", Console::FG_YELLOW);
+        }
     }
 
     /**

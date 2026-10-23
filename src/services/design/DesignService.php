@@ -23,7 +23,7 @@ class DesignService
      * Every design: the default first, then installed ones, then ones the
      * Library offers.
      *
-     * @return array<int, array{handle: ?string, package: ?string, name: string, description: string, installed: bool, version: ?string, latest: ?string, active: bool, entitled: bool, pricingType: string, theme: ?array, themeMatches: bool, changedBases: string[], onDisk: bool}>
+     * @return array<int, array{handle: ?string, package: ?string, name: string, description: string, installed: bool, version: ?string, latest: ?string, active: bool, entitled: bool, pricingType: string, theme: ?array, themeMatches: bool, changedBases: string[], onDisk: bool, unreachable: string[], missing: string[]}>
      */
     public function designs(bool $withCatalog = true): array
     {
@@ -52,6 +52,8 @@ class DesignService
             'themeMatches' => true,
             'changedBases' => [],
             'onDisk' => true,
+            'unreachable' => [],
+            'missing' => [],
         ]];
         $seen = [];
         foreach ($plugin->packageManager->getAllPackages() as $record) {
@@ -86,7 +88,16 @@ class DesignService
                 'theme' => $builtOn,
                 'themeMatches' => !isset($builtOn['handle'], $theme) || ($builtOn['handle'] === $theme['handle'] && ($builtOn['version'] ?? null) === $theme['version']),
                 'changedBases' => $installed ? self::changedBases($meta['overrides'] ?? []) : [],
-                'onDisk' => is_file(Craft::getAlias("@root/designs/{$handle}/design.json")),
+                'onDisk' => $onDisk = is_file(Craft::getAlias("@root/designs/{$handle}/design.json")),
+                'unreachable' => $onDisk ? DesignReachability::messages(
+                    (string)($meta['name'] ?? $record->name),
+                    DesignReachability::forSite($handle, (array)($meta['includedBy'] ?? []), (string)Craft::getAlias('@root'))
+                ) : [],
+                // Templates the design uses that this site lacks (a newer Theme's): activating would break pages.
+                'missing' => $onDisk ? DesignReachability::missingMessages(
+                    (string)($meta['name'] ?? $record->name),
+                    DesignReachability::missingForSite($handle, (string)Craft::getAlias('@root'))
+                ) : [],
             ];
             $seen[$record->handle] = true;
         }
@@ -110,6 +121,8 @@ class DesignService
                 'themeMatches' => !isset($library['theme']['handle'], $theme) || $library['theme']['handle'] === $theme['handle'],
                 'changedBases' => [],
                 'onDisk' => false,
+                'unreachable' => [],
+                'missing' => [],
             ];
         }
 
@@ -141,6 +154,10 @@ class DesignService
             // On disk: installed, or authored here (rp-craft builds designs from designs/<handle>).
             if (!$design || !$design['onDisk']) {
                 throw new \Exception("The design '{$handle}' isn't installed on this site.");
+            }
+            // A template it uses isn't on this site (a newer Theme's): its pages would fail.
+            if ($design['missing']) {
+                throw new \Exception($design['missing'][0]);
             }
             // After a downgrade, an active paid design keeps working, but one
             // switched away from can't come back without the plan (docs/60 §4).

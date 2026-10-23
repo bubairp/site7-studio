@@ -82,6 +82,7 @@ class DesignBuilder extends Component
         FileHelper::copyDirectory($source, "{$dir}/files/designs/{$designHandle}", $skip);
         FileHelper::copyDirectory($built, "{$dir}/files/web/designs/{$designHandle}", $skip);
 
+        $overrides = self::overrides("{$source}/templates", "{$root}/templates");
         $meta = array_merge($own, [
             'formatVersion' => self::FORMAT_VERSION,
             'handle' => $designHandle,
@@ -92,7 +93,11 @@ class DesignBuilder extends Component
             'frontendHash' => self::frontendHash($root),
             // Base templates this design replaces, with their checksum now, so
             // a later change to the base can be flagged ("doctor").
-            'overrides' => self::overrides("{$source}/templates", "{$root}/templates"),
+            'overrides' => $overrides,
+            // The templates that include each override by name, so a site whose
+            // includer is an older or edited copy can be told the override
+            // won't show there (DesignReachability).
+            'includedBy' => DesignReachability::includedBy("{$root}/templates", array_keys($overrides)),
         ]);
         unset($meta['version']);
         file_put_contents("{$dir}/" . self::META_FILE, self::json($meta));

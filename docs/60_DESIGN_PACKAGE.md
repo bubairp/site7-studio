@@ -59,7 +59,10 @@ Activating a design (phase 4) must clear template caches: with caching on, a swi
 manifest.json   type "design", requires {themes: [<the Theme on this site>]}
 design.json     the design's design.json + formatVersion, theme {handle, version},
                 frontendHash (frontend/src JS), overrides {path: checksum of
-                templates/<path> now, or null for a file only the design has}
+                templates/<path> now, or null for a file only the design has},
+                includedBy {override: [templates that include it by its literal
+                name]} (DesignReachability::includedBy(); overrides reached only
+                through a computed name - blocks, card variants - have none)
 README.md       the design's DESIGN.md
 files/designs/<handle>/       templates, src, design.json, DESIGN.md
 files/web/designs/<handle>/   the build
@@ -87,7 +90,7 @@ Verified 2026-10-22 on site7-qa (Theme 1.3.1, the stand-in): versions listed; in
 
 ## 4c. Appearance screen (phase 4, 2026-10-22)
 
-Site7 Studio → **Appearance** (`site7-studio/appearance`, `AppearanceController`, permission `manageDesigns`, template `appearance/index.twig`, model `DesignService::designs()`): one card per design: the default first, then designs in the Library (installed, or authored here in `designs/<handle>`), then designs the Commerce24 catalog offers. Each card shows the version (installed / latest), plan status, and warnings: built on another Theme version (for an installed design its own build; for one that isn't installed the catalog's latest, since that's what Install brings, not an older copy left in the Library); base templates that changed since the design was built (`DesignService::changedBases()` over `design.json` `overrides`, the design's copy hides those changes); `designs/<handle>` missing.
+Site7 Studio → **Appearance** (`site7-studio/appearance`, `AppearanceController`, permission `manageDesigns`, template `appearance/index.twig`, model `DesignService::designs()`): one card per design: the default first, then designs in the Library (installed, or authored here in `designs/<handle>`), then designs the Commerce24 catalog offers. Each card shows the version (installed / latest), plan status, and warnings: built on another Theme version (for an installed design its own build; for one that isn't installed the catalog's latest, since that's what Install brings, not an older copy left in the Library); base templates that changed since the design was built (`DesignService::changedBases()` over `design.json` `overrides`, the design's copy hides those changes); overrides this site never renders because none of their recorded includers still includes them, e.g. a customer's older or edited `entries/channels/blog.twig` from before the detail-layout split (`DesignReachability::forSite()` over `includedBy`, includers resolved as the loader renders them, design first; packages without `includedBy` aren't checked; `design/install` and `design/version` print the same lines); templates the design's own files include by name that this site lacks, e.g. `_components/page-style` from a newer Theme (`DesignReachability::missingForSite()`: the design's file, else Craft's site template resolution, so plugin template roots count; names built with `~` are skipped) - **Activate is refused** while any is missing (`DesignService::activate()`, the card hides the button, console `design/activate` fails), Preview still works; `designs/<handle>` missing.
 
 Actions:
 - **Preview**: `appearance/preview` redirects to a signed 24-hour preview link (works on read-only servers).
