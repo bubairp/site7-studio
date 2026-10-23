@@ -21,6 +21,15 @@ class Settings extends Model
     public ?string $matrixFieldUid = null;
 
     /**
+     * This site authors the Library (rp-craft) on every environment: its
+     * blocks and pages come from its own templates and reach servers by
+     * deploy, so Library updates never apply here (docs/53 §1a). Set in
+     * config/site7-studio.php, which travels with the site's code; package
+     * versions live in each environment's database and drift.
+     */
+    public bool $authorSite = false;
+
+    /**
      * $changes merged onto the settings stored in project config, for
      * savePluginSettings(). That call replaces the whole settings node with
      * just the keys it's given, so passing only $changes would wipe every

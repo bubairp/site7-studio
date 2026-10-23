@@ -39,6 +39,18 @@ class LibraryUpdater extends Component
     /** Update order: structure and code first, pages next, the kit's own content last. */
     public const TYPE_ORDER = ['theme' => 0, 'design' => 1, 'section' => 2, 'template' => 3, 'starter-kit' => 4];
 
+    public const AUTHOR_SITE_NOTE = 'This is the author site: its blocks and pages come from its own templates and reach servers by deploy, so Library updates don\'t apply here.';
+
+    /**
+     * The authorSite setting (config/site7-studio.php). $settings: for tests.
+     */
+    public static function isAuthorSite(?\site7\studio\models\Settings $settings = null): bool
+    {
+        $settings ??= Site7Studio::getInstance()?->getSettings();
+
+        return (bool)($settings->authorSite ?? false);
+    }
+
     /**
      * Installed Library packages that Commerce24 has a newer version of.
      *
@@ -46,6 +58,9 @@ class LibraryUpdater extends Component
      */
     public function availableUpdates(bool $fresh = false): array
     {
+        if (self::isAuthorSite()) {
+            return [];
+        }
         $packageManager = Site7Studio::getInstance()->packageManager;
         $catalog = (new LibraryDistribution())->catalog($fresh);
         $updates = [];
@@ -85,6 +100,10 @@ class LibraryUpdater extends Component
     {
         $log ??= fn(string $line) => null;
         $result = ['updated' => [], 'skipped' => [], 'errors' => [], 'report' => []];
+        if (self::isAuthorSite()) {
+            $result['errors'][] = self::AUTHOR_SITE_NOTE;
+            return $result;
+        }
         $updates = [];
         foreach ($this->availableUpdates(true) as $update) {
             if ($handles === [] || in_array($update['handle'], $handles, true)) {

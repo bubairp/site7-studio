@@ -14,6 +14,14 @@ class LibraryUpdaterTest extends Unit
         $this->assertSame('apply', LibraryUpdater::decide('a', 'a', 'b'));
     }
 
+    public function testTheAuthorSiteNeverGetsLibraryUpdates(): void
+    {
+        $settings = new \site7\studio\models\Settings();
+        $this->assertFalse(LibraryUpdater::isAuthorSite($settings), 'off unless config/site7-studio.php sets it');
+        $settings->authorSite = true;
+        $this->assertTrue(LibraryUpdater::isAuthorSite($settings));
+    }
+
     public function testTheCustomersEditIsKept(): void
     {
         $this->assertSame('kept', LibraryUpdater::decide('a', 'mine', 'b'));

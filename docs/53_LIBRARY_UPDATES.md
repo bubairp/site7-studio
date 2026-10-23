@@ -51,6 +51,8 @@ php craft site7-studio/library/publish [--bump=patch|minor|major] [--notes="…"
 - Theme, Template and kit builders keep a package's version and `pricingType` on rebuild.
 - The kit no longer writes `builtAt`, so an unchanged rebuild is identical.
 
+**No Library updates on the author site** (2026-10-23). The author site's blocks and pages come from its own templates and reach its servers by deploy, but each environment's `site7_packages` versions stay where they were when its Library was filled (`library/download --all`): a deployed copy of the author site listed every published version as an update, and applying them would write package files outside git. `authorSite` (`Settings`, set in the site's `config/site7-studio.php` so every environment has it) makes `LibraryUpdater::availableUpdates()` return nothing and `update()` refuse with `LibraryUpdater::AUTHOR_SITE_NOTE`; Updates shows that note instead of the list. Customer sites never set it.
+
 ## 4. Customer side
 
 - **Console:**

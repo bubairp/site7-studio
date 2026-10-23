@@ -10,7 +10,9 @@
 <div class="pane">
     <h2>Library updates</h2>
     <p class="light">Newer versions of the blocks and pages installed from the Site7 Library. Whatever was changed on this site is kept: an update only changes fields, templates and content that are still as they were installed. The database is backed up first.</p>
-    {% if libraryUpdates is empty %}
+    {% if authorSite %}
+        <p class="notice">This is the author site: its blocks and pages come from its own templates and reach servers by deploy, so Library updates don't apply here.</p>
+    {% elseif libraryUpdates is empty %}
         <p>Everything installed from the Library is up to date.</p>
     {% else %}
         <form method="post" accept-charset="UTF-8">
