@@ -44,6 +44,8 @@ class AppearanceController extends Controller
             'designs' => $designs,
             'versions' => $versions,
             'canChange' => Craft::$app->getConfig()->getGeneral()->allowAdminChanges,
+            // The authoring site (rp-craft) builds and publishes designs with this script
+            'authorScript' => is_file(Craft::getAlias('@root/scripts/design.sh')),
             'envOverride' => in_array('activeDesign', Settings::overriddenKeys(), true) ? (Site7Studio::getInstance()->getSettings()->activeDesign ?: 'default') : null,
         ]);
     }

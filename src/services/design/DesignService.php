@@ -66,6 +66,12 @@ class DesignService
             }
             $entry = $catalog[$record->handle] ?? [];
             $installed = $record->status === 'installed';
+            // Not installed: Install brings the catalog's latest version, so judge that
+            // build, not an older copy left in the Library by an earlier install.
+            $builtOn = $meta['theme'] ?? null;
+            if (!$installed && isset($entry['metadata']['library']['theme'])) {
+                $builtOn = $entry['metadata']['library']['theme'];
+            }
             $designs[] = [
                 'handle' => $handle,
                 'package' => $record->handle,
@@ -77,8 +83,8 @@ class DesignService
                 'active' => $active === $handle,
                 'entitled' => (bool)($entry['entitled'] ?? true),
                 'pricingType' => (string)($entry['pricingType'] ?? 'free'),
-                'theme' => $meta['theme'] ?? null,
-                'themeMatches' => !isset($meta['theme']['handle'], $theme) || ($meta['theme']['handle'] === $theme['handle'] && $meta['theme']['version'] === $theme['version']),
+                'theme' => $builtOn,
+                'themeMatches' => !isset($builtOn['handle'], $theme) || ($builtOn['handle'] === $theme['handle'] && ($builtOn['version'] ?? null) === $theme['version']),
                 'changedBases' => $installed ? self::changedBases($meta['overrides'] ?? []) : [],
                 'onDisk' => is_file(Craft::getAlias("@root/designs/{$handle}/design.json")),
             ];

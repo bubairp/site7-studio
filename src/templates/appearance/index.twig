@@ -38,6 +38,9 @@
             {% endif %}
         </div>
 
+        {% if authorScript and d.handle and d.onDisk and not d.installed %}
+            <p class="light smalltext" style="margin: 0;">Install and Remove are hidden here, so your source files are never overwritten. Build and publish with <code>bash scripts/design.sh build {{ d.handle }}</code> and <code>publish {{ d.handle }}</code>.</p>
+        {% endif %}
         {% if d.package and not d.entitled %}
             <p class="error smalltext" style="margin: 0;">Not in your plan or purchases.{% if d.active %} It keeps working, without updates.{% endif %}</p>
         {% endif %}
