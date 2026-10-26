@@ -29,7 +29,8 @@ class DesignService
     {
         $plugin = Site7Studio::getInstance();
         $active = DesignInstaller::activeHandle();
-        $catalog = $withCatalog ? array_filter((new LibraryDistribution())->catalog(), fn($entry) => ($entry['type'] ?? '') === 'design') : [];
+        $fullCatalog = $withCatalog ? (new LibraryDistribution())->catalog() : [];
+        $catalog = array_filter($fullCatalog, fn($entry) => ($entry['type'] ?? '') === 'design');
         $theme = null;
         foreach ($plugin->packageManager->getAllPackages() as $record) {
             if ($record->type === 'theme' && in_array($record->status, ['installed', 'enabled'], true)) {
@@ -68,6 +69,9 @@ class DesignService
             }
             $entry = $catalog[$record->handle] ?? [];
             $installed = $record->status === 'installed';
+            if (self::isWithdrawnLeftover($installed, is_file(Craft::getAlias("@root/designs/{$handle}/design.json")), $fullCatalog !== [], $entry !== [])) {
+                continue;
+            }
             // Not installed: Install brings the catalog's latest version, so judge that
             // build, not an older copy left in the Library by an earlier install.
             $builtOn = $meta['theme'] ?? null;
@@ -193,6 +197,17 @@ class DesignService
                 (new self())->clearCaches();
             }
         });
+    }
+
+    /**
+     * A design record left in the Library after Commerce24 stopped offering it: not
+     * installed, not authored here (no designs/<handle>) and missing from a catalog that
+     * did answer. It has nothing to install, so Appearance shows no card for it. With
+     * no catalog (Commerce24 unreachable) nothing is hidden.
+     */
+    public static function isWithdrawnLeftover(bool $installed, bool $onDisk, bool $catalogAnswered, bool $inCatalog): bool
+    {
+        return !$installed && !$onDisk && $catalogAnswered && !$inCatalog;
     }
 
     /**
