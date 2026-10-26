@@ -25,6 +25,7 @@ packages/** -text
 # customer site doesn't need. The Library comes from Commerce24.
 /packages export-ignore
 /tests export-ignore
+/.github export-ignore
 /docs export-ignore
 /.claude export-ignore
 /CLAUDE.md export-ignore

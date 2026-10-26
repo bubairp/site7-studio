@@ -7,3 +7,7 @@
 # author site (rp-craft) the files stay in packages/ and are published from
 # there; Commerce24 keeps every published version.
 /packages/
+
+# A standalone install for running the tests (CI, or locally): not part of the plugin.
+/vendor/
+/composer.lock

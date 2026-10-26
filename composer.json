@@ -17,6 +17,16 @@
     "ext-zip": "*",
     "guzzlehttp/guzzle": "^7.0"
   },
+  "require-dev": {
+    "codeception/codeception": "^5.3",
+    "codeception/module-asserts": "^3.2"
+  },
+  "config": {
+    "allow-plugins": {
+      "craftcms/plugin-installer": true,
+      "yiisoft/yii2-composer": true
+    }
+  },
   "autoload": {
     "psr-4": {
       "site7\\studio\\": "src/"
