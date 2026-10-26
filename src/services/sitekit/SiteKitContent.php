@@ -64,6 +64,20 @@ class SiteKitContent extends Component
         'wheelform_forms' => ['site_id' => 'sites'],
         'wheelform_form_fields' => [],
         'sitemaps' => [],
+        // SEO plugin (ether/seo) XML sitemap settings: which sections and
+        // category groups are in sitemap.xml. Its url column holds an ID
+        // whose kind depends on the row's group (ROW_REFERENCES below).
+        'seo_sitemap' => [],
+    ];
+
+    /**
+     * Plugin table columns whose reference kind depends on another column:
+     * table => [column, by column, [by value => source table]]. Exported as
+     * UIDs; a row whose target is deleted at export, or missing at import,
+     * is left out. Rows of other kinds (custom URLs) are copied as they are.
+     */
+    private const ROW_REFERENCES = [
+        'seo_sitemap' => ['url', 'group', ['sections' => 'sections', 'categories' => 'categorygroups']],
     ];
 
     /**
@@ -191,7 +205,7 @@ class SiteKitContent extends Component
             if (!$db->tableExists("{{%{$table}}}")) {
                 continue;
             }
-            $rows = (new Query())->from("{{%{$table}}}")->all();
+            $rows = $this->portableRowReferences($table, (new Query())->from("{{%{$table}}}")->all(), $uidMaps);
             foreach ($rows as &$row) {
                 foreach ($structural as $column => $source) {
                     $row[$column] = $this->toPortable($row[$column] ?? null, $source, $uidMaps);
@@ -748,6 +762,59 @@ class SiteKitContent extends Component
     }
 
     /**
+     * ROW_REFERENCES at export: the row's ID becomes "@uid:…"; rows whose
+     * target was deleted are left out.
+     */
+    private function portableRowReferences(string $table, array $rows, array &$uidMaps): array
+    {
+        if (!isset(self::ROW_REFERENCES[$table])) {
+            return $rows;
+        }
+        [$column, $by, $sources] = self::ROW_REFERENCES[$table];
+        $kept = [];
+        foreach ($rows as $row) {
+            $source = $sources[$row[$by] ?? ''] ?? null;
+            if ($source !== null) {
+                try {
+                    $row[$column] = $this->toPortable($row[$column] ?? null, $source, $uidMaps);
+                } catch (DeletedReference) {
+                    continue;
+                }
+            }
+            $kept[] = $row;
+        }
+
+        return $kept;
+    }
+
+    /**
+     * ROW_REFERENCES at import: "@uid:…" back to this site's ID; rows whose
+     * target this site doesn't have are left out.
+     */
+    public static function resolveRowReferences(string $table, array $rows, callable $resolveUid): array
+    {
+        if (!isset(self::ROW_REFERENCES[$table])) {
+            return $rows;
+        }
+        [$column, $by, $sources] = self::ROW_REFERENCES[$table];
+        $kept = [];
+        foreach ($rows as $row) {
+            $source = $sources[$row[$by] ?? ''] ?? null;
+            $value = $row[$column] ?? null;
+            if ($source !== null && is_string($value) && str_starts_with($value, '@uid:')) {
+                try {
+                    $row[$column] = (string)$resolveUid($source, substr($value, 5));
+                } catch (\Exception) {
+                    continue;
+                }
+            }
+            $kept[] = $row;
+        }
+
+        return $kept;
+    }
+
+    /**
      * @return array{0: int, 1: string[]}
      */
     private function exportAssetFiles(\ZipArchive $zip, array $ids): array
@@ -951,7 +1018,8 @@ class SiteKitContent extends Component
                     continue;
                 }
                 $db->createCommand()->delete("{{%{$table}}}")->execute();
-                $counts[$table] = $this->insertRows($table, json_decode((string)file_get_contents($file), true) ?: [], array_keys($structural), $resolve, $resolveUid);
+                $rows = $this->resolveRowReferences($table, json_decode((string)file_get_contents($file), true) ?: [], $resolveUid);
+                $counts[$table] = $this->insertRows($table, $rows, array_keys($structural), $resolve, $resolveUid);
             }
 
             $db->createCommand('SET FOREIGN_KEY_CHECKS = 1')->execute();

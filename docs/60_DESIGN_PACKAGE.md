@@ -28,7 +28,7 @@ Designs restyle through **role tokens** (rp-craft `frontend/src/css/theme.css`, 
 `services/design/DesignLoader::register()`, called from `Site7Studio::init()` after Craft has initialised. First match wins (`DesignLoader::resolve()`, unit-tested):
 
 1. a **signed preview link**, `?site7Design=<token>` (`DesignLoader::previewUrl()`, console `site7-studio/design/preview-url <handle> [--hours=24]`): `Security::hashData()` over the handle and an expiry. Works without Dev Mode or a login, so a client can look before anything is activated;
-2. `?design=<handle>` in **Dev Mode**;
+2. `?design=<handle>` in **Dev Mode** (`?design=default` previews the site's own templates while another design is active, caches off like any preview);
 3. the **`activeDesign` setting** (project config). `SITE7_DESIGN` in `.env` overrides it through `config/site7-studio.php`; `default` means the site's own templates;
 4. the default design.
 

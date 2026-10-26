@@ -30,7 +30,7 @@ class KitBuilder extends Component
     public const FORMAT_VERSION = 2;
 
     /** Plugin data that belongs to the whole site's pages. */
-    public const PLUGIN_TABLES = ['simplerpmenu', 'simplerpmenu_items', 'sitemaps'];
+    public const PLUGIN_TABLES = ['simplerpmenu', 'simplerpmenu_items', 'sitemaps', 'seo_sitemap'];
 
     /**
      * @param bool $buildTemplates rebuild every page's Template package first

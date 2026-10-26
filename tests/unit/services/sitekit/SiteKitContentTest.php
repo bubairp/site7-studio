@@ -61,4 +61,32 @@ class SiteKitContentTest extends Unit
 
         $this->assertSame([0, []], $method->invoke(new SiteKitContent(), $zip, []));
     }
+
+    /**
+     * SEO sitemap rows point at a section or category group by ID in url: on import the
+     * exported UID becomes this site's ID, a row whose section the site lacks is left
+     * out, and custom URL rows stay as they are.
+     */
+    public function testSeoSitemapRowsResolveToThisSitesIds(): void
+    {
+        $resolveUid = function(string $table, string $uid): int {
+            $known = ['sections' => ['uid-blogs' => 42], 'categorygroups' => ['uid-topics' => 7]];
+            if (!isset($known[$table][$uid])) {
+                throw new \Exception("{$table} {$uid} missing");
+            }
+            return $known[$table][$uid];
+        };
+        $rows = [
+            ['id' => 1, 'group' => 'sections', 'url' => '@uid:uid-blogs'],
+            ['id' => 2, 'group' => 'sections', 'url' => '@uid:uid-gone'],
+            ['id' => 3, 'group' => 'categories', 'url' => '@uid:uid-topics'],
+            ['id' => 4, 'group' => 'customUrls', 'url' => '/press'],
+        ];
+
+        $out = SiteKitContent::resolveRowReferences('seo_sitemap', $rows, $resolveUid);
+
+        $this->assertSame([1, 3, 4], array_column($out, 'id'), 'the row for a missing section is left out');
+        $this->assertSame(['42', '7', '/press'], array_column($out, 'url'));
+        $this->assertSame($rows, SiteKitContent::resolveRowReferences('sitemaps', $rows, $resolveUid), 'other tables untouched');
+    }
 }

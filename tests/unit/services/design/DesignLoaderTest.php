@@ -42,6 +42,8 @@ class DesignLoaderTest extends Unit
         $this->assertSame(['canopy', true], DesignLoader::resolve(null, 'canopy', true, null));
         $this->assertSame([null, false], DesignLoader::resolve(null, 'canopy', false, null), 'ignored outside Dev Mode');
         $this->assertSame(['canopy', true], DesignLoader::resolve(null, 'canopy', true, 'other'), 'preview wins over the setting');
+        $this->assertSame([null, true], DesignLoader::resolve(null, 'default', true, 'harbor'), '?design=default previews the default over an active design');
+        $this->assertSame(['harbor', false], DesignLoader::resolve(null, 'default', false, 'harbor'), '...only in Dev Mode');
     }
 
     public function testASignedPreviewWinsEverywhere(): void

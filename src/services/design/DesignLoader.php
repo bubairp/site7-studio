@@ -56,6 +56,11 @@ class DesignLoader
             $settings->activeDesign ?? null,
         );
         if ($handle === null) {
+            // ?design=default while another design is active: the site's own
+            // templates, kept out of the caches like any preview
+            if ($preview) {
+                self::disableCaches();
+            }
             return;
         }
 
@@ -68,11 +73,8 @@ class DesignLoader
         // empty folders): it keeps the site's templates and swaps the CSS.
         $hasTemplates = is_dir($designPath);
 
-        // Preview HTML must never reach (or come from) the template caches,
-        // which don't know which design rendered them.
         if ($preview) {
-            Craft::$app->getConfig()->getGeneral()->enableTemplateCaching = false;
-            Craft::$app->getResponse()->getHeaders()->set('Cache-Control', 'no-store');
+            self::disableCaches();
         }
 
         if ($hasTemplates) {
@@ -116,8 +118,19 @@ class DesignLoader
         if ($devMode && ($handle = self::validHandle($queryHandle)) !== null) {
             return [$handle, true];
         }
+        // ?design=default previews the site's own templates over an active design
+        if ($devMode && $queryHandle === self::DEFAULT_HANDLE) {
+            return [null, true];
+        }
 
         return [self::validHandle($setting), false];
+    }
+
+    /** Preview HTML must never reach (or come from) the template caches, which don't know which design rendered them. */
+    private static function disableCaches(): void
+    {
+        Craft::$app->getConfig()->getGeneral()->enableTemplateCaching = false;
+        Craft::$app->getResponse()->getHeaders()->set('Cache-Control', 'no-store');
     }
 
     /** A design handle, or null for anything else (including "default"). */
