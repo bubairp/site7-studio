@@ -477,6 +477,12 @@ class SiteKitContent extends Component
      *
      * @return array<string, string> table => hash (tables the directory has)
      */
+    /** pluginTableSignatures() of a table with no rows */
+    public static function emptyTableSignature(): string
+    {
+        return md5(json_encode([]));
+    }
+
     public static function pluginTableSignatures(string $contentDir, array $tables): array
     {
         $hashes = [];

@@ -22,6 +22,15 @@ class LibraryUpdaterTest extends Unit
         $this->assertTrue(LibraryUpdater::isAuthorSite($settings));
     }
 
+    /** A plugin table new upstream, empty here (the plugin made it on install): applied, not kept */
+    public function testANewTableEmptyHereIsApplied(): void
+    {
+        $empty = \site7\studio\services\sitekit\SiteKitContent::emptyTableSignature();
+        $this->assertSame('apply', LibraryUpdater::decide(null, LibraryUpdater::liveTableForDecision(null, $empty), 'rows'));
+        $this->assertSame('kept', LibraryUpdater::decide(null, LibraryUpdater::liveTableForDecision(null, 'mine'), 'rows'), 'rows of its own here are kept');
+        $this->assertSame($empty, LibraryUpdater::liveTableForDecision('base', $empty), 'with a baseline an emptied table is an edit');
+    }
+
     public function testTheCustomersEditIsKept(): void
     {
         $this->assertSame('kept', LibraryUpdater::decide('a', 'mine', 'b'));

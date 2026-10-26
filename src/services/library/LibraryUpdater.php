@@ -790,7 +790,7 @@ class LibraryUpdater extends Component
         $incomingTables = SiteKitContent::pluginTableSignatures("{$dir}/content", $pluginTables);
         $replaceTables = [];
         foreach ($incomingTables as $table => $hash) {
-            $decision = self::decide($baseTables[$table] ?? null, $liveTables[$table] ?? null, $hash);
+            $decision = self::decide($baseTables[$table] ?? null, self::liveTableForDecision($baseTables[$table] ?? null, $liveTables[$table] ?? null), $hash);
             if ($decision === 'apply') {
                 $replaceTables[] = $table;
                 $report['updated'][] = "table {$table}";
@@ -812,6 +812,16 @@ class LibraryUpdater extends Component
     }
 
     // --------------------------------------------------------------- helpers
+
+    /**
+     * A plugin table new in this version (no baseline) that is empty here counts as not
+     * here: the plugin creates its table on install, so an empty one is nobody's edit
+     * (seo_sitemap joined the kit in Site7 Studio def9071 and was kept as "edited here").
+     */
+    public static function liveTableForDecision(?string $baseline, ?string $live): ?string
+    {
+        return $baseline === null && $live === SiteKitContent::emptyTableSignature() ? null : $live;
+    }
 
     /**
      * The three-way decision for one item, through PackageUpdatePlanner::classify().
