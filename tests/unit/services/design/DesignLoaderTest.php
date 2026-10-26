@@ -46,6 +46,21 @@ class DesignLoaderTest extends Unit
         $this->assertSame(['harbor', false], DesignLoader::resolve(null, 'default', false, 'harbor'), '...only in Dev Mode');
     }
 
+    /** Harbor showed the payment plugin's bare pages instead of the site's own templates/payment-gateway/ */
+    public function testTheSitesOwnTemplatesWinOverAPluginRootWhileADesignIsActive(): void
+    {
+        $base = sys_get_temp_dir() . '/s7-roots-' . uniqid();
+        mkdir("{$base}/payment-gateway", 0777, true);
+
+        $roots = DesignLoader::siteRootsFirst(['payment-gateway' => '/plugins/pay/templates', 'other-plugin' => ['/plugins/other']], $base);
+
+        $this->assertSame(["{$base}/payment-gateway", '/plugins/pay/templates'], $roots['payment-gateway'], 'the site folder goes first');
+        $this->assertSame(['/plugins/other'], $roots['other-plugin'], 'no site folder: the plugin root is untouched');
+        $this->assertSame([$base], $roots[''], 'the site templates are the catch-all root');
+        rmdir("{$base}/payment-gateway");
+        rmdir($base);
+    }
+
     public function testASignedPreviewWinsEverywhere(): void
     {
         $this->assertSame(['canopy', true], DesignLoader::resolve('canopy', 'other', true, 'third'));

@@ -35,7 +35,7 @@ Designs restyle through **role tokens** (rp-craft `frontend/src/css/theme.css`, 
 A handle must match `^[a-z0-9][a-z0-9-]{0,63}$`; a design without `designs/<handle>/templates` renders the default.
 
 With a design chosen:
-- `designs/<handle>/templates` becomes the site templates path **and** the `@templates` alias, and `templates/` is registered as a site template root without a prefix, so a missing file falls back to the site's own. Setting only the path is not enough: Craft resets it to `@templates` on every template-mode change, and a plugin rendering a CP template mid-page (the SEO plugin, in `<head>`) would switch the rest of the page back.
+- `designs/<handle>/templates` becomes the site templates path **and** the `@templates` alias, and `templates/` is registered as a site template root without a prefix, so a missing file falls back to the site's own. Setting only the path is not enough: Craft resets it to `@templates` on every template-mode change, and a plugin rendering a CP template mid-page (the SEO plugin, in `<head>`) would switch the rest of the page back. Where a plugin registered a template root that `templates/` also has as a folder (`payment-gateway` → `templates/payment-gateway/`), the site's folder goes first in that root (`DesignLoader::siteRootsFirst()`): Craft tries longer root keys before `''`, so the plugin's bare templates would otherwise replace the site's own while a design is active.
 - The Vite plugin is pointed at `web/designs/<handle>/.vite/manifest.json` (dev server off).
 - Previews switch template caching off for the request and send `Cache-Control: no-store`: `{% cache %}` keys don't know the design.
 

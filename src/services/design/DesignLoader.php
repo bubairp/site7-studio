@@ -79,7 +79,7 @@ class DesignLoader
 
         if ($hasTemplates) {
             Event::on(View::class, View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS, function(RegisterTemplateRootsEvent $event) use ($base) {
-                $event->roots[''][] = $base;
+                $event->roots = self::siteRootsFirst($event->roots, $base);
             });
 
             // Craft resets the templates path to @templates whenever the template
@@ -131,6 +131,32 @@ class DesignLoader
     {
         Craft::$app->getConfig()->getGeneral()->enableTemplateCaching = false;
         Craft::$app->getResponse()->getHeaders()->set('Cache-Control', 'no-store');
+    }
+
+    /**
+     * Site template roots while a design is active: the site's own templates/
+     * become root '', and wherever a plugin registered a root ("payment-gateway")
+     * that the site also has as a folder (templates/payment-gateway/), the site's
+     * folder goes first. Without a design Craft checks templates/ before every
+     * plugin root; a design moves templates/ to a root, and a plugin's longer
+     * key would otherwise win, so its bare templates replaced the site's own
+     * (payment pages under Harbor, 2026-10-26). Called after every plugin has
+     * registered its roots (register() runs in onInit).
+     *
+     * @param array<string, string|string[]> $roots
+     * @return array<string, string|string[]>
+     */
+    public static function siteRootsFirst(array $roots, string $base): array
+    {
+        foreach ($roots as $key => $paths) {
+            if ($key === '' || !is_dir("{$base}/{$key}")) {
+                continue;
+            }
+            $roots[$key] = array_values(array_unique(array_merge(["{$base}/{$key}"], (array)$paths)));
+        }
+        $roots[''] = array_merge((array)($roots[''] ?? []), [$base]);
+
+        return $roots;
     }
 
     /** A design handle, or null for anything else (including "default"). */
