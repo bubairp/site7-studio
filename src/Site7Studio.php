@@ -89,7 +89,7 @@ class Site7Studio extends Plugin
 {
     use PluginTrait;
 
-    public string $schemaVersion = '1.0.7';
+    public string $schemaVersion = '1.0.8';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 

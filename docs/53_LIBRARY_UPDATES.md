@@ -68,7 +68,19 @@ php craft site7-studio/library/publish [--bump=patch|minor|major] [--notes="…"
 2. The Library copy is kept aside as the baseline.
 3. The new version is downloaded (signature required) and imported into the Library (`install: false`).
 4. The update is applied:
-   - **Section package:** each `schema.json` item by the rule above. Changes are applied in dependency order through `ProjectConfig::set()` (normal, then forced), and project config is saved immediately. The block template `_blocks/<handle>.twig` is updated through the rule too, and its file baseline (`16`) is recorded.
+   - **Section package:** each `schema.json` item by the rule above. Changes are applied in dependency order through `ProjectConfig::set()` (normal, then forced), and project config is saved immediately. The package's files - the block template `templates/_blocks/<handle>.twig` and the manifest's `ownedFiles` - go through `PackageFileUpdater`, file by file (2026-10-26, `43` #67):
+
+     | On this site | New version | Result | Reported as |
+     |---|---|---|---|
+     | Unchanged since installed | Changed | Replaced | updated |
+     | Missing, never installed | Has it | Added | added |
+     | Edited | Changed or same | Kept, never overwritten | kept your version |
+     | Already the new version | - | Left; tracking row brought up to date | unchanged |
+     | Unchanged | Dropped it (or the block was renamed) | Deleted | removed |
+     | Edited | Dropped it | Kept | kept (removed upstream, edited here) |
+     | Deleted here | Has it | Not recreated | deleted on this site, not recreated |
+
+     "Since installed" is the old version's file; its tracking row (`16`, path relative to the Craft root) stands in when that version had no such file, and also marks a file this site deleted. Every write is read back and compared before its row is saved; a mismatch fails the package update, which can then run again. Owned files keep install's guards: frontend source folders only, one owning package per file. Fields, entry types and content are never deleted by a file removal.
    - **Template package:** the page's live state is exported in the same format and compared element by element. Replaced and new elements go through `SiteKitContent::import($dir, $onlyIds, $replaceIds)`. With foreign key checks off, a replaced element's own rows are swapped without cascading to its nested entries, to its structure node (kept) or to relations pointing at it. Cross-page links reconnect through `links.json`. **Blocks first (2026-10-15, `43` #53):** blocks the new version needs (`requires.sections`) that aren't installed here are downloaded and installed before the content is applied. If the site's plan doesn't include one of them, the page update is **skipped** (reported as skipped, not failed) and the page keeps its installed version. `library/updates` and the CP Updates screen show both per page: "also installs …" and "skipped unless the plan includes …".
    - **Theme package** (`ThemeUpdater`). The new version must be for this site's Craft version, otherwise it stops ("Update Craft first").
      1. **Code files:** every file under `files/`, mapped to the site root as the install copied it (`config/project/` excluded), goes through the rule. A file gone from the Theme is deleted if unchanged here.

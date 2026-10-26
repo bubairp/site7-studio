@@ -31,6 +31,21 @@ class LibraryUpdaterTest extends Unit
         $this->assertSame($empty, LibraryUpdater::liveTableForDecision('base', $empty), 'with a baseline an emptied table is an edit');
     }
 
+    /** Every file outcome reaches the update log (docs/53 §3) */
+    public function testTheReportNamesEveryFileOutcome(): void
+    {
+        $report = ['kept' => ['template _blocks/a.twig'], 'removed' => ['file frontend/src/css/b.css'], 'deletedHere' => ['template _blocks/c.twig']]
+            + LibraryUpdater::emptyReport();
+
+        $this->assertSame('0 updated, 0 added, 1 kept (edited here), 1 removed, 0 unchanged, 1 deleted here (not recreated)', LibraryUpdater::summary($report));
+        $this->assertSame([
+            '  kept your version: template _blocks/a.twig',
+            '  removed (no longer in this version, unchanged here): file frontend/src/css/b.css',
+            '  deleted on this site, not recreated: template _blocks/c.twig',
+        ], LibraryUpdater::reportLines($report));
+        $this->assertSame(['file frontend/src/css/b.css'], LibraryUpdater::mergeReports($report, LibraryUpdater::emptyReport())['removed']);
+    }
+
     public function testTheCustomersEditIsKept(): void
     {
         $this->assertSame('kept', LibraryUpdater::decide('a', 'mine', 'b'));

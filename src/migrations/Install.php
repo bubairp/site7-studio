@@ -51,6 +51,7 @@ class Install extends Migration
             m261002_100000_add_package_signature_columns::class,
             m261005_100000_add_package_version_unique_index::class,
             m261015_120000_reindex_library_content::class,
+            m261026_120000_fix_block_template_baseline_paths::class,
         ];
     }
 

@@ -140,11 +140,8 @@ class LibraryUpdater extends Component
                 $result['updated'][] = $handle;
                 $result['report'][$handle] = $report;
                 $log(sprintf('Updated %s %s -> %s: %s', $handle, $update['from'], $update['to'], self::summary($report)));
-                foreach ($report['kept'] as $kept) {
-                    $log("  kept your version: {$kept}");
-                }
-                foreach ($report['notes'] ?? [] as $note) {
-                    $log("  note: {$note}");
+                foreach (self::reportLines($report) as $line) {
+                    $log($line);
                 }
             } catch (UpdateSkippedException $e) {
                 // Not applied, on purpose: the installed version stays (updatePackage() put its Library copy back).
@@ -209,8 +206,8 @@ class LibraryUpdater extends Component
             $result['updated'][] = $handle;
             $result['report'][$handle] = $report;
             $log(sprintf('Changed %s %s -> %s: %s', $handle, $update['from'], $version, self::summary($report)));
-            foreach ($report['kept'] as $kept) {
-                $log("  kept your version: {$kept}");
+            foreach (self::reportLines($report) as $line) {
+                $log($line);
             }
         } catch (\Throwable $e) {
             $result['errors'][] = "{$handle}: {$e->getMessage()}";
@@ -223,14 +220,16 @@ class LibraryUpdater extends Component
 
     public static function emptyReport(): array
     {
-        return ['updated' => [], 'added' => [], 'kept' => [], 'trashed' => [], 'unchanged' => 0, 'notes' => []];
+        // removed: files the new version dropped (deleted here because unchanged);
+        // deletedHere: package files this site deleted, not recreated
+        return ['updated' => [], 'added' => [], 'kept' => [], 'trashed' => [], 'removed' => [], 'deletedHere' => [], 'unchanged' => 0, 'notes' => []];
     }
 
     public static function mergeReports(array ...$reports): array
     {
         $merged = self::emptyReport();
         foreach ($reports as $report) {
-            foreach (['updated', 'added', 'kept', 'trashed', 'notes'] as $key) {
+            foreach (['updated', 'added', 'kept', 'trashed', 'removed', 'deletedHere', 'notes'] as $key) {
                 $merged[$key] = array_merge($merged[$key], $report[$key] ?? []);
             }
             $merged['unchanged'] += $report['unchanged'] ?? 0;
@@ -312,28 +311,19 @@ class LibraryUpdater extends Component
         }
         $report = $this->applyItems($oldItems, $newItems, $record);
 
-        // The block template.
-        $entryTypeHandle = null;
-        foreach ($new['items'] ?? [] as $item) {
-            if ($item['kind'] === 'entryTypes' && $item['uid'] === ($new['entryType'] ?? null)) {
-                $entryTypeHandle = $item['handle'];
-            }
+        // The block template and the manifest's owned files, file by file
+        // (PackageFileUpdater: kept when edited here, never recreated when
+        // deleted here, removed upstream only when unchanged).
+        $root = dirname(rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/'));
+        $files = (new PackageFileUpdater($root, new InstalledFileBaselineStore()))
+            ->apply($record->id, $record->handle, (string)$record->version, $baseline, $dir);
+        foreach (['updated', 'added', 'kept', 'removed', 'deletedHere', 'notes'] as $key) {
+            $report[$key] = array_merge($report[$key] ?? [], $files[$key]);
         }
-        if ($entryTypeHandle && is_file("{$dir}/template.twig")) {
-            $target = "_blocks/{$entryTypeHandle}.twig";
-            $live = Craft::getAlias('@templates') . "/{$target}";
-            $decision = self::decideFile("{$baseline}/template.twig", $live, "{$dir}/template.twig");
-            if ($decision === 'apply') {
-                FileHelper::writeToFile($live, (string)file_get_contents("{$dir}/template.twig"));
-                Site7Studio::getInstance()->installedFileBaseline->record($record->id, $entryTypeHandle, $target, $record->version, (string)PackageArchiveHelper::computeFileChecksum($live));
-                $report['updated'][] = "template {$target}";
-            } elseif ($decision === 'kept') {
-                $report['kept'][] = "template {$target}";
-            } else {
-                $report['unchanged']++;
-            }
+        $report['unchanged'] += $files['unchanged'];
+        foreach ($files['templates'] as $template) {
             // The new version's Tailwind classes (docs/59); never runs npm.
-            if (($styles = \site7\studio\services\theme\TailwindSafelist::afterBlockInstalled($record->name, $live)) !== null) {
+            if (($styles = \site7\studio\services\theme\TailwindSafelist::afterBlockInstalled($record->name, $template)) !== null) {
                 $report['notes'][] = $styles;
             }
         }
@@ -929,9 +919,35 @@ class LibraryUpdater extends Component
         return $titles;
     }
 
+    /**
+     * One log line per item that needs the reader's attention, after summary().
+     *
+     * @return string[]
+     */
+    public static function reportLines(array $report): array
+    {
+        $lines = [];
+        foreach ($report['kept'] ?? [] as $item) {
+            $lines[] = "  kept your version: {$item}";
+        }
+        foreach ($report['removed'] ?? [] as $item) {
+            $lines[] = "  removed (no longer in this version, unchanged here): {$item}";
+        }
+        foreach ($report['deletedHere'] ?? [] as $item) {
+            $lines[] = "  deleted on this site, not recreated: {$item}";
+        }
+        foreach ($report['notes'] ?? [] as $item) {
+            $lines[] = "  note: {$item}";
+        }
+
+        return $lines;
+    }
+
     public static function summary(array $report): string
     {
         return sprintf('%d updated, %d added, %d kept (edited here), %d removed, %d unchanged',
-            count($report['updated']), count($report['added']), count($report['kept']), count($report['trashed']), $report['unchanged']);
+            count($report['updated']), count($report['added']), count($report['kept']),
+            count($report['trashed']) + count($report['removed'] ?? []), $report['unchanged'])
+            . (!empty($report['deletedHere']) ? sprintf(', %d deleted here (not recreated)', count($report['deletedHere'])) : '');
     }
 }
