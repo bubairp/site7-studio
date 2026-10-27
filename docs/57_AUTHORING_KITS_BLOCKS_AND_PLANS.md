@@ -35,7 +35,7 @@ On a site without a kit, installing a pack installs the Default Kit first.
 
 ## 3. Create a block (Section package)
 
-1. **Build it in Craft on rp-craft.** Add an entry type to the `matrixContent` field, with its fields, and write `templates/_blocks/<entry type handle>.twig`. Try it on a page.
+1. **Build it in Craft on rp-craft.** Add an entry type to the `matrixContent` field, with its fields (reuse existing ones; handle overrides allowed), and write `_blocks/<entry type handle>.twig`: in the `site7/theme` package (`themes/site7-theme/templates/_blocks/`) for a core block, in rp-craft's `templates/_blocks/` for an extra (`60` §3). Try it on a page. The step-by-step, with scripts and QA, is rp-craft's `.claude/skills/site7-block-authoring/SKILL.md`.
 2. **Import it into the Library.** Library → Import Existing Section → pick the block type. Alternatively, `ddev craft site7-studio/import/sections` imports every block of the page builder that isn't in the Library yet (`--dry-run` first). The package is `packages/<handle>/` with `schema.json`, `template.twig` and `manifest.json`.
 3. **Customer texts.** In `packages/<handle>/manifest.json`, set `description` (one sentence on what the block shows) and `category`. Customers see both in the Content Browser.
 4. **Preview.** Put a screenshot of the block at `packages/<handle>/preview/preview.png`.
