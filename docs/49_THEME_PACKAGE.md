@@ -113,6 +113,8 @@ Steps after `composer install` run as subprocesses because the installing proces
 
 ## 7. Known limitations
 
+- **Moving to a Composer package (in progress, branch `feature/theme-vendor`).** On rp-craft the core templates now live in the `site7/theme` package (`themes/site7-theme`, linked into `vendor/`); `templates/` keeps only the 6 extra blocks. `ThemeBuilder` still packs the site's `templates/`, and the core blocks' Section packages still sync from `templates/_blocks/`, so Theme builds and those syncs are wrong on that branch until phase 3 (releases) changes them. See `60` §3 for the lookup order.
+
 - **Pages need their Template packages.** For example, `entries/singles/contact.twig` reads `entry.selectForm.id`, which is page content (`50`).
 - **Visitor content travels with the Starter Kit, not the Theme.** That's sections Guest Entries accepts submissions into (reviews).
 - **Guest Entries' author setting names a source-site user.** Users don't travel, so set it on the new site.

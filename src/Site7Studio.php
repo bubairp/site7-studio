@@ -112,7 +112,7 @@ class Site7Studio extends Plugin
             // Not earlier: Craft's log targets are rebuilt after plugins init.
             $this->get('log');
             $this->attachEventHandlers();
-            // Page requests render the active design (docs/60)
+            // The theme package's templates on every request; page requests render the active design (docs/60)
             \site7\studio\services\design\DesignLoader::register();
             // A deploy that changes the active design clears template caches
             \site7\studio\services\design\DesignService::registerProjectConfigListener();

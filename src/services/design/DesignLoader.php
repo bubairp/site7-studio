@@ -2,6 +2,7 @@
 
 namespace site7\studio\services\design;
 
+use Composer\InstalledVersions;
 use Craft;
 use craft\events\RegisterTemplateRootsEvent;
 use craft\helpers\FileHelper;
@@ -32,6 +33,11 @@ use yii\base\Event;
  *
  * Only page requests: console, CP and action requests keep templates/, since
  * installs and updates write into @templates there.
+ *
+ * Under both, the base theme: the site7/theme Composer package's templates/
+ * (themeTemplatesPath()) is the last site template root on every request, so
+ * a template the site doesn't have itself comes from the package. Lookup
+ * order: designs/<active>/templates, templates/, the theme package.
  */
 class DesignLoader
 {
@@ -41,10 +47,15 @@ class DesignLoader
     /** The handle meaning "the site's own templates" */
     public const DEFAULT_HANDLE = 'default';
 
+    /** Composer package of the base theme */
+    public const THEME_PACKAGE = 'site7/theme';
+
     public static function register(): void
     {
+        $theme = self::themeTemplatesPath();
         $request = Craft::$app->getRequest();
         if ($request->getIsConsoleRequest() || $request->getIsCpRequest() || $request->getIsActionRequest()) {
+            self::registerRoots([$theme]);
             return;
         }
 
@@ -61,12 +72,14 @@ class DesignLoader
             if ($preview) {
                 self::disableCaches();
             }
+            self::registerRoots([$theme]);
             return;
         }
 
         $base = FileHelper::normalizePath(Craft::$app->getPath()->getSiteTemplatesPath());
         $designPath = FileHelper::normalizePath(Craft::getAlias("@root/designs/{$handle}/templates"));
         if (!is_file(Craft::getAlias("@root/designs/{$handle}/design.json")) || $base === $designPath) {
+            self::registerRoots([$theme]);
             return; // not a design on this site, or already applied
         }
         // A design that only restyles has no templates/ (a package drops
@@ -77,10 +90,11 @@ class DesignLoader
             self::disableCaches();
         }
 
-        if ($hasTemplates) {
-            Event::on(View::class, View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS, function(RegisterTemplateRootsEvent $event) use ($base) {
-                $event->roots = self::siteRootsFirst($event->roots, $base);
-            });
+        if (!$hasTemplates) {
+            self::registerRoots([$theme]);
+        } else {
+            // templates/ is no longer the templates path, so it becomes a root ahead of the theme
+            self::registerRoots([$base, $theme]);
 
             // Craft resets the templates path to @templates whenever the template
             // mode changes (a plugin rendering a CP template mid-page switches to
@@ -133,30 +147,67 @@ class DesignLoader
         Craft::$app->getResponse()->getHeaders()->set('Cache-Control', 'no-store');
     }
 
+    /** Adds $bases (null entries skipped) as site template roots, through siteRootsFirst(). */
+    private static function registerRoots(array $bases): void
+    {
+        $bases = array_values(array_filter($bases));
+        if (!$bases) {
+            return;
+        }
+        Event::on(View::class, View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS, function(RegisterTemplateRootsEvent $event) use ($bases) {
+            $event->roots = self::siteRootsFirst($event->roots, $bases);
+        });
+    }
+
     /**
-     * Site template roots while a design is active: the site's own templates/
-     * become root '', and wherever a plugin registered a root ("payment-gateway")
-     * that the site also has as a folder (templates/payment-gateway/), the site's
-     * folder goes first. Without a design Craft checks templates/ before every
-     * plugin root; a design moves templates/ to a root, and a plugin's longer
-     * key would otherwise win, so its bare templates replaced the site's own
-     * (payment pages under Harbor, 2026-10-26). Called after every plugin has
-     * registered its roots (register() runs in onInit).
+     * Site template roots for $bases, in order (the site's own templates/ while
+     * a design is active, then the theme package): they become root '', and
+     * wherever a plugin registered a root ("payment-gateway") that a base also
+     * has as a folder (templates/payment-gateway/), the base's folders go first.
+     * Without a design Craft checks templates/ before every plugin root; a
+     * design moves templates/ to a root, and the theme is always one, and a
+     * plugin's longer key would otherwise win, so its bare templates replaced
+     * the site's own (payment pages under Harbor, 2026-10-26). Called after
+     * every plugin has registered its roots (register() runs in onInit).
      *
      * @param array<string, string|string[]> $roots
+     * @param string|string[] $bases
      * @return array<string, string|string[]>
      */
-    public static function siteRootsFirst(array $roots, string $base): array
+    public static function siteRootsFirst(array $roots, string|array $bases): array
     {
+        $bases = (array)$bases;
         foreach ($roots as $key => $paths) {
-            if ($key === '' || !is_dir("{$base}/{$key}")) {
+            if ($key === '') {
                 continue;
             }
-            $roots[$key] = array_values(array_unique(array_merge(["{$base}/{$key}"], (array)$paths)));
+            $folders = array_values(array_filter(array_map(fn($base) => "{$base}/{$key}", $bases), 'is_dir'));
+            if ($folders) {
+                $roots[$key] = array_values(array_unique(array_merge($folders, (array)$paths)));
+            }
         }
-        $roots[''] = array_merge((array)($roots[''] ?? []), [$base]);
+        $roots[''] = array_merge((array)($roots[''] ?? []), $bases);
 
         return $roots;
+    }
+
+    /**
+     * The theme package's templates folder (extra.site7.templates in its
+     * composer.json, default templates/), or null on a site without it.
+     */
+    public static function themeTemplatesPath(): ?string
+    {
+        if (!class_exists(InstalledVersions::class) || !InstalledVersions::isInstalled(self::THEME_PACKAGE)) {
+            return null;
+        }
+        $root = InstalledVersions::getInstallPath(self::THEME_PACKAGE);
+        if ($root === null) {
+            return null;
+        }
+        $composer = json_decode((string)@file_get_contents("{$root}/composer.json"), true) ?: [];
+        $path = FileHelper::normalizePath($root . '/' . ($composer['extra']['site7']['templates'] ?? 'templates'));
+
+        return is_dir($path) ? $path : null;
     }
 
     /** A design handle, or null for anything else (including "default"). */

@@ -61,6 +61,31 @@ class DesignLoaderTest extends Unit
         rmdir($base);
     }
 
+    /** The theme package is the last root: the site's templates/ and then the theme, both ahead of a plugin root */
+    public function testTheThemePackageComesAfterTheSitesTemplates(): void
+    {
+        $tmp = sys_get_temp_dir() . '/s7-roots-' . uniqid();
+        $site = "{$tmp}/templates";
+        $theme = "{$tmp}/vendor/site7/theme/templates";
+        mkdir("{$site}/payment-gateway", 0777, true);
+        mkdir("{$theme}/payment-gateway", 0777, true);
+        mkdir("{$theme}/search", 0777, true);
+
+        $roots = DesignLoader::siteRootsFirst(['payment-gateway' => '/plugins/pay/templates', 'search' => '/plugins/search', '' => ['/plugins/any']], [$site, $theme]);
+
+        $this->assertSame(["{$site}/payment-gateway", "{$theme}/payment-gateway", '/plugins/pay/templates'], $roots['payment-gateway']);
+        $this->assertSame(["{$theme}/search", '/plugins/search'], $roots['search'], 'only the theme has the folder');
+        $this->assertSame(['/plugins/any', $site, $theme], $roots[''], 'catch-all: the site, then the theme');
+
+        $noDesign = DesignLoader::siteRootsFirst(['payment-gateway' => '/plugins/pay/templates'], [$theme]);
+        $this->assertSame(["{$theme}/payment-gateway", '/plugins/pay/templates'], $noDesign['payment-gateway'], 'without a design Craft checks templates/ itself; the theme still beats the plugin');
+        $this->assertSame([$theme], $noDesign['']);
+
+        foreach (["{$site}/payment-gateway", "{$theme}/payment-gateway", "{$theme}/search", $theme, "{$tmp}/vendor/site7/theme", "{$tmp}/vendor/site7", "{$tmp}/vendor", $site, $tmp] as $dir) {
+            rmdir($dir);
+        }
+    }
+
     public function testASignedPreviewWinsEverywhere(): void
     {
         $this->assertSame(['canopy', true], DesignLoader::resolve('canopy', 'other', true, 'third'));
