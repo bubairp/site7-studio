@@ -83,7 +83,7 @@ The blueprint wizard below the pane only appears when blueprint kits exist. In t
 
 ## 5. Install (`KitInstaller::installKit`)
 
-1. **Theme**, if it isn't enabled yet: `ThemeInstaller::installTheme()`. That covers backup, code, Composer, plugins, structure, Singles, settings content and the frontend build (`49` §4).
+1. **Theme**, if it isn't enabled yet: `ThemeInstaller::installTheme()`. That covers backup, code, Composer, plugins, structure, Singles, settings content and the frontend build (`49` §4). It brings the base theme package `site7/theme` (`49` §2e), so the core blocks the kit installs next copy no templates: the new site's `templates/` ends up with only the extra blocks (`release.sh` checks this on site7-fresh).
 2. **Kit**, in a new process (the Theme replaced `vendor/` and the plugin list): `starter-kit/apply` → `installPackage()` + `enablePackage()`.
    - **Preflight:** the same checks as a Template (`TemplateInstaller::preflight()`: Theme enabled, Library ID range).
    - **Cascade:** the existing `starter-kit` cascade installs and enables every required Template. Each Template installs its blocks and content (`50` §6).

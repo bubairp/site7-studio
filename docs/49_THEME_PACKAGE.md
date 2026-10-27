@@ -21,7 +21,7 @@ A Theme is not a Full Site Kit (`48`): a kit replaces a site's project config an
 | `theme.json` | `craftVersion`, `plugins`, `pageBuilderField`, `pageBuilderBlocks`, structure counts, `settingsSections`, content counts, `configFiles`, `pathRepositories`, `envKeys` (names only) |
 | `schema.json` | Structure (`ThemeSchemaService`): `{formatVersion, sourceSites, sourceSiteGroups, pageBuilderField, pageBuilderEntryTypes, items[{path, handle, config}]}` |
 | `plugins.json` | Plugin project config (settings), except site7-studio, plus `elementSources` |
-| `files/` | `composer.json`/`composer.lock`, templates (minus the page-builder blocks' `_blocks/<handle>.twig`, which belong to Section packages), modules, frontend, `web/assets`, config files except `db.php`, license, `project/` and `site7-studio.php` |
+| `files/` | `composer.json`/`composer.lock`, the site's own templates (minus the page-builder blocks' `_blocks/<handle>.twig`, which belong to Section packages), modules, frontend, `web/assets`, config files except `db.php`, license, `project/` and `site7-studio.php`, and the bundled path repositories, including the base theme `themes/site7-theme` (§2e) |
 | `content/` | Settings content in the `SiteKitContent` format (`48` §10) |
 
 **Structure.** Includes everything reachable from the roots, following any UID in a config plus volumes' filesystem handles. The roots are filesystems, volumes, sections, category groups, tag groups, global sets, **every field and every entry type**. So the theme carries the site's whole structure (rp-craft: 170 fields, 104 entry types).
@@ -68,6 +68,21 @@ A site can install Site7 Studio from Git, a local folder or Packagist, so the Th
 - **Updates write the site's plugins back (2026-10-15, `43` #51):** the site's Composer files are read before anything is written, and both files are compared as they were. The Theme's files are then written with the site's Site7 Studio, plus any installed Craft plugin the site requires that the new Theme dropped (kept, with a note to `composer remove` it), through `ComposerFiles::withPackageFrom()`. If the site had Site7 Studio and the files about to be installed don't, the update stops before running Composer.
 - The lock's `content-hash` is recomputed with Composer's own algorithm (`ComposerFiles::contentHash()`, checked against rp-craft's lock).
 
+## 2e. The base theme is a Composer package (2026-10-27, branch `feature/theme-vendor`)
+
+The core templates (layouts, components, the 22 core blocks) and the base CSS/JS are the Composer package `site7/theme`, its own repo (github.com/bubairp/site7-theme). A site reads it from `vendor/site7/theme`; its own `templates/` holds only extra blocks, its own blocks and overrides. Lookup order and the core blocks' Section packages: `60` §3.
+
+| Where | `themes/site7-theme` | `vendor/site7/theme` |
+|---|---|---|
+| rp-craft (author) | git submodule, edited and committed there | symlink to it (path repository, `symlink: true`) |
+| Dev | git submodule, checked out by the deploy | symlink to it |
+| Customer site | bundled copy from the Theme package | real copy (`symlink: false`), read-only |
+
+- **Build:** `themes/site7-theme` is a path repository like the plugin folders (§2d), so it's bundled into `files/` and installs as a copy. Its locked `dist.reference` is the theme's git commit: a customer's `vendor/site7/theme` is reinstalled only when that changes, so rp-craft's lock must pin the commit being released (`ddev composer update site7/theme`; `release.sh` checks it).
+- **New site:** the Theme install copies the bundle and `composer install` puts it in `vendor/`; blocks installed in the same run see it (`DesignLoader::reloadInstalled()`) and copy no core templates.
+- **Existing site:** the Theme update adds the bundle and removes the Theme-shipped templates the site didn't edit; `php craft site7-studio/theme/migrate` then removes the core blocks' copies (`60` §3). Run Library updates first.
+- **Changing one file on a site:** `php craft site7-studio/theme/override <path>` copies it into `templates/` and records it; `theme/overrides` reports the ones the theme changed since.
+
 ## 3. Console
 
 ```
@@ -113,7 +128,8 @@ Steps after `composer install` run as subprocesses because the installing proces
 
 ## 7. Known limitations
 
-- **Moving to a Composer package (in progress, branch `feature/theme-vendor`).** On rp-craft the core templates and the base CSS/JS now live in the `site7/theme` package (`themes/site7-theme`, a git submodule linked into `vendor/`); `templates/` keeps only the 6 extra blocks. The Theme build packs the site's `templates/` (the extras' are left out as Section package templates, as before) and bundles `themes/site7-theme` like any path repository (§2d), so a new site gets the package with the Theme. On an existing site a Theme update removes the core templates it no longer ships unless edited there; the bundled package then serves them. See `60` §3 for the lookup order and how core blocks' Section packages read their template.
+- **The base theme package isn't on `main` yet.** §2e is on branch `feature/theme-vendor` (Site7 Studio and rp-craft) until the rollout. A Theme built from that branch needs a Site7 Studio from it on the customer site: an older plugin doesn't register `vendor/site7/theme` as a template root. The Theme's manifest says so (`minimumSite7Version: 1.1.0`, `ThemeBuilder::studioRequirement()`), and Commerce24 doesn't offer it to an older plugin (`52` §5b); the real Commerce24 must have that gate before such a Theme is published to it.
+- **Theme package without a built frontend:** an update rebuilds the frontend only when a file under `frontend/` or `templates/` arrived (`ThemeUpdater`), not `themes/`. rp-craft's Theme ships its build (§2b), so it's unaffected.
 
 - **Pages need their Template packages.** For example, `entries/singles/contact.twig` reads `entry.selectForm.id`, which is page content (`50`).
 - **Visitor content travels with the Starter Kit, not the Theme.** That's sections Guest Entries accepts submissions into (reviews).
