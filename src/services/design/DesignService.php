@@ -212,20 +212,23 @@ class DesignService
 
     /**
      * Base templates the design overrides that changed since it was built
-     * (a Theme or block update the design's copy hides).
+     * (a Theme or block update the design's copy hides). The base is the
+     * site's own templates/<path>, else the theme package's.
      *
      * @param array<string, string|null> $overrides
+     * @param string[]|null $baseDirs default DesignLoader::baseTemplateDirs()
      * @return string[]
      */
-    public static function changedBases(array $overrides): array
+    public static function changedBases(array $overrides, ?array $baseDirs = null): array
     {
+        $baseDirs ??= DesignLoader::baseTemplateDirs((string)Craft::getAlias('@root'));
         $changed = [];
         foreach ($overrides as $path => $checksum) {
             if ($checksum === null) {
                 continue;
             }
-            $base = Craft::getAlias("@root/templates/{$path}");
-            if (!is_file($base) || sha1_file($base) !== $checksum) {
+            $base = DesignLoader::firstFile($baseDirs, $path);
+            if ($base === null || sha1_file($base) !== $checksum) {
                 $changed[] = $path;
             }
         }

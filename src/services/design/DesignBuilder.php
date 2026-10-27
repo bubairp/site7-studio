@@ -82,7 +82,8 @@ class DesignBuilder extends Component
         FileHelper::copyDirectory($source, "{$dir}/files/designs/{$designHandle}", $skip);
         FileHelper::copyDirectory($built, "{$dir}/files/web/designs/{$designHandle}", $skip);
 
-        $overrides = self::overrides("{$source}/templates", "{$root}/templates");
+        $bases = DesignLoader::baseTemplateDirs($root);
+        $overrides = self::overrides("{$source}/templates", $bases);
         $meta = array_merge($own, [
             'formatVersion' => self::FORMAT_VERSION,
             'handle' => $designHandle,
@@ -97,7 +98,7 @@ class DesignBuilder extends Component
             // The templates that include each override by name, so a site whose
             // includer is an older or edited copy can be told the override
             // won't show there (DesignReachability).
-            'includedBy' => DesignReachability::includedBy("{$root}/templates", array_keys($overrides)),
+            'includedBy' => DesignReachability::includedBy($bases, array_keys($overrides)),
         ]);
         unset($meta['version']);
         file_put_contents("{$dir}/" . self::META_FILE, self::json($meta));
@@ -172,12 +173,14 @@ class DesignBuilder extends Component
 
     /**
      * The design's overrides: path relative to templates/ => checksum of the
-     * site's own templates/<path> now, or null when the design adds a file
-     * the site doesn't have.
+     * site's base template now (its own templates/<path>, else the theme
+     * package's: $siteTemplates in that order), or null when the design adds
+     * a file the site doesn't have.
      *
+     * @param string|string[] $siteTemplates
      * @return array<string, string|null>
      */
-    public static function overrides(string $designTemplates, string $siteTemplates): array
+    public static function overrides(string $designTemplates, string|array $siteTemplates): array
     {
         $overrides = [];
         if (!is_dir($designTemplates)) {
@@ -188,8 +191,8 @@ class DesignBuilder extends Component
             if (basename($relative) === '.gitkeep') {
                 continue;
             }
-            $base = "{$siteTemplates}/{$relative}";
-            $overrides[$relative] = is_file($base) ? sha1_file($base) : null;
+            $base = DesignLoader::firstFile((array)$siteTemplates, $relative);
+            $overrides[$relative] = $base !== null ? sha1_file($base) : null;
         }
         ksort($overrides);
 

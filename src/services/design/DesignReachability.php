@@ -46,21 +46,28 @@ class DesignReachability
     /**
      * For each override, the templates under $siteTemplates that include it by
      * its literal name (relative paths, sorted). Overrides nothing includes
-     * literally are left out.
+     * literally are left out. Several folders are layers, first one wins per
+     * path: the site's templates/, then the theme package's.
      *
+     * @param string|string[] $siteTemplates
      * @param string[] $overridePaths paths relative to templates/
      * @return array<string, string[]>
      */
-    public static function includedBy(string $siteTemplates, array $overridePaths): array
+    public static function includedBy(string|array $siteTemplates, array $overridePaths): array
     {
-        if (!$overridePaths || !is_dir($siteTemplates)) {
-            return [];
-        }
-        $root = rtrim(str_replace('\\', '/', $siteTemplates), '/');
         $sources = [];
-        foreach (FileHelper::findFiles($root, ['only' => array_map(fn($ext) => "*.{$ext}", self::EXTENSIONS)]) as $file) {
-            $file = str_replace('\\', '/', $file);
-            $sources[ltrim(substr($file, strlen($root)), '/')] = (string)file_get_contents($file);
+        foreach ((array)$siteTemplates as $dir) {
+            if (!is_dir($dir)) {
+                continue;
+            }
+            $root = rtrim(str_replace('\\', '/', $dir), '/');
+            foreach (FileHelper::findFiles($root, ['only' => array_map(fn($ext) => "*.{$ext}", self::EXTENSIONS)]) as $file) {
+                $file = str_replace('\\', '/', $file);
+                $sources[ltrim(substr($file, strlen($root)), '/')] ??= (string)file_get_contents($file);
+            }
+        }
+        if (!$overridePaths || !$sources) {
+            return [];
         }
         $includedBy = [];
         foreach ($overridePaths as $override) {
@@ -111,7 +118,8 @@ class DesignReachability
 
     /**
      * unreachable() for design $handle on this site: includers resolved the way
-     * the design loader renders them, designs/<handle>/templates first.
+     * the design loader renders them, designs/<handle>/templates first, then
+     * the site's templates/ and the theme package's.
      *
      * @param array<string, string[]> $includedBy
      * @return array<string, string[]>
@@ -119,15 +127,12 @@ class DesignReachability
     public static function forSite(string $handle, array $includedBy, string $root): array
     {
         $root = rtrim(str_replace('\\', '/', $root), '/');
+        $dirs = ["{$root}/designs/{$handle}/templates", ...DesignLoader::baseTemplateDirs($root)];
 
-        return self::unreachable($includedBy, function(string $includer) use ($handle, $root): ?string {
-            foreach (["{$root}/designs/{$handle}/templates/{$includer}", "{$root}/templates/{$includer}"] as $file) {
-                if (is_file($file)) {
-                    return (string)file_get_contents($file);
-                }
-            }
+        return self::unreachable($includedBy, function(string $includer) use ($dirs): ?string {
+            $file = DesignLoader::firstFile($dirs, $includer);
 
-            return null;
+            return $file !== null ? (string)file_get_contents($file) : null;
         });
     }
 

@@ -5,6 +5,7 @@ namespace site7\studio\console\controllers;
 use craft\console\Controller;
 use site7\studio\services\theme\ThemeBuilder;
 use site7\studio\services\theme\ThemeInstaller;
+use site7\studio\services\theme\ThemeOverrides;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
@@ -104,6 +105,58 @@ class ThemeController extends Controller
     {
         $handles = (new ThemeInstaller())->ensureSingles();
         $this->stdout('Singles ready: ' . implode(', ', $handles) . "\n");
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Copies a template of the base theme (site7/theme) into templates/ to
+     * change it on this site, and records which theme version it came from.
+     * Usage: php craft site7-studio/theme/override _blocks/ctaBanner.twig
+     */
+    public function actionOverride(string $template): int
+    {
+        try {
+            $path = ThemeOverrides::forSite()->copy($template);
+        } catch (\Exception $e) {
+            $this->stderr("Error: {$e->getMessage()}\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+        $this->stdout("Copied to templates/{$path}: edit it there, this site now renders it instead of the theme's.\n", Console::FG_GREEN);
+        $this->stdout("Recorded in templates/" . ThemeOverrides::LEDGER . " (commit both). theme/overrides lists theme changes your copy hides.\n");
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * This site's overrides of the base theme, and which of them the theme
+     * changed since they were copied.
+     * Usage: php craft site7-studio/theme/overrides
+     */
+    public function actionOverrides(): int
+    {
+        $overrides = ThemeOverrides::forSite();
+        $report = $overrides->report();
+        if (ThemeOverrides::installedThemeVersion() === null) {
+            $this->stdout("This site has no site7/theme package: its templates are all in templates/.\n");
+            return ExitCode::OK;
+        }
+        if (!$report) {
+            $this->stdout("No overrides: every base template comes from site7/theme " . ThemeOverrides::installedThemeVersion() . ".\n");
+            return ExitCode::OK;
+        }
+        $notes = [
+            ThemeOverrides::CURRENT => ['current', Console::FG_GREEN],
+            ThemeOverrides::CHANGED => ['the theme changed this file since it was copied: review your copy', Console::FG_YELLOW],
+            ThemeOverrides::REMOVED => ['the theme no longer has this file: your copy may be unused', Console::FG_YELLOW],
+            ThemeOverrides::UNTRACKED => ['not recorded (copied by hand): no base to compare with', Console::FG_GREY],
+        ];
+        foreach ($report as $path => $override) {
+            [$note, $colour] = $notes[$override['state']];
+            $from = $override['theme'] ? " (copied from {$override['theme']})" : '';
+            $this->stdout(str_pad($path, 48) . " {$note}{$from}\n", $colour);
+        }
+        $this->stdout(count($report) . ' override(s), ' . count($overrides->needsReview()) . " to review. Theme: site7/theme " . ThemeOverrides::installedThemeVersion() . "\n");
 
         return ExitCode::OK;
     }

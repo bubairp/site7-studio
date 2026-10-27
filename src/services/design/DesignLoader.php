@@ -233,6 +233,31 @@ class DesignLoader
     }
 
     /**
+     * The folders a site's base templates come from, first match wins: its
+     * own templates/, then the theme package's. A design's overrides are
+     * checked against these (DesignBuilder::overrides(), DesignReachability,
+     * DesignService::changedBases()).
+     *
+     * @return string[]
+     */
+    public static function baseTemplateDirs(string $root): array
+    {
+        return array_values(array_filter([rtrim(str_replace('\\', '/', $root), '/') . '/templates', self::themeTemplatesPath()]));
+    }
+
+    /** $relative's file in the first of $dirs that has it, or null. */
+    public static function firstFile(array $dirs, string $relative): ?string
+    {
+        foreach ($dirs as $dir) {
+            if (is_file("{$dir}/{$relative}")) {
+                return "{$dir}/{$relative}";
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * After a Theme install or update ran Composer in this process: Composer's
      * InstalledVersions still holds the packages the request started with, so
      * the blocks a Starter Kit installs next wouldn't see a site7/theme it

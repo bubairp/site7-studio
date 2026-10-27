@@ -75,6 +75,21 @@ class DesignReachabilityTest extends Unit
         array_map('unlink', [...glob("{$dir}/*/*/*.twig"), ...glob("{$dir}/*/*.twig")]);
     }
 
+    public function testIncludedByReadsTheSitesCopyBeforeTheThemes(): void
+    {
+        $dir = sys_get_temp_dir() . '/s7-reach-layers-' . uniqid();
+        mkdir("{$dir}/site/entries/channels", 0777, true);
+        mkdir("{$dir}/theme/entries/channels", 0777, true);
+        file_put_contents("{$dir}/theme/entries/channels/blog.twig", '{% include "_layouts/detail/blog" %}');
+        file_put_contents("{$dir}/theme/entries/channels/news.twig", '{% include "_layouts/detail/blog" %}');
+        file_put_contents("{$dir}/site/entries/channels/news.twig", '{# this site\'s own news page, no blog layout #}');
+
+        $includedBy = DesignReachability::includedBy(["{$dir}/site", "{$dir}/theme"], ['_layouts/detail/blog.twig']);
+
+        $this->assertSame(['_layouts/detail/blog.twig' => ['entries/channels/blog.twig']], $includedBy, 'the theme file counts, the site\'s own copy hides the theme\'s');
+        exec('rm -rf ' . escapeshellarg($dir));
+    }
+
     public function testLiteralReferencesSkipComputedNames(): void
     {
         $source = '{% embed "_components/page-style" with { owner: entry } %}{% block body %}'

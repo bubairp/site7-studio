@@ -44,6 +44,8 @@ class UpdateWizardController extends Controller
             'updates' => $updates,
             'libraryUpdates' => (new \site7\studio\services\library\LibraryUpdater())->availableUpdates(true),
             'authorSite' => \site7\studio\services\library\LibraryUpdater::isAuthorSite(),
+            // Overrides of base theme templates a theme update changed (docs/60 §3)
+            'themeOverrides' => \site7\studio\services\theme\ThemeOverrides::forSite()->needsReview(),
         ]);
     }
 

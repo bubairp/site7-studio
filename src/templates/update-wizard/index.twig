@@ -46,6 +46,29 @@
     {% endif %}
 </div>
 
+{# ---------------------------------------------- Theme overrides (docs/60 §3) #}
+{% if themeOverrides is not empty %}
+<div class="pane">
+    <h2>Theme overrides to review</h2>
+    <p class="light">This site has its own copy of these base theme templates in <code>templates/</code>, so it doesn't get the theme's changes to them. <code>php craft site7-studio/theme/overrides</code> lists every override.</p>
+    <table class="data fullwidth">
+        <thead><tr><th>Template</th><th>Why</th></tr></thead>
+        <tbody>
+        {% for path, o in themeOverrides %}
+            <tr>
+                <td><code>{{ path }}</code></td>
+                <td>
+                    {% if o.state == 'changed' %}<span class="warning">The theme changed this file since it was copied{{ o.theme ? ' (from ' ~ o.theme ~ ')' }}: compare your copy with the theme's.</span>
+                    {% elseif o.state == 'removed' %}<span class="warning">The theme no longer has this file: your copy may be unused.</span>
+                    {% else %}<span class="light">Not recorded as an override (copied by hand), so theme changes to it can't be detected.</span>{% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
 {# Blueprint Starter Kits (docs/32) are the older kit system: Dev Mode only. #}
 {% if updates is not empty and craft.app.config.general.devMode %}
 <h2>Blueprint Starter Kit updates</h2>

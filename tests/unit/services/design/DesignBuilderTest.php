@@ -55,6 +55,18 @@ class DesignBuilderTest extends Unit
         $this->assertSame(['_blocks/cta.twig' => sha1('site original'), '_components/new.twig' => null], $overrides);
     }
 
+    public function testOverridesOfThemeTemplatesRecordTheThemesFileUnlessTheSiteHasItsOwn(): void
+    {
+        $this->put('design/_blocks/cta.twig', 'design copy');
+        $this->put('design/_layouts/base.twig', 'design layout');
+        $this->put('site/_blocks/cta.twig', 'site override');
+        $this->put('theme/_blocks/cta.twig', 'theme original');
+        $this->put('theme/_layouts/base.twig', 'theme layout');
+
+        $overrides = DesignBuilder::overrides("{$this->dir}/design", ["{$this->dir}/site", "{$this->dir}/theme"]);
+        $this->assertSame(['_blocks/cta.twig' => sha1('site override'), '_layouts/base.twig' => sha1('theme layout')], $overrides);
+    }
+
     public function testEntriesOfAViteManifest(): void
     {
         $this->put('manifest.json', json_encode([
