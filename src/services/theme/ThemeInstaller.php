@@ -6,6 +6,7 @@ use Craft;
 use craft\elements\Entry;
 use craft\helpers\App;
 use site7\studio\models\Settings;
+use site7\studio\services\design\DesignLoader;
 use site7\studio\services\sitekit\ComposerFiles;
 use site7\studio\services\sitekit\SiteKitFiles;
 use site7\studio\services\sitekit\SiteKitInstaller;
@@ -94,7 +95,11 @@ class ThemeInstaller extends SiteKitInstaller
             if ($lockedCraft !== null && ltrim($lockedCraft, 'v') !== $siteCraft) {
                 $log("The Theme was built on Craft {$lockedCraft}; upgrading this site from Craft {$siteCraft}.");
             }
-            return parent::installPackages($kit, $root, $result, $log);
+            if (!parent::installPackages($kit, $root, $result, $log)) {
+                return false;
+            }
+            DesignLoader::reloadInstalled($root);
+            return true;
         }
 
         $php = App::phpExecutable() ?? 'php';
@@ -104,8 +109,12 @@ class ThemeInstaller extends SiteKitInstaller
         copy(Craft::getAlias('@lib/composer.phar'), $composerPhar);
         $log("The Theme was built on Craft {$lockedCraft}; keeping this site's Craft {$siteCraft}.");
 
-        return $this->run([$php, $composerPhar, 'require', "craftcms/cms:{$siteCraft}", '--update-with-all-dependencies', '--no-interaction', '--no-scripts', '--working-dir=' . $root], $root, 'composer install', $result, $log)
-            && $this->run([$php, "{$root}/craft", 'migrate/all', '--interactive=0'], $root, 'craft migrate/all', $result, $log);
+        if (!$this->run([$php, $composerPhar, 'require', "craftcms/cms:{$siteCraft}", '--update-with-all-dependencies', '--no-interaction', '--no-scripts', '--working-dir=' . $root], $root, 'composer install', $result, $log)
+            || !$this->run([$php, "{$root}/craft", 'migrate/all', '--interactive=0'], $root, 'craft migrate/all', $result, $log)) {
+            return false;
+        }
+        DesignLoader::reloadInstalled($root);
+        return true;
     }
 
     /**

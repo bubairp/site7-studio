@@ -131,6 +131,30 @@ class PackageFileUpdaterTest extends Unit
         $this->assertArrayHasKey('templates/_blocks/testimonials.twig', $this->store->rows[7]);
     }
 
+    public function testACoreBlockTemplateStaysWithTheThemePackage(): void
+    {
+        [$old, $new] = $this->versions(['template' => 'v1'], ['template' => 'v2']);
+        $this->store->record(7, 'testimonials', 'templates/_blocks/testimonials.twig', '1.0.0', hash('sha256', 'v1'));
+
+        $report = $this->updater(['_blocks/testimonials.twig'])->apply(7, 'testimonials', '1.0.1', $old, $new);
+
+        $this->assertFileDoesNotExist($this->path('templates/_blocks/testimonials.twig'), 'no copy: the theme package renders it');
+        $this->assertSame([], $report['deletedHere'], 'not reported as deleted here');
+        $this->assertSame(1, $report['unchanged']);
+        $this->assertArrayNotHasKey('templates/_blocks/testimonials.twig', $this->store->rows[7] ?? [], 'the old tracking row goes');
+    }
+
+    public function testASitesOwnCopyOfACoreBlockIsStillUpdated(): void
+    {
+        [$old, $new] = $this->versions(['template' => 'v1'], ['template' => 'v2']);
+        $this->installed('templates/_blocks/testimonials.twig', 'v1');
+
+        $report = $this->updater(['_blocks/testimonials.twig'])->apply(7, 'testimonials', '1.0.1', $old, $new);
+
+        $this->assertSame('v2', $this->live('templates/_blocks/testimonials.twig'));
+        $this->assertSame(['template _blocks/testimonials.twig'], $report['updated']);
+    }
+
     // ------------------------------------------------------ owned files
 
     public function testOwnedFilesFollowTheSameRule(): void
@@ -218,12 +242,13 @@ class PackageFileUpdaterTest extends Unit
 
     // ------------------------------------------------------------ helpers
 
-    private function updater(): U
+    /** @param string[] $themeTemplates templates the theme package has, e.g. "_blocks/services.twig" */
+    private function updater(array $themeTemplates = []): U
     {
         return new U("{$this->tmp}/site", $this->store, function(string $source, string $target): void {
             @mkdir(dirname($target), 0777, true);
             copy($source, $target);
-        });
+        }, fn(string $template): bool => in_array($template, $themeTemplates, true));
     }
 
     /** Two package versions; template null = the version has none. */

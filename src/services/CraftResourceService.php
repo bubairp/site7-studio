@@ -127,7 +127,10 @@ class CraftResourceService extends Component
             if (isset($matrixData['blocks'][0]['handle'])) {
                 $blockHandle = $matrixData['blocks'][0]['handle'];
                 $destFile = $destDir . '/' . $blockHandle . '.twig';
-                if (!file_exists($destFile) || file_get_contents($destFile) === file_get_contents($templatePath)) {
+                if (!file_exists($destFile) && \site7\studio\services\design\DesignLoader::themeTemplate("_blocks/{$blockHandle}.twig") !== null) {
+                    // A core block: the theme package renders it, so the
+                    // site gets no copy to keep in step (docs/60 §3).
+                } elseif (!file_exists($destFile) || file_get_contents($destFile) === file_get_contents($templatePath)) {
                     copy($templatePath, $destFile);
                     $createdResources['installedTemplate'] = [
                         'blockHandle' => $blockHandle,

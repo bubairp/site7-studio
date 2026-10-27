@@ -10,6 +10,7 @@ use site7\studio\records\PackageRecord;
 use site7\studio\records\SectionImportSourceRecord;
 use site7\studio\repositories\SectionImportSourceRepository;
 use site7\studio\services\CraftResourceRegistry;
+use site7\studio\services\design\DesignLoader;
 use site7\studio\services\support\PackageArchiveHelper;
 use site7\studio\Site7Studio;
 use Symfony\Component\Yaml\Yaml;
@@ -102,8 +103,9 @@ class SectionUpdateService extends Component
      */
     private function diffTwig(string $packagePath, string $sourceHandle): array
     {
-        $liveTemplatePath = rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/') . '/_blocks/' . $sourceHandle . '.twig';
-        $liveChecksum = PackageArchiveHelper::computeFileChecksum($liveTemplatePath);
+        // The site's own _blocks file, else the theme package's (a core block)
+        $liveTemplatePath = DesignLoader::blockTemplate($sourceHandle);
+        $liveChecksum = $liveTemplatePath !== null ? PackageArchiveHelper::computeFileChecksum($liveTemplatePath) : null;
         $packageChecksum = PackageArchiveHelper::computeFileChecksum($packagePath . '/template.twig');
 
         return [

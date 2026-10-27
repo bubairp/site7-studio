@@ -207,6 +207,45 @@ class DesignLoader
         return is_dir($path) ? $path : null;
     }
 
+    /**
+     * A template the theme package has, e.g. "_blocks/ctaBanner.twig": its
+     * file, or null when the package (or the file) isn't there.
+     */
+    public static function themeTemplate(string $relative): ?string
+    {
+        $templates = self::themeTemplatesPath();
+        $file = $templates !== null ? $templates . '/' . ltrim($relative, '/') : null;
+
+        return $file !== null && is_file($file) ? $file : null;
+    }
+
+    /**
+     * The file a block renders with: the site's own
+     * templates/_blocks/<handle>.twig, else the theme package's; null when
+     * neither has it. Section sync and imports read a core block's
+     * template from here (docs/60 §3).
+     */
+    public static function blockTemplate(string $handle): ?string
+    {
+        $own = rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/') . "/_blocks/{$handle}.twig";
+
+        return is_file($own) ? $own : self::themeTemplate("_blocks/{$handle}.twig");
+    }
+
+    /**
+     * After a Theme install or update ran Composer in this process: Composer's
+     * InstalledVersions still holds the packages the request started with, so
+     * the blocks a Starter Kit installs next wouldn't see a site7/theme it
+     * just added, and would copy their templates into templates/_blocks.
+     */
+    public static function reloadInstalled(string $root): void
+    {
+        $file = "{$root}/vendor/composer/installed.php";
+        if (class_exists(InstalledVersions::class) && is_file($file)) {
+            InstalledVersions::reload(require $file);
+        }
+    }
+
     /** Where Composer installed the theme package, or null on a site without it. */
     public static function themePackagePath(): ?string
     {

@@ -292,8 +292,8 @@ class TailwindSafelist
                 continue;
             }
             $block = $packageManager->sectionBlockHandles($record->handle)[0] ?? null;
-            $template = $block ? Craft::getAlias('@templates') . "/_blocks/{$block}.twig" : null;
-            if ($template && is_file($template)) {
+            $template = $block ? \site7\studio\services\design\DesignLoader::blockTemplate($block) : null;
+            if ($template !== null) {
                 $templates[$record->name] = $template;
             }
         }

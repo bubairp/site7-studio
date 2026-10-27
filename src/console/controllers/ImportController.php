@@ -61,7 +61,7 @@ class ImportController extends Controller
             }
 
             if ($this->dryRun) {
-                $template = is_file(Craft::getAlias('@templates') . "/_blocks/{$entryType->handle}.twig") ? 'template found' : 'NO _blocks template';
+                $template = \site7\studio\services\design\DesignLoader::blockTemplate($entryType->handle) !== null ? 'template found' : 'NO _blocks template';
                 $this->stdout("  import  {$label} {$entryType->name} - " . count($entryType->getFieldLayout()->getCustomFields()) . " fields, {$template}\n");
                 continue;
             }

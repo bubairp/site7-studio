@@ -9,6 +9,7 @@ use craft\models\EntryType;
 use site7\studio\events\ResourceImportedEvent;
 use site7\studio\records\PackageRecord;
 use site7\studio\repositories\SectionImportSourceRepository;
+use site7\studio\services\design\DesignLoader;
 use site7\studio\services\support\PackageArchiveHelper;
 use site7\studio\Site7Studio;
 use Symfony\Component\Yaml\Yaml;
@@ -312,8 +313,9 @@ class MatrixEntryTypeImportService extends Component
      */
     public function copyTemplateTwigFromLiveSource(string $packagePath, string $sourceHandle): bool
     {
-        $realTemplatePath = rtrim(Craft::$app->getPath()->getSiteTemplatesPath(), '/') . '/_blocks/' . $sourceHandle . '.twig';
-        if (is_file($realTemplatePath)) {
+        // The site's own _blocks file, else the theme package's (a core block)
+        $realTemplatePath = DesignLoader::blockTemplate($sourceHandle);
+        if ($realTemplatePath !== null) {
             copy($realTemplatePath, $packagePath . '/template.twig');
             return true;
         }

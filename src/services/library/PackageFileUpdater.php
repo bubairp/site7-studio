@@ -3,6 +3,7 @@
 namespace site7\studio\services\library;
 
 use craft\helpers\FileHelper;
+use site7\studio\services\design\DesignLoader;
 use site7\studio\services\support\PackageArchiveHelper;
 use site7\studio\services\import\SectionSchemaService;
 use site7\studio\services\PackageManagerService;
@@ -27,6 +28,10 @@ use site7\studio\services\synchronization\PackageUpdatePlanner;
  * to be exactly the new version's bytes; a failed write throws, so the whole
  * package update fails and can be run again. Paths are relative to the
  * Craft root, the form install, Rollback and the uninstall snapshot use.
+ *
+ * A block template the theme package has (a core block, docs/60 §3) and
+ * this site has no copy of is the theme's: it's left out, and an old
+ * tracking row for it is dropped. A site's own copy is updated as above.
  */
 class PackageFileUpdater
 {
@@ -43,13 +48,17 @@ class PackageFileUpdater
     /** @var callable(string $source, string $target): void */
     private $writer;
 
-    public function __construct(private string $root, private FileBaselineStore $store, ?callable $writer = null)
+    /** @var callable(string $template): bool whether the theme package has this template, e.g. "_blocks/ctaBanner.twig" */
+    private $themeHas;
+
+    public function __construct(private string $root, private FileBaselineStore $store, ?callable $writer = null, ?callable $themeHas = null)
     {
         $this->root = rtrim($root, '/');
         $this->writer = $writer ?? static function(string $source, string $target): void {
             FileHelper::createDirectory(dirname($target));
             copy($source, $target);
         };
+        $this->themeHas = $themeHas ?? static fn(string $template): bool => DesignLoader::themeTemplate($template) !== null;
     }
 
     /**
@@ -147,6 +156,14 @@ class PackageFileUpdater
 
             if ($kind === 'file' && ($owner = $this->store->otherOwner($packageId, $path)) !== null) {
                 $report['notes'][] = "{$label} belongs to package {$owner} - left alone";
+                continue;
+            }
+
+            if ($kind === 'template' && !is_file($absolute) && ($this->themeHas)(substr($path, strlen('templates/')))) {
+                if ($row !== null) {
+                    $this->store->remove($packageId, $path);
+                }
+                $report['unchanged']++;
                 continue;
             }
 
