@@ -87,15 +87,26 @@ class ThemeOverrides
 
         self::makeDir(dirname("{$this->siteTemplates}/{$relative}"));
         copy("{$this->themeTemplates}/{$relative}", "{$this->siteTemplates}/{$relative}");
+        $this->track($relative);
+
+        return $relative;
+    }
+
+    /**
+     * Records the site's existing templates/$relative as an override of the
+     * theme's file as it is now (ThemeMigration: a copy edited before the
+     * site had the package).
+     */
+    public function track(string $relative, ?string $note = null): void
+    {
         $ledger = $this->ledger();
         $ledger[$relative] = array_filter([
             'checksum' => sha1_file("{$this->themeTemplates}/{$relative}"),
             'theme' => $this->themeVersion,
             'copied' => date('Y-m-d'),
+            'note' => $note,
         ], fn($value) => $value !== null);
         $this->saveLedger($ledger);
-
-        return $relative;
     }
 
     /**
