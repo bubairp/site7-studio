@@ -190,6 +190,8 @@ class LibraryDistribution extends Component
             'description' => $manifest['description'] ?? '',
             'category' => $manifest['category'] ?? null,
             'pricingType' => $manifest['pricingType'] ?? 'free',
+            // Commerce24 offers this version only to a Site7 Studio at least this new (docs/52 §5)
+            'minimumSite7Version' => ($manifest['minimumSite7Version'] ?? '') ?: null,
             'requires' => self::libraryRequires($manifest['requires'] ?? []),
             'formatVersion' => $record->type === 'section' ? SectionSchemaService::FORMAT_VERSION : ($library['formatVersion'] ?? 1),
             'library' => $library,

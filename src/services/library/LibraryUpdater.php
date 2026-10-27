@@ -13,6 +13,7 @@ use site7\studio\services\PackageImportService;
 use site7\studio\services\sitekit\SiteKitContent;
 use site7\studio\services\starterkit\KitBuilder;
 use site7\studio\services\support\PackageArchiveHelper;
+use site7\studio\services\support\StudioVersion;
 use site7\studio\services\synchronization\PackageUpdatePlanner;
 use site7\studio\services\template\TemplateBuilder;
 use site7\studio\services\theme\ThemeUpdater;
@@ -82,6 +83,12 @@ class LibraryUpdater extends Component
                 'entitled' => $entry['entitled'] ?? true,
                 'supported' => isset(self::TYPE_ORDER[$record->type]),
             ];
+            // An older Commerce24 that doesn't gate by version yet (docs/52 §5) can still list one this release can't apply.
+            $minimum = (string)($entry['metadata']['minimumSite7Version'] ?? '');
+            if (!StudioVersion::satisfies($minimum)) {
+                $updates[array_key_last($updates)]['supported'] = false;
+                $updates[array_key_last($updates)]['needsStudio'] = StudioVersion::refusal($entry['name'] ?? $record->handle, $minimum);
+            }
             // A page's new version can need blocks this site doesn't have yet (docs/43 #53).
             $blocks = $record->type === 'template' ? $this->missingBlocks((array)($entry['requires']['sections'] ?? []), $catalog) : ['install' => [], 'needsPlan' => []];
             $updates[array_key_last($updates)]['alsoInstalls'] = array_map(fn($handle) => $catalog[$handle]['name'] ?? $handle, $blocks['install']);
@@ -128,6 +135,11 @@ class LibraryUpdater extends Component
             if ($result['themeFailed'] ?? false) {
                 $result['skipped'][] = $handle;
                 $log("NOT ATTEMPTED {$handle}: the Theme update failed");
+                continue;
+            }
+            if (!empty($update['needsStudio'])) {
+                $result['skipped'][] = $handle;
+                $log("SKIPPED {$handle}: {$update['needsStudio']}");
                 continue;
             }
             if (!$update['entitled']) {

@@ -284,7 +284,10 @@ class LibraryController extends Controller
         $this->stdout(count($updates) . " updates available\n");
         foreach ($updates as $update) {
             $this->stdout(sprintf("  %-40s %-10s %s -> %s%s%s\n", $update['handle'], $update['type'], $update['from'], $update['to'],
-                $update['supported'] ? '' : '  (not supported yet)', $update['releaseNotes'] ? "  - {$update['releaseNotes']}" : ''));
+                $update['supported'] ? '' : (!empty($update['needsStudio']) ? '  (update Site7 Studio first)' : '  (not supported yet)'), $update['releaseNotes'] ? "  - {$update['releaseNotes']}" : ''));
+            if (!empty($update['needsStudio'])) {
+                $this->stdout("      {$update['needsStudio']}\n");
+            }
             if (!empty($update['alsoInstalls'])) {
                 $this->stdout('      also installs: ' . implode(', ', $update['alsoInstalls']) . "\n");
             }

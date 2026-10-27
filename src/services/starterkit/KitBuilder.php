@@ -171,7 +171,7 @@ class KitBuilder extends Component
                 : ($base ? 'A website to start from on a fresh Craft install: the Theme with its header and footer, ' . count($templates) . ' pages and a menu. Add page packs to it.' : null) ?? "The whole website on a fresh Craft install: the {$themeHandle} Theme, " . count($templates) . ' pages with their blocks, menus and demo content.',
             'requires' => ['themes' => [$themeHandle], 'templates' => $templates],
             'pricingType' => $pricingType,
-        ]));
+        ] + ThemeBuilder::studioRequirement()));
         file_put_contents("{$dir}/README.md", "# {$name}\n\nLibrary Starter Kit built with `site7-studio/starter-kit/build`. See docs/51_LIBRARY_STARTER_KIT.md.\n");
         $dir = ThemeBuilder::commitStaging($dir, $final);
 

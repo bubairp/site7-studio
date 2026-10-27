@@ -12,6 +12,7 @@ use site7\studio\models\marketplace\PackageValidationResult;
 use site7\studio\models\marketplace\SignatureVerification;
 use site7\studio\services\commerce\PackageService;
 use site7\studio\services\support\PackageArchiveHelper;
+use site7\studio\services\support\StudioVersion;
 use site7\studio\Site7Studio;
 
 /**
@@ -129,6 +130,13 @@ class PackageImportService extends Component
 
             $packageManifest = json_decode((string)file_get_contents($extractedPath . '/manifest.json'), true);
             $result->pricingTypes[$handle] = (string)($packageManifest['pricingType'] ?? 'free');
+            // Too new for this Site7 Studio (docs/52 §5): Commerce24 doesn't
+            // offer it, but an archive can arrive some other way.
+            $minimum = (string)($packageManifest['minimumSite7Version'] ?? '');
+            if (!StudioVersion::satisfies($minimum)) {
+                $result->errors[] = StudioVersion::refusal("Package '{$handle}'", $minimum);
+                continue;
+            }
 
             $existing = $packageManager->getPackageByHandle($handle);
             $existingPath = $existing ? $packageManager->getPackagePath($handle) : null;

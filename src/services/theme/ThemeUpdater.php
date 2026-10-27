@@ -40,6 +40,12 @@ class ThemeUpdater extends ThemeInstaller
         if (!\site7\studio\services\support\CraftVersion::isCompatible($new['craftVersion'] ?? null)) {
             throw new \Exception('This version of the Theme is for Craft ' . \site7\studio\services\support\CraftVersion::range((string)$new['craftVersion']) . '; this site runs Craft ' . Craft::$app->getVersion() . '.');
         }
+        // Before any file changes: a Theme on the site7/theme package removes
+        // the core templates an older Site7 Studio can't find anywhere else.
+        $minimum = (string)((json_decode((string)@file_get_contents("{$dir}/manifest.json"), true) ?: [])['minimumSite7Version'] ?? '');
+        if (!\site7\studio\services\support\StudioVersion::satisfies($minimum)) {
+            throw new \Exception(\site7\studio\services\support\StudioVersion::refusal('This version of the Theme', $minimum));
+        }
         $root = $this->root();
 
         // Every file this update may write or delete is kept aside first; if any

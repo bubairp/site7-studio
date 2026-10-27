@@ -223,7 +223,7 @@ class ThemeBuilder extends Component
             'author' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? 'Site7',
             'description' => "Structure, templates, frontend and settings of {$name}: " . count($schema['items']) . ' structure items, ' . count($pluginConfigs) . ' plugins. Blocks come as Section packages.',
             'pricingType' => $pricingType,
-        ]));
+        ] + self::studioRequirement()));
         file_put_contents("{$dir}/README.md", "# {$name}\n\nTheme package built with `site7-studio/theme/build`. See docs/49_THEME_PACKAGE.md.\n");
         $dir = self::commitStaging($dir, $final);
 
@@ -242,6 +242,21 @@ class ThemeBuilder extends Component
      * The pricingType of the package already at $dir, so a rebuild keeps a
      * price set on it (site7-studio/library/pricing); "free" for a new one.
      */
+    /**
+     * minimumSite7Version for a Theme (or a kit on it) built here: on a site
+     * with the site7/theme package the Theme bundles it and ships no core
+     * templates, so a site needs a Site7 Studio that serves the package
+     * (docs/52 §5, docs/60 §3). Otherwise none.
+     *
+     * @return array{minimumSite7Version?: string}
+     */
+    public static function studioRequirement(): array
+    {
+        return \site7\studio\services\design\DesignLoader::themePackagePath() !== null
+            ? ['minimumSite7Version' => \site7\studio\services\support\StudioVersion::THEME_PACKAGE]
+            : [];
+    }
+
     public static function existingPricingType(string $dir): string
     {
         $manifest = json_decode((string)@file_get_contents("{$dir}/manifest.json"), true);

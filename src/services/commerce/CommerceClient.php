@@ -190,6 +190,8 @@ class CommerceClient extends Component implements CommerceClientInterface
                     'Authorization' => 'Bearer ' . $this->resolveApiKey(),
                     'X-Site7-Environment' => $settings->commerceEnvironment ?: 'production',
                     'X-Site7-Store' => $settings->commerceStoreIdentifier ?: null,
+                    // Commerce24 offers only package versions this release works with (docs/52 §5)
+                    \site7\studio\services\support\StudioVersion::HEADER => Site7Studio::RELEASE,
                     'Accept' => 'application/json',
                 ]),
             ]);

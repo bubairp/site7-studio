@@ -89,6 +89,16 @@ class Site7Studio extends Plugin
 {
     use PluginTrait;
 
+    /**
+     * This plugin's release, sent to Commerce24 and compared with packages'
+     * minimumSite7Version (services/support/StudioVersion, docs/52 §5).
+     * Craft's own version for it is the Git branch (dev-main), and
+     * composer.json's "version" is not used. Raise it when packages start
+     * needing something new.
+     * 1.1.0: the base theme from the site7/theme package (docs/60 §3).
+     */
+    public const RELEASE = '1.1.0';
+
     public string $schemaVersion = '1.0.8';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;

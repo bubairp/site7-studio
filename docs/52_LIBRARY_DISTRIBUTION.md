@@ -63,7 +63,7 @@ library/publish ── one archive per ──> POST /marketplace/publish
 
 ## 5. Commerce24 API (contract for the Laravel app)
 
-All requests send `Authorization: Bearer <api key>`, `X-Site7-Environment` and `X-Site7-Store`.
+All requests send `Authorization: Bearer <api key>`, `X-Site7-Environment`, `X-Site7-Store` and (since 2026-10-27) `X-Site7-Studio-Version` (§5b).
 
 **`POST /marketplace/publish`**. Body: `{handle, type, version, metadata, contentsBase64}`, where `metadata` is as in §3. Store the archive as a file, not in a database column (Templates are tens of MB). Response: `{id, listingUrl}`.
 
@@ -87,6 +87,22 @@ All requests send `Authorization: Bearer <api key>`, `X-Site7-Environment` and `
 **`GET /marketplace/versions/{handle}`** (2026-10-22, `60`). Every published version, newest first: `{"handle", "latest", "versions": [{"version", "releaseNotes", "publishedAt", "size", "checksum"}]}`, with the same entitlement rule and 404 as download. `GET /marketplace/download/{handle}?version=` already serves any of them. Implemented in the stand-in (`rp-craft/commerce24/src/Commerce24.php::versions`); the Laravel app still needs it. Read by `LibraryDistribution::versions()`.
 
 **`GET /packages/entitlements`**. `free` should list every free published package; `purchased` and `premium` (plan) as before.
+
+### 5b. Site7 Studio version gate (2026-10-27, required before the site7/theme rollout)
+
+A Theme built on the `site7/theme` package (`49` §2e) removes the core templates from a site; a Site7 Studio from before it can't find them in `vendor/` and the site breaks. So a package version can name the lowest Site7 Studio it works with, and **Commerce24 never offers or serves a version to a site whose Site7 Studio is older**.
+
+- **Request header** `X-Site7-Studio-Version: 1.1.0` on every call: `Site7Studio::RELEASE`, a constant raised by hand (Craft's own plugin version is the Git branch, `dev-main`, so it can't be used). **Missing, or not `MAJOR.MINOR.PATCH`: treat it as `0.0.0`.** Every Site7 Studio from before this sends none, so it never gets a gated version.
+- **Publish:** `metadata.minimumSite7Version` (e.g. `"1.1.0"`; absent or empty = no minimum). Store it per version. The Theme and Starter Kit builders set it to `StudioVersion::THEME_PACKAGE` when built on a site with the package.
+- **A version is allowed** for a request when it has no minimum, or `version_compare(header, minimum) >= 0` (semantic version order: `1.10.0` > `1.9.0`).
+- **`GET /marketplace/catalog`:** per package, the **newest allowed** version (its `version`, `checksum`, `size`, `requires`, `metadata`), not simply the latest. When a newer one isn't allowed, add `"newer": {"version": "1.8.0", "minimumSite7Version": "1.1.0"}`; older plugins ignore the field. A package with no allowed version is left out.
+- **`GET /marketplace/download/{handle}`:** without `?version=`, serve the newest allowed version. With `?version=` of a version that isn't allowed: `409 {"error": "<handle> <version> needs Site7 Studio <minimum> or newer; …"}`. Checked after the 404 and entitlement (403) checks.
+- **`GET /marketplace/versions/{handle}`:** add `minimumSite7Version` to each version that has one.
+- **Packages without a minimum** (every one published before this) are unaffected for every site.
+
+Reference implementation and tests: the stand-in, `rp-craft/commerce24/src/Commerce24.php` (`studioVersion()`, `allows()`, `offeredVersion()`, `catalog()`, `download()`, `versions()`) and `rp-craft/commerce24/tests/gate-test.php` (25 checks: no header, `dev-main`, `1.0.0`, `1.1.0`, `2.0.0`). The Laravel app must pass the same cases before a gated Theme is published to it.
+
+The site checks it too, for archives that arrive another way or a Commerce24 without the gate (`StudioVersion`): import refuses a package whose `minimumSite7Version` is above `RELEASE`, so do the Theme install check and the Theme update, and Updates lists such an update as "update Site7 Studio first" and skips it.
 
 ## 5a. Local Laravel Commerce24 (`~/my-project/commerce24`, since 2026-10-05)
 

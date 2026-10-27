@@ -11,6 +11,7 @@ use site7\studio\services\sitekit\ComposerFiles;
 use site7\studio\services\sitekit\SiteKitFiles;
 use site7\studio\services\sitekit\SiteKitInstaller;
 use site7\studio\services\support\CraftVersion;
+use site7\studio\services\support\StudioVersion;
 use site7\studio\Site7Studio;
 use Symfony\Component\Process\ExecutableFinder;
 
@@ -45,6 +46,9 @@ class ThemeInstaller extends SiteKitInstaller
 
         if (!CraftVersion::isCompatible($meta['craftVersion'] ?? null)) {
             $result['errors'][] = 'This theme is for Craft ' . CraftVersion::range($meta['craftVersion']) . " (built on {$meta['craftVersion']}); this site runs Craft " . Craft::$app->getVersion() . '.';
+        }
+        if (!StudioVersion::satisfies($manifest['minimumSite7Version'] ?? null)) {
+            $result['errors'][] = StudioVersion::refusal('This theme', (string)$manifest['minimumSite7Version']);
         }
         if (!$this->allowsAdminChangesWith("{$dir}/files/config/general.php")) {
             $result['errors'][] = "The theme's config/general.php turns admin changes off on this site, so its structure couldn't be installed. Set CRAFT_ALLOW_ADMIN_CHANGES=true in .env (or CRAFT_ENVIRONMENT=dev), then try again.";
