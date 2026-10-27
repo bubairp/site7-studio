@@ -54,9 +54,9 @@ class DesignBuilder extends Component
         if (!is_file($manifest)) {
             throw new \Exception("No build in web/designs/{$designHandle}. In frontend/: DESIGN={$designHandle} npx vite build --config vite.design.mjs");
         }
-        $sourceTime = max(self::newestFile("{$source}/src"), self::newestFile("{$root}/frontend/src"));
+        $sourceTime = max(self::newestFile("{$source}/src"), ...array_values(array_map([self::class, 'newestFile'], self::frontendSourceDirs($root))));
         if (filemtime($manifest) < $sourceTime) {
-            throw new \Exception("web/designs/{$designHandle} is older than its sources (designs/{$designHandle}/src or frontend/src). Build it again first.");
+            throw new \Exception("web/designs/{$designHandle} is older than its sources (designs/{$designHandle}/src, frontend/src or the theme package's frontend/src). Build it again first.");
         }
         $siteManifest = ThemeBuilder::builtFrontendPath($root);
         if ($siteManifest !== null) {
@@ -206,14 +206,31 @@ class DesignBuilder extends Component
         return $entries;
     }
 
+    /**
+     * The frontend sources a build reads: the site's frontend/src and, when
+     * installed, the theme package's (site7/theme), keyed by the prefix
+     * frontendHash() gives their files.
+     *
+     * @return array<string, string>
+     */
+    private static function frontendSourceDirs(string $root): array
+    {
+        $dirs = ['' => "{$root}/frontend/src"];
+        if (($theme = DesignLoader::themePackagePath()) !== null) {
+            $dirs['site7-theme/'] = "{$theme}/frontend/src";
+        }
+
+        return $dirs;
+    }
+
     /** Hash of the frontend JavaScript a design build bundles. */
     public static function frontendHash(string $root): string
     {
         $files = [];
-        foreach (["{$root}/frontend/src"] as $dir) {
+        foreach (self::frontendSourceDirs($root) as $prefix => $dir) {
             if (is_dir($dir)) {
                 foreach (FileHelper::findFiles($dir, ['only' => ['*.js', '*.mjs']]) as $file) {
-                    $files[ltrim(substr(str_replace('\\', '/', $file), strlen($dir)), '/')] = sha1_file($file);
+                    $files[$prefix . ltrim(substr(str_replace('\\', '/', $file), strlen($dir)), '/')] = sha1_file($file);
                 }
             }
         }

@@ -197,10 +197,7 @@ class DesignLoader
      */
     public static function themeTemplatesPath(): ?string
     {
-        if (!class_exists(InstalledVersions::class) || !InstalledVersions::isInstalled(self::THEME_PACKAGE)) {
-            return null;
-        }
-        $root = InstalledVersions::getInstallPath(self::THEME_PACKAGE);
+        $root = self::themePackagePath();
         if ($root === null) {
             return null;
         }
@@ -208,6 +205,17 @@ class DesignLoader
         $path = FileHelper::normalizePath($root . '/' . ($composer['extra']['site7']['templates'] ?? 'templates'));
 
         return is_dir($path) ? $path : null;
+    }
+
+    /** Where Composer installed the theme package, or null on a site without it. */
+    public static function themePackagePath(): ?string
+    {
+        if (!class_exists(InstalledVersions::class) || !InstalledVersions::isInstalled(self::THEME_PACKAGE)) {
+            return null;
+        }
+        $root = InstalledVersions::getInstallPath(self::THEME_PACKAGE);
+
+        return $root !== null && is_dir($root) ? FileHelper::normalizePath($root) : null;
     }
 
     /** A design handle, or null for anything else (including "default"). */
