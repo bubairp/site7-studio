@@ -89,4 +89,37 @@ class SiteKitContentTest extends Unit
         $this->assertSame(['42', '7', '/press'], array_column($out, 'url'));
         $this->assertSame($rows, SiteKitContent::resolveRowReferences('sitemaps', $rows, $resolveUid), 'other tables untouched');
     }
+
+    /**
+     * A kit's seo_sitemap rows for sections this site doesn't have were never imported,
+     * so the update compares only the rows that can be here (site7-qa kept the table as
+     * "edited here" on kit 1.2.1 -> 1.3.0: 6 of 13 rows live).
+     */
+    public function testTableSignaturesCanLeaveOutRowsForMissingTargets(): void
+    {
+        $dir = sys_get_temp_dir() . '/site7-tables-' . uniqid();
+        $write = function(string $name, array $rows) use ($dir) {
+            mkdir("{$dir}/{$name}/plugin-tables", 0777, true);
+            file_put_contents("{$dir}/{$name}/plugin-tables/seo_sitemap.json", json_encode($rows));
+        };
+        $row = fn(int $id, string $uid, int $enabled = 1) => ['id' => $id, 'group' => 'sections', 'url' => "@uid:{$uid}", 'enabled' => $enabled, 'dateUpdated' => "2026-10-26 0{$id}:00:00"];
+        $write('kit', [$row(1, 'uid-pages'), $row(2, 'uid-blog')]);
+        $write('next', [$row(1, 'uid-pages'), $row(2, 'uid-blog', 0)]);
+        $write('live', [$row(1, 'uid-pages')]);
+        $hereOnly = function(string $table, string $uid): string {
+            if ($uid !== 'uid-pages') {
+                throw new \Exception("{$table} {$uid} missing");
+            }
+            return "@uid:{$uid}";
+        };
+        $sig = fn(string $name, ?callable $resolve = null) => SiteKitContent::pluginTableSignatures("{$dir}/{$name}", ['seo_sitemap'], $resolve)['seo_sitemap'];
+
+        $this->assertNotSame($sig('kit'), $sig('live'), 'all rows: looks edited here');
+        $this->assertSame($sig('kit', $hereOnly), $sig('live'), 'rows that can be here: unchanged');
+        $this->assertSame($sig('kit', $hereOnly), $sig('next', $hereOnly), "an upstream change to a row that can't be here is no change here");
+        array_map('unlink', glob("{$dir}/*/plugin-tables/*.json"));
+        array_map('rmdir', glob("{$dir}/*/plugin-tables"));
+        array_map('rmdir', glob("{$dir}/*"));
+        rmdir($dir);
+    }
 }

@@ -776,8 +776,12 @@ class LibraryUpdater extends Component
                 . ($count ? ", {$count} upstream " . ($count === 1 ? 'change' : 'changes') . ' not applied' : '') . ')';
         }
 
-        $baseTables = SiteKitContent::pluginTableSignatures("{$baseline}/content", $pluginTables);
-        $incomingTables = SiteKitContent::pluginTableSignatures("{$dir}/content", $pluginTables);
+        // Rows for sections or category groups this site doesn't have were
+        // never imported here (seo_sitemap without the Blog section), so
+        // they are neither removed here nor an upstream change to apply.
+        $hereOnly = SiteKitContent::hereOnly();
+        $baseTables = SiteKitContent::pluginTableSignatures("{$baseline}/content", $pluginTables, $hereOnly);
+        $incomingTables = SiteKitContent::pluginTableSignatures("{$dir}/content", $pluginTables, $hereOnly);
         $replaceTables = [];
         foreach ($incomingTables as $table => $hash) {
             $decision = self::decide($baseTables[$table] ?? null, self::liveTableForDecision($baseTables[$table] ?? null, $liveTables[$table] ?? null), $hash);

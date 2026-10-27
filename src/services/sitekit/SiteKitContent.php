@@ -471,19 +471,21 @@ class SiteKitContent extends Component
         return $signatures;
     }
 
-    /**
-     * One hash per plugin table of a content directory (menus, forms,
-     * sitemap rows), normalised like signatures().
-     *
-     * @return array<string, string> table => hash (tables the directory has)
-     */
     /** pluginTableSignatures() of a table with no rows */
     public static function emptyTableSignature(): string
     {
         return md5(json_encode([]));
     }
 
-    public static function pluginTableSignatures(string $contentDir, array $tables): array
+    /**
+     * One hash per plugin table of a content directory (menus, forms,
+     * sitemap rows), normalised like signatures(). With $resolveUid
+     * (hereOnly()), rows whose ROW_REFERENCES target isn't on this site are
+     * left out, as the import leaves them out.
+     *
+     * @return array<string, string> table => hash (tables the directory has)
+     */
+    public static function pluginTableSignatures(string $contentDir, array $tables, ?callable $resolveUid = null): array
     {
         $hashes = [];
         foreach ($tables as $table) {
@@ -491,8 +493,12 @@ class SiteKitContent extends Component
             if (!is_file($file)) {
                 continue;
             }
+            $fileRows = json_decode((string)file_get_contents($file), true) ?: [];
+            if ($resolveUid !== null) {
+                $fileRows = self::resolveRowReferences($table, $fileRows, $resolveUid);
+            }
             $rows = [];
-            foreach (json_decode((string)file_get_contents($file), true) ?: [] as $row) {
+            foreach ($fileRows as $row) {
                 unset($row['dateCreated'], $row['dateUpdated'], $row['site_id']);
                 foreach ($row as $column => $value) {
                     if (is_string($value) && str_contains($value, '@{site:')) {
@@ -791,6 +797,22 @@ class SiteKitContent extends Component
         }
 
         return $kept;
+    }
+
+    /**
+     * A resolveRowReferences() callback that keeps "@uid:…" as it is and
+     * fails for a UID this site doesn't have, like the import's lookup.
+     */
+    public static function hereOnly(): callable
+    {
+        $uids = [];
+        return function(string $table, string $uid) use (&$uids): string {
+            $uids[$table] ??= array_flip((new Query())->select(['uid'])->from("{{%{$table}}}")->column());
+            if (!isset($uids[$table][$uid])) {
+                throw new \Exception("{$table} with UID {$uid} doesn't exist on this site");
+            }
+            return '@uid:' . $uid;
+        };
     }
 
     /**
