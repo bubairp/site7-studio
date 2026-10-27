@@ -140,9 +140,23 @@ class ThemeUpdater extends ThemeInstaller
         // A Theme that ships its built frontend updates it through the file
         // rule above; only one without it is rebuilt here.
         $rebuild = empty($new['builtFrontend']) && array_filter($arrived, fn($path) => preg_match('#^(frontend|templates)/#', $path));
+        // A site that builds its own CSS (its build's manifest isn't the
+        // Theme's, so it was kept) or whose app.css was just merged needs its
+        // own build: the Theme's prebuilt one lacks its rules.
+        $ownManifest = !empty($new['builtFrontend']) ? "file {$new['builtFrontend']}/.vite/manifest.json" : null;
+        $ownBuild = ($ownManifest !== null && in_array($ownManifest, $report['kept'], true)) || in_array(CssMerge::ENTRY, $arrived, true);
         if ($rebuild) {
             $this->buildFrontend($root, $result, $log);
             $report['notes'] = array_merge($report['notes'], $result['warnings']);
+        } elseif ($ownBuild) {
+            $built = $this->buildOwnFrontend($root, $log);
+            if ($built === true && $ownManifest !== null && in_array($ownManifest, $report['kept'], true)) {
+                $report['kept'] = array_values(array_diff($report['kept'], [$ownManifest]));
+                $report['updated'][] = "{$ownManifest} (rebuilt on this site)";
+            }
+            if (is_string($built)) {
+                $report['notes'][] = $built;
+            }
         }
 
         return $report;
@@ -197,6 +211,26 @@ class ThemeUpdater extends ThemeInstaller
         }
 
         return $count;
+    }
+
+    /**
+     * npm run build for a site that builds its own CSS, after Composer (the
+     * build imports vendor/site7/theme). True when it built; otherwise what
+     * the site should do. A failed build doesn't fail the update: the site
+     * keeps its previous CSS.
+     */
+    private function buildOwnFrontend(string $root, callable $log): bool|string
+    {
+        $npm = (new \Symfony\Component\Process\ExecutableFinder())->find('npm');
+        if (!$npm || !is_file("{$root}/frontend/package.json")) {
+            return 'This site builds its own CSS: run npm run build in frontend/ to include the new Theme (until then it keeps its previous CSS).';
+        }
+        $result = ['errors' => [], 'warnings' => []];
+        $this->buildFrontend($root, $result, $log);
+
+        return $result['errors']
+            ? 'npm run build failed, so this site keeps its previous CSS: ' . implode(' ', $result['errors'])
+            : true;
     }
 
     /** composer install from this site's own composer.lock, as installPackages() runs it. */
@@ -275,6 +309,9 @@ class ThemeUpdater extends ThemeInstaller
                         $changed[] = $path;
                     } else {
                         $report['kept'][] = "file {$path} (removed from the Theme, edited here)";
+                        if (str_starts_with($path, 'frontend/src/css/')) {
+                            $report['notes'][] = "{$path} was edited on this site but the Theme no longer uses it, so nothing imports it now: move your changes into " . CssMerge::ENTRY . ' (below the theme), then delete it.';
+                        }
                     }
                 }
                 continue;
@@ -295,8 +332,18 @@ class ThemeUpdater extends ThemeInstaller
                     copy($source, $target);
                 }
                 $changed[] = $path;
+            } elseif ($decision === 'kept' && $path === CssMerge::ENTRY
+                && ($additions = CssMerge::additions((string)file_get_contents($base), (string)file_get_contents($live))) !== null) {
+                // The site only added rules to app.css: the new one, with them (CssMerge).
+                file_put_contents($target, CssMerge::merge((string)file_get_contents($source), $additions));
+                $report['updated'][] = "file {$path} (merged: this site's " . count($additions) . ' added lines kept)';
+                $changed[] = $path;
             } elseif ($decision === 'kept') {
                 $report['kept'][] = "file {$path}";
+                if ($path === CssMerge::ENTRY) {
+                    file_put_contents("{$target}.site7-new", (string)file_get_contents($source));
+                    $report['notes'][] = "{$path} was changed on this site in a way that can't be merged automatically, so it was kept. The Theme's new version is next to it as app.css.site7-new: move your changes into it, replace app.css with it, and run npm run build.";
+                }
             } else {
                 $report['unchanged']++;
                 // Changed upstream and already here (an earlier, failed run).
