@@ -19,6 +19,8 @@ designs/<handle>/
 web/designs/<handle>/    the build (Vite manifest, CSS, JS, fonts)
 ```
 
+`contract` in `design.json` names the Theme template structure the design was written for, as a label; no code reads it. **Contract 1** (Theme 1.5.0+): detail pages are split into data (`entries/channels/<type>.twig`, not overridden) and markup (`_layouts/detail/<type>.twig`, overridable), with the shared `_components/page-style.twig` and `_components/listing-filter.twig` (rp-craft `DESIGN.md` §11 "Detail layouts" lists the variables a layout gets). Whether a design actually works on a site is checked file by file instead (§4c): overrides the site never renders (`DesignReachability::forSite()`) and templates the design includes that the site lacks (`missingForSite()`, Activate refused). Raise the number only when the Theme changes that structure in a way older designs can't follow, and say what changed here.
+
 Built in `frontend/` with `DESIGN=<handle> npx vite build --config vite.design.mjs`: the same entries as the site's own build, with `./css/app.css` swapped for the design's CSS, so templates keep calling `craft.vite.script('src/index.js')`.
 
 Designs restyle through **role tokens** (rp-craft `frontend/src/css/theme.css`, `DESIGN.md` §2): `--surface`, `--surface-alt`, `--surface-dark`, `--line`, `--text-strong/-body/-muted`, `--on-dark`, `--primary` (CTA fill), `--on-primary`, `--accent` (accent text and strokes), heading weight/tracking/`<em>` style, `--quote-weight`. CMS library colours that are the default design's palette render as roles through the host's `|roleColor` Twig filter.
