@@ -49,7 +49,7 @@ Read what's relevant to the task, not the whole set.
 | Plugin uninstall/reinstall: tracking snapshot, restore, Library reconcile | `58` |
 | Tailwind safelist: Library block classes survive a customer `npm run build`; rebuild notices | `59` |
 | Design packages (switchable designs): loader, active design, preview links, planned packaging | `60` |
-| Reviews block: real platform reviews (Google Places API), cache, `craft.site7Reviews`, `reviews/test` | `61` |
+| Reviews block: real platform reviews (Google, Trustpilot, Facebook) with the site's keys, cache, `craft.site7Reviews`, `reviews/test` | `61` |
 | Testing | `33`; A-to-Z test cases with last results: `56` |
 | Reference | `34`–`42` |
 | Known issues (read before ANY architecture change) | `43` |

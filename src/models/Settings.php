@@ -192,13 +192,25 @@ class Settings extends Model
     /** The site's Google Place ID (ChIJ…), from GOOGLE_PLACE_ID; `site7-studio/reviews/test "<name>"` finds it. */
     public ?string $googlePlaceId = null;
 
+    /** Trustpilot API key (`$ENV` syntax; else TRUSTPILOT_API_KEY). */
+    public ?string $trustpilotApiKey = null;
+
+    /** Trustpilot business unit ID (else TRUSTPILOT_BUSINESS_UNIT_ID). */
+    public ?string $trustpilotBusinessUnitId = null;
+
+    /** Facebook Page ID (else FACEBOOK_PAGE_ID). */
+    public ?string $facebookPageId = null;
+
+    /** Long-lived Facebook Page access token (`$ENV` syntax; else FACEBOOK_PAGE_TOKEN). */
+    public ?string $facebookPageToken = null;
+
     /**
      * @inheritdoc
      */
     protected function defineRules(): array
     {
         $rules = parent::defineRules();
-        $rules[] = [['matrixFieldUid', 'defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment', 'libraryPath', 'activeDesign', 'googlePlacesApiKey', 'googlePlaceId'], 'string'];
+        $rules[] = [['matrixFieldUid', 'defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment', 'libraryPath', 'activeDesign', 'googlePlacesApiKey', 'googlePlaceId', 'trustpilotApiKey', 'trustpilotBusinessUnitId', 'facebookPageId', 'facebookPageToken'], 'string'];
         $rules[] = [
             ['defaultPackageAuthor', 'defaultPackageLicense', 'defaultPackageVersion'],
             'string',
