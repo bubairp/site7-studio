@@ -127,6 +127,12 @@ class Site7Studio extends Plugin
             \site7\studio\services\design\DesignLoader::register();
             // A deploy that changes the active design clears template caches
             \site7\studio\services\design\DesignService::registerProjectConfigListener();
+            // craft.site7Reviews: platform reviews for the Reviews block (docs/61)
+            \yii\base\Event::on(
+                \craft\web\twig\variables\CraftVariable::class,
+                \craft\web\twig\variables\CraftVariable::EVENT_INIT,
+                fn(\yii\base\Event $event) => $event->sender->set('site7Reviews', \site7\studio\variables\ReviewsVariable::class)
+            );
         });
     }
 

@@ -180,13 +180,25 @@ class Settings extends Model
      */
     public ?string $activeDesign = null;
 
+    // --- Reviews (docs/61) ---
+
+    /**
+     * Google Places API key for the Reviews block. Like commerceApiKey, `$ENV_VAR` syntax:
+     * config/site7-studio.php sets it from GOOGLE_PLACES_API_KEY, so the key never reaches
+     * project config.
+     */
+    public ?string $googlePlacesApiKey = null;
+
+    /** The site's Google Place ID (ChIJ…), from GOOGLE_PLACE_ID; `site7-studio/reviews/test "<name>"` finds it. */
+    public ?string $googlePlaceId = null;
+
     /**
      * @inheritdoc
      */
     protected function defineRules(): array
     {
         $rules = parent::defineRules();
-        $rules[] = [['matrixFieldUid', 'defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment', 'libraryPath', 'activeDesign'], 'string'];
+        $rules[] = [['matrixFieldUid', 'defaultPackage', 'commerceApiEndpoint', 'commerceApiKey', 'commerceStoreIdentifier', 'commerceEnvironment', 'libraryPath', 'activeDesign', 'googlePlacesApiKey', 'googlePlaceId'], 'string'];
         $rules[] = [
             ['defaultPackageAuthor', 'defaultPackageLicense', 'defaultPackageVersion'],
             'string',
