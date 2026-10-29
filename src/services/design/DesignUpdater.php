@@ -25,6 +25,8 @@ class DesignUpdater
     {
         DesignInstaller::assertCanChangeFiles();
         $handle = DesignInstaller::designHandle($dir);
+        // Before any file changes; with the Theme updated earlier in the same run, it passes
+        DesignInstaller::assertThemeVersion($dir, (string)$record->name);
         $previousHandle = is_file("{$baselineDir}/" . DesignBuilder::META_FILE) ? DesignInstaller::designHandle($baselineDir) : $handle;
         if ($previousHandle !== $handle) {
             throw new \Exception("The new version is design '{$handle}', the installed one '{$previousHandle}'.");

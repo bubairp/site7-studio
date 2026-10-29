@@ -96,8 +96,9 @@ class Site7Studio extends Plugin
      * composer.json's "version" is not used. Raise it when packages start
      * needing something new.
      * 1.1.0: the base theme from the site7/theme package (docs/60 §3).
+     * 1.2.0: designs name the lowest Theme they build with (docs/60 §4b).
      */
-    public const RELEASE = '1.1.0';
+    public const RELEASE = '1.2.0';
 
     public string $schemaVersion = '1.0.8';
     public bool $hasCpSettings = true;

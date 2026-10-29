@@ -5,6 +5,8 @@ namespace site7\studio\services\design;
 use Craft;
 use craft\base\Component;
 use craft\helpers\FileHelper;
+use site7\studio\services\support\StudioVersion;
+use site7\studio\services\support\ThemeVersion;
 use site7\studio\services\theme\ThemeBuilder;
 use site7\studio\Site7Studio;
 
@@ -101,7 +103,13 @@ class DesignBuilder extends Component
             // includer is an older or edited copy can be told the override
             // won't show there (DesignReachability).
             'includedBy' => DesignReachability::includedBy($bases, array_keys($overrides)),
+            // Sources in frontend/src only build with the Theme tooling that knows that
+            // layout: install, update and Updates refuse an older Theme (ThemeVersion)
+            'minimumThemeVersion' => is_dir("{$source}/frontend/src") ? ThemeVersion::DESIGN_FRONTEND_LAYOUT : null,
         ]);
+        if ($meta['minimumThemeVersion'] === null) {
+            unset($meta['minimumThemeVersion']);
+        }
         unset($meta['version']);
         file_put_contents("{$dir}/" . self::META_FILE, self::json($meta));
         file_put_contents("{$dir}/manifest.json", self::json(array_filter([
@@ -113,6 +121,8 @@ class DesignBuilder extends Component
             'author' => Craft::$app->getUser()->getIdentity()?->friendlyName ?? 'Site7',
             'description' => (string)($own['description'] ?? "The {$name} design."),
             'pricingType' => $pricingType,
+            // A design with a minimum Theme needs the Site7 Studio that checks it (docs/52 §5)
+            'minimumSite7Version' => isset($meta['minimumThemeVersion']) ? StudioVersion::DESIGN_THEME_GATE : null,
             'requires' => $theme ? ['themes' => [$theme['handle']]] : null,
         ], fn($value) => $value !== null)));
         if (is_file("{$source}/DESIGN.md")) {

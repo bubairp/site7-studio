@@ -14,6 +14,7 @@ use site7\studio\services\sitekit\SiteKitContent;
 use site7\studio\services\starterkit\KitBuilder;
 use site7\studio\services\support\PackageArchiveHelper;
 use site7\studio\services\support\StudioVersion;
+use site7\studio\services\support\ThemeVersion;
 use site7\studio\services\synchronization\PackageUpdatePlanner;
 use site7\studio\services\template\TemplateBuilder;
 use site7\studio\services\theme\ThemeUpdater;
@@ -65,6 +66,15 @@ class LibraryUpdater extends Component
         $packageManager = Site7Studio::getInstance()->packageManager;
         $catalog = (new LibraryDistribution())->catalog($fresh);
         $updates = [];
+        // The Theme as it will be when designs are applied: updates run the Theme first
+        $themeAfter = ThemeVersion::installed();
+        foreach ($packageManager->getAllPackages() as $record) {
+            $themeEntry = $record->type === 'theme' ? ($catalog[$record->handle] ?? null) : null;
+            if ($themeEntry && $themeAfter !== null && version_compare((string)$themeEntry['version'], $themeAfter, '>')
+                && StudioVersion::satisfies((string)($themeEntry['metadata']['minimumSite7Version'] ?? ''))) {
+                $themeAfter = (string)$themeEntry['version'];
+            }
+        }
         foreach ($packageManager->getAllPackages() as $record) {
             $entry = $catalog[$record->handle] ?? null;
             $path = $packageManager->getPackagePath($record->handle);
@@ -88,6 +98,12 @@ class LibraryUpdater extends Component
             if (!StudioVersion::satisfies($minimum)) {
                 $updates[array_key_last($updates)]['supported'] = false;
                 $updates[array_key_last($updates)]['needsStudio'] = StudioVersion::refusal($entry['name'] ?? $record->handle, $minimum);
+            }
+            // A design laid out for newer Theme tooling (docs/60 §5)
+            $minimumTheme = $record->type === 'design' ? (string)($entry['metadata']['library']['minimumThemeVersion'] ?? '') : '';
+            if (!ThemeVersion::satisfies($minimumTheme, $themeAfter)) {
+                $updates[array_key_last($updates)]['supported'] = false;
+                $updates[array_key_last($updates)]['needsTheme'] = ThemeVersion::refusal($entry['name'] ?? $record->handle, $minimumTheme, $themeAfter);
             }
             // A page's new version can need blocks this site doesn't have yet (docs/43 #53).
             $blocks = $record->type === 'template' ? $this->missingBlocks((array)($entry['requires']['sections'] ?? []), $catalog) : ['install' => [], 'needsPlan' => []];
@@ -137,9 +153,9 @@ class LibraryUpdater extends Component
                 $log("NOT ATTEMPTED {$handle}: the Theme update failed");
                 continue;
             }
-            if (!empty($update['needsStudio'])) {
+            if (!empty($update['needsStudio']) || !empty($update['needsTheme'])) {
                 $result['skipped'][] = $handle;
-                $log("SKIPPED {$handle}: {$update['needsStudio']}");
+                $log("SKIPPED {$handle}: " . ($update['needsStudio'] ?? $update['needsTheme']));
                 continue;
             }
             if (!$update['entitled']) {

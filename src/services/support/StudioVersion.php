@@ -27,6 +27,13 @@ class StudioVersion
      */
     public const THEME_PACKAGE = '1.1.0';
 
+    /**
+     * The release that checks a design's minimumThemeVersion (ThemeVersion,
+     * docs/60 §4b): a design that has one needs at least this one, so Commerce24
+     * never offers it to a Site7 Studio that would install it on too old a Theme.
+     */
+    public const DESIGN_THEME_GATE = '1.2.0';
+
     /** A version string as MAJOR.MINOR.PATCH; anything else (missing, a branch name) is 0.0.0. */
     public static function parse(mixed $version): string
     {

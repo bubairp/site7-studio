@@ -33,6 +33,7 @@
                         <td>
                             {{ u.releaseNotes ?: '–' }}
                             {% if u.needsStudio ?? false %}<br><span class="warning">{{ u.needsStudio }}</span>
+                            {% elseif u.needsTheme ?? false %}<br><span class="warning">{{ u.needsTheme }}</span>
                             {% elseif not u.supported %}<br><span class="warning">{{ u.type|title }} updates aren't supported yet.</span>{% endif %}
                             {% if not u.entitled %}<br><span class="error">Not in your plan.</span>{% endif %}
                             {% if u.alsoInstalls ?? [] %}<br><span class="light">Also installs: {{ u.alsoInstalls|join(', ') }}</span>{% endif %}

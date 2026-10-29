@@ -5,6 +5,7 @@ namespace site7\studio\services\design;
 use Craft;
 use craft\helpers\FileHelper;
 use site7\studio\services\support\PackageArchiveHelper;
+use site7\studio\services\support\ThemeVersion;
 use site7\studio\records\PackageRecord;
 use site7\studio\services\library\LibraryUpdater;
 use site7\studio\Site7Studio;
@@ -26,6 +27,7 @@ class DesignInstaller
         $packageDir = self::packageDir($record);
         $handle = self::designHandle($packageDir);
         self::assertCanChangeFiles();
+        self::assertThemeVersion($packageDir, (string)$record->name);
         $root = self::root();
         $report = LibraryUpdater::emptyReport();
         $baselines = Site7Studio::getInstance()->installedFileBaseline;
@@ -195,6 +197,22 @@ class DesignInstaller
     }
 
     /** Designs change files and the active design is project config: development site only (docs/60 §4). */
+    /**
+     * Refuses a design whose design.json names a newer Theme than this site has
+     * (ThemeVersion): the site's build tooling comes with the Theme, and an older
+     * one would skip building it at the next deploy. Install and update both ask.
+     *
+     * @throws \Exception
+     */
+    public static function assertThemeVersion(string $packageDir, string $name): void
+    {
+        $meta = json_decode((string)@file_get_contents("{$packageDir}/" . DesignBuilder::META_FILE), true) ?: [];
+        $minimum = (string)($meta['minimumThemeVersion'] ?? '');
+        if (!ThemeVersion::satisfies($minimum)) {
+            throw new \Exception(ThemeVersion::refusal($name !== '' ? $name : (string)($meta['name'] ?? 'This design'), $minimum));
+        }
+    }
+
     public static function assertCanChangeFiles(): void
     {
         if (!Craft::$app->getConfig()->getGeneral()->allowAdminChanges) {

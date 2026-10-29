@@ -102,6 +102,8 @@ A Theme built on the `site7/theme` package (`49` §2e) removes the core template
 
 Reference implementation and tests: the stand-in, `rp-craft/commerce24/src/Commerce24.php` (`studioVersion()`, `allows()`, `offeredVersion()`, `catalog()`, `download()`, `versions()`) and `rp-craft/commerce24/tests/gate-test.php` (25 checks: no header, `dev-main`, `1.0.0`, `1.1.0`, `2.0.0`). The Laravel app must pass the same cases before a gated Theme is published to it.
 
+A design can also name the lowest **Theme** it builds with (`metadata.library.minimumThemeVersion`, docs/60 §4b). Commerce24 isn't told the site's Theme version and doesn't filter on it; only the site checks it (`ThemeVersion`), and only from Site7 Studio 1.2.0. So such a design is also published with `minimumSite7Version` `1.2.0` (`StudioVersion::DESIGN_THEME_GATE`, `RELEASE` raised to 1.2.0 on 2026-10-29): the gate above never offers it to an older plugin that would skip the Theme check.
+
 The site checks it too, for archives that arrive another way or a Commerce24 without the gate (`StudioVersion`): import refuses a package whose `minimumSite7Version` is above `RELEASE`, so do the Theme install check and the Theme update, and Updates lists such an update as "update Site7 Studio first" and skips it.
 
 ## 5a. Local Laravel Commerce24 (`~/my-project/commerce24`, since 2026-10-05)
