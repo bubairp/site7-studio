@@ -15,13 +15,18 @@ designs/<handle>/
   design.json      name, version, contract version, reference
   DESIGN.md        the design's rules (colours, type, components)
   templates/       only the files it changes, same paths as templates/
-  src/css/<handle>.css   Tailwind entry: the site's app.css + the design's role tokens
-web/designs/<handle>/    the build (Vite manifest, CSS, JS, fonts)
+  frontend/src/    laid out like the theme package's frontend/src:
+    css/<handle>.css   Tailwind entry: the site's app.css + the design's role tokens
+    js/<handle>.js     optional: the design's own script, runs after the theme's JS
+    images/            optional: images the CSS (url('../images/…')) or JS (import) uses
+web/designs/<handle>/    the build (Vite manifest, CSS, JS, img, fonts)
 ```
+
+Designs made before 2026-10-29 keep their sources in `src/` instead of `frontend/src/`; `vite.design.mjs`, `build-designs.mjs`, `DesignBuilder` and `scripts/design.sh` read `frontend/src/` first and fall back to `src/`, so those still build. Images reach the build only through the CSS or JS (Vite hashes their names into `img/`); a template can't point at them by path.
 
 `contract` in `design.json` names the Theme template structure the design was written for, as a label; no code reads it. **Contract 1** (Theme 1.5.0+): detail pages are split into data (`entries/channels/<type>.twig`, not overridden) and markup (`_layouts/detail/<type>.twig`, overridable), with the shared `_components/page-style.twig` and `_components/listing-filter.twig` (rp-craft `DESIGN.md` §11 "Detail layouts" lists the variables a layout gets). Whether a design actually works on a site is checked file by file instead (§4c): overrides the site never renders (`DesignReachability::forSite()`) and templates the design includes that the site lacks (`missingForSite()`, Activate refused). Raise the number only when the Theme changes that structure in a way older designs can't follow, and say what changed here.
 
-Built in `frontend/` with `DESIGN=<handle> npx vite build --config vite.design.mjs`: the same entries as the site's own build, with `./css/app.css` swapped for the design's CSS, so templates keep calling `craft.vite.script('src/index.js')`.
+Built in `frontend/` with `DESIGN=<handle> npx vite build --config vite.design.mjs`: the same entries as the site's own build, with `./css/app.css` swapped for the design's CSS, so templates keep calling `craft.vite.script('src/index.js')`. When the design has `js/<handle>.js`, the site entry's import of the theme's `main.js` is swapped for a module that imports `main.js` and then the design's script (the `site7-design-script` plugin in `vite.design.mjs`), so it runs after the theme's JS in the same bundle. A design's script should keep to its own interaction; behaviour every design needs belongs in the theme. A site whose Theme predates this builds the design without its script.
 
 Designs restyle through **role tokens** (rp-craft `frontend/src/css/theme.css`, `DESIGN.md` §2): `--surface`, `--surface-alt`, `--surface-dark`, `--line`, `--text-strong/-body/-muted`, `--on-dark`, `--primary` (CTA fill), `--on-primary`, `--accent` (accent text and strokes), heading weight/tracking/`<em>` style, `--quote-weight`. CMS library colours that are the default design's palette render as roles through the host's `|roleColor` Twig filter.
 
@@ -68,11 +73,11 @@ design.json     the design's design.json + formatVersion, theme {handle, version
                 name]} (DesignReachability::includedBy(); overrides reached only
                 through a computed name - blocks, card variants - have none)
 README.md       the design's DESIGN.md
-files/designs/<handle>/       templates, src, design.json, DESIGN.md
+files/designs/<handle>/       templates, frontend/src (or src), design.json, DESIGN.md
 files/web/designs/<handle>/   the build
 ```
 
-The build refuses: an invalid handle; a `design.json` with another handle; no `templates/`; no build, or a build older than `designs/<handle>/src` or `frontend/src`; a build missing entries the site's own manifest has; any file that could run as code or reconfigure the server (`.php` and friends anywhere in the name, `.htaccess`, `.user.ini`, `web.config`, shell scripts) or a symlink (`DesignBuilder::forbiddenFiles()`). It never runs npm. `version` in the design's `design.json` is only the first version; `library/publish` raises it from then on.
+The build refuses: an invalid handle; a `design.json` with another handle; no `templates/`; no build, or a build older than `designs/<handle>/frontend/src` (or `src`) or `frontend/src`; a build missing entries the site's own manifest has; any file that could run as code or reconfigure the server (`.php` and friends anywhere in the name, `.htaccess`, `.user.ini`, `web.config`, shell scripts) or a symlink (`DesignBuilder::forbiddenFiles()`). It never runs npm. `version` in the design's `design.json` is only the first version; `library/publish` raises it from then on.
 
 Distribution: `design` is a `LibraryDistribution::KINDS` type (marker `design.json`), its `design.json` goes into the catalog metadata as `library` (Theme version, overrides), it downloads right after the Theme, and `LibraryDistribution::versions($handle)` lists the published versions (`GET /marketplace/versions/{handle}`, `52` §5; console `site7-studio/design/versions <package>`).
 
@@ -106,7 +111,7 @@ Verified 2026-10-22 on rp-craft in headless Chromium (logged in with `users/impe
 
 ## 4d. Release and deploy (phase 5, 2026-10-22)
 
-- **Every server builds its designs.** The site's `frontend/package.json` `build` script runs `build-designs.mjs` after its own build: every `designs/<handle>` with `src/css/<handle>.css` is built with `vite.design.mjs` into `web/designs/<handle>`. A deploy that runs `npm run build` (rp-craft's `pipelines/deploy.sh`, customer servers) builds the designs installed there with the JS it has, so no deploy script needs to know about designs. `npm run build:designs` builds only the designs. Both files are in `frontend/`, so they reach customer sites with the Theme.
+- **Every server builds its designs.** The site's `frontend/package.json` `build` script runs `build-designs.mjs` after its own build: every `designs/<handle>` with `frontend/src/css/<handle>.css` (or `src/css/<handle>.css`) is built with `vite.design.mjs` into `web/designs/<handle>`. A deploy that runs `npm run build` (rp-craft's `pipelines/deploy.sh`, customer servers) builds the designs installed there with the JS it has, so no deploy script needs to know about designs. `npm run build:designs` builds only the designs. Both files are in `frontend/`, so they reach customer sites with the Theme.
 - **Never in git.** `DesignInstaller` writes `web/designs/.gitignore` (`*`, `!.gitignore`) the first time it installs a design, so a customer repository never tracks built output whatever its root `.gitignore` says; rp-craft also ignores `/web/designs`. `designs/<handle>` (the design's source and the customer's edits) is tracked and deployed.
 - **`scripts/release.sh`** (rp-craft): `check` validates each `designs/*/design.json`; `build` runs `npm run build` (designs included) and `design/build` per design; `publish` publishes design packages like the others; `test` (existing customer) installs each design on site7-qa from Commerce24, opens every page through a preview link, activates it, activates the default again and removes it (`qa_designs`). Console `site7-studio/design/activate <handle|default>` exists for this.
 

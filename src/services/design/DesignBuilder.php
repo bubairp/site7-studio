@@ -15,7 +15,7 @@ use site7\studio\Site7Studio;
  *   manifest.json   type "design", requires the Theme it was built on
  *   design.json     the design's own design.json, plus the Theme version, a
  *                   hash of the frontend JS, and the base templates it overrides
- *   files/designs/<handle>/      template overrides, CSS source, design.json, DESIGN.md
+ *   files/designs/<handle>/      template overrides, frontend sources, design.json, DESIGN.md
  *   files/web/designs/<handle>/  the build (customers never run npm to use it)
  *
  * It never runs npm: build the design first, in frontend/:
@@ -54,9 +54,11 @@ class DesignBuilder extends Component
         if (!is_file($manifest)) {
             throw new \Exception("No build in web/designs/{$designHandle}. In frontend/: DESIGN={$designHandle} npx vite build --config vite.design.mjs");
         }
-        $sourceTime = max(self::newestFile("{$source}/src"), ...array_values(array_map([self::class, 'newestFile'], self::frontendSourceDirs($root))));
+        // A design's sources: frontend/src (laid out like the theme package), or src in a
+        // design made before that; a missing folder counts as 0
+        $sourceTime = max(self::newestFile("{$source}/frontend/src"), self::newestFile("{$source}/src"), ...array_values(array_map([self::class, 'newestFile'], self::frontendSourceDirs($root))));
         if (filemtime($manifest) < $sourceTime) {
-            throw new \Exception("web/designs/{$designHandle} is older than its sources (designs/{$designHandle}/src, frontend/src or the theme package's frontend/src). Build it again first.");
+            throw new \Exception("web/designs/{$designHandle} is older than its sources (designs/{$designHandle}/frontend/src, frontend/src or the theme package's frontend/src). Build it again first.");
         }
         $siteManifest = ThemeBuilder::builtFrontendPath($root);
         if ($siteManifest !== null) {
